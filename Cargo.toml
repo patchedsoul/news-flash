@@ -1,0 +1,6 @@
+[package]
+name = "news_flash_gtk"
+version = "0.1.0"
+authors = ["Jan Lukas Gernert <jangernert@gmail.com>"]
+
+[dependencies]
