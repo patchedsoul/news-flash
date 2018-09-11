@@ -1,13 +1,33 @@
 extern crate gio;
 extern crate gtk;
+extern crate gdk;
+#[macro_use]
+extern crate rust_embed;
+
+mod sidebar;
 
 use std::env::args;
+use std::str;
 use gio::prelude::*;
 use gtk::prelude::*;
+use sidebar::feed_list::category::Category;
+
+#[derive(RustEmbed)]
+#[folder = "resources/"]
+struct Resources;
 
 fn main() {
     let application = gtk::Application::new("com.gitlab.newsflash", gio::ApplicationFlags::empty())
         .expect("Initialization failed...");
+
+    let provider = gtk::CssProvider::new();
+    let css_data = Resources::get("css/app.css").unwrap();
+    gtk::CssProvider::load_from_data(&provider, &css_data).unwrap();
+    gtk::StyleContext::add_provider_for_screen(
+        &gdk::Screen::get_default().unwrap(),
+        &provider,
+        600,
+    );
 
     application.connect_startup(move |app| {
         let window = gtk::ApplicationWindow::new(app);
@@ -22,9 +42,9 @@ fn main() {
             Inhibit(false)
         });
 
-        let button = gtk::Button::new_with_label("Click me!");
+        let category = Category::new("test123");
 
-        window.add(&button);
+        window.add(&category.widget);
 
         window.show_all();
     });
