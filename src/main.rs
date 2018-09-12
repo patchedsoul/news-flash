@@ -3,6 +3,7 @@ extern crate gtk;
 extern crate gdk;
 #[macro_use]
 extern crate rust_embed;
+extern crate news_flash;
 
 mod sidebar;
 
@@ -11,6 +12,9 @@ use std::str;
 use gio::prelude::*;
 use gtk::prelude::*;
 use sidebar::feed_list::category::Category;
+use news_flash::models::{
+    CategoryID,
+};
 
 #[derive(RustEmbed)]
 #[folder = "resources/"]
@@ -42,7 +46,7 @@ fn main() {
             Inhibit(false)
         });
 
-        let category = Category::new("test123");
+        let category = Category::new(CategoryID::new("test123"), "test123");
 
         window.add(&category.widget);
 

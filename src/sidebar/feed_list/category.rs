@@ -10,16 +10,20 @@ use gdk::{
     EventMask,
     EventType,
 };
+use news_flash::models::{
+    CategoryID,
+};
 use std::str;
 use Resources;
 
 #[derive(Clone, Debug)]
 pub struct Category {
+    pub id: CategoryID,
     pub(crate) widget: gtk::Box,
 }
 
 impl Category {
-    pub fn new(label: &str) -> Self {
+    pub fn new(id: CategoryID, label: &str) -> Self {
         let ui_data = Resources::get("ui/category.ui").unwrap();
         let ui_string = str::from_utf8(&ui_data).unwrap();
         let builder = gtk::Builder::new_from_string(ui_string);
@@ -63,6 +67,7 @@ impl Category {
         });
 
         Category {
+            id: id,
             widget: category,
         }
     }
