@@ -2,6 +2,7 @@ use gtk::{
     self,
     LabelExt,
     WidgetExt,
+    RevealerExt,
     StyleContextExt,
     BinExt,
 };
@@ -23,6 +24,7 @@ impl Category {
         let ui_string = str::from_utf8(&ui_data).unwrap();
         let builder = gtk::Builder::new_from_string(ui_string);
         let category : gtk::Box = builder.get_object("category_row").unwrap();
+        let category_revealer : gtk::Revealer = builder.get_object("category_revealer").unwrap();
         
         let label_widget : gtk::Label = builder.get_object("category_title").unwrap();
         label_widget.set_label(label);
@@ -43,16 +45,18 @@ impl Category {
         arrow_event.connect_button_press_event(move |widget, event| {
             if event.get_event_type() == EventType::ButtonPress {
                 let arrow_image = widget.get_child().unwrap();
-                let context = arrow_image.clone().get_style_context().unwrap();
+                let context = arrow_image.get_style_context().unwrap();
                 let expanded = context.has_class("expanded");
 
                 if expanded {
                     context.remove_class("expanded");
                     context.add_class("collapsed");
+                    category_revealer.set_reveal_child(false);
                 }
                 else {
                     context.add_class("expanded");
                     context.remove_class("collapsed");
+                    category_revealer.set_reveal_child(true);
                 }
             }
             gtk::Inhibit(false)
