@@ -2,71 +2,102 @@
 <!-- Generated with glade 3.22.1 -->
 <interface>
   <requires lib="gtk+" version="3.20"/>
-  <object class="GtkBox" id="feed_row">
+  <object class="GtkRevealer" id="feed_row">
     <property name="visible">True</property>
     <property name="can_focus">False</property>
     <property name="valign">start</property>
-    <property name="margin_left">24</property>
-    <property name="margin_top">2</property>
-    <property name="margin_bottom">2</property>
-    <property name="hexpand">True</property>
-    <property name="vexpand">True</property>
-    <property name="spacing">2</property>
+    <property name="transition_type">slide-up</property>
+    <property name="reveal_child">True</property>
     <child>
-      <object class="GtkImage" id="favicon">
-        <property name="width_request">24</property>
-        <property name="height_request">24</property>
+      <object class="GtkBox">
+        <property name="height_request">30</property>
         <property name="visible">True</property>
         <property name="can_focus">False</property>
-      </object>
-      <packing>
-        <property name="expand">False</property>
-        <property name="fill">True</property>
-        <property name="position">0</property>
-      </packing>
-    </child>
-    <child>
-      <object class="GtkLabel" id="feed_title">
-        <property name="name">category_label</property>
-        <property name="visible">True</property>
-        <property name="can_focus">False</property>
-        <property name="label" translatable="yes">Feed Title</property>
-        <property name="ellipsize">end</property>
-        <property name="xalign">0</property>
-        <property name="yalign">0.5</property>
-        <style>
-          <class name="category-label"/>
-        </style>
-      </object>
-      <packing>
-        <property name="expand">True</property>
-        <property name="fill">True</property>
-        <property name="position">1</property>
-      </packing>
-    </child>
-    <child>
-      <object class="GtkEventBox">
-        <property name="width_request">24</property>
-        <property name="visible">True</property>
-        <property name="can_focus">False</property>
+        <property name="hexpand">True</property>
+        <property name="vexpand">True</property>
+        <property name="spacing">2</property>
         <child>
-          <object class="GtkLabel" id="item_count">
-            <property name="name">item_count</property>
+          <object class="GtkImage" id="favicon">
+            <property name="width_request">24</property>
+            <property name="height_request">24</property>
             <property name="visible">True</property>
             <property name="can_focus">False</property>
-            <property name="valign">center</property>
-            <property name="label" translatable="yes">0</property>
+            <property name="margin_left">2</property>
+            <property name="stock">gtk-missing-image</property>
+          </object>
+          <packing>
+            <property name="expand">False</property>
+            <property name="fill">True</property>
+            <property name="position">0</property>
+          </packing>
+        </child>
+        <child>
+          <object class="GtkLabel" id="feed_title">
+            <property name="name">category_label</property>
+            <property name="visible">True</property>
+            <property name="can_focus">False</property>
+            <property name="label" translatable="yes">Feed Title</property>
+            <property name="ellipsize">end</property>
+            <property name="xalign">0</property>
+            <property name="yalign">0.5</property>
             <style>
-              <class name="item-count"/>
+              <class name="category-label"/>
             </style>
           </object>
+          <packing>
+            <property name="expand">True</property>
+            <property name="fill">True</property>
+            <property name="position">1</property>
+          </packing>
+        </child>
+        <child>
+          <object class="GtkEventBox">
+            <property name="width_request">24</property>
+            <property name="visible">True</property>
+            <property name="can_focus">False</property>
+            <property name="margin_right">2</property>
+            <child>
+              <object class="GtkStack" id="item_count_stack">
+                <property name="visible">True</property>
+                <property name="can_focus">False</property>
+                <child>
+                  <object class="GtkLabel" id="item_count">
+                    <property name="name">item_count</property>
+                    <property name="visible">True</property>
+                    <property name="can_focus">False</property>
+                    <property name="valign">center</property>
+                    <property name="label" translatable="yes">0</property>
+                    <style>
+                      <class name="item-count"/>
+                    </style>
+                  </object>
+                  <packing>
+                    <property name="name">page0</property>
+                    <property name="title" translatable="yes">page0</property>
+                  </packing>
+                </child>
+                <child>
+                  <object class="GtkImage">
+                    <property name="visible">True</property>
+                    <property name="can_focus">False</property>
+                    <property name="stock">gtk-missing-image</property>
+                  </object>
+                  <packing>
+                    <property name="name">page1</property>
+                    <property name="title" translatable="yes">page1</property>
+                    <property name="position">1</property>
+                  </packing>
+                </child>
+              </object>
+            </child>
+          </object>
+          <packing>
+            <property name="expand">False</property>
+            <property name="fill">True</property>
+            <property name="position">2</property>
+          </packing>
         </child>
       </object>
-      <packing>
-        <property name="expand">False</property>
-        <property name="fill">True</property>
-        <property name="position">2</property>
-      </packing>
     </child>
   </object>
 </interface>

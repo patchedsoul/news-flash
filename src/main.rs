@@ -12,8 +12,7 @@ use std::str;
 use gio::prelude::*;
 use gtk::prelude::*;
 use sidebar::{
-    Category,
-    Feed,
+    FeedList,
 };
 use news_flash::models::{
     Category as CategoryModel,
@@ -43,8 +42,8 @@ fn main() {
     application.connect_startup(move |app| {
         let window = gtk::ApplicationWindow::new(app);
 
-        window.set_title("First GTK+ Program");
-        window.set_border_width(10);
+        window.set_title("FeedList test");
+        window.set_border_width(0);
         window.set_position(gtk::WindowPosition::Center);
         window.set_default_size(350, 70);
 
@@ -67,14 +66,11 @@ fn main() {
             icon_url: None,
             order_id: None,
         };
-        let feed_1 = Feed::new(&feed_1, &category.category_id);
 
-        let category = Category::new(&category);
-        category.add_feed(&feed_1);
-
-        
-
-        window.add(&category.widget);
+        let mut list = FeedList::new();
+        list.add_category(&category);
+        list.add_feed(&feed_1, &category.category_id);
+        window.add(&list.widget);
 
         window.show_all();
     });

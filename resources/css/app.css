@@ -1,6 +1,26 @@
-window,
-list {
+.feedlist {
   background: #555;
+}
+
+.feedlist .activatable {
+	box-shadow: None;
+}
+
+.feedlist row {
+	border-top: none;
+  border-bottom: none;
+  padding: 0;
+}
+
+.feedlist row:not(.hidden) {
+	border-top: 1px solid alpha (black, 0);
+	border-bottom: 1px solid alpha (black, 0);
+}
+
+.feedlist row:selected {
+	background: linear-gradient(#6f6f6f, #747474, #6f6f6f);
+	border-top: 1px solid alpha(black, 0.15);
+	border-bottom: 1px solid alpha(black, 0.15);
 }
 
 .category-label {

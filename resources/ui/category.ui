@@ -2,22 +2,17 @@
 <!-- Generated with glade 3.22.1 -->
 <interface>
   <requires lib="gtk+" version="3.20"/>
-  <object class="GtkBox" id="category_row">
-    <property name="width_request">150</property>
-    <property name="height_request">24</property>
+  <object class="GtkRevealer" id="category_row">
     <property name="visible">True</property>
     <property name="can_focus">False</property>
     <property name="valign">start</property>
-    <property name="orientation">vertical</property>
+    <property name="transition_type">slide-up</property>
+    <property name="reveal_child">True</property>
     <child>
       <object class="GtkBox">
+        <property name="height_request">30</property>
         <property name="visible">True</property>
         <property name="can_focus">False</property>
-        <property name="valign">start</property>
-        <property name="margin_left">2</property>
-        <property name="margin_right">2</property>
-        <property name="margin_top">2</property>
-        <property name="margin_bottom">2</property>
         <property name="hexpand">True</property>
         <property name="vexpand">True</property>
         <property name="spacing">2</property>
@@ -27,6 +22,7 @@
             <property name="height_request">24</property>
             <property name="visible">True</property>
             <property name="can_focus">False</property>
+            <property name="margin_left">2</property>
             <child>
               <object class="GtkImage" id="arrow_image">
                 <property name="visible">True</property>
@@ -65,16 +61,39 @@
             <property name="width_request">24</property>
             <property name="visible">True</property>
             <property name="can_focus">False</property>
+            <property name="margin_right">2</property>
             <child>
-              <object class="GtkLabel" id="item_count">
-                <property name="name">item_count</property>
+              <object class="GtkStack" id="item_count_stack">
                 <property name="visible">True</property>
                 <property name="can_focus">False</property>
-                <property name="valign">center</property>
-                <property name="label" translatable="yes">0</property>
-                <style>
-                  <class name="item-count"/>
-                </style>
+                <child>
+                  <object class="GtkLabel" id="item_count">
+                    <property name="name">item_count</property>
+                    <property name="visible">True</property>
+                    <property name="can_focus">False</property>
+                    <property name="valign">center</property>
+                    <property name="label" translatable="yes">0</property>
+                    <style>
+                      <class name="item-count"/>
+                    </style>
+                  </object>
+                  <packing>
+                    <property name="name">page0</property>
+                    <property name="title" translatable="yes">page0</property>
+                  </packing>
+                </child>
+                <child>
+                  <object class="GtkImage">
+                    <property name="visible">True</property>
+                    <property name="can_focus">False</property>
+                    <property name="stock">gtk-missing-image</property>
+                  </object>
+                  <packing>
+                    <property name="name">page1</property>
+                    <property name="title" translatable="yes">page1</property>
+                    <property name="position">1</property>
+                  </packing>
+                </child>
               </object>
             </child>
           </object>
@@ -85,35 +104,6 @@
           </packing>
         </child>
       </object>
-      <packing>
-        <property name="expand">False</property>
-        <property name="fill">True</property>
-        <property name="position">0</property>
-      </packing>
     </child>
-    <child>
-      <object class="GtkRevealer" id="category_revealer">
-        <property name="name">subcategory_revealer</property>
-        <property name="visible">True</property>
-        <property name="can_focus">False</property>
-        <property name="valign">start</property>
-        <child>
-          <object class="GtkListBox" id="feed_list">
-            <property name="name">subcategory_list</property>
-            <property name="height_request">150</property>
-            <property name="visible">True</property>
-            <property name="can_focus">False</property>
-          </object>
-        </child>
-      </object>
-      <packing>
-        <property name="expand">False</property>
-        <property name="fill">True</property>
-        <property name="position">1</property>
-      </packing>
-    </child>
-    <style>
-      <class name="container-box"/>
-    </style>
   </object>
 </interface>
