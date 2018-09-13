@@ -4,6 +4,7 @@ use gtk::{
     WidgetExt,
     RevealerExt,
     StyleContextExt,
+    ListBoxExt,
     BinExt,
 };
 use gdk::{
@@ -11,8 +12,10 @@ use gdk::{
     EventType,
 };
 use news_flash::models::{
+    Category as CategoryModel,
     CategoryID,
 };
+use super::feed::Feed;
 use std::str;
 use Resources;
 
@@ -20,18 +23,20 @@ use Resources;
 pub struct Category {
     pub id: CategoryID,
     pub(crate) widget: gtk::Box,
+    feed_list: gtk::ListBox,
 }
 
 impl Category {
-    pub fn new(id: CategoryID, label: &str) -> Self {
+    pub fn new(model: &CategoryModel) -> Self {
         let ui_data = Resources::get("ui/category.ui").unwrap();
         let ui_string = str::from_utf8(&ui_data).unwrap();
         let builder = gtk::Builder::new_from_string(ui_string);
         let category : gtk::Box = builder.get_object("category_row").unwrap();
         let category_revealer : gtk::Revealer = builder.get_object("category_revealer").unwrap();
+        let list_box : gtk::ListBox = builder.get_object("feed_list").unwrap();
         
         let label_widget : gtk::Label = builder.get_object("category_title").unwrap();
-        label_widget.set_label(label);
+        label_widget.set_label(&model.label);
 
         let arrow_event : gtk::EventBox = builder.get_object("arrow_event").unwrap();
         arrow_event.set_events(EventMask::BUTTON_PRESS_MASK.bits() as i32);
@@ -67,8 +72,13 @@ impl Category {
         });
 
         Category {
-            id: id,
+            id: model.category_id.clone(),
             widget: category,
+            feed_list: list_box,
         }
+    }
+
+    pub fn add_feed(&self, feed: &Feed) {
+        self.feed_list.insert(&feed.widget, -1);
     }
 }

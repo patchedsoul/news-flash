@@ -11,9 +11,16 @@ use std::env::args;
 use std::str;
 use gio::prelude::*;
 use gtk::prelude::*;
-use sidebar::feed_list::category::Category;
+use sidebar::{
+    Category,
+    Feed,
+};
 use news_flash::models::{
+    Category as CategoryModel,
+    Feed as FeedModel,
     CategoryID,
+    FeedID,
+    NEWSFLASH_TOPLEVEL,
 };
 
 #[derive(RustEmbed)]
@@ -46,7 +53,26 @@ fn main() {
             Inhibit(false)
         });
 
-        let category = Category::new(CategoryID::new("test123"), "test123");
+        let category = CategoryModel {
+            category_id: CategoryID::new("test123"),
+            label: "test123".to_owned(),
+            sort_index: None,
+            parent: NEWSFLASH_TOPLEVEL.clone(),
+        };
+        let feed_1 = FeedModel {
+            feed_id: FeedID::new("feed_1"),
+            label: "Feed 1".to_owned(),
+            website: None,
+            feed_url: None,
+            icon_url: None,
+            order_id: None,
+        };
+        let feed_1 = Feed::new(&feed_1, &category.category_id);
+
+        let category = Category::new(&category);
+        category.add_feed(&feed_1);
+
+        
 
         window.add(&category.widget);
 

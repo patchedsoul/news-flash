@@ -24,6 +24,7 @@
         <child>
           <object class="GtkEventBox" id="arrow_event">
             <property name="width_request">24</property>
+            <property name="height_request">24</property>
             <property name="visible">True</property>
             <property name="can_focus">False</property>
             <child>
@@ -65,10 +66,11 @@
             <property name="visible">True</property>
             <property name="can_focus">False</property>
             <child>
-              <object class="GtkLabel">
+              <object class="GtkLabel" id="item_count">
                 <property name="name">item_count</property>
                 <property name="visible">True</property>
                 <property name="can_focus">False</property>
+                <property name="valign">center</property>
                 <property name="label" translatable="yes">0</property>
                 <style>
                   <class name="item-count"/>
@@ -96,12 +98,11 @@
         <property name="can_focus">False</property>
         <property name="valign">start</property>
         <child>
-          <object class="GtkListBox">
+          <object class="GtkListBox" id="feed_list">
             <property name="name">subcategory_list</property>
             <property name="height_request">150</property>
             <property name="visible">True</property>
             <property name="can_focus">False</property>
-            <property name="margin_left">24</property>
           </object>
         </child>
       </object>
