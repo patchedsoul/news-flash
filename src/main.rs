@@ -52,9 +52,9 @@ fn main() {
             Inhibit(false)
         });
 
-        let category = CategoryModel {
-            category_id: CategoryID::new("test123"),
-            label: "test123".to_owned(),
+        let category_1 = CategoryModel {
+            category_id: CategoryID::new("category_1"),
+            label: "category 1".to_owned(),
             sort_index: None,
             parent: NEWSFLASH_TOPLEVEL.clone(),
         };
@@ -64,12 +64,37 @@ fn main() {
             website: None,
             feed_url: None,
             icon_url: None,
-            order_id: None,
+            sort_index: Some(2),
+        };
+        let feed_2 = FeedModel {
+            feed_id: FeedID::new("feed_2"),
+            label: "Feed 2".to_owned(),
+            website: None,
+            feed_url: None,
+            icon_url: None,
+            sort_index: Some(0),
+        };
+        let category_2 = CategoryModel {
+            category_id: CategoryID::new("category_2"),
+            label: "category 2".to_owned(),
+            sort_index: Some(1),
+            parent: CategoryID::new("category_1"),
+        };
+        let feed_3 = FeedModel {
+            feed_id: FeedID::new("feed_3"),
+            label: "Feed 3".to_owned(),
+            website: None,
+            feed_url: None,
+            icon_url: None,
+            sort_index: Some(0),
         };
 
         let mut list = FeedList::new();
-        list.add_category(&category);
-        list.add_feed(&feed_1, &category.category_id);
+        list.add_category(&category_1);
+        list.add_category(&category_2);
+        list.add_feed(&feed_1, &category_1.category_id);
+        list.add_feed(&feed_2, &category_1.category_id);
+        list.add_feed(&feed_3, &category_2.category_id);
         window.add(&list.widget);
 
         window.show_all();

@@ -8,10 +8,11 @@ use news_flash::models::{
     Feed as FeedModel,
     CategoryID,
     FeedID,
+    NEWSFLASH_TOPLEVEL,
 };
 use sidebar::{
-    Category,
-    Feed,
+    CategoryRow,
+    FeedRow,
 };
 use gtk::{
     self,
@@ -29,8 +30,8 @@ type HandleMap<T, K> = Handle<HashMap<T, K>>;
 #[derive(Clone, Debug)]
 pub struct FeedList {
     pub(crate) widget: gtk::ListBox,
-    categories: HandleMap<CategoryID, Handle<Category>>,
-    feeds: HandleMap<FeedID, Handle<Feed>>,
+    categories: HandleMap<CategoryID, Handle<CategoryRow>>,
+    feeds: HandleMap<FeedID, Handle<FeedRow>>,
     mappings: HandleMap<CategoryID, Vec<FeedID>>,
 }
 
@@ -50,41 +51,30 @@ impl FeedList {
     }
 
     pub fn add_category(&mut self, category: &CategoryModel) {
-        let category_widget = Category::new(category);
+        let level = self.calculate_level(&category.parent);
+        let category_widget = CategoryRow::new(category, level);
         let mappings = self.mappings.clone();
         let feeds = self.feeds.clone();
         let categories = self.categories.clone();
         let category_id = category.category_id.clone();
-        self.widget.insert(&category_widget.borrow().row(), -1);
+        let pos = self.calculate_position(category.sort_index, &category.parent);
+        self.widget.insert(&category_widget.borrow().row(), pos);
         {
             categories.borrow_mut().insert(category.category_id.clone(), category_widget.clone());
         }
         category_widget.borrow().expander_event().connect_button_press_event(move |_widget, event| {
             if event.get_event_type() == EventType::ButtonPress {
-                if let Some(category_handle) = categories.borrow().get(&category_id) {
-                    let expaneded = category_handle.borrow().is_expaneded();
-                    if let Some(feed_id_vec) = mappings.borrow().get(&category_id) {
-                        for feed_id in feed_id_vec {
-                            if let Some(feed_handle) = feeds.borrow().get(feed_id) {
-                                // expanded has been set already, now only apply to feeds
-                                if expaneded {
-                                    feed_handle.borrow().expand();
-                                }
-                                else {
-                                    feed_handle.borrow().collapse();
-                                }
-                            }
-                        }
-                    }
-                }
+                Self::collapse_expand_category(&category_id, &mappings, &categories, &feeds);
             }
             gtk::Inhibit(true)
         });
     }
 
     pub fn add_feed(&mut self, feed: &FeedModel, parent: &CategoryID) {
-        let feed_widget = Feed::new(feed);
-        self.widget.insert(&feed_widget.borrow().row(), -1);
+        let level = self.calculate_level(parent);
+        let feed_widget = FeedRow::new(feed, level);
+        let pos = self.calculate_position(feed.sort_index, parent);
+        self.widget.insert(&feed_widget.borrow().row(), pos);
         {
             self.feeds.borrow_mut().insert(feed.feed_id.clone(), feed_widget);
         }
@@ -101,5 +91,127 @@ impl FeedList {
         {
             self.mappings.borrow_mut().insert(parent.clone(), vec![feed.feed_id.clone()]);
         }
+    }
+
+    fn collapse_expand_category(
+        id: &CategoryID,
+        mappings: &HandleMap<CategoryID, Vec<FeedID>>,
+        categories: &HandleMap<CategoryID, Handle<CategoryRow>>,
+        feeds: &HandleMap<FeedID, Handle<FeedRow>>) {
+
+        let subcategories = Self::get_subcategories(id, categories);
+
+        if let Some(category_handle) = categories.borrow().get(id) {
+            let expanded = category_handle.borrow().is_expaneded();
+            Self::collapse_expand_feeds(id, expanded, mappings, feeds);
+            if let Some(subcategories) = subcategories {
+                for subcategory in subcategories {
+                    Self::collapse_expand_subcategory(&subcategory, expanded, mappings, categories, feeds);
+                }
+            }
+        }
+    }
+
+    fn collapse_expand_subcategory(
+        id: &CategoryID,
+        expand: bool,
+        mappings: &HandleMap<CategoryID, Vec<FeedID>>,
+        categories: &HandleMap<CategoryID, Handle<CategoryRow>>,
+        feeds: &HandleMap<FeedID, Handle<FeedRow>>) {
+
+        let subcategories = Self::get_subcategories(id, categories);
+        
+        if let Some(category_handle) = categories.borrow().get(id) {
+            if expand {
+                category_handle.borrow().expand();
+            }
+            else {
+                category_handle.borrow().collapse();
+            }
+            Self::collapse_expand_feeds(id, expand, mappings, feeds);
+            if let Some(subcategories) = subcategories {
+                for subcategory in subcategories {
+                    Self::collapse_expand_subcategory(&subcategory, expand, mappings, categories, feeds);
+                }
+            }
+        }
+    }
+
+    fn collapse_expand_feeds(
+        id: &CategoryID,
+        expand: bool,
+        mappings: &HandleMap<CategoryID, Vec<FeedID>>,
+        feeds: &HandleMap<FeedID, Handle<FeedRow>>) {
+
+        if let Some(feed_id_vec) = mappings.borrow().get(id) {
+            for feed_id in feed_id_vec {
+                if let Some(feed_handle) = feeds.borrow().get(feed_id) {
+                    if expand {
+                        feed_handle.borrow().expand();
+                    }
+                    else {
+                        feed_handle.borrow().collapse();
+                    }
+                }
+            }
+        }
+    }
+
+    fn get_subcategories(id: &CategoryID, categories: &HandleMap<CategoryID, Handle<CategoryRow>>) -> Option<Vec<CategoryID>> {
+        let mut vec : Vec<CategoryID> = Vec::new();
+        let borrowed_categories = categories.borrow();
+
+        for item in borrowed_categories.values() {
+            let category = item.borrow();
+            if &category.parent == id {
+                vec.push(category.id.clone());
+            }
+        }
+        
+        if vec.len() == 0 {
+            return None
+        }
+
+        Some(vec)
+    }
+
+    fn calculate_level(&self, parent_id: &CategoryID) -> i32 {
+        if parent_id == &NEWSFLASH_TOPLEVEL.clone() {
+            return 0
+        }
+        if let Some(handle) = self.categories.borrow().get(&parent_id) {
+            return 1 + self.calculate_level(&handle.borrow().parent)
+        }
+        0
+    }
+
+    fn calculate_position(&self, sort_index: Option<i32>, parent_id: &CategoryID) -> i32 {
+        let mappings = self.mappings.borrow();
+        let categories = self.categories.borrow();
+        let feeds = self.feeds.borrow();
+        let sibling_categories : Option<Vec<(CategoryID, Option<i32>)>> = match Self::get_subcategories(parent_id, &self.categories) {
+            Some(sibling_categories) => {
+                Some(sibling_categories.into_iter().map(|category_id| {
+                    if let Some(category) = categories.get(&category_id) {
+                        return (category_id, category.borrow().sort_index())
+                    }
+                    (category_id, None)
+                }).collect())
+            },
+            None => None,
+        };
+        let sibling_feeds : Option<Vec<(FeedID, Option<i32>)>> = match mappings.get(parent_id) {
+            Some(sibling_feeds) => {
+                Some(sibling_feeds.into_iter().map(|feed_id| {
+                    if let Some(feed) = feeds.get(&feed_id) {
+                        return (feed_id.clone(), feed.borrow().sort_index())
+                    }
+                    (feed_id.clone(), None)
+                }).collect())
+            },
+            None => None,
+        };
+
+        -1
     }
 }

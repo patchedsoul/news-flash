@@ -6,6 +6,7 @@ use gtk::{
     BinExt,
     ListBoxRowExt,
     ContainerExt,
+    RevealerExt,
 };
 use gdk::{
     EventMask,
@@ -21,20 +22,23 @@ use std::cell::RefCell;
 use Resources;
 
 #[derive(Clone, Debug)]
-pub struct Category {
+pub struct CategoryRow {
     pub id: CategoryID,
+    pub parent: CategoryID,
     widget: gtk::ListBoxRow,
     revealer: gtk::Revealer,
     arrow_event: gtk::EventBox,
     expanded: bool,
+    sort_index: Option<i32>,
 }
 
-impl Category {
-    pub fn new(model: &CategoryModel) -> Rc<RefCell<Category>> {
+impl CategoryRow {
+    pub fn new(model: &CategoryModel, level: i32) -> Rc<RefCell<CategoryRow>> {
         let ui_data = Resources::get("ui/category.ui").unwrap();
         let ui_string = str::from_utf8(&ui_data).unwrap();
         let builder = gtk::Builder::new_from_string(ui_string);
         let category : gtk::Revealer = builder.get_object("category_row").unwrap();
+        category.set_margin_start(level*24);
         
         let label_widget : gtk::Label = builder.get_object("category_title").unwrap();
         label_widget.set_label(&model.label);
@@ -43,12 +47,14 @@ impl Category {
         arrow_image.get_style_context().unwrap().add_class("expanded");
 
         let arrow_event : gtk::EventBox = builder.get_object("arrow_event").unwrap();
-        let category = Category {
+        let category = CategoryRow {
             id: model.category_id.clone(),
+            parent: model.parent.clone(),
             widget: Self::create_row(&category),
             revealer: category,
             arrow_event: arrow_event.clone(),
             expanded: true,
+            sort_index: model.sort_index,
         };
         let handle = Rc::new(RefCell::new(category));
         let handle1 = handle.clone();
@@ -109,5 +115,21 @@ impl Category {
 
     pub fn is_expaneded(&self) -> bool {
         self.expanded
+    }
+
+    pub fn collapse(&self) {
+        self.revealer.set_reveal_child(false);
+        self.revealer.get_style_context().unwrap().add_class("hidden");
+        self.widget.set_selectable(false);
+    }
+
+    pub fn expand(&self) {
+        self.revealer.set_reveal_child(true);
+        self.revealer.get_style_context().unwrap().remove_class("hidden");
+        self.widget.set_selectable(true);
+    }
+
+    pub fn sort_index(&self) -> Option<i32> {
+        self.sort_index
     }
 }
