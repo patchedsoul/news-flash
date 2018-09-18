@@ -8,7 +8,6 @@ use news_flash::models::{
     Feed as FeedModel,
     CategoryID,
     FeedID,
-    NEWSFLASH_TOPLEVEL,
 };
 use sidebar::{
     CategoryRow,
@@ -176,42 +175,12 @@ impl FeedList {
     }
 
     fn calculate_level(&self, parent_id: &CategoryID) -> i32 {
-        if parent_id == &NEWSFLASH_TOPLEVEL.clone() {
-            return 0
-        }
-        if let Some(handle) = self.categories.borrow().get(&parent_id) {
-            return 1 + self.calculate_level(&handle.borrow().parent)
-        }
+        // FIXME
         0
     }
 
     fn calculate_position(&self, sort_index: Option<i32>, parent_id: &CategoryID) -> i32 {
-        let mappings = self.mappings.borrow();
-        let categories = self.categories.borrow();
-        let feeds = self.feeds.borrow();
-        let sibling_categories : Option<Vec<(CategoryID, Option<i32>)>> = match Self::get_subcategories(parent_id, &self.categories) {
-            Some(sibling_categories) => {
-                Some(sibling_categories.into_iter().map(|category_id| {
-                    if let Some(category) = categories.get(&category_id) {
-                        return (category_id, category.borrow().sort_index())
-                    }
-                    (category_id, None)
-                }).collect())
-            },
-            None => None,
-        };
-        let sibling_feeds : Option<Vec<(FeedID, Option<i32>)>> = match mappings.get(parent_id) {
-            Some(sibling_feeds) => {
-                Some(sibling_feeds.into_iter().map(|feed_id| {
-                    if let Some(feed) = feeds.get(&feed_id) {
-                        return (feed_id.clone(), feed.borrow().sort_index())
-                    }
-                    (feed_id.clone(), None)
-                }).collect())
-            },
-            None => None,
-        };
-
+        // FIXME
         -1
     }
 }
