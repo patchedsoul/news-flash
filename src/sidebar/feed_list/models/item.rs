@@ -2,7 +2,7 @@ use std::cmp::Ordering;
 use super::category::FeedListCategoryModel;
 use super::feed::FeedListFeedModel;
 
-#[derive(Eq, Clone)]
+#[derive(Eq, Clone, Debug)]
 pub enum FeedListItem {
     Feed(FeedListFeedModel),
     Category(FeedListCategoryModel),

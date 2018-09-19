@@ -8,7 +8,7 @@ use news_flash::models::{
     Url,
 };
 
-#[derive(Eq, Clone)]
+#[derive(Eq, Clone, Debug)]
 pub struct FeedListFeedModel {
     pub id: FeedID,
     pub parent_id: CategoryID,

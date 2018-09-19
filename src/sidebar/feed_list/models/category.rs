@@ -6,7 +6,7 @@ use news_flash::models::{
     Category,
 };
 
-#[derive(Eq, Clone)]
+#[derive(Eq, Clone, Debug)]
 pub struct FeedListCategoryModel {
     pub id: CategoryID,
     pub parent_id: CategoryID,
@@ -34,8 +34,29 @@ impl FeedListCategoryModel {
     }
 
     pub fn add_child(&mut self, item: FeedListItem) {
-        self.children.push(item);
-        self.children.sort();
+        let contains_item = self.children.iter().any(|i| {
+            match &item {
+                FeedListItem::Feed(item) => {
+                    match i {
+                        FeedListItem::Feed(i) => i.id == item.id,
+                        FeedListItem::Category(_) => false,
+                    }
+                },
+                FeedListItem::Category(item) => {
+                    match i {
+                        FeedListItem::Feed(_) => false,
+                        FeedListItem::Category(i) => i.id == item.id,
+                    }
+                },
+            }
+        });
+        if !contains_item {
+            self.children.push(item);
+            self.children.sort();
+        }
+        else {
+            // FIXME: warn/error
+        }
     }
 }
 

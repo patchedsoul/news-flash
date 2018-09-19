@@ -128,8 +128,4 @@ impl CategoryRow {
         self.revealer.get_style_context().unwrap().remove_class("hidden");
         self.widget.set_selectable(true);
     }
-
-    pub fn sort_index(&self) -> Option<i32> {
-        self.sort_index
-    }
 }

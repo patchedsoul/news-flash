@@ -25,10 +25,21 @@ impl FeedListTree {
 
     pub fn add_feed(&mut self, feed: &Feed, mapping: &FeedMapping, item_count: i32) {
         if mapping.category_id == self.top_level_id {
-            let feed = FeedListFeedModel::new(feed, mapping, item_count, 0);
-            let item = FeedListItem::Feed(feed);
-            self.top_level.push(item);
-            self.top_level.sort();
+            let contains_feed = self.top_level.iter().any(|item| {
+                if let FeedListItem::Feed(item) = item {
+                    return item.id == feed.feed_id
+                }
+                false
+            });
+            if !contains_feed {
+                let feed = FeedListFeedModel::new(feed, mapping, item_count, 0);
+                let item = FeedListItem::Feed(feed);
+                self.top_level.push(item);
+                self.top_level.sort();
+            }
+            else {
+                // FIXME: warn/error
+            }
             return
         }
         if let Some((parent, level)) = self.find_category(&mapping.category_id) {
@@ -43,10 +54,22 @@ impl FeedListTree {
 
     pub fn add_category(&mut self, category: &Category, item_count: i32) {
         if category.parent == self.top_level_id {
-            let category_ = FeedListCategoryModel::new(&category, item_count, 0);
-            let item = FeedListItem::Category(category_);
-            self.top_level.push(item);
-            self.top_level.sort();
+            let contains_category = self.top_level.iter().any(|item| {
+                if let FeedListItem::Category(item) = item {
+                    return item.id == category.category_id
+                }
+                false
+            });
+            if !contains_category {
+                let category_ = FeedListCategoryModel::new(&category, item_count, 0);
+                let item = FeedListItem::Category(category_);
+                
+                self.top_level.push(item);
+                self.top_level.sort();
+            }
+            else {
+                // FIXME: warn/error
+            }
             return
         }
         if let Some((parent, level)) = self.find_category(&category.parent) {
@@ -64,18 +87,22 @@ impl FeedListTree {
         Self::search_subcategories(id, &mut self.top_level, &mut level)
     }
 
-    fn search_subcategories<'a>(id: &CategoryID, subcategories: &'a mut Vec<FeedListItem>, level: &mut i32) -> Option<(&'a mut FeedListCategoryModel, i32)> {
+    fn search_subcategories<'a>(id: &CategoryID, children: &'a mut Vec<FeedListItem>, level: &mut i32) -> Option<(&'a mut FeedListCategoryModel, i32)> {
         *level += 1;
-        for category in subcategories {
-            if let FeedListItem::Category(category) = category {
-                if &category.id == id {
+        for item in children {
+            if let FeedListItem::Category(category) = item {
+                let category_id = category.id.clone();
+                if &category_id == id {
                     return Some((category, *level))
                 }
                 else {
-                    return Self::search_subcategories(id, &mut category.children, level)
+                    if category.children.len() > 0 {
+                        return Self::search_subcategories(id, &mut category.children, level)
+                    }
                 }
             }
         }
+        *level -= 1;
         None
     }
 
@@ -95,6 +122,47 @@ impl FeedListTree {
             // iterated through both lists -> done
             if old_item.is_none() && new_item.is_none() {
                 break
+            }
+
+            // add all items after old_items ran out of items to compare
+            if let Some(new_item) = new_item {
+                if old_item.is_none() {
+                    new_index += 1;
+                    match new_item {
+                        FeedListItem::Feed(new_feed) => {
+                            diff.push(FeedListChangeSet::AddFeed(new_feed.clone(), *list_pos));
+                            *list_pos += 1;
+                        },
+                        FeedListItem::Category(new_category) => {
+                            diff.push(FeedListChangeSet::AddCategory(new_category.clone(), *list_pos));
+                            *list_pos += 1;
+                            if new_category.children.len() > 0 {
+                                diff.append(&mut Self::diff_level(&Vec::new(), &new_category.children, list_pos));
+                            }
+                        },
+                    }
+                    
+                    
+                    continue
+                }
+            }
+
+            // remove all items after new_items ran out of items to compare
+            if let Some(old_item) = old_item {
+                if new_item.is_none() {
+                    match old_item {
+                        FeedListItem::Feed(old_feed) => 
+                            diff.push(FeedListChangeSet::RemoveFeed(old_feed.id.clone())),
+                        FeedListItem::Category(old_category) => {
+                            diff.push(FeedListChangeSet::RemoveCategory(old_category.id.clone()));
+                            if old_category.children.len() > 0 {
+                                diff.append(&mut Self::diff_level(&old_category.children, &Vec::new(), list_pos));
+                            }
+                        }
+                    }
+                    old_index += 1;
+                    continue
+                }
             }
             
             if let Some(old_item) = old_item {
@@ -139,59 +207,141 @@ impl FeedListTree {
                         }
 
                         // move 1 further on both lists and continue
+                        *list_pos += 1;
                         old_index += 1;
                         new_index += 1;
-                        *list_pos += 1;
+                        match new_item {
+                            FeedListItem::Category(new_category) => {
+                                match old_item {
+                                    FeedListItem::Category(old_category) => {
+                                        if old_category.children.len() > 0 || new_category.children.len() > 0 {
+                                            diff.append(&mut Self::diff_level(&old_category.children, &new_category.children, list_pos));
+                                        }
+                                    },
+                                    FeedListItem::Feed(_) => {
+                                        if new_category.children.len() > 0 {
+                                            diff.append(&mut Self::diff_level(&Vec::new(), &new_category.children, list_pos));
+                                        }
+                                    },
+                                }
+                            },
+                            FeedListItem::Feed(_) => {
+                                match old_item {
+                                    FeedListItem::Category(old_category) => {
+                                        if old_category.children.len() > 0 {
+                                            diff.append(&mut Self::diff_level(&old_category.children, &Vec::new(), list_pos));
+                                        }
+                                    },
+                                    FeedListItem::Feed(_) => {},
+                                }
+                            },
+                        }
                         continue
                     }
 
-                    // item updated -> if item is category, recurse
-                    match new_item {
-                        FeedListItem::Category(new_category) => {
-                            match old_item {
-                                FeedListItem::Category(old_category) => {
-                                    diff.append(&mut Self::diff_level(&old_category.children, &new_category.children, list_pos));
-                                },
-                                FeedListItem::Feed(_) => {
-                                    diff.append(&mut Self::diff_level(&Vec::new(), &new_category.children, list_pos));
-                                },
+                    // items differ -> remove old item and move on
+                    match old_item {
+                        FeedListItem::Feed(old_feed) => 
+                            diff.push(FeedListChangeSet::RemoveFeed(old_feed.id.clone())),
+                        FeedListItem::Category(old_category) => {
+                            diff.push(FeedListChangeSet::RemoveCategory(old_category.id.clone()));
+                            if old_category.children.len() > 0 {
+                                diff.append(&mut Self::diff_level(&old_category.children, &Vec::new(), list_pos));
                             }
-                        },
-                        FeedListItem::Feed(_) => {
-                            match old_item {
-                                FeedListItem::Category(old_category) => {
-                                    diff.append(&mut Self::diff_level(&old_category.children, &Vec::new(), list_pos));
-                                },
-                                FeedListItem::Feed(_) => {},
-                            }
-                        },
+                        }
                     }
+                    old_index += 1;
+                    continue
                 }
-                
-                // items differ -> remove old item and move further down on old list
-                match old_item {
-                    FeedListItem::Feed(old_feed) => 
-                        diff.push(FeedListChangeSet::RemoveFeed(old_feed.id.clone())),
-                    FeedListItem::Category(old_category) => 
-                        diff.push(FeedListChangeSet::RemoveCategory(old_category.id.clone()))
-                }
-                old_index += 1;
-                continue
-            }
-
-            // add all items after old_items ran out of items to compare
-            if let Some(new_item) = new_item {
-                match new_item {
-                    FeedListItem::Feed(new_feed) => 
-                        diff.push(FeedListChangeSet::AddFeed(new_feed.clone(), *list_pos)),
-                    FeedListItem::Category(new_category) => 
-                        diff.push(FeedListChangeSet::AddCategory(new_category.clone(), *list_pos)),
-                }
-                new_index += 1;
-                *list_pos += 1;
-                continue
             }
         }
         diff
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use sidebar::feed_list::models::{
+        FeedListTree,
+        FeedListChangeSet,
+        FeedListCategoryModel,
+        FeedListFeedModel,
+    };
+    use news_flash::models::{
+        Category,
+        CategoryID,
+        Feed,
+        FeedID,
+        NEWSFLASH_TOPLEVEL,
+        FeedMapping,
+    };
+
+
+    #[test]
+    fn diff_tree_1() {
+        let mut category_1 = Category {
+            category_id: CategoryID::new("category_1"),
+            label: "Cateogry 1".to_owned(),
+            parent: NEWSFLASH_TOPLEVEL.clone(),
+            sort_index: Some(0),
+        };
+        let mut category_2 = Category {
+            category_id: CategoryID::new("category_2"),
+            label: "Cateogry 2".to_owned(),
+            parent: NEWSFLASH_TOPLEVEL.clone(),
+            sort_index: Some(1),
+        };
+        let mut category_3 = Category {
+            category_id: CategoryID::new("category_3"),
+            label: "Cateogry 3".to_owned(),
+            parent: NEWSFLASH_TOPLEVEL.clone(),
+            sort_index: Some(2),
+        };
+        let mut feed_1 = Feed {
+            feed_id: FeedID::new("feed_1"),
+            label: "Feed 1".to_owned(),
+            feed_url: None,
+            icon_url: None,
+            sort_index: Some(0),
+            website: None,
+        };
+        let mut mapping_1 = FeedMapping {
+            feed_id: FeedID::new("feed_1"),
+            category_id: CategoryID::new("category_2"),
+        };
+        let mut mapping_2 = FeedMapping {
+            feed_id: FeedID::new("feed_1"),
+            category_id: CategoryID::new("category_1"),
+        };
+
+        let mut old_tree = FeedListTree::new();
+        old_tree.add_category(&category_1, 5);
+        old_tree.add_category(&category_2, 0);
+        old_tree.add_category(&category_3, 0);
+        old_tree.add_feed(&feed_1, &mapping_1, 1);
+
+        let mut new_tree = FeedListTree::new();
+        category_1.label = "Category 1 new".to_owned();
+        new_tree.add_category(&category_1, 2);
+        category_2.sort_index = Some(2);
+        new_tree.add_category(&category_2, 0);
+        category_3.sort_index = Some(1);
+        new_tree.add_category(&category_3, 1);
+        new_tree.add_feed(&feed_1, &mapping_2, 2);
+        
+
+        let diff = old_tree.generate_diff(&new_tree);
+
+        println!("{:?}", diff);
+        
+
+        assert_eq!(diff.len(), 7);
+        assert_eq!(diff.get(0), Some(&FeedListChangeSet::CategoryUpdateItemCount(category_1.category_id.clone(), 2)));
+        assert_eq!(diff.get(1), Some(&FeedListChangeSet::CategoryUpdateLabel(category_1.category_id.clone(), "Category 1 new".to_owned())));
+        assert_eq!(diff.get(2), Some(&FeedListChangeSet::AddFeed(FeedListFeedModel::new(&feed_1, &mapping_2, 2, 1), 1)));
+        assert_eq!(diff.get(3), Some(&FeedListChangeSet::RemoveCategory(category_2.category_id.clone())));
+        assert_eq!(diff.get(4), Some(&FeedListChangeSet::RemoveFeed(feed_1.feed_id.clone())));
+        assert_eq!(diff.get(5), Some(&FeedListChangeSet::CategoryUpdateItemCount(category_3.category_id.clone(), 1)));
+        assert_eq!(diff.get(6), Some(&FeedListChangeSet::AddCategory(FeedListCategoryModel::new(&category_2, 0, 0), 3)));
     }
 }
