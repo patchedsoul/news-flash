@@ -8,8 +8,10 @@ use news_flash::models::{
     NEWSFLASH_TOPLEVEL,
     FeedMapping,
     Feed,
+    FeedID,
 };
 
+#[derive(Clone, Debug)]
 pub struct FeedListTree {
     top_level_id: CategoryID,
     pub top_level: Vec<FeedListItem>,
@@ -104,6 +106,34 @@ impl FeedListTree {
         }
         *level -= 1;
         None
+    }
+
+    pub fn collapse_expand_ids(&mut self, category: &CategoryID) -> Option<(Vec<FeedID>, Vec<CategoryID>, bool)> {
+        if let Some((category, _)) = self.find_category(category) {
+            let expanded = category.expand_collapse();
+            let (feed_ids, category_ids) = Self::category_child_ids(&category);
+            return Some((feed_ids, category_ids, expanded))
+        }
+        None
+    }
+
+    fn category_child_ids(category: &FeedListCategoryModel) -> (Vec<FeedID>, Vec<CategoryID>) {
+        let mut feed_ids : Vec<FeedID> = Vec::new();
+        let mut category_ids : Vec<CategoryID> = Vec::new();
+        for item in &category.children {
+            match item {
+                FeedListItem::Feed(feed) => feed_ids.push(feed.id.clone()),
+                FeedListItem::Category(category) => {
+                    category_ids.push(category.id.clone());
+                    if category.expanded {
+                        let (mut sub_feeds, mut sub_categories) = Self::category_child_ids(&category);
+                        feed_ids.append(&mut sub_feeds);
+                        category_ids.append(&mut sub_categories);
+                    }
+                },
+            }
+        }
+        (feed_ids, category_ids)
     }
 
     pub fn generate_diff(&self, other: &FeedListTree) -> Vec<FeedListChangeSet> {
@@ -297,7 +327,7 @@ mod tests {
             parent: NEWSFLASH_TOPLEVEL.clone(),
             sort_index: Some(2),
         };
-        let mut feed_1 = Feed {
+        let feed_1 = Feed {
             feed_id: FeedID::new("feed_1"),
             label: "Feed 1".to_owned(),
             feed_url: None,
@@ -305,11 +335,11 @@ mod tests {
             sort_index: Some(0),
             website: None,
         };
-        let mut mapping_1 = FeedMapping {
+        let mapping_1 = FeedMapping {
             feed_id: FeedID::new("feed_1"),
             category_id: CategoryID::new("category_2"),
         };
-        let mut mapping_2 = FeedMapping {
+        let mapping_2 = FeedMapping {
             feed_id: FeedID::new("feed_1"),
             category_id: CategoryID::new("category_1"),
         };
@@ -331,9 +361,6 @@ mod tests {
         
 
         let diff = old_tree.generate_diff(&new_tree);
-
-        println!("{:?}", diff);
-        
 
         assert_eq!(diff.len(), 7);
         assert_eq!(diff.get(0), Some(&FeedListChangeSet::CategoryUpdateItemCount(category_1.category_id.clone(), 2)));

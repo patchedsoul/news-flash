@@ -15,6 +15,7 @@ pub struct FeedListCategoryModel {
     pub sort_index: i32,
     pub children: Vec<FeedListItem>,
     pub level: i32,
+    pub expanded: bool,
 }
 
 impl FeedListCategoryModel {
@@ -30,6 +31,7 @@ impl FeedListCategoryModel {
             },
             children: Vec::new(),
             level: level,
+            expanded: true,
         }
     }
 
@@ -57,6 +59,11 @@ impl FeedListCategoryModel {
         else {
             // FIXME: warn/error
         }
+    }
+
+    pub fn expand_collapse(&mut self) -> bool {
+        self.expanded = !self.expanded;
+        self.expanded
     }
 }
 

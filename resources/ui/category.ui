@@ -56,10 +56,11 @@
           </packing>
         </child>
         <child>
-          <object class="GtkEventBox">
+          <object class="GtkEventBox" id="item_count_event">
             <property name="width_request">24</property>
             <property name="visible">True</property>
             <property name="can_focus">False</property>
+            <property name="no_show_all">True</property>
             <property name="margin_right">2</property>
             <child>
               <object class="GtkStack" id="item_count_stack">

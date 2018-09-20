@@ -9,7 +9,9 @@ use gtk::{
 };
 use news_flash::models::{
     FeedID,
-    Feed,
+};
+use sidebar::feed_list::models::{
+    FeedListFeedModel,
 };
 use std::str;
 use std::rc::Rc;
@@ -20,27 +22,34 @@ use Resources;
 pub struct FeedRow {
     pub id: FeedID,
     widget: gtk::ListBoxRow,
+    item_count: gtk::Label,
+    item_count_event: gtk::EventBox,
+    title: gtk::Label,
     revealer: gtk::Revealer,
-    sort_index: Option<i32>,
 }
 
 impl FeedRow {
-    pub fn new(model: &Feed, level: i32) -> Rc<RefCell<FeedRow>> {
+    pub fn new(model: &FeedListFeedModel) -> Rc<RefCell<FeedRow>> {
         let ui_data = Resources::get("ui/feed.ui").unwrap();
         let ui_string = str::from_utf8(&ui_data).unwrap();
         let builder = gtk::Builder::new_from_string(ui_string);
         let feed : gtk::Revealer = builder.get_object("feed_row").unwrap();
-        feed.set_margin_start(level*24);
+        feed.set_margin_start(model.level*24);
         
-        let label_widget : gtk::Label = builder.get_object("feed_title").unwrap();
-        label_widget.set_label(&model.label);
+        let title_label : gtk::Label = builder.get_object("feed_title").unwrap();
+        let item_count_label : gtk::Label = builder.get_object("item_count").unwrap();
+        let item_count_event : gtk::EventBox = builder.get_object("item_count_event").unwrap();
 
         let feed = FeedRow {
-            id: model.feed_id.clone(),
+            id: model.id.clone(),
             widget: Self::create_row(&feed),
+            item_count: item_count_label,
+            title: title_label,
             revealer: feed,
-            sort_index: model.sort_index,
+            item_count_event: item_count_event,
         };
+        feed.update_item_count(model.item_count);
+        feed.update_title(&model.label);
         Rc::new(RefCell::new(feed))
     }
 
@@ -59,6 +68,20 @@ impl FeedRow {
         self.widget.clone()
     }
 
+    pub fn update_item_count(&self, count: i32) {
+        if count > 0 {
+            self.item_count.set_label(&count.to_string());
+            self.item_count_event.set_visible(true);
+        }
+        else {
+            self.item_count_event.set_visible(false);
+        }
+    }
+
+    pub fn update_title(&self, title: &str) {
+        self.title.set_label(title);
+    }
+
     pub fn collapse(&self) {
         self.revealer.set_reveal_child(false);
         self.revealer.get_style_context().unwrap().add_class("hidden");
@@ -69,9 +92,5 @@ impl FeedRow {
         self.revealer.set_reveal_child(true);
         self.revealer.get_style_context().unwrap().remove_class("hidden");
         self.widget.set_selectable(true);
-    }
-
-    pub fn sort_index(&self) -> Option<i32> {
-        self.sort_index
     }
 }

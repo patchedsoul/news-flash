@@ -4,6 +4,7 @@ extern crate gdk;
 #[macro_use]
 extern crate rust_embed;
 extern crate news_flash;
+extern crate chrono;
 
 mod sidebar;
 
@@ -13,10 +14,14 @@ use gio::prelude::*;
 use gtk::prelude::*;
 use sidebar::{
     FeedList,
+    feed_list::models::{
+        FeedListTree,
+    },
 };
 use news_flash::models::{
     Category as CategoryModel,
     Feed as FeedModel,
+    FeedMapping,
     CategoryID,
     FeedID,
     NEWSFLASH_TOPLEVEL,
@@ -66,6 +71,10 @@ fn main() {
             icon_url: None,
             sort_index: Some(2),
         };
+        let mapping_1 = FeedMapping {
+            feed_id: FeedID::new("feed_1"),
+            category_id: CategoryID::new("category_1"),
+        };
         let feed_2 = FeedModel {
             feed_id: FeedID::new("feed_2"),
             label: "Feed 2".to_owned(),
@@ -73,6 +82,10 @@ fn main() {
             feed_url: None,
             icon_url: None,
             sort_index: Some(0),
+        };
+        let mapping_2 = FeedMapping {
+            feed_id: FeedID::new("feed_2"),
+            category_id: CategoryID::new("category_1"),
         };
         let category_2 = CategoryModel {
             category_id: CategoryID::new("category_2"),
@@ -88,13 +101,21 @@ fn main() {
             icon_url: None,
             sort_index: Some(0),
         };
+        let mapping_3 = FeedMapping {
+            feed_id: FeedID::new("feed_3"),
+            category_id: CategoryID::new("category_2"),
+        };
 
+        
+        let mut tree = FeedListTree::new();
+        tree.add_category(&category_1, 7);
+        tree.add_category(&category_2, 5);
+        tree.add_feed(&feed_1, &mapping_1, 2);
+        tree.add_feed(&feed_2, &mapping_2, 0);
+        tree.add_feed(&feed_3, &mapping_3, 5);
+        
         let mut list = FeedList::new();
-        list.add_category(&category_1);
-        list.add_category(&category_2);
-        list.add_feed(&feed_1, &category_1.category_id);
-        list.add_feed(&feed_2, &category_1.category_id);
-        list.add_feed(&feed_3, &category_2.category_id);
+        list.update(tree);
         window.add(&list.widget);
 
         window.show_all();
