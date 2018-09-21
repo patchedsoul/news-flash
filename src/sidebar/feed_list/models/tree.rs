@@ -108,6 +108,15 @@ impl FeedListTree {
         None
     }
 
+    fn calculate_visiblity_feed(feed: &FeedListFeedModel, tree: &Vec<FeedListItem>) -> bool {
+        Self::calculate_visiblity_category(&feed.parent_id, tree)
+    }
+
+    fn calculate_visiblity_category(category: &CategoryID, tree: &Vec<FeedListItem>) -> bool {
+        // FIXME: hashmap with all categories for fast access
+        true
+    }
+
     pub fn collapse_expand_ids(&mut self, category: &CategoryID) -> Option<(Vec<FeedID>, Vec<CategoryID>, bool)> {
         if let Some((category, _)) = self.find_category(category) {
             let expanded = category.expand_collapse();
@@ -160,11 +169,13 @@ impl FeedListTree {
                     new_index += 1;
                     match new_item {
                         FeedListItem::Feed(new_feed) => {
-                            diff.push(FeedListChangeSet::AddFeed(new_feed.clone(), *list_pos));
+                            let visible = Self::calculate_visiblity_feed(&new_feed, new_items);
+                            diff.push(FeedListChangeSet::AddFeed(new_feed.clone(), *list_pos, visible));
                             *list_pos += 1;
                         },
                         FeedListItem::Category(new_category) => {
-                            diff.push(FeedListChangeSet::AddCategory(new_category.clone(), *list_pos));
+                            let visible = Self::calculate_visiblity_category(&new_category.id, new_items);
+                            diff.push(FeedListChangeSet::AddCategory(new_category.clone(), *list_pos, visible));
                             *list_pos += 1;
                             if new_category.children.len() > 0 {
                                 diff.append(&mut Self::diff_level(&Vec::new(), &new_category.children, list_pos));
@@ -365,10 +376,10 @@ mod tests {
         assert_eq!(diff.len(), 7);
         assert_eq!(diff.get(0), Some(&FeedListChangeSet::CategoryUpdateItemCount(category_1.category_id.clone(), 2)));
         assert_eq!(diff.get(1), Some(&FeedListChangeSet::CategoryUpdateLabel(category_1.category_id.clone(), "Category 1 new".to_owned())));
-        assert_eq!(diff.get(2), Some(&FeedListChangeSet::AddFeed(FeedListFeedModel::new(&feed_1, &mapping_2, 2, 1), 1)));
+        assert_eq!(diff.get(2), Some(&FeedListChangeSet::AddFeed(FeedListFeedModel::new(&feed_1, &mapping_2, 2, 1), 1, false)));
         assert_eq!(diff.get(3), Some(&FeedListChangeSet::RemoveCategory(category_2.category_id.clone())));
         assert_eq!(diff.get(4), Some(&FeedListChangeSet::RemoveFeed(feed_1.feed_id.clone())));
         assert_eq!(diff.get(5), Some(&FeedListChangeSet::CategoryUpdateItemCount(category_3.category_id.clone(), 1)));
-        assert_eq!(diff.get(6), Some(&FeedListChangeSet::AddCategory(FeedListCategoryModel::new(&category_2, 0, 0), 3)));
+        assert_eq!(diff.get(6), Some(&FeedListChangeSet::AddCategory(FeedListCategoryModel::new(&category_2, 0, 0), 3, false)));
     }
 }

@@ -29,7 +29,7 @@ pub struct FeedRow {
 }
 
 impl FeedRow {
-    pub fn new(model: &FeedListFeedModel) -> Rc<RefCell<FeedRow>> {
+    pub fn new(model: &FeedListFeedModel, visible: bool) -> Rc<RefCell<FeedRow>> {
         let ui_data = Resources::get("ui/feed.ui").unwrap();
         let ui_string = str::from_utf8(&ui_data).unwrap();
         let builder = gtk::Builder::new_from_string(ui_string);
@@ -50,6 +50,9 @@ impl FeedRow {
         };
         feed.update_item_count(model.item_count);
         feed.update_title(&model.label);
+        if !visible {
+            feed.collapse();
+        }
         Rc::new(RefCell::new(feed))
     }
 

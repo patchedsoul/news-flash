@@ -31,7 +31,7 @@ impl FeedListCategoryModel {
             },
             children: Vec::new(),
             level: level,
-            expanded: true,
+            expanded: false,
         }
     }
 

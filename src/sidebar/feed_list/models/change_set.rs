@@ -9,8 +9,8 @@ use news_flash::models::{
 pub enum FeedListChangeSet {
     RemoveFeed(FeedID),
     RemoveCategory(CategoryID),
-    AddFeed(FeedListFeedModel, i32),
-    AddCategory(FeedListCategoryModel, i32),
+    AddFeed(FeedListFeedModel, i32, bool),
+    AddCategory(FeedListCategoryModel, i32, bool),
     FeedUpdateItemCount(FeedID, i32),
     CategoryUpdateItemCount(CategoryID, i32),
     FeedUpdateLabel(FeedID, String),
@@ -32,15 +32,15 @@ impl PartialEq for FeedListChangeSet {
                     _ => false,
                 }
             },
-            FeedListChangeSet::AddFeed(model, pos) => {
+            FeedListChangeSet::AddFeed(model, pos, _) => {
                 match other {
-                    FeedListChangeSet::AddFeed(other_model, other_pos) => model.id == other_model.id && pos == other_pos,
+                    FeedListChangeSet::AddFeed(other_model, other_pos, _) => model.id == other_model.id && pos == other_pos,
                     _ => false,
                 }
             },
-            FeedListChangeSet::AddCategory(model, pos) => {
+            FeedListChangeSet::AddCategory(model, pos, _) => {
                 match other {
-                    FeedListChangeSet::AddCategory(other_model, other_pos) => model.id == other_model.id && pos == other_pos,
+                    FeedListChangeSet::AddCategory(other_model, other_pos, _) => model.id == other_model.id && pos == other_pos,
                     _ => false,
                 }
             },

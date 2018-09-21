@@ -81,7 +81,7 @@ fn main() {
             website: None,
             feed_url: None,
             icon_url: None,
-            sort_index: Some(0),
+            sort_index: Some(1),
         };
         let mapping_2 = FeedMapping {
             feed_id: FeedID::new("feed_2"),
@@ -90,7 +90,7 @@ fn main() {
         let category_2 = CategoryModel {
             category_id: CategoryID::new("category_2"),
             label: "category 2".to_owned(),
-            sort_index: Some(1),
+            sort_index: Some(0),
             parent: CategoryID::new("category_1"),
         };
         let feed_3 = FeedModel {

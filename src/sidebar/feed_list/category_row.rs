@@ -36,7 +36,7 @@ pub struct CategoryRow {
 }
 
 impl CategoryRow {
-    pub fn new(model: &FeedListCategoryModel) -> Rc<RefCell<CategoryRow>> {
+    pub fn new(model: &FeedListCategoryModel, visible: bool) -> Rc<RefCell<CategoryRow>> {
         let ui_data = Resources::get("ui/category.ui").unwrap();
         let ui_string = str::from_utf8(&ui_data).unwrap();
         let builder = gtk::Builder::new_from_string(ui_string);
@@ -59,10 +59,13 @@ impl CategoryRow {
             item_count: item_count_label,
             item_count_event: item_count_event,
             title: title_label,
-            expanded: true,
+            expanded: model.expanded,
         };
         category.update_title(&model.label);
         category.update_item_count(model.item_count);
+        if !visible {
+            category.collapse();
+        }
         let handle = Rc::new(RefCell::new(category));
         let handle1 = handle.clone();
 

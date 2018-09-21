@@ -72,11 +72,11 @@ impl FeedList {
                     }
                     self.categories.borrow_mut().remove(&category_id);
                 },
-                FeedListChangeSet::AddFeed(model, pos) => {
-                    self.add_feed(&model, pos);
+                FeedListChangeSet::AddFeed(model, pos, visible) => {
+                    self.add_feed(&model, pos, visible);
                 },
-                FeedListChangeSet::AddCategory(model, pos) => {
-                    self.add_category(&model, pos);
+                FeedListChangeSet::AddCategory(model, pos, visible) => {
+                    self.add_category(&model, pos, visible);
                 },
                 FeedListChangeSet::FeedUpdateItemCount(id, count) => {
                     if let Some(feed_handle) = self.feeds.borrow().get(&id) {
@@ -102,8 +102,8 @@ impl FeedList {
         }
     }
 
-    fn add_category(&mut self, category: &FeedListCategoryModel, pos: i32) {
-        let category_widget = CategoryRow::new(category);
+    fn add_category(&mut self, category: &FeedListCategoryModel, pos: i32, visible: bool) {
+        let category_widget = CategoryRow::new(category, visible);
         let feeds = self.feeds.clone();
         let categories = self.categories.clone();
         let category_id = category.id.clone();
@@ -122,7 +122,6 @@ impl FeedList {
                             else {
                                 feed_handle.borrow_mut().collapse();
                             }
-                            
                         }
                     }
                     for category_id in category_ids {
@@ -141,8 +140,8 @@ impl FeedList {
         });
     }
 
-    fn add_feed(&mut self, feed: &FeedListFeedModel, pos: i32) {
-        let feed_widget = FeedRow::new(feed);
+    fn add_feed(&mut self, feed: &FeedListFeedModel, pos: i32, visible: bool) {
+        let feed_widget = FeedRow::new(feed, visible);
         self.widget.insert(&feed_widget.borrow().row(), pos);
         self.feeds.borrow_mut().insert(feed.id.clone(), feed_widget);
     }
