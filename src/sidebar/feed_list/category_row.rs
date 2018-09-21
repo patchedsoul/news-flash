@@ -1,5 +1,6 @@
 use gtk::{
     self,
+    Cast,
     LabelExt,
     WidgetExt,
     StyleContextExt,
@@ -46,9 +47,7 @@ impl CategoryRow {
         let title_label : gtk::Label = builder.get_object("category_title").unwrap();
         let item_count_label : gtk::Label = builder.get_object("item_count").unwrap();
         let item_count_event : gtk::EventBox = builder.get_object("item_count_event").unwrap();
-
         let arrow_image : gtk::Image = builder.get_object("arrow_image").unwrap();
-        arrow_image.get_style_context().unwrap().add_class("expanded");
 
         let arrow_event : gtk::EventBox = builder.get_object("arrow_event").unwrap();
         let category = CategoryRow {
@@ -63,6 +62,7 @@ impl CategoryRow {
         };
         category.update_title(&model.label);
         category.update_item_count(model.item_count);
+        Self::rotate_arrow(&arrow_image.upcast::<gtk::Widget>(), model.expanded);
         if !visible {
             category.collapse();
         }
@@ -84,24 +84,27 @@ impl CategoryRow {
         arrow_event.connect_button_press_event(move |widget, event| {
             if event.get_event_type() == EventType::ButtonPress {
                 let arrow_image = widget.get_child().unwrap();
-                let context = arrow_image.get_style_context().unwrap();
-                let mut category = handle1.borrow_mut();
-
-                if category.expanded {
-                    context.remove_class("expanded");
-                    context.add_class("collapsed");
-                    category.expanded = false;
-                }
-                else {
-                    context.add_class("expanded");
-                    context.remove_class("collapsed");
-                    category.expanded = true;
-                }
+                let expanded = handle1.borrow().expanded;
+                Self::rotate_arrow(&arrow_image, !expanded);
+                handle1.borrow_mut().expanded = !expanded;
             }
             gtk::Inhibit(false)
         });
 
         handle
+    }
+
+    fn rotate_arrow(arrow_image: &gtk::Widget, expanded: bool) {
+        let context = arrow_image.get_style_context().unwrap();
+
+        if expanded {
+            context.add_class("expanded");
+            context.remove_class("collapsed");
+        }
+        else {
+            context.remove_class("expanded");
+            context.add_class("collapsed");
+        }
     }
 
     fn create_row(widget: &gtk::Revealer) -> gtk::ListBoxRow {

@@ -108,15 +108,6 @@ impl FeedListTree {
         None
     }
 
-    fn calculate_visiblity_feed(feed: &FeedListFeedModel, tree: &Vec<FeedListItem>) -> bool {
-        Self::calculate_visiblity_category(&feed.parent_id, tree)
-    }
-
-    fn calculate_visiblity_category(category: &CategoryID, tree: &Vec<FeedListItem>) -> bool {
-        // FIXME: hashmap with all categories for fast access
-        true
-    }
-
     pub fn collapse_expand_ids(&mut self, category: &CategoryID) -> Option<(Vec<FeedID>, Vec<CategoryID>, bool)> {
         if let Some((category, _)) = self.find_category(category) {
             let expanded = category.expand_collapse();
@@ -147,10 +138,10 @@ impl FeedListTree {
 
     pub fn generate_diff(&self, other: &FeedListTree) -> Vec<FeedListChangeSet> {
         let mut list_pos = 0;
-        Self::diff_level(&self.top_level, &other.top_level, &mut list_pos)
+        Self::diff_level(&self.top_level, &other.top_level, &mut list_pos, true)
     }
 
-    fn diff_level(old_items: &Vec<FeedListItem>, new_items: &Vec<FeedListItem>, list_pos: &mut i32) -> Vec<FeedListChangeSet> {
+    fn diff_level(old_items: &Vec<FeedListItem>, new_items: &Vec<FeedListItem>, list_pos: &mut i32, visible: bool) -> Vec<FeedListChangeSet> {
         let mut diff = Vec::new();
         let mut old_index = 0;
         let mut new_index = 0;
@@ -169,16 +160,14 @@ impl FeedListTree {
                     new_index += 1;
                     match new_item {
                         FeedListItem::Feed(new_feed) => {
-                            let visible = Self::calculate_visiblity_feed(&new_feed, new_items);
                             diff.push(FeedListChangeSet::AddFeed(new_feed.clone(), *list_pos, visible));
                             *list_pos += 1;
                         },
                         FeedListItem::Category(new_category) => {
-                            let visible = Self::calculate_visiblity_category(&new_category.id, new_items);
                             diff.push(FeedListChangeSet::AddCategory(new_category.clone(), *list_pos, visible));
                             *list_pos += 1;
                             if new_category.children.len() > 0 {
-                                diff.append(&mut Self::diff_level(&Vec::new(), &new_category.children, list_pos));
+                                diff.append(&mut Self::diff_level(&Vec::new(), &new_category.children, list_pos, new_category.expanded));
                             }
                         },
                     }
@@ -197,7 +186,7 @@ impl FeedListTree {
                         FeedListItem::Category(old_category) => {
                             diff.push(FeedListChangeSet::RemoveCategory(old_category.id.clone()));
                             if old_category.children.len() > 0 {
-                                diff.append(&mut Self::diff_level(&old_category.children, &Vec::new(), list_pos));
+                                diff.append(&mut Self::diff_level(&old_category.children, &Vec::new(), list_pos, false));
                             }
                         }
                     }
@@ -256,12 +245,12 @@ impl FeedListTree {
                                 match old_item {
                                     FeedListItem::Category(old_category) => {
                                         if old_category.children.len() > 0 || new_category.children.len() > 0 {
-                                            diff.append(&mut Self::diff_level(&old_category.children, &new_category.children, list_pos));
+                                            diff.append(&mut Self::diff_level(&old_category.children, &new_category.children, list_pos, new_category.expanded));
                                         }
                                     },
                                     FeedListItem::Feed(_) => {
                                         if new_category.children.len() > 0 {
-                                            diff.append(&mut Self::diff_level(&Vec::new(), &new_category.children, list_pos));
+                                            diff.append(&mut Self::diff_level(&Vec::new(), &new_category.children, list_pos, new_category.expanded));
                                         }
                                     },
                                 }
@@ -270,7 +259,7 @@ impl FeedListTree {
                                 match old_item {
                                     FeedListItem::Category(old_category) => {
                                         if old_category.children.len() > 0 {
-                                            diff.append(&mut Self::diff_level(&old_category.children, &Vec::new(), list_pos));
+                                            diff.append(&mut Self::diff_level(&old_category.children, &Vec::new(), list_pos, false));
                                         }
                                     },
                                     FeedListItem::Feed(_) => {},
@@ -287,7 +276,7 @@ impl FeedListTree {
                         FeedListItem::Category(old_category) => {
                             diff.push(FeedListChangeSet::RemoveCategory(old_category.id.clone()));
                             if old_category.children.len() > 0 {
-                                diff.append(&mut Self::diff_level(&old_category.children, &Vec::new(), list_pos));
+                                diff.append(&mut Self::diff_level(&old_category.children, &Vec::new(), list_pos, false));
                             }
                         }
                     }
