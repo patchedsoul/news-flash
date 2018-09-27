@@ -5,6 +5,7 @@ extern crate gdk;
 extern crate rust_embed;
 extern crate news_flash;
 extern crate chrono;
+extern crate cairo;
 
 mod sidebar;
 

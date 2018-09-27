@@ -6,6 +6,7 @@ authors = ["Jan Lukas Gernert <jangernert@gmail.com>"]
 [dependencies]
 chrono = "0.4"
 rust-embed = "3.0"
+cairo-rs = "0.5"
 news-flash = { git = "http://gitlab.com/news-flash/news_flash_base.git" }
 
 [dependencies.gtk]

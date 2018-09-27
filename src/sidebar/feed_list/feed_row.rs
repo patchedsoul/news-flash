@@ -3,9 +3,22 @@ use gtk::{
     LabelExt,
     ContainerExt,
     WidgetExt,
+    WidgetExtManual,
     StyleContextExt,
     ListBoxRowExt,
     RevealerExt,
+    TargetEntry,
+    TargetFlags,
+    DragContextExtManual,
+};
+use gdk::{
+    DragAction,
+    ModifierType,
+};
+use cairo::{
+    self,
+    ImageSurface,
+    Format,
 };
 use news_flash::models::{
     FeedID,
@@ -60,11 +73,25 @@ impl FeedRow {
         let row = gtk::ListBoxRow::new();
         row.set_activatable(false);
         row.set_can_focus(false);
+        row.add(widget);
         let context = row.get_style_context().unwrap();
         context.remove_class("activatable");
+        let row_2nd_handle = row.clone();
+
+        let entry = TargetEntry::new("FeedRow", TargetFlags::SAME_APP, 0);
+        widget.drag_source_set(ModifierType::BUTTON1_MASK, &vec![entry], DragAction::MOVE);
+        widget.connect_drag_begin(move |_, drag_context| {
+            let alloc = row.get_allocation();
+            let surface = ImageSurface::create(Format::ARgb32, alloc.width, alloc.height).unwrap();
+            let cairo_context = cairo::Context::new(&surface);
+            let style_context = row.get_style_context().unwrap();
+            style_context.add_class("feedlist-drag");
+            row.draw(&cairo_context);
+            style_context.remove_class("feedlist-drag");
+            drag_context.drag_set_icon_surface(&surface);
+        });
         
-        row.add(widget);
-        row
+        row_2nd_handle
     }
     
     pub fn row(&self) -> gtk::ListBoxRow {
