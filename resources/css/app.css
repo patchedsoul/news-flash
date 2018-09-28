@@ -1,3 +1,16 @@
+.feedlist-drag-icon {
+  background: #555;
+  border: 1px solid white;
+}
+
+.feedlist-drag-before {
+  border-bottom: 1px solid white;
+}
+
+.feedlist-drag-after {
+  border-top: 1px solid white;
+}
+
 .feedlist {
   background: #555;
 }
@@ -53,9 +66,4 @@
 @keyframes expand {
   from { -gtk-icon-transform: rotate(0deg); }
   to   { -gtk-icon-transform: rotate(90deg); }
-}
-
-.feedlist-drag {
-  background: #555;
-  border: 1px solid white;
 }

@@ -20,11 +20,20 @@ use sidebar::{
 use gtk::{
     self,
     ListBoxExt,
+    ListBoxRowExt,
+    StyleContextExt,
     ContainerExt,
     WidgetExt,
+    WidgetExtManual,
+    DestDefaults,
+    TargetFlags,
+    TargetEntry,
+    Inhibit,
 };
 use gdk::{
     EventType,
+    DragAction,
+
 };
 
 type Handle<T> = Rc<RefCell<T>>;
@@ -45,6 +54,35 @@ impl FeedList {
         let ui_string = str::from_utf8(&ui_data).unwrap();
         let builder = gtk::Builder::new_from_string(ui_string);
         let feed_list : gtk::ListBox = builder.get_object("feed_list").unwrap();
+        let entry = TargetEntry::new("FeedRow", TargetFlags::SAME_APP, 0);
+        feed_list.drag_dest_set(DestDefaults::DROP | DestDefaults::MOTION, &vec![entry], DragAction::MOVE);
+        feed_list.connect_drag_data_received(|_widget, _drag_context, _x, _y, _selection_data, _info, _time| {
+
+        });
+        feed_list.connect_drag_motion(|widget, _drag_context, _x, y, _time| {
+            let row = widget.get_row_at_y(y).unwrap();
+            let alloc = row.get_allocation();
+            let index = row.get_index();
+
+            let (row_before, row_after) = match y < alloc.y + (alloc.height / 2) {
+                true => {
+                    let row_before = widget.get_row_at_index(index - 1).unwrap();
+                    (row_before, row)
+                },
+                false => {
+                    let row_after = widget.get_row_at_index(index + 1).unwrap();
+                    (row, row_after)
+                },
+            };
+            let style_context_before = row_before.get_style_context().unwrap();
+            let style_context_after = row_after.get_style_context().unwrap();
+            style_context_before.add_class("feedlist-drag-before");
+            style_context_after.add_class("feedlist-drag-after");
+            Inhibit(false)
+        });
+        feed_list.connect_drag_leave(|_widget, _drag_context, _time| {
+
+        });
 
         FeedList {
             widget: feed_list,

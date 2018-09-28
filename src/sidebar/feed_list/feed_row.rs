@@ -80,15 +80,18 @@ impl FeedRow {
 
         let entry = TargetEntry::new("FeedRow", TargetFlags::SAME_APP, 0);
         widget.drag_source_set(ModifierType::BUTTON1_MASK, &vec![entry], DragAction::MOVE);
-        widget.connect_drag_begin(move |_, drag_context| {
+        widget.connect_drag_begin(move |_widget, drag_context| {
             let alloc = row.get_allocation();
             let surface = ImageSurface::create(Format::ARgb32, alloc.width, alloc.height).unwrap();
             let cairo_context = cairo::Context::new(&surface);
             let style_context = row.get_style_context().unwrap();
-            style_context.add_class("feedlist-drag");
+            style_context.add_class("feedlist-drag-icon");
             row.draw(&cairo_context);
-            style_context.remove_class("feedlist-drag");
+            style_context.remove_class("feedlist-drag-icon");
             drag_context.drag_set_icon_surface(&surface);
+        });
+        widget.connect_drag_data_get(|_widget, _drag_context, selection_data, _, _| {
+            selection_data.set_text("abc");
         });
         
         row_2nd_handle
