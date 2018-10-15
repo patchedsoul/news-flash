@@ -2,6 +2,8 @@ extern crate gio;
 extern crate gtk;
 extern crate gdk;
 #[macro_use]
+extern crate failure;
+#[macro_use]
 extern crate rust_embed;
 extern crate news_flash;
 extern crate chrono;
@@ -38,7 +40,7 @@ fn main() {
 
     let provider = gtk::CssProvider::new();
     let css_data = Resources::get("css/app.css").unwrap();
-    gtk::CssProvider::load_from_data(&provider, &css_data).unwrap();
+    gtk::CssProvider::load_from_data(&provider, css_data.as_ref()).unwrap();
     gtk::StyleContext::add_provider_for_screen(
         &gdk::Screen::get_default().unwrap(),
         &provider,
@@ -115,7 +117,7 @@ fn main() {
         tree.add_feed(&feed_2, &mapping_2, 0);
         tree.add_feed(&feed_3, &mapping_3, 5);
         
-        let mut list = FeedList::new();
+        let mut list = FeedList::new().unwrap();
         list.update(tree);
         window.add(&list.widget);
 

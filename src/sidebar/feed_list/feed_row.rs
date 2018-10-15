@@ -44,7 +44,7 @@ pub struct FeedRow {
 impl FeedRow {
     pub fn new(model: &FeedListFeedModel, visible: bool) -> Rc<RefCell<FeedRow>> {
         let ui_data = Resources::get("ui/feed.ui").unwrap();
-        let ui_string = str::from_utf8(&ui_data).unwrap();
+        let ui_string = str::from_utf8(ui_data.as_ref()).unwrap();
         let builder = gtk::Builder::new_from_string(ui_string);
         let feed : gtk::Revealer = builder.get_object("feed_row").unwrap();
         feed.set_margin_start(model.level*24);

@@ -3,6 +3,7 @@ use std::str;
 use std::rc::Rc;
 use std::cell::RefCell;
 use std::collections::HashMap;
+use failure::ResultExt;
 use news_flash::models::{
     CategoryID,
     FeedID,
@@ -33,7 +34,10 @@ use gtk::{
 use gdk::{
     EventType,
     DragAction,
-
+};
+use sidebar::feed_list::error::{
+    FeedListError,
+    FeedListErrorKind,
 };
 
 type Handle<T> = Rc<RefCell<T>>;
@@ -49,47 +53,49 @@ pub struct FeedList {
 }
 
 impl FeedList {
-    pub fn new() -> Self {
-        let ui_data = Resources::get("ui/feedlist.ui").unwrap();
-        let ui_string = str::from_utf8(&ui_data).unwrap();
+    pub fn new() -> Result<Self, FeedListError> {
+        let ui_data = Resources::get("ui/feedlist.ui").ok_or(FeedListErrorKind::UIFile)?;
+        let ui_string = str::from_utf8(ui_data.as_ref()).context(FeedListErrorKind::EmbedFile)?;
         let builder = gtk::Builder::new_from_string(ui_string);
-        let feed_list : gtk::ListBox = builder.get_object("feed_list").unwrap();
+        let feed_list : gtk::ListBox = builder.get_object("feed_list").ok_or(FeedListErrorKind::UIFile)?;
         let entry = TargetEntry::new("FeedRow", TargetFlags::SAME_APP, 0);
         feed_list.drag_dest_set(DestDefaults::DROP | DestDefaults::MOTION, &vec![entry], DragAction::MOVE);
         feed_list.connect_drag_data_received(|_widget, _drag_context, _x, _y, _selection_data, _info, _time| {
 
         });
         feed_list.connect_drag_motion(|widget, _drag_context, _x, y, _time| {
-            let row = widget.get_row_at_y(y).unwrap();
-            let alloc = row.get_allocation();
-            let index = row.get_index();
+            if let Some(row) = widget.get_row_at_y(y) {
+                let alloc = row.get_allocation();
+                let index = row.get_index();
 
-            let (row_before, row_after) = match y < alloc.y + (alloc.height / 2) {
-                true => {
-                    let row_before = widget.get_row_at_index(index - 1).unwrap();
-                    (row_before, row)
-                },
-                false => {
-                    let row_after = widget.get_row_at_index(index + 1).unwrap();
-                    (row, row_after)
-                },
-            };
-            let style_context_before = row_before.get_style_context().unwrap();
-            let style_context_after = row_after.get_style_context().unwrap();
-            style_context_before.add_class("feedlist-drag-before");
-            style_context_after.add_class("feedlist-drag-after");
+                let (row_before, row_after) = match y < alloc.y + (alloc.height / 2) {
+                    true => {
+                        let row_before = widget.get_row_at_index(index - 1).unwrap();
+                        (row_before, row)
+                    },
+                    false => {
+                        let row_after = widget.get_row_at_index(index + 1).unwrap();
+                        (row, row_after)
+                    },
+                };
+                let style_context_before = row_before.get_style_context().unwrap();
+                let style_context_after = row_after.get_style_context().unwrap();
+                style_context_before.add_class("feedlist-drag-before");
+                style_context_after.add_class("feedlist-drag-after");
+            }
+            
             Inhibit(false)
         });
         feed_list.connect_drag_leave(|_widget, _drag_context, _time| {
 
         });
 
-        FeedList {
+        Ok(FeedList {
             widget: feed_list,
             categories: Rc::new(RefCell::new(HashMap::new())),
             feeds: Rc::new(RefCell::new(HashMap::new())),
             tree: Rc::new(RefCell::new(FeedListTree::new())),
-        }
+        })
     }
 
     pub fn update(&mut self, new_tree: FeedListTree) {

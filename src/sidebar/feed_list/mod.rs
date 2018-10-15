@@ -2,3 +2,4 @@ pub mod category_row;
 pub mod feed_row;
 pub mod feed_list;
 pub mod models;
+pub mod error;

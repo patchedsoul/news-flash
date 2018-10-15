@@ -8,6 +8,10 @@ pub struct FeedListError {
 
 #[derive(Copy, Clone, Eq, PartialEq, Debug, Fail)]
 pub enum FeedListErrorKind {
+    #[fail(display = "Failed to load embeded file")]
+    EmbedFile,
+    #[fail(display = "Failed to find widget in UI file")]
+    UIFile,
     #[fail(display = "Unknown Error")]
     Unknown,
 }
@@ -27,12 +31,6 @@ impl fmt::Display for FeedListError {
         fmt::Display::fmt(&self.inner, f)
     }
 }
-
-// impl FeedListError {
-//     pub fn kind(&self) -> FeedListErrorKind {
-//         *self.inner.get_context()
-//     }
-// }
 
 impl From<FeedListErrorKind> for FeedListError {
     fn from(kind: FeedListErrorKind) -> FeedListError {

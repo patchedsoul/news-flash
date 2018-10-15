@@ -39,7 +39,7 @@ pub struct CategoryRow {
 impl CategoryRow {
     pub fn new(model: &FeedListCategoryModel, visible: bool) -> Rc<RefCell<CategoryRow>> {
         let ui_data = Resources::get("ui/category.ui").unwrap();
-        let ui_string = str::from_utf8(&ui_data).unwrap();
+        let ui_string = str::from_utf8(ui_data.as_ref()).unwrap();
         let builder = gtk::Builder::new_from_string(ui_string);
         let category : gtk::Revealer = builder.get_object("category_row").unwrap();
         category.set_margin_start(model.level*24);
