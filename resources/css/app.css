@@ -1,16 +1,3 @@
-.feedlist-drag-icon {
-  background: #555;
-  border: 1px solid white;
-}
-
-.feedlist-drag-before {
-  border-bottom: 1px solid white;
-}
-
-.feedlist-drag-after {
-  border-top: 1px solid white;
-}
-
 .feedlist {
   background: #555;
 }
@@ -38,6 +25,19 @@
 
 .category-label {
   color: white;
+}
+
+.feedlist-drag-before {
+  border-bottom: 1px solid white;
+}
+
+.feedlist-drag-after {
+  border-top: 1px solid white;
+}
+
+.feedlist-drag-icon {
+  background: #555;
+  border: 1px solid white;
 }
 
 .item-count {

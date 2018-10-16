@@ -20,6 +20,7 @@ use sidebar::{
 };
 use gtk::{
     self,
+    ListBoxRow,
     ListBoxExt,
     ListBoxRowExt,
     StyleContextExt,
@@ -30,6 +31,7 @@ use gtk::{
     TargetFlags,
     TargetEntry,
     Inhibit,
+    Cast,
 };
 use gdk::{
     EventType,
@@ -57,41 +59,79 @@ impl FeedList {
         let ui_data = Resources::get("ui/feedlist.ui").ok_or(FeedListErrorKind::UIFile)?;
         let ui_string = str::from_utf8(ui_data.as_ref()).context(FeedListErrorKind::EmbedFile)?;
         let builder = gtk::Builder::new_from_string(ui_string);
-        let feed_list : gtk::ListBox = builder.get_object("feed_list").ok_or(FeedListErrorKind::UIFile)?;
+        let list_box : gtk::ListBox = builder.get_object("feed_list").ok_or(FeedListErrorKind::UIFile)?;
         let entry = TargetEntry::new("FeedRow", TargetFlags::SAME_APP, 0);
-        feed_list.drag_dest_set(DestDefaults::DROP | DestDefaults::MOTION, &vec![entry], DragAction::MOVE);
-        feed_list.connect_drag_data_received(|_widget, _drag_context, _x, _y, _selection_data, _info, _time| {
+        list_box.drag_dest_set(DestDefaults::DROP | DestDefaults::MOTION, &vec![entry], DragAction::MOVE);
+        list_box.connect_drag_data_received(|_widget, _drag_context, _x, _y, _selection_data, _info, _time| {
 
         });
-        feed_list.connect_drag_motion(|widget, _drag_context, _x, y, _time| {
+        list_box.connect_drag_motion(|widget, _drag_context, _x, y, _time| {
+            let children = widget.get_children();
+            for widget in children {
+                if let Ok(row) = widget.downcast::<ListBoxRow>() {
+                    if let Some(style_context) = row.get_style_context() {
+                        style_context.remove_class("feedlist-drag-after");
+                        style_context.remove_class("feedlist-drag-before");
+                    }
+                }
+            }
+
             if let Some(row) = widget.get_row_at_y(y) {
                 let alloc = row.get_allocation();
                 let index = row.get_index();
 
-                let (row_before, row_after) = match y < alloc.y + (alloc.height / 2) {
+                match y < alloc.y + (alloc.height / 2) {
                     true => {
-                        let row_before = widget.get_row_at_index(index - 1).unwrap();
-                        (row_before, row)
+                        if let Some(row_before) = widget.get_row_at_index(index - 1) {
+                            if let Some(style_context_before) = row_before.get_style_context() {
+                                if let Some(style_context_after) = row.get_style_context() {
+                                    style_context_before.add_class("feedlist-drag-before");
+                                    style_context_after.add_class("feedlist-drag-after");
+                                }
+                            }
+                        }
+                        else {
+                            // row before doesn't exist -> insert at first pos
+                            if let Some(style_context) = row.get_style_context() {
+                                style_context.add_class("feedlist-drag-after");
+                            }
+                        }
                     },
                     false => {
-                        let row_after = widget.get_row_at_index(index + 1).unwrap();
-                        (row, row_after)
+                        if let Some(row_after) = widget.get_row_at_index(index + 1) {
+                            if let Some(style_context_before) = row.get_style_context() {
+                                if let Some(style_context_after) = row_after.get_style_context() {
+                                    style_context_before.add_class("feedlist-drag-before");
+                                    style_context_after.add_class("feedlist-drag-after");
+                                }
+                            }
+                        }
+                        else {
+                            // row after doesn't exist -> insert at last pos
+                            if let Some(style_context) = row.get_style_context() {
+                                style_context.add_class("feedlist-drag-before");
+                            }
+                        }
                     },
                 };
-                let style_context_before = row_before.get_style_context().unwrap();
-                let style_context_after = row_after.get_style_context().unwrap();
-                style_context_before.add_class("feedlist-drag-before");
-                style_context_after.add_class("feedlist-drag-after");
             }
             
             Inhibit(false)
         });
-        feed_list.connect_drag_leave(|_widget, _drag_context, _time| {
-
+        list_box.connect_drag_leave(|widget, _drag_context, _time| {
+            let children = widget.get_children();
+            for widget in children {
+                if let Ok(row) = widget.downcast::<ListBoxRow>() {
+                    if let Some(style_context) = row.get_style_context() {
+                        style_context.remove_class("feedlist-drag-after");
+                        style_context.remove_class("feedlist-drag-before");
+                    }
+                }
+            }
         });
 
         Ok(FeedList {
-            widget: feed_list,
+            widget: list_box.clone(),
             categories: Rc::new(RefCell::new(HashMap::new())),
             feeds: Rc::new(RefCell::new(HashMap::new())),
             tree: Rc::new(RefCell::new(FeedListTree::new())),
