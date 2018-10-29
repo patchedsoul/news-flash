@@ -3,6 +3,7 @@ pub mod category;
 pub mod feed;
 pub mod item;
 pub mod tree;
+pub mod dnd_action;
 
 pub use self::tree::FeedListTree;
 pub use self::category::FeedListCategoryModel;

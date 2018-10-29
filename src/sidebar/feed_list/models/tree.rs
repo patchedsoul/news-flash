@@ -287,6 +287,10 @@ impl FeedListTree {
         }
         diff
     }
+
+    pub fn calculate_dnd(&self, dragged_item: FeedListItem, new_pos: i32) {
+
+    }
 }
 
 #[cfg(test)]

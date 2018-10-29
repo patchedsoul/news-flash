@@ -62,10 +62,40 @@ impl FeedList {
         let list_box : gtk::ListBox = builder.get_object("feed_list").ok_or(FeedListErrorKind::UIFile)?;
         let entry = TargetEntry::new("FeedRow", TargetFlags::SAME_APP, 0);
         list_box.drag_dest_set(DestDefaults::DROP | DestDefaults::MOTION, &vec![entry], DragAction::MOVE);
-        list_box.connect_drag_data_received(|_widget, _drag_context, _x, _y, _selection_data, _info, _time| {
+        list_box.connect_drag_data_received(|widget, _drag_context, _x, y, _selection_data, _info, _time| {
+            let children = widget.get_children();
+            for widget in children {
+                if let Ok(row) = widget.downcast::<ListBoxRow>() {
+                    if let Some(style_context) = row.get_style_context() {
+                        style_context.remove_class("feedlist-drag-after");
+                        style_context.remove_class("feedlist-drag-before");
+                    }
+                }
+            }
 
+            if let Some(row) = widget.get_row_at_y(y) {
+                let alloc = row.get_allocation();
+                let index = row.get_index();
+
+                let index = match y < alloc.y + (alloc.height / 2) {
+                    true => {
+                        match index - 1 >= 0 {
+                            true => index - 1,
+                            false => index,
+                        };
+                    },
+                    false => {
+                        match index + 1 >= 0 {
+                            true => index + 1,
+                            false => index,
+                        };
+                    },
+                };
+                
+            }
         });
         list_box.connect_drag_motion(|widget, _drag_context, _x, y, _time| {
+            // maybe we should keep track of the previous highlighted rows instead of iterating over all of them
             let children = widget.get_children();
             for widget in children {
                 if let Ok(row) = widget.downcast::<ListBoxRow>() {
