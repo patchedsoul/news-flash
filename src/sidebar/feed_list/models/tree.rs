@@ -2,6 +2,10 @@ use super::item::FeedListItem;
 use super::feed::FeedListFeedModel;
 use super::category::FeedListCategoryModel;
 use super::change_set::FeedListChangeSet;
+use super::dnd_action::{
+    FeedListRawDndAction,
+    FeedListProcessedDndAction,
+};
 use news_flash::models::{
     CategoryID,
     Category,
@@ -288,8 +292,9 @@ impl FeedListTree {
         diff
     }
 
-    pub fn calculate_dnd(&self, dragged_item: FeedListItem, new_pos: i32) {
+    pub fn calculate_dnd(&self, input: FeedListRawDndAction) -> FeedListProcessedDndAction {
 
+        FeedListProcessedDndAction::MoveFeed(FeedID::new("aasdf"), CategoryID::new("asdfa"), 2)
     }
 }
 

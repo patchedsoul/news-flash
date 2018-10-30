@@ -4,9 +4,13 @@ use news_flash::models::{
 };
 
 #[derive(Clone, Debug)]
-pub enum FeedListDndAction {
+pub enum FeedListRawDndAction {
     MoveFeedRaw(FeedID, i32),
     MoveCategoryRaw(CategoryID, i32),
+}
+
+#[derive(Clone, Debug)]
+pub enum FeedListProcessedDndAction {
     MoveFeed(FeedID, CategoryID, i32),
     MoveCategory(CategoryID, CategoryID, i32),
 }
