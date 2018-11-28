@@ -302,7 +302,7 @@ impl FeedListTree {
             FeedListRawDndAction::MoveCategoryRaw(_, pos) => pos,
             FeedListRawDndAction::MoveFeedRaw(_, pos) => pos,
         };
-        let dnd_item = match input {
+        let dnd_item = match &input {
             FeedListRawDndAction::MoveCategoryRaw(cat, _) => FeedListItemLight::Category(cat.clone()),
             FeedListRawDndAction::MoveFeedRaw(feed, _) => FeedListItemLight::Feed(feed.clone()),
         };
