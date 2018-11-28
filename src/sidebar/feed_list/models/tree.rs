@@ -1,4 +1,7 @@
-use super::item::FeedListItem;
+use super::item::{
+    FeedListItem,
+    FeedListItemLight,
+};
 use super::feed::FeedListFeedModel;
 use super::category::FeedListCategoryModel;
 use super::change_set::FeedListChangeSet;
@@ -14,6 +17,7 @@ use news_flash::models::{
     Feed,
     FeedID,
 };
+use failure::Error;
 
 #[derive(Clone, Debug)]
 pub struct FeedListTree {
@@ -292,9 +296,42 @@ impl FeedListTree {
         diff
     }
 
-    pub fn calculate_dnd(&self, input: FeedListRawDndAction) -> FeedListProcessedDndAction {
+    pub fn calculate_dnd(&self, input: FeedListRawDndAction) -> Result<FeedListProcessedDndAction, Error> {
 
-        FeedListProcessedDndAction::MoveFeed(FeedID::new("aasdf"), CategoryID::new("asdfa"), 2)
+        let list_pos = match input {
+            FeedListRawDndAction::MoveCategoryRaw(_, pos) => pos,
+            FeedListRawDndAction::MoveFeedRaw(_, pos) => pos,
+        };
+        let dnd_item = match input {
+            FeedListRawDndAction::MoveCategoryRaw(cat, _) => FeedListItemLight::Category(cat.clone()),
+            FeedListRawDndAction::MoveFeedRaw(feed, _) => FeedListItemLight::Feed(feed.clone()),
+        };
+
+        let pos_iter = 0;
+        let (move_to_category, item_pos) = self.calc_subcategory(&self.top_level, &dnd_item, list_pos, &pos_iter);
+
+        match input {
+            FeedListRawDndAction::MoveCategoryRaw(cat, _) => {
+                return Ok(FeedListProcessedDndAction::MoveCategory(cat, move_to_category, item_pos))
+            },
+            FeedListRawDndAction::MoveFeedRaw(feed, _) => {
+                return Ok(FeedListProcessedDndAction::MoveFeed(feed, move_to_category, item_pos))
+            },
+        }
+    }
+
+    fn calc_subcategory(&self, category: &Vec<FeedListItem>, dnd_item: &FeedListItemLight, list_pos: i32, pos_iter: &i32) -> (CategoryID, i32) {
+        for item in category {
+            match item {
+                FeedListItem::Feed(id) => {
+
+                },
+                FeedListItem::Category(id) => {
+
+                },
+            }
+        }
+        (CategoryID::new("asdfa"), 2)
     }
 }
 

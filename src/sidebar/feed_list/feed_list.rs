@@ -91,7 +91,6 @@ impl FeedList {
                         };
                     },
                 };
-                
             }
         });
         list_box.connect_drag_motion(|widget, _drag_context, _x, y, _time| {
