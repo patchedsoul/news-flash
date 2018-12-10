@@ -4,10 +4,6 @@ use super::item::{
 use super::feed::FeedListFeedModel;
 use super::category::FeedListCategoryModel;
 use super::change_set::FeedListChangeSet;
-use super::dnd_action::{
-    FeedListRawDndAction,
-    FeedListProcessedDndAction,
-};
 use news_flash::models::{
     CategoryID,
     Category,
@@ -295,26 +291,9 @@ impl FeedListTree {
         diff
     }
 
-    pub fn calculate_dnd(&self, input: FeedListRawDndAction) -> Result<FeedListProcessedDndAction, Error> {
-
-        let list_pos = match input {
-            FeedListRawDndAction::MoveCategoryRaw(_, pos) => pos,
-            FeedListRawDndAction::MoveFeedRaw(_, pos) => pos,
-        };
-
+    pub fn calculate_dnd(&self, pos: i32) -> Result<(CategoryID, i32), Error> {
         let mut pos_iter = 0;
-        if let Ok((move_to_category, item_pos)) = self.calc_subcategory(&self.top_level, list_pos, &mut pos_iter) {
-            match input {
-                FeedListRawDndAction::MoveCategoryRaw(cat, _) => {
-                    return Ok(FeedListProcessedDndAction::MoveCategory(cat, move_to_category, item_pos))
-                },
-                FeedListRawDndAction::MoveFeedRaw(feed, _) => {
-                    return Ok(FeedListProcessedDndAction::MoveFeed(feed, move_to_category, item_pos))
-                },
-            }
-        }
-
-        Err(format_err!("asdf"))
+        self.calc_subcategory(&self.top_level, pos, &mut pos_iter)
     }
 
     fn calc_subcategory(&self,

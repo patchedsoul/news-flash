@@ -10,4 +10,4 @@ pub use self::category::FeedListCategoryModel;
 pub use self::feed::FeedListFeedModel;
 pub use self::change_set::FeedListChangeSet;
 pub use self::item::FeedListItem;
-pub use self::dnd_action::{FeedListRawDndAction, FeedListProcessedDndAction};
+pub use self::dnd_action::FeedListDndAction;

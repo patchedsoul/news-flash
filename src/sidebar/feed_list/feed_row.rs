@@ -55,7 +55,7 @@ impl FeedRow {
 
         let feed = FeedRow {
             id: model.id.clone(),
-            widget: Self::create_row(&feed),
+            widget: Self::create_row(&feed, &model.id),
             item_count: item_count_label,
             title: title_label,
             revealer: feed,
@@ -69,7 +69,7 @@ impl FeedRow {
         Rc::new(RefCell::new(feed))
     }
 
-    fn create_row(widget: &gtk::Revealer) -> gtk::ListBoxRow {
+    fn create_row(widget: &gtk::Revealer, id: &FeedID) -> gtk::ListBoxRow {
         let row = gtk::ListBoxRow::new();
         row.set_activatable(false);
         row.set_can_focus(false);
@@ -77,9 +77,17 @@ impl FeedRow {
         let context = row.get_style_context().unwrap();
         context.remove_class("activatable");
         let row_2nd_handle = row.clone();
+        let id = id.clone();
 
         let entry = TargetEntry::new("FeedRow", TargetFlags::SAME_APP, 0);
         widget.drag_source_set(ModifierType::BUTTON1_MASK, &vec![entry], DragAction::MOVE);
+        widget.connect_drag_data_get(move |_widget, _drag_context, selection_data, _, _| {
+            if let Ok(json) = serde_json::to_string(&id.clone()) {
+                let mut data =  String::from("FeedID ");
+                data.push_str(&json);
+                selection_data.set_text(&data);
+            }
+        });
         widget.connect_drag_begin(move |_widget, drag_context| {
             let alloc = row.get_allocation();
             let surface = ImageSurface::create(Format::ARgb32, alloc.width, alloc.height).unwrap();
@@ -89,9 +97,6 @@ impl FeedRow {
             row.draw(&cairo_context);
             style_context.remove_class("feedlist-drag-icon");
             drag_context.drag_set_icon_surface(&surface);
-        });
-        widget.connect_drag_data_get(|_widget, _drag_context, selection_data, _, _| {
-            selection_data.set_text("abc");
         });
         
         row_2nd_handle

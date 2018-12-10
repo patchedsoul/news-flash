@@ -16,6 +16,7 @@ use sidebar::{
         FeedListCategoryModel,
         FeedListFeedModel,
         FeedListChangeSet,
+        FeedListDndAction,
     },
 };
 use gtk::{
@@ -60,40 +61,22 @@ impl FeedList {
         let ui_string = str::from_utf8(ui_data.as_ref()).context(FeedListErrorKind::EmbedFile)?;
         let builder = gtk::Builder::new_from_string(ui_string);
         let list_box : gtk::ListBox = builder.get_object("feed_list").ok_or(FeedListErrorKind::UIFile)?;
+
+        let feed_list = FeedList {
+            widget: list_box.clone(),
+            categories: Rc::new(RefCell::new(HashMap::new())),
+            feeds: Rc::new(RefCell::new(HashMap::new())),
+            tree: Rc::new(RefCell::new(FeedListTree::new())),
+        };
+        feed_list.setup_dnd();
+        Ok(feed_list)
+    }
+
+    fn setup_dnd(&self) {
         let entry = TargetEntry::new("FeedRow", TargetFlags::SAME_APP, 0);
-        list_box.drag_dest_set(DestDefaults::DROP | DestDefaults::MOTION, &vec![entry], DragAction::MOVE);
-        list_box.connect_drag_data_received(|widget, _drag_context, _x, y, _selection_data, _info, _time| {
-            let children = widget.get_children();
-            for widget in children {
-                if let Ok(row) = widget.downcast::<ListBoxRow>() {
-                    if let Some(style_context) = row.get_style_context() {
-                        style_context.remove_class("feedlist-drag-after");
-                        style_context.remove_class("feedlist-drag-before");
-                    }
-                }
-            }
-
-            if let Some(row) = widget.get_row_at_y(y) {
-                let alloc = row.get_allocation();
-                let index = row.get_index();
-
-                let index = match y < alloc.y + (alloc.height / 2) {
-                    true => {
-                        match index - 1 >= 0 {
-                            true => index - 1,
-                            false => index,
-                        };
-                    },
-                    false => {
-                        match index + 1 >= 0 {
-                            true => index + 1,
-                            false => index,
-                        };
-                    },
-                };
-            }
-        });
-        list_box.connect_drag_motion(|widget, _drag_context, _x, y, _time| {
+        let tree = self.tree.clone();
+        self.widget.drag_dest_set(DestDefaults::DROP | DestDefaults::MOTION, &vec![entry], DragAction::MOVE);
+        self.widget.connect_drag_motion(|widget, _drag_context, _x, y, _time| {
             // maybe we should keep track of the previous highlighted rows instead of iterating over all of them
             let children = widget.get_children();
             for widget in children {
@@ -147,7 +130,7 @@ impl FeedList {
             
             Inhibit(false)
         });
-        list_box.connect_drag_leave(|widget, _drag_context, _time| {
+        self.widget.connect_drag_leave(|widget, _drag_context, _time| {
             let children = widget.get_children();
             for widget in children {
                 if let Ok(row) = widget.downcast::<ListBoxRow>() {
@@ -158,13 +141,51 @@ impl FeedList {
                 }
             }
         });
+        self.widget.connect_drag_data_received(move |widget, _drag_context, _x, y, selection_data, _info, _time| {
+            let children = widget.get_children();
+            for widget in children {
+                if let Ok(row) = widget.downcast::<ListBoxRow>() {
+                    if let Some(style_context) = row.get_style_context() {
+                        style_context.remove_class("feedlist-drag-after");
+                        style_context.remove_class("feedlist-drag-before");
+                    }
+                }
+            }
 
-        Ok(FeedList {
-            widget: list_box.clone(),
-            categories: Rc::new(RefCell::new(HashMap::new())),
-            feeds: Rc::new(RefCell::new(HashMap::new())),
-            tree: Rc::new(RefCell::new(FeedListTree::new())),
-        })
+            if let Some(row) = widget.get_row_at_y(y) {
+                let alloc = row.get_allocation();
+                let index = row.get_index();
+
+                let index = match y < alloc.y + (alloc.height / 2) {
+                    true => {
+                        match index - 1 >= 0 {
+                            true => index - 1,
+                            false => index,
+                        }
+                    },
+                    false => {
+                        match index + 1 >= 0 {
+                            true => index + 1,
+                            false => index,
+                        }
+                    },
+                };
+
+                if let Ok((parent_category, sort_index)) = tree.borrow().calculate_dnd(index) {
+                    if let Some(mut dnd_data_string) = selection_data.get_text() {
+                        if dnd_data_string.contains("FeedID") {
+                            let feed: FeedID = serde_json::from_str(&dnd_data_string.split_off(6)).unwrap();
+                            let fixme = FeedListDndAction::MoveFeed(feed, parent_category.clone(), sort_index);
+                        }
+
+                        if dnd_data_string.contains("CategoryID") {
+                            let category: CategoryID = serde_json::from_str(&dnd_data_string.split_off(10)).unwrap();
+                            let fixme = FeedListDndAction::MoveCategory(category, parent_category.clone(), sort_index);
+                        }
+                    }
+                }
+            }
+        });
     }
 
     pub fn update(&mut self, new_tree: FeedListTree) {
