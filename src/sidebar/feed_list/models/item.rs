@@ -1,10 +1,6 @@
 use std::cmp::Ordering;
 use super::category::FeedListCategoryModel;
 use super::feed::FeedListFeedModel;
-use news_flash::models::{
-    CategoryID,
-    FeedID,
-};
 
 #[derive(Eq, Clone, Debug)]
 pub enum FeedListItem {
@@ -57,36 +53,6 @@ impl Ord for FeedListItem {
 impl PartialOrd for FeedListItem {
     fn partial_cmp(&self, other: &FeedListItem) -> Option<Ordering> {
         Some(self.cmp(other))
-    }
-}
-
-
-#[derive(Eq, Clone, Debug)]
-pub enum FeedListItemLight {
-    Feed(FeedID),
-    Category(CategoryID),
-}
-
-impl PartialEq for FeedListItemLight {
-    fn eq(&self, other: &FeedListItemLight) -> bool {
-        match other {
-            FeedListItemLight::Category(other_category) => {
-                match self {
-                    FeedListItemLight::Category(self_category) => {
-                        other_category == self_category
-                    },
-                    FeedListItemLight::Feed(_) => false,
-                }
-            },
-            FeedListItemLight::Feed(other_feed) => {
-                match self {
-                    FeedListItemLight::Feed(self_feed) => {
-                        other_feed == self_feed
-                    },
-                    FeedListItemLight::Category(_) => false,
-                }
-            }
-        }
     }
 }
 

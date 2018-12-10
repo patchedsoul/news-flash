@@ -1,6 +1,5 @@
 use super::item::{
     FeedListItem,
-    FeedListItemLight,
 };
 use super::feed::FeedListFeedModel;
 use super::category::FeedListCategoryModel;
@@ -302,36 +301,48 @@ impl FeedListTree {
             FeedListRawDndAction::MoveCategoryRaw(_, pos) => pos,
             FeedListRawDndAction::MoveFeedRaw(_, pos) => pos,
         };
-        let dnd_item = match &input {
-            FeedListRawDndAction::MoveCategoryRaw(cat, _) => FeedListItemLight::Category(cat.clone()),
-            FeedListRawDndAction::MoveFeedRaw(feed, _) => FeedListItemLight::Feed(feed.clone()),
-        };
 
-        let pos_iter = 0;
-        let (move_to_category, item_pos) = self.calc_subcategory(&self.top_level, &dnd_item, list_pos, &pos_iter);
-
-        match input {
-            FeedListRawDndAction::MoveCategoryRaw(cat, _) => {
-                return Ok(FeedListProcessedDndAction::MoveCategory(cat, move_to_category, item_pos))
-            },
-            FeedListRawDndAction::MoveFeedRaw(feed, _) => {
-                return Ok(FeedListProcessedDndAction::MoveFeed(feed, move_to_category, item_pos))
-            },
-        }
-    }
-
-    fn calc_subcategory(&self, category: &Vec<FeedListItem>, dnd_item: &FeedListItemLight, list_pos: i32, pos_iter: &i32) -> (CategoryID, i32) {
-        for item in category {
-            match item {
-                FeedListItem::Feed(id) => {
-
+        let mut pos_iter = 0;
+        if let Ok((move_to_category, item_pos)) = self.calc_subcategory(&self.top_level, list_pos, &mut pos_iter) {
+            match input {
+                FeedListRawDndAction::MoveCategoryRaw(cat, _) => {
+                    return Ok(FeedListProcessedDndAction::MoveCategory(cat, move_to_category, item_pos))
                 },
-                FeedListItem::Category(id) => {
-
+                FeedListRawDndAction::MoveFeedRaw(feed, _) => {
+                    return Ok(FeedListProcessedDndAction::MoveFeed(feed, move_to_category, item_pos))
                 },
             }
         }
-        (CategoryID::new("asdfa"), 2)
+
+        Err(format_err!("asdf"))
+    }
+
+    fn calc_subcategory(&self,
+        category: &Vec<FeedListItem>,
+        list_pos: i32,
+        global_pos_iter: &mut i32)
+    -> Result<(CategoryID, i32), Error> {
+
+        let mut local_pos_iter = 0;
+
+        for item in category {
+            *global_pos_iter += 1;
+            local_pos_iter += 1;
+            if let FeedListItem::Category(model) = item {
+                if let Ok((parent, pos)) = self.calc_subcategory(&model.children, list_pos, global_pos_iter) {
+                    return Ok((parent, pos));
+                }
+            }
+
+            if global_pos_iter == &list_pos {
+                let parent = match item {
+                    FeedListItem::Category(model) => model.parent_id.clone(),
+                    FeedListItem::Feed(model) => model.parent_id.clone(),
+                };
+                return Ok((parent, local_pos_iter))
+            }
+        }
+        Err(format_err!("asdf"))
     }
 }
 
