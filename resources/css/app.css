@@ -23,11 +23,11 @@
 	border-bottom: 1px solid alpha(black, 0.15);
 }
 
-.feedlist-drag-before {
+.feedlist-drag-above {
   border-bottom: 1px solid white;
 }
 
-.feedlist-drag-after {
+.feedlist-drag-below {
   border-top: 1px solid white;
 }
 

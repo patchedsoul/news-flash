@@ -81,7 +81,8 @@ impl FeedRow {
 
         let entry = TargetEntry::new("FeedRow", TargetFlags::SAME_APP, 0);
         widget.drag_source_set(ModifierType::BUTTON1_MASK, &vec![entry], DragAction::MOVE);
-        widget.connect_drag_data_get(move |_widget, _drag_context, selection_data, _, _| {
+        widget.drag_source_add_text_targets();
+        widget.connect_drag_data_get(move |_widget, _ctx, selection_data, _info, _time| {
             if let Ok(json) = serde_json::to_string(&id.clone()) {
                 let mut data =  String::from("FeedID ");
                 data.push_str(&json);

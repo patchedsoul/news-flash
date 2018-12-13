@@ -111,11 +111,11 @@ fn main() {
 
         
         let mut tree = FeedListTree::new();
-        tree.add_category(&category_1, 7);
-        tree.add_category(&category_2, 5);
-        tree.add_feed(&feed_1, &mapping_1, 2);
-        tree.add_feed(&feed_2, &mapping_2, 0);
-        tree.add_feed(&feed_3, &mapping_3, 5);
+        tree.add_category(&category_1, 7).unwrap();
+        tree.add_category(&category_2, 5).unwrap();
+        tree.add_feed(&feed_1, &mapping_1, 2).unwrap();
+        tree.add_feed(&feed_2, &mapping_2, 0).unwrap();
+        tree.add_feed(&feed_3, &mapping_3, 5).unwrap();
         
         let mut list = FeedList::new().unwrap();
         list.update(tree);

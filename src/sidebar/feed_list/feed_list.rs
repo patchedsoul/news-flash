@@ -76,14 +76,15 @@ impl FeedList {
         let entry = TargetEntry::new("FeedRow", TargetFlags::SAME_APP, 0);
         let tree = self.tree.clone();
         self.widget.drag_dest_set(DestDefaults::DROP | DestDefaults::MOTION, &vec![entry], DragAction::MOVE);
+        self.widget.drag_dest_add_text_targets();
         self.widget.connect_drag_motion(|widget, _drag_context, _x, y, _time| {
             // maybe we should keep track of the previous highlighted rows instead of iterating over all of them
             let children = widget.get_children();
             for widget in children {
                 if let Ok(row) = widget.downcast::<ListBoxRow>() {
                     if let Some(style_context) = row.get_style_context() {
-                        style_context.remove_class("feedlist-drag-after");
-                        style_context.remove_class("feedlist-drag-before");
+                        style_context.remove_class("feedlist-drag-above");
+                        style_context.remove_class("feedlist-drag-below");
                     }
                 }
             }
@@ -94,60 +95,54 @@ impl FeedList {
 
                 match y < alloc.y + (alloc.height / 2) {
                     true => {
-                        if let Some(row_before) = widget.get_row_at_index(index - 1) {
-                            if let Some(style_context_before) = row_before.get_style_context() {
-                                if let Some(style_context_after) = row.get_style_context() {
-                                    style_context_before.add_class("feedlist-drag-before");
-                                    style_context_after.add_class("feedlist-drag-after");
-                                }
+                        if let Some(_) = widget.get_row_at_index(index - 1) {
+                            if let Some(style_context_below) = row.get_style_context() {
+                                style_context_below.add_class("feedlist-drag-below");
                             }
                         }
                         else {
                             // row before doesn't exist -> insert at first pos
                             if let Some(style_context) = row.get_style_context() {
-                                style_context.add_class("feedlist-drag-after");
+                                style_context.add_class("feedlist-drag-below");
                             }
                         }
                     },
                     false => {
-                        if let Some(row_after) = widget.get_row_at_index(index + 1) {
-                            if let Some(style_context_before) = row.get_style_context() {
-                                if let Some(style_context_after) = row_after.get_style_context() {
-                                    style_context_before.add_class("feedlist-drag-before");
-                                    style_context_after.add_class("feedlist-drag-after");
-                                }
+                        if let Some(row_below) = widget.get_row_at_index(index + 1) {
+                            if let Some(style_context_below) = row_below.get_style_context() {
+                                style_context_below.add_class("feedlist-drag-below");
                             }
                         }
                         else {
                             // row after doesn't exist -> insert at last pos
                             if let Some(style_context) = row.get_style_context() {
-                                style_context.add_class("feedlist-drag-before");
+                                style_context.add_class("feedlist-drag-above");
                             }
                         }
                     },
                 };
             }
             
-            Inhibit(false)
+            Inhibit(true)
         });
         self.widget.connect_drag_leave(|widget, _drag_context, _time| {
             let children = widget.get_children();
             for widget in children {
                 if let Ok(row) = widget.downcast::<ListBoxRow>() {
                     if let Some(style_context) = row.get_style_context() {
-                        style_context.remove_class("feedlist-drag-after");
-                        style_context.remove_class("feedlist-drag-before");
+                        style_context.remove_class("feedlist-drag-above");
+                        style_context.remove_class("feedlist-drag-below");
                     }
                 }
             }
         });
-        self.widget.connect_drag_data_received(move |widget, _drag_context, _x, y, selection_data, _info, _time| {
+        self.widget.connect_drag_data_received(move |widget, _ctx, _x, y, selection_data, _info, _time| {
             let children = widget.get_children();
             for widget in children {
                 if let Ok(row) = widget.downcast::<ListBoxRow>() {
                     if let Some(style_context) = row.get_style_context() {
-                        style_context.remove_class("feedlist-drag-after");
-                        style_context.remove_class("feedlist-drag-before");
+                        style_context.remove_class("feedlist-drag-above");
+                        style_context.remove_class("feedlist-drag-below");
                     }
                 }
             }
