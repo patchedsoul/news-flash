@@ -12,7 +12,10 @@ use news_flash::models::{
     Feed,
     FeedID,
 };
-use failure::Error;
+use super::error::{
+    FeedListModelError,
+    FeedListModelErrorKind,
+};
 
 #[derive(Clone, Debug)]
 pub struct FeedListTree {
@@ -28,7 +31,7 @@ impl FeedListTree {
         }
     }
 
-    pub fn add_feed(&mut self, feed: &Feed, mapping: &FeedMapping, item_count: i32) -> Result<(), Error> {
+    pub fn add_feed(&mut self, feed: &Feed, mapping: &FeedMapping, item_count: i32) -> Result<(), FeedListModelError> {
         if mapping.category_id == self.top_level_id {
             let contains_feed = self.top_level.iter().any(|item| {
                 if let FeedListItem::Feed(item) = item {
@@ -43,7 +46,7 @@ impl FeedListTree {
                 self.top_level.sort();
             }
             else {
-                return Err(format_err!("asdf"))
+                return Err(FeedListModelErrorKind::AddDuplicateFeed)?
             }
             return Ok(())
         }
@@ -54,10 +57,10 @@ impl FeedListTree {
             return Ok(())
         }
 
-        return Err(format_err!("asdf"))
+        return Err(FeedListModelErrorKind::AddFeedNoParent)?
     }
 
-    pub fn add_category(&mut self, category: &Category, item_count: i32) -> Result<(), Error> {
+    pub fn add_category(&mut self, category: &Category, item_count: i32) -> Result<(), FeedListModelError> {
         if category.parent == self.top_level_id {
             let contains_category = self.top_level.iter().any(|item| {
                 if let FeedListItem::Category(item) = item {
@@ -73,7 +76,7 @@ impl FeedListTree {
                 self.top_level.sort();
             }
             else {
-                return Err(format_err!("asdf"))
+                return Err(FeedListModelErrorKind::AddDuplicateCategory)?
             }
             return Ok(())
         }
@@ -84,7 +87,7 @@ impl FeedListTree {
             return Ok(())
         }
 
-        return Err(format_err!("asdf"))
+        return Err(FeedListModelErrorKind::AddCategoryNoParent)?
     }
 
     fn find_category(&mut self, id: &CategoryID) -> Option<(&mut FeedListCategoryModel, i32)> {
@@ -293,7 +296,7 @@ impl FeedListTree {
         diff
     }
 
-    pub fn calculate_dnd(&self, pos: i32) -> Result<(CategoryID, i32), Error> {
+    pub fn calculate_dnd(&self, pos: i32) -> Result<(CategoryID, i32), FeedListModelError> {
         let mut pos_iter = 0;
         self.calc_subcategory(&self.top_level, &self.top_level_id, pos, &mut pos_iter)
     }
@@ -303,7 +306,7 @@ impl FeedListTree {
         parent_id: &CategoryID,
         list_pos: i32,
         global_pos_iter: &mut i32)
-    -> Result<(CategoryID, i32), Error> {
+    -> Result<(CategoryID, i32), FeedListModelError> {
 
         let mut local_pos_iter = 0;
 
@@ -329,7 +332,7 @@ impl FeedListTree {
                 return Ok((parent, local_pos_iter))
             }
         }
-        Err(format_err!("asdf"))
+        return Err(FeedListModelErrorKind::DnD)?
     }
 
     #[allow(dead_code)]

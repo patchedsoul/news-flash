@@ -4,6 +4,7 @@ pub mod feed;
 pub mod item;
 pub mod tree;
 pub mod dnd_action;
+mod error;
 
 pub use self::tree::FeedListTree;
 pub use self::category::FeedListCategoryModel;

@@ -1,13 +1,14 @@
 extern crate gio;
 extern crate gtk;
 extern crate gdk;
-#[macro_use]
 extern crate failure;
 #[macro_use]
 extern crate rust_embed;
 extern crate news_flash;
 extern crate chrono;
 extern crate cairo;
+#[macro_use]
+extern crate log;
 
 mod sidebar;
 

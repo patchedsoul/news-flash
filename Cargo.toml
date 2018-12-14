@@ -4,6 +4,7 @@ version = "0.1.0"
 authors = ["Jan Lukas Gernert <jangernert@gmail.com>"]
 
 [dependencies]
+log = "0.4"
 chrono = "0.4"
 rust-embed = "4.2"
 cairo-rs = "0.5"

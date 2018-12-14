@@ -166,7 +166,9 @@ impl FeedList {
                     },
                 };
 
-                if let Ok((parent_category, sort_index)) = tree.borrow().calculate_dnd(index) {
+                if let Ok((parent_category, sort_index)) = tree.borrow().calculate_dnd(index).map_err(|_| {
+                    debug!("Failed to calculate Drag&Drop action");
+                }) {
                     if let Some(mut dnd_data_string) = selection_data.get_text() {
                         if dnd_data_string.contains("FeedID") {
                             let feed: FeedID = serde_json::from_str(&dnd_data_string.split_off(6)).unwrap();
