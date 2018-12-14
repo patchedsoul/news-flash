@@ -1,17 +1,10 @@
-extern crate gio;
-extern crate gtk;
-extern crate gdk;
-extern crate failure;
-#[macro_use]
-extern crate rust_embed;
-extern crate news_flash;
-extern crate chrono;
-extern crate cairo;
-#[macro_use]
-extern crate log;
-
 mod sidebar;
 
+use cairo;
+use gio;
+use gtk;
+use gdk;
+use failure;
 use std::env::args;
 use std::str;
 use gio::prelude::*;
@@ -30,6 +23,7 @@ use news_flash::models::{
     FeedID,
     NEWSFLASH_TOPLEVEL,
 };
+use rust_embed::RustEmbed;
 
 #[derive(RustEmbed)]
 #[folder = "resources/"]

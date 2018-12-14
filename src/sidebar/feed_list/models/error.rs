@@ -23,7 +23,7 @@ pub enum FeedListModelErrorKind {
 }
 
 impl Fail for FeedListModelError {
-    fn cause(&self) -> Option<&Fail> {
+    fn cause(&self) -> Option<&dyn Fail> {
         self.inner.cause()
     }
 

@@ -4,6 +4,9 @@ use std::rc::Rc;
 use std::cell::RefCell;
 use std::collections::HashMap;
 use failure::ResultExt;
+use log::{
+    debug,
+};
 use news_flash::models::{
     CategoryID,
     FeedID,
@@ -172,12 +175,12 @@ impl FeedList {
                     if let Some(mut dnd_data_string) = selection_data.get_text() {
                         if dnd_data_string.contains("FeedID") {
                             let feed: FeedID = serde_json::from_str(&dnd_data_string.split_off(6)).unwrap();
-                            let _fixme = FeedListDndAction::MoveFeed(feed, parent_category.clone(), sort_index);
+                            let fixme = FeedListDndAction::MoveFeed(feed, parent_category.clone(), sort_index);
                         }
 
                         if dnd_data_string.contains("CategoryID") {
                             let category: CategoryID = serde_json::from_str(&dnd_data_string.split_off(10)).unwrap();
-                            let _fixme = FeedListDndAction::MoveCategory(category, parent_category.clone(), sort_index);
+                            let fixme = FeedListDndAction::MoveCategory(category, parent_category.clone(), sort_index);
                         }
                     }
                 }
