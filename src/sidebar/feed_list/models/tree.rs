@@ -361,7 +361,7 @@ impl FeedListTree {
 
 #[cfg(test)]
 mod tests {
-    use sidebar::feed_list::models::{
+    use crate::sidebar::feed_list::models::{
         FeedListTree,
         FeedListChangeSet,
         FeedListCategoryModel,

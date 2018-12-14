@@ -16,7 +16,7 @@ use std::env::args;
 use std::str;
 use gio::prelude::*;
 use gtk::prelude::*;
-use sidebar::{
+use crate::sidebar::{
     FeedList,
     feed_list::models::{
         FeedListTree,

@@ -16,13 +16,13 @@ use gdk::{
 use news_flash::models::{
     CategoryID,
 };
-use sidebar::feed_list::models::{
+use crate::sidebar::feed_list::models::{
     FeedListCategoryModel,
 };
 use std::str;
 use std::rc::Rc;
 use std::cell::RefCell;
-use Resources;
+use crate::Resources;
 
 #[derive(Clone, Debug)]
 pub struct CategoryRow {
