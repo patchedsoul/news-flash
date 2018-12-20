@@ -1,4 +1,5 @@
 mod sidebar;
+mod welcome_screen;
 
 use cairo;
 use gio;
