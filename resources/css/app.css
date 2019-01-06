@@ -1,3 +1,7 @@
+/***************/
+/*  feed list  */
+/***************/
+
 .feedlist {
   background: #555;
 }
@@ -66,4 +70,49 @@
 @keyframes expand {
   from { -gtk-icon-transform: rotate(0deg); }
   to   { -gtk-icon-transform: rotate(90deg); }
+}
+
+/***************/
+/* text styles */
+/***************/
+
+.bold {
+	font-weight: bold
+}
+.h1 {
+	font-weight: bold;
+	font-size: xx-large;
+}
+.h2 {
+	font-size: x-large;
+}
+.h3 {
+	font-size: large;
+}
+.h4 {
+	font-weight: bold
+}
+.preview {
+	font-size: small;
+}
+.headline-read,
+.headline-unread {
+	font-style: normal;
+	font-size: large;
+}
+.headline-read {
+	font-weight: normal;
+}
+.headline-unread {
+	font-weight: bold;
+}
+
+
+/***************/
+/*    misc     */
+/***************/
+.service-list row {
+	border-bottom-width: 1px;
+	border-bottom-style: solid;
+	border-bottom-color: rgba(128, 128, 128, 0.3);
 }

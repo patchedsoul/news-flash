@@ -16,6 +16,9 @@ use crate::sidebar::{
         FeedListTree,
     },
 };
+use crate::welcome_screen::{
+    WelcomePage,
+};
 use news_flash::models::{
     Category as CategoryModel,
     Feed as FeedModel,
@@ -49,14 +52,33 @@ fn main() {
         window.set_title("FeedList test");
         window.set_border_width(0);
         window.set_position(gtk::WindowPosition::Center);
-        window.set_default_size(350, 70);
+        window.set_default_size(1200, 600);
 
         window.connect_delete_event(move |win, _| {
             win.destroy();
             Inhibit(false)
         });
 
-        let category_1 = CategoryModel {
+        let _list = demo_setup_feedlist();
+        //window.add(&list.widget);
+
+        let welcome = demo_setup_welcome_page();
+        window.add(&welcome.widget);
+
+        window.show_all();
+    });
+    application.connect_activate(|_| {});
+
+    application.run(&args().collect::<Vec<_>>());
+}
+
+fn demo_setup_welcome_page() -> WelcomePage {
+    let welcome = WelcomePage::new().unwrap();
+    welcome
+}
+
+fn demo_setup_feedlist() -> FeedList {
+    let category_1 = CategoryModel {
             category_id: CategoryID::new("category_1"),
             label: "category 1".to_owned(),
             sort_index: None,
@@ -115,11 +137,5 @@ fn main() {
         
         let mut list = FeedList::new().unwrap();
         list.update(tree);
-        window.add(&list.widget);
-
-        window.show_all();
-    });
-    application.connect_activate(|_| {});
-
-    application.run(&args().collect::<Vec<_>>());
+        list
 }
