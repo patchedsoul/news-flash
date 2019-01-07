@@ -24,7 +24,7 @@ use news_flash::models::{
 
 #[derive(Clone, Debug)]
 pub struct ServiceRow {
-    pub(crate) widget: gtk::Box,
+    pub(crate) widget: gtk::EventBox,
 }
 
 impl ServiceRow {
@@ -32,7 +32,7 @@ impl ServiceRow {
         let ui_data = Resources::get("ui/service_row.ui").ok_or(format_err!("some err"))?;
         let ui_string = str::from_utf8(ui_data.as_ref())?;
         let builder = gtk::Builder::new_from_string(ui_string);
-        let row : gtk::Box = builder.get_object("service_row").ok_or(format_err!("some err"))?;
+        let row : gtk::EventBox = builder.get_object("service_row").ok_or(format_err!("some err"))?;
         let label : gtk::Label = builder.get_object("label").ok_or(format_err!("some err"))?;
         label.set_label(&info.name);
 
