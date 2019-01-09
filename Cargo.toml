@@ -7,7 +7,7 @@ edition = "2018"
 [dependencies]
 log = "0.4"
 chrono = "0.4"
-rust-embed = { version = "4.2"}
+rust-embed = { version = "4.3", features = ["debug-embed"] }
 cairo-rs = "0.5"
 failure = "0.1"
 serde = "1.0"

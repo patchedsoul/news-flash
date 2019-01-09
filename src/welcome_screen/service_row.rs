@@ -2,6 +2,7 @@ use gtk::{
     self,
     LabelExt,
     ImageExt,
+    WidgetExt,
 };
 use gdk_pixbuf::{
     Pixbuf,
@@ -12,6 +13,12 @@ use gio::{
 };
 use glib::{
     Bytes,
+};
+use gio::{
+    SimpleActionGroup,
+    ActionMapExt,
+    SimpleAction,
+    SimpleActionExt,
 };
 use crate::Resources;
 use failure::Error;
@@ -39,7 +46,6 @@ impl ServiceRow {
         let image : gtk::Image = builder.get_object("icon").ok_or(format_err!("get icon widget"))?;
 
         if let Some(icon) = info.icon {
-
             match icon {
                 PluginIcon::Vector(icon) => {
                     let bytes = Bytes::from(&icon.data);
@@ -60,12 +66,18 @@ impl ServiceRow {
                     image.set_from_pixbuf(&pixbuf);
                 },
             }
-            
-            
         }
         else {
             // FIXME: default Icon
         }
+
+        let actions = SimpleActionGroup::new();
+        let show_arrow = SimpleAction::new("show-arrow", None);
+        actions.add_action(&show_arrow);
+        show_arrow.connect_activate(move |_action, _data| {
+            println!("enter row");
+        });
+        row.insert_action_group("test", &actions);
 
         Ok(ServiceRow {
             widget: row.clone(),

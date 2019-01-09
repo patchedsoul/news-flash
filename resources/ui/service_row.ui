@@ -5,6 +5,7 @@
   <object class="GtkEventBox" id="service_row">
     <property name="visible">True</property>
     <property name="can_focus">False</property>
+    <signal name="enter-notify-event" handler="test.show-arrow" swapped="no"/>
     <child>
       <object class="GtkBox">
         <property name="visible">True</property>
@@ -50,18 +51,30 @@
               </packing>
             </child>
             <child>
-              <object class="GtkImage">
-                <property name="width_request">48</property>
-                <property name="height_request">48</property>
+              <object class="GtkRevealer" id="arrow_revealer">
                 <property name="visible">True</property>
                 <property name="can_focus">False</property>
-                <property name="stock">gtk-missing-image</property>
+                <property name="transition_type">none</property>
+                <child>
+                  <object class="GtkEventBox" id="arrow_event">
+                    <property name="visible">True</property>
+                    <property name="can_focus">False</property>
+                    <child>
+                      <object class="GtkImage" id="arrow_image">
+                        <property name="width_request">48</property>
+                        <property name="height_request">48</property>
+                        <property name="visible">True</property>
+                        <property name="can_focus">False</property>
+                        <property name="stock">gtk-go-back</property>
+                      </object>
+                    </child>
+                  </object>
+                </child>
               </object>
               <packing>
                 <property name="expand">False</property>
                 <property name="fill">True</property>
                 <property name="padding">10</property>
-                <property name="pack_type">end</property>
                 <property name="position">2</property>
               </packing>
             </child>
@@ -85,8 +98,10 @@
                   <object class="GtkLabel">
                     <property name="visible">True</property>
                     <property name="can_focus">False</property>
-                    <property name="margin_left">20</property>
-                    <property name="margin_right">20</property>
+                    <property name="margin_left">10</property>
+                    <property name="margin_right">10</property>
+                    <property name="margin_top">2</property>
+                    <property name="margin_bottom">5</property>
                     <property name="label" translatable="yes">Price:</property>
                     <property name="xalign">1</property>
                   </object>
@@ -99,8 +114,10 @@
                   <object class="GtkLabel">
                     <property name="visible">True</property>
                     <property name="can_focus">False</property>
-                    <property name="margin_left">20</property>
-                    <property name="margin_right">20</property>
+                    <property name="margin_left">10</property>
+                    <property name="margin_right">10</property>
+                    <property name="margin_top">2</property>
+                    <property name="margin_bottom">2</property>
                     <property name="label" translatable="yes">License:</property>
                     <property name="xalign">1</property>
                   </object>
@@ -113,8 +130,10 @@
                   <object class="GtkLabel">
                     <property name="visible">True</property>
                     <property name="can_focus">False</property>
-                    <property name="margin_left">20</property>
-                    <property name="margin_right">20</property>
+                    <property name="margin_left">10</property>
+                    <property name="margin_right">10</property>
+                    <property name="margin_top">2</property>
+                    <property name="margin_bottom">2</property>
                     <property name="label" translatable="yes">Service Type:</property>
                     <property name="xalign">1</property>
                   </object>
@@ -127,8 +146,10 @@
                   <object class="GtkLabel">
                     <property name="visible">True</property>
                     <property name="can_focus">False</property>
-                    <property name="margin_left">20</property>
-                    <property name="margin_right">20</property>
+                    <property name="margin_left">10</property>
+                    <property name="margin_right">10</property>
+                    <property name="margin_top">5</property>
+                    <property name="margin_bottom">2</property>
                     <property name="label" translatable="yes">Website:</property>
                     <property name="xalign">1</property>
                   </object>
@@ -149,16 +170,60 @@
                   </packing>
                 </child>
                 <child>
-                  <placeholder/>
+                  <object class="GtkLabel">
+                    <property name="visible">True</property>
+                    <property name="can_focus">False</property>
+                    <property name="margin_left">10</property>
+                    <property name="hexpand">True</property>
+                    <property name="label" translatable="yes">http://example.com</property>
+                    <property name="xalign">0</property>
+                  </object>
+                  <packing>
+                    <property name="left_attach">1</property>
+                    <property name="top_attach">1</property>
+                  </packing>
                 </child>
                 <child>
-                  <placeholder/>
+                  <object class="GtkLabel">
+                    <property name="visible">True</property>
+                    <property name="can_focus">False</property>
+                    <property name="margin_left">10</property>
+                    <property name="hexpand">False</property>
+                    <property name="label" translatable="yes">self hosted</property>
+                    <property name="xalign">0</property>
+                  </object>
+                  <packing>
+                    <property name="left_attach">1</property>
+                    <property name="top_attach">2</property>
+                  </packing>
                 </child>
                 <child>
-                  <placeholder/>
+                  <object class="GtkLabel">
+                    <property name="visible">True</property>
+                    <property name="can_focus">False</property>
+                    <property name="margin_left">10</property>
+                    <property name="hexpand">True</property>
+                    <property name="label" translatable="yes">GPLv3</property>
+                    <property name="xalign">0</property>
+                  </object>
+                  <packing>
+                    <property name="left_attach">1</property>
+                    <property name="top_attach">3</property>
+                  </packing>
                 </child>
                 <child>
-                  <placeholder/>
+                  <object class="GtkLabel">
+                    <property name="visible">True</property>
+                    <property name="can_focus">False</property>
+                    <property name="margin_left">10</property>
+                    <property name="hexpand">True</property>
+                    <property name="label" translatable="yes">free</property>
+                    <property name="xalign">0</property>
+                  </object>
+                  <packing>
+                    <property name="left_attach">1</property>
+                    <property name="top_attach">4</property>
+                  </packing>
                 </child>
               </object>
             </child>
