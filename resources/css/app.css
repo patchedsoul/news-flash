@@ -54,11 +54,11 @@
   padding: 2px 5px 1px;
 }
 
-.expanded {
+.feedlist-expanded {
   animation: expand 1 forwards 200ms;
 }
 
-.collapsed {
+.feedlist-collapsed {
   animation: collapse 1 forwards 200ms;
 }
 
@@ -115,4 +115,22 @@
 	border-bottom-width: 1px;
 	border-bottom-style: solid;
 	border-bottom-color: rgba(128, 128, 128, 0.3);
+}
+
+.backward-arrow-expanded {
+  animation: expand 1 forwards 200ms;
+}
+
+.backward-arrow-collapsed {
+  animation: collapse 1 forwards 200ms;
+}
+
+@keyframes collapse {
+  from { -gtk-icon-transform: rotate(-90deg); }
+  to   { -gtk-icon-transform: rotate(0deg); }
+}
+
+@keyframes expand {
+  from { -gtk-icon-transform: rotate(0deg); }
+  to   { -gtk-icon-transform: rotate(-90deg); }
 }

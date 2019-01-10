@@ -46,16 +46,16 @@ use crate::sidebar::feed_list::error::{
     FeedListErrorKind,
 };
 
-type Handle<T> = Rc<RefCell<T>>;
-type HandleMap<T, K> = Handle<HashMap<T, K>>;
+type GtkHandle<T> = Rc<RefCell<T>>;
+type GtkHandleMap<T, K> = GtkHandle<HashMap<T, K>>;
 
 
 #[derive(Clone, Debug)]
 pub struct FeedList {
     pub(crate) widget: gtk::ListBox,
-    categories: HandleMap<CategoryID, Handle<CategoryRow>>,
-    feeds: HandleMap<FeedID, Handle<FeedRow>>,
-    tree: Handle<FeedListTree>,
+    categories: GtkHandleMap<CategoryID, GtkHandle<CategoryRow>>,
+    feeds: GtkHandleMap<FeedID, GtkHandle<FeedRow>>,
+    tree: GtkHandle<FeedListTree>,
 }
 
 impl FeedList {
