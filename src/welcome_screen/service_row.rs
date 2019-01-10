@@ -192,7 +192,7 @@ impl ServiceRow {
                 }
                 handle.borrow_mut().show_info = !expanded;
             }
-            gtk::Inhibit(false)
+            gtk::Inhibit(true)
         });
     }
 }
