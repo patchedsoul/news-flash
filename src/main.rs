@@ -66,6 +66,7 @@ fn main() {
         window.add(&welcome.widget);
 
         window.show_all();
+        window.present();
     });
     application.connect_activate(|_| {});
 
