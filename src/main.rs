@@ -1,5 +1,6 @@
 mod sidebar;
 mod welcome_screen;
+mod login_screen;
 
 use cairo;
 use gio;
