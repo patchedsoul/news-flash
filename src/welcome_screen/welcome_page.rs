@@ -11,7 +11,7 @@ use super::service_row::ServiceRow;
 
 #[derive(Clone, Debug)]
 pub struct WelcomePage {
-    pub(crate) widget: gtk::Box,
+    page: gtk::Box,
     list: gtk::ListBox,
 }
 
@@ -24,7 +24,7 @@ impl WelcomePage {
         let list : gtk::ListBox = builder.get_object("list").ok_or(format_err!("some err"))?;
 
         let page = WelcomePage {
-            widget: page.clone(),
+            page: page,
             list: list,
         };
 
@@ -38,8 +38,12 @@ impl WelcomePage {
         for (_id, api_meta) in services {
             let service_meta = api_meta.metadata();
             let row = ServiceRow::new(service_meta)?;
-            self.list.insert(&row.widget, -1);
+            self.list.insert(&row.widget(), -1);
         }
         Ok(())
+    }
+
+    pub fn widget(&self) -> gtk::Box {
+        self.page.clone()
     }
 }

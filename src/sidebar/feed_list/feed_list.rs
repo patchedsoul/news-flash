@@ -52,7 +52,7 @@ type GtkHandleMap<T, K> = GtkHandle<HashMap<T, K>>;
 
 #[derive(Clone, Debug)]
 pub struct FeedList {
-    pub(crate) widget: gtk::ListBox,
+    list: gtk::ListBox,
     categories: GtkHandleMap<CategoryID, GtkHandle<CategoryRow>>,
     feeds: GtkHandleMap<FeedID, GtkHandle<FeedRow>>,
     tree: GtkHandle<FeedListTree>,
@@ -66,7 +66,7 @@ impl FeedList {
         let list_box : gtk::ListBox = builder.get_object("feed_list").ok_or(FeedListErrorKind::UIFile)?;
 
         let feed_list = FeedList {
-            widget: list_box.clone(),
+            list: list_box,
             categories: Rc::new(RefCell::new(HashMap::new())),
             feeds: Rc::new(RefCell::new(HashMap::new())),
             tree: Rc::new(RefCell::new(FeedListTree::new())),
@@ -78,9 +78,9 @@ impl FeedList {
     fn setup_dnd(&self) {
         let entry = TargetEntry::new("FeedRow", TargetFlags::SAME_APP, 0);
         let tree = self.tree.clone();
-        self.widget.drag_dest_set(DestDefaults::DROP | DestDefaults::MOTION, &vec![entry], DragAction::MOVE);
-        self.widget.drag_dest_add_text_targets();
-        self.widget.connect_drag_motion(|widget, _drag_context, _x, y, _time| {
+        self.list.drag_dest_set(DestDefaults::DROP | DestDefaults::MOTION, &vec![entry], DragAction::MOVE);
+        self.list.drag_dest_add_text_targets();
+        self.list.connect_drag_motion(|widget, _drag_context, _x, y, _time| {
             // maybe we should keep track of the previous highlighted rows instead of iterating over all of them
             let children = widget.get_children();
             for widget in children {
@@ -128,7 +128,7 @@ impl FeedList {
             
             Inhibit(true)
         });
-        self.widget.connect_drag_leave(|widget, _drag_context, _time| {
+        self.list.connect_drag_leave(|widget, _drag_context, _time| {
             let children = widget.get_children();
             for widget in children {
                 if let Ok(row) = widget.downcast::<ListBoxRow>() {
@@ -139,7 +139,7 @@ impl FeedList {
                 }
             }
         });
-        self.widget.connect_drag_data_received(move |widget, _ctx, _x, y, selection_data, _info, _time| {
+        self.list.connect_drag_data_received(move |widget, _ctx, _x, y, selection_data, _info, _time| {
             let children = widget.get_children();
             for widget in children {
                 if let Ok(row) = widget.downcast::<ListBoxRow>() {
@@ -196,13 +196,13 @@ impl FeedList {
             match diff {
                 FeedListChangeSet::RemoveFeed(feed_id) => {
                     if let Some(feed_handle) = self.feeds.borrow().get(&feed_id) {
-                        self.widget.remove(&feed_handle.borrow().row());
+                        self.list.remove(&feed_handle.borrow().row());
                     }
                     self.feeds.borrow_mut().remove(&feed_id);
                 },
                 FeedListChangeSet::RemoveCategory(category_id) => {
                     if let Some(category_handle) = self.categories.borrow().get(&category_id) {
-                        self.widget.remove(&category_handle.borrow().row());
+                        self.list.remove(&category_handle.borrow().row());
                     }
                     self.categories.borrow_mut().remove(&category_id);
                 },
@@ -242,7 +242,7 @@ impl FeedList {
         let categories = self.categories.clone();
         let category_id = category.id.clone();
         let tree = self.tree.clone();
-        self.widget.insert(&category_widget.borrow().row(), pos);
+        self.list.insert(&category_widget.borrow().row(), pos);
         self.categories.borrow_mut().insert(category.id.clone(), category_widget.clone());
 
         category_widget.borrow().expander_event().connect_button_press_event(move |_widget, event| {
@@ -276,7 +276,7 @@ impl FeedList {
 
     fn add_feed(&mut self, feed: &FeedListFeedModel, pos: i32, visible: bool) {
         let feed_widget = FeedRow::new(feed, visible);
-        self.widget.insert(&feed_widget.borrow().row(), pos);
+        self.list.insert(&feed_widget.borrow().row(), pos);
         self.feeds.borrow_mut().insert(feed.id.clone(), feed_widget);
     }
 }

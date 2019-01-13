@@ -40,7 +40,7 @@ type GtkHandle<T> = Rc<RefCell<T>>;
 
 #[derive(Clone, Debug)]
 pub struct ServiceRow {
-    pub(crate) widget: gtk::EventBox,
+    row: gtk::EventBox,
     arrow_revealer: GtkHandle<gtk::Revealer>,
     arrow_event: GtkHandle<gtk::EventBox>,
     arrow_image: GtkHandle<gtk::Image>,
@@ -142,7 +142,7 @@ impl ServiceRow {
         }
 
         let service_row = ServiceRow {
-            widget: row.clone(),
+            row: row,
             arrow_revealer: Rc::new(RefCell::new(arrow_revealer)),
             arrow_event: Rc::new(RefCell::new(arrow_event)),
             arrow_image: Rc::new(RefCell::new(arrow_image)),
@@ -159,13 +159,13 @@ impl ServiceRow {
         let arrow_revealer_1 = self.arrow_revealer.clone();
         let arrow_revealer_2 = self.arrow_revealer.clone();
         let handle_1 = handle.clone();
-        self.widget.connect_enter_notify_event(move |_widget, crossing| {
+        self.row.connect_enter_notify_event(move |_widget, crossing| {
             if crossing.get_detail() != NotifyType::Inferior{
                 arrow_revealer_1.borrow().set_reveal_child(true);
             }
             Inhibit(false)
         });
-        self.widget.connect_leave_notify_event(move |_widget, crossing| {
+        self.row.connect_leave_notify_event(move |_widget, crossing| {
             if crossing.get_detail() != NotifyType::Inferior{
                 if !handle_1.borrow().show_info {
                     arrow_revealer_2.borrow().set_reveal_child(false);
@@ -194,5 +194,9 @@ impl ServiceRow {
             }
             gtk::Inhibit(true)
         });
+    }
+
+    pub fn widget(&self) -> gtk::EventBox {
+        self.row.clone()
     }
 }
