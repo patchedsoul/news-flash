@@ -3,6 +3,7 @@ use gtk::{
     ImageExt,
     WidgetExt,
     StyleContextExt,
+    LabelExt,
 };
 use gdk_pixbuf::{
     Pixbuf,
@@ -102,6 +103,8 @@ impl PasswordLogin {
             let surface = Context::cairo_surface_create_from_pixbuf(&pixbuf, self.scale_factor, None);
             self.logo.set_from_surface(&surface);
         }
+
+        self.headline.set_text(&format!("Please log into {} and enjoy using NewsFlash", info.name));
 
         Ok(())
     }
