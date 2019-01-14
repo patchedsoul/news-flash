@@ -5,20 +5,7 @@ use gtk::{
     StyleContextExt,
     LabelExt,
 };
-use gdk_pixbuf::{
-    Pixbuf,
-    Colorspace,
-};
-use gio::{
-    MemoryInputStream,
-};
-use glib::{
-    Bytes,
-};
-use cairo::{
-    Context,
-};
-use gdk::ContextExt;
+use crate::gtk_util::GtkUtil;
 use crate::Resources;
 use failure::Error;
 use failure::format_err;
@@ -50,16 +37,7 @@ impl PasswordLogin {
         let scale = ctx.get_scale();
 
         let generic_logo_data = Resources::get("icons/feed_service_generic.svg").ok_or(format_err!("some err"))?;
-        let generic_logo_bytes = Bytes::from(&generic_logo_data);
-        let stream = MemoryInputStream::new_from_bytes(&generic_logo_bytes);
-        let pixbuf = Pixbuf::new_from_stream_at_scale(
-            &stream,
-            64 * scale,
-            64 * scale,
-            true,
-            None
-        )?;
-        let surface = Context::cairo_surface_create_from_pixbuf(&pixbuf, scale, None);
+        let surface = GtkUtil::create_surface_from_svg(&generic_logo_data, 64, 64, scale)?;
         logo.set_from_surface(&surface);
 
         let page = PasswordLogin {
@@ -76,31 +54,14 @@ impl PasswordLogin {
         
         // set Icon
         if let Some(icon) = info.icon {
-            let pixbuf = match icon {
+            let surface = match icon {
                 PluginIcon::Vector(icon) => {
-                    let bytes = Bytes::from(&icon.data);
-                    let stream = MemoryInputStream::new_from_bytes(&bytes);
-                    Pixbuf::new_from_stream_at_scale(
-                        &stream,
-                        64 * self.scale_factor,
-                        64 * self.scale_factor,
-                        true,
-                        None
-                    )?
+                    GtkUtil::create_surface_from_svg(&icon.data, icon.width, icon.height, self.scale_factor)?
                 },
                 PluginIcon::Pixel(icon) => {
-                    Pixbuf::new_from_vec(
-                        icon.data, 
-                        Colorspace::Rgb,
-                        icon.has_alpha, 
-                        icon.bits_per_sample, 
-                        icon.width, 
-                        icon.height, 
-                        icon.row_stride,
-                    )
+                    GtkUtil::create_surface_from_bitmap(icon, self.scale_factor)?
                 },
             };
-            let surface = Context::cairo_surface_create_from_pixbuf(&pixbuf, self.scale_factor, None);
             self.logo.set_from_surface(&surface);
         }
 

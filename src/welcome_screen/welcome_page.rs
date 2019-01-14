@@ -1,6 +1,14 @@
 use gtk::{
     self,
     ListBoxExt,
+    ApplicationWindow,
+};
+use glib::{
+    Variant,
+};
+use gio::{
+    ActionExt,
+    ActionMapExt,
 };
 use crate::Resources;
 use failure::Error;
@@ -16,12 +24,19 @@ pub struct WelcomePage {
 }
 
 impl WelcomePage {
-    pub fn new() -> Result<Self, Error> {
+    pub fn new(window: &ApplicationWindow) -> Result<Self, Error> {
         let ui_data = Resources::get("ui/welcome_page.ui").ok_or(format_err!("some err"))?;
         let ui_string = str::from_utf8(ui_data.as_ref())?;
         let builder = gtk::Builder::new_from_string(ui_string);
         let page : gtk::Box = builder.get_object("welcome_page").ok_or(format_err!("some err"))?;
         let list : gtk::ListBox = builder.get_object("list").ok_or(format_err!("some err"))?;
+        let main_window = window.clone();
+        list.connect_row_activated(move |_list, _row| {
+            if let Some(action) = main_window.lookup_action("show-pw-page") {
+                let id = Variant::from("miniflux");
+                action.activate(Some(&id));
+            }
+        });
 
         let page = WelcomePage {
             page: page,
