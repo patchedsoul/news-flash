@@ -12,12 +12,16 @@ use gtk::{
     Builder,
     Stack,
     StackExt,
+    StackTransitionType,
+    HeaderBar,
 };
 use crate::welcome_screen::{
     WelcomePage,
+    WelcomeHeaderbar,
 };
 use crate::login_screen::{
-    password_login::PasswordLogin,
+    PasswordLogin,
+    LoginHeaderbar,
 };
 use gio::{
     SimpleAction,
@@ -39,6 +43,8 @@ use std::str;
 pub struct MainWindow {
     widget: ApplicationWindow,
     stack: Stack,
+    login_headerbar: HeaderBar,
+    welcome_headerbar: HeaderBar,
 }
 
 impl MainWindow {
@@ -60,6 +66,9 @@ impl MainWindow {
         let window : ApplicationWindow = builder.get_object("main_window").ok_or(format_err!("some err"))?;
         let stack : Stack = builder.get_object("main_stack").ok_or(format_err!("some err"))?;
 
+        let login_header = LoginHeaderbar::new(&window)?;
+        let welcome_header = WelcomeHeaderbar::new()?;
+
         window.set_application(app);
         window.connect_delete_event(move |win, _| {
             win.destroy();
@@ -73,13 +82,17 @@ impl MainWindow {
         stack.add_named(&pw_login.widget(), "password_login");
         
         stack.set_visible_child_name("welcome");
+        window.set_titlebar(&welcome_header.widget());
         window.show_all();
         
-        Self::setup_show_password_page_action(&window, pw_login, stack.clone());
+        Self::setup_show_password_page_action(&window, pw_login, &stack, login_header.widget());
+        Self::setup_show_welcome_page_action(&window, &stack, welcome_header.widget());
 
         Ok(MainWindow {
             widget: window,
             stack: stack,
+            login_headerbar: login_header.widget(),
+            welcome_headerbar: welcome_header.widget(),
         })
     }
 
@@ -93,7 +106,9 @@ impl MainWindow {
         Ok(pw_login)
     }
 
-    fn setup_show_password_page_action(window: &ApplicationWindow, pw_page: PasswordLogin, stack: Stack) {
+    fn setup_show_password_page_action(window: &ApplicationWindow, pw_page: PasswordLogin, stack: &Stack, headerbar: HeaderBar) {
+        let application_window = window.clone();
+        let stack = stack.clone();
         let show_pw_page = SimpleAction::new("show-pw-page", glib::VariantTy::new("s").ok());
         show_pw_page.connect_activate(move |_action, data| {
             if let Some(data) = data {
@@ -102,6 +117,8 @@ impl MainWindow {
                     if let Some(service_meta) = NewsFlash::list_backends().get(&id) {
                         if let Ok(gui_desc) = service_meta.login_gui() {
                             if let Ok(()) = pw_page.set_service(service_meta.metadata(), gui_desc) {
+                                application_window.set_titlebar(&headerbar);
+                                stack.set_transition_type(StackTransitionType::SlideLeft);
                                 stack.set_visible_child_name("password_login");
                             }
                         }
@@ -111,6 +128,19 @@ impl MainWindow {
         });
         show_pw_page.set_enabled(true);
         window.add_action(&show_pw_page);
+    }
+
+    fn setup_show_welcome_page_action(window: &ApplicationWindow, stack: &Stack, headerbar: HeaderBar) {
+        let application_window = window.clone();
+        let stack = stack.clone();
+        let show_welcome_page = SimpleAction::new("show-welcome-page", None);
+        show_welcome_page.connect_activate(move |_action, _data| {
+            application_window.set_titlebar(&headerbar);
+            stack.set_transition_type(StackTransitionType::SlideRight);
+            stack.set_visible_child_name("welcome");
+        });
+        show_welcome_page.set_enabled(true);
+        window.add_action(&show_welcome_page);
     }
 
     pub fn present(&self) {
