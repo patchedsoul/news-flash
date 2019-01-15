@@ -82,21 +82,9 @@ impl PasswordLogin {
 
         // show/hide url & http-auth fields
         if let LoginGUI::Password(pw_gui_desc) = gui_desc {
-            match pw_gui_desc.url {
-                true => {
-                    self.url_label.set_visible(true);
-                    self.url_entry.set_visible(true);
-                },
-                false => {
-                    self.url_label.set_visible(false);
-                    self.url_entry.set_visible(false);
-                },
-            }
-
-            match pw_gui_desc.http_auth {
-                true => self.http_revealer.set_reveal_child(true),
-                false => self.http_revealer.set_reveal_child(false),
-            }
+            self.url_label.set_visible(pw_gui_desc.url);
+            self.url_entry.set_visible(pw_gui_desc.url);
+            self.http_revealer.set_reveal_child(pw_gui_desc.http_auth);
         }
 
         Ok(())
