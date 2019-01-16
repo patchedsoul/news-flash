@@ -21,6 +21,7 @@ use crate::welcome_screen::{
 };
 use crate::login_screen::{
     PasswordLogin,
+    WebLogin,
     LoginHeaderbar,
 };
 use gio::{
@@ -80,13 +81,17 @@ impl MainWindow {
 
         let pw_login = Self::setup_password_login_page()?;
         stack.add_named(&pw_login.widget(), "password_login");
+
+        let oauth_login = Self::setup_web_login_page()?;
+        stack.add_named(&oauth_login.widget(), "oauth_login");
         
         stack.set_visible_child_name("welcome");
         window.set_titlebar(&welcome_header.widget());
         window.show_all();
         
-        Self::setup_show_password_page_action(&window, pw_login, &stack, login_header.widget());
-        Self::setup_show_welcome_page_action(&window, &stack, welcome_header.widget());
+        Self::setup_show_password_page_action(&window, pw_login.clone(), &stack, login_header.widget());
+        Self::setup_show_oauth_page_action(&window, oauth_login.clone(), &stack, login_header.widget());
+        Self::setup_show_welcome_page_action(&window, oauth_login, pw_login, &stack, welcome_header.widget());
 
         Ok(MainWindow {
             widget: window,
@@ -104,6 +109,11 @@ impl MainWindow {
     fn setup_password_login_page() -> Result<PasswordLogin, Error> {
         let pw_login = PasswordLogin::new()?;
         Ok(pw_login)
+    }
+
+    fn setup_web_login_page() -> Result<WebLogin, Error> {
+        let web_login = WebLogin::new()?;
+        Ok(web_login)
     }
 
     fn setup_show_password_page_action(window: &ApplicationWindow, pw_page: PasswordLogin, stack: &Stack, headerbar: HeaderBar) {
@@ -130,12 +140,38 @@ impl MainWindow {
         window.add_action(&show_pw_page);
     }
 
-    fn setup_show_welcome_page_action(window: &ApplicationWindow, stack: &Stack, headerbar: HeaderBar) {
+    fn setup_show_oauth_page_action(window: &ApplicationWindow, oauth_page: WebLogin, stack: &Stack, headerbar: HeaderBar) {
+        let application_window = window.clone();
+        let stack = stack.clone();
+        let show_pw_page = SimpleAction::new("show-oauth-page", glib::VariantTy::new("s").ok());
+        show_pw_page.connect_activate(move |_action, data| {
+            if let Some(data) = data {
+                if let Some(id_string) = data.get_str() {
+                    let id = PluginID::new(id_string);
+                    if let Some(service_meta) = NewsFlash::list_backends().get(&id) {
+                        if let Ok(gui_desc) = service_meta.login_gui() {
+                            if let Ok(()) = oauth_page.set_service(service_meta.metadata(), gui_desc) {
+                                application_window.set_titlebar(&headerbar);
+                                stack.set_transition_type(StackTransitionType::SlideLeft);
+                                stack.set_visible_child_name("oauth_login");
+                            }
+                        }
+                    }
+                }
+            }
+        });
+        show_pw_page.set_enabled(true);
+        window.add_action(&show_pw_page);
+    }
+
+    fn setup_show_welcome_page_action(window: &ApplicationWindow, oauth_page: WebLogin, pw_page: PasswordLogin, stack: &Stack, headerbar: HeaderBar) {
         let application_window = window.clone();
         let stack = stack.clone();
         let show_welcome_page = SimpleAction::new("show-welcome-page", None);
         show_welcome_page.connect_activate(move |_action, _data| {
             application_window.set_titlebar(&headerbar);
+            pw_page.reset();
+            oauth_page.reset();
             stack.set_transition_type(StackTransitionType::SlideRight);
             stack.set_visible_child_name("welcome");
         });

@@ -4,3 +4,4 @@ mod login_headerbar;
 
 pub use self::password_login::PasswordLogin;
 pub use self::login_headerbar::LoginHeaderbar;
+pub use self::web_login::WebLogin;

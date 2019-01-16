@@ -5,6 +5,7 @@ use gtk::{
     StyleContextExt,
     LabelExt,
     RevealerExt,
+    EntryExt,
 };
 use crate::gtk_util::GtkUtil;
 use crate::Resources;
@@ -26,6 +27,10 @@ pub struct PasswordLogin {
     scale_factor: i32,
     url_label: gtk::Label,
     url_entry: gtk::Entry,
+    user_entry: gtk::Entry,
+    pass_entry: gtk::Entry,
+    http_user_entry: gtk::Entry,
+    http_pass_entry: gtk::Entry,
     http_revealer: gtk::Revealer,
 }
 
@@ -39,6 +44,10 @@ impl PasswordLogin {
         let headline : gtk::Label = builder.get_object("headline").ok_or(format_err!("some err"))?;
         let url_label : gtk::Label = builder.get_object("url_label").ok_or(format_err!("some err"))?;
         let url_entry : gtk::Entry = builder.get_object("url_entry").ok_or(format_err!("some err"))?;
+        let user_entry : gtk::Entry = builder.get_object("user_entry").ok_or(format_err!("some err"))?;
+        let pass_entry : gtk::Entry = builder.get_object("pass_entry").ok_or(format_err!("some err"))?;
+        let http_user_entry : gtk::Entry = builder.get_object("http_user_entry").ok_or(format_err!("some err"))?;
+        let http_pass_entry : gtk::Entry = builder.get_object("http_pass_entry").ok_or(format_err!("some err"))?;
         let http_revealer : gtk::Revealer = builder.get_object("http_auth_revealer").ok_or(format_err!("some err"))?;
 
         let ctx = page.get_style_context().ok_or(format_err!("some err"))?;
@@ -55,6 +64,10 @@ impl PasswordLogin {
             scale_factor: scale,
             url_label: url_label,
             url_entry: url_entry,
+            user_entry: user_entry,
+            pass_entry: pass_entry,
+            http_user_entry: http_user_entry,
+            http_pass_entry: http_pass_entry,
             http_revealer: http_revealer,
         };
 
@@ -92,5 +105,13 @@ impl PasswordLogin {
 
     pub fn widget(&self) -> gtk::Box {
         self.page.clone()
+    }
+
+    pub fn reset(&self) {
+        self.url_entry.set_text("");
+        self.user_entry.set_text("");
+        self.pass_entry.set_text("");
+        self.http_user_entry.set_text("");
+        self.http_pass_entry.set_text("");
     }
 }

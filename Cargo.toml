@@ -13,6 +13,7 @@ failure = "0.1"
 serde = "1.0"
 serde_json = "1.0"
 gdk-pixbuf = "0.5"
+webkit2gtk = { version = "0.5", features = ["v2_16"] }
 glib = "0.6"
 news-flash = { git = "http://gitlab.com/news-flash/news_flash_base.git" }
 
