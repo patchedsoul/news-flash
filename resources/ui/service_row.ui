@@ -69,7 +69,7 @@
                         <property name="visible">True</property>
                         <property name="can_focus">False</property>
                         <property name="opacity">0.80000000000000004</property>
-                        <property name="stock">gtk-go-back</property>
+                        <property name="icon_name">go-previous-symbolic</property>
                       </object>
                     </child>
                   </object>

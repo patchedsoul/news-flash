@@ -9,7 +9,9 @@ use webkit2gtk::{
     WebViewExt,
     WebViewExtManual,
     UserContentManager,
+    LoadEvent,
 };
+use libc::c_ulong;
 use failure::Error;
 use failure::format_err;
 use news_flash::models::{
@@ -44,8 +46,26 @@ impl WebLogin {
     pub fn set_service(&self, _info: PluginMetadata, gui_desc: LoginGUI) -> Result<(), Error> {
 
         if let LoginGUI::OAuth(web_login_desc) = gui_desc {
-            if let Some(url) = web_login_desc.login_website {
+            if let Some(url) = web_login_desc.clone().login_website {
                 self.webview.load_uri(url.as_str());
+                let webview = self.webview.clone();
+                self.webview.connect_load_changed(move |_webview, event| {
+                    match event {
+                        LoadEvent::Started |
+                        LoadEvent::Redirected => {
+                            if let Some(redirect_url) = &web_login_desc.catch_redirect {
+                                if let Some(uri) = webview.get_uri() {
+                                    if uri.contains(redirect_url) {
+                                        // FIXME: do something
+                                    }
+                                }
+                            }
+                        },
+                        _ => {
+
+                        },
+                    }
+                });
             }
         }
 
