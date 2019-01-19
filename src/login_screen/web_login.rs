@@ -2,20 +2,17 @@ use gtk::{
     self,
 };
 use webkit2gtk::{
-    SettingsExt,
     WebContext,
-    WebContextExt,
     WebView,
     WebViewExt,
     WebViewExtManual,
     UserContentManager,
     LoadEvent,
 };
-use libc::c_ulong;
 use failure::Error;
 use failure::format_err;
 use news_flash::models::{
-    PluginMetadata,
+    PluginInfo,
     LoginGUI,
 };
 
@@ -43,7 +40,7 @@ impl WebLogin {
         self.webview.clone()
     }
 
-    pub fn set_service(&self, _info: PluginMetadata, gui_desc: LoginGUI) -> Result<(), Error> {
+    pub fn set_service(&self, _info: PluginInfo, gui_desc: LoginGUI) -> Result<(), Error> {
 
         if let LoginGUI::OAuth(web_login_desc) = gui_desc {
             if let Some(url) = web_login_desc.clone().login_website {
@@ -62,7 +59,7 @@ impl WebLogin {
                             }
                         },
                         _ => {
-
+                            // do nothing
                         },
                     }
                 });

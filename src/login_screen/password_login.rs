@@ -13,7 +13,7 @@ use failure::Error;
 use failure::format_err;
 use std::str;
 use news_flash::models::{
-    PluginMetadata,
+    PluginInfo,
     PluginIcon,
     LoginGUI,
 };
@@ -74,7 +74,7 @@ impl PasswordLogin {
         Ok(page)
     }
 
-    pub fn set_service(&self, info: PluginMetadata, gui_desc: LoginGUI) -> Result<(), Error> {
+    pub fn set_service(&self, info: PluginInfo, gui_desc: LoginGUI) -> Result<(), Error> {
         
         // set Icon
         if let Some(icon) = info.icon {

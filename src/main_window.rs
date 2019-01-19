@@ -126,7 +126,7 @@ impl MainWindow {
                     let id = PluginID::new(id_string);
                     if let Some(service_meta) = NewsFlash::list_backends().get(&id) {
                         if let Ok(gui_desc) = service_meta.login_gui() {
-                            if let Ok(()) = pw_page.set_service(service_meta.metadata(), gui_desc) {
+                            if let Ok(()) = pw_page.set_service(service_meta.info(), gui_desc) {
                                 application_window.set_titlebar(&headerbar);
                                 stack.set_transition_type(StackTransitionType::SlideLeft);
                                 stack.set_visible_child_name("password_login");
@@ -150,7 +150,7 @@ impl MainWindow {
                     let id = PluginID::new(id_string);
                     if let Some(service_meta) = NewsFlash::list_backends().get(&id) {
                         if let Ok(gui_desc) = service_meta.login_gui() {
-                            if let Ok(()) = oauth_page.set_service(service_meta.metadata(), gui_desc) {
+                            if let Ok(()) = oauth_page.set_service(service_meta.info(), gui_desc) {
                                 application_window.set_titlebar(&headerbar);
                                 stack.set_transition_type(StackTransitionType::SlideLeft);
                                 stack.set_visible_child_name("oauth_login");
