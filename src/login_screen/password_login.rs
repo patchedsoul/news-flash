@@ -3,9 +3,12 @@ use gtk::{
     ImageExt,
     WidgetExt,
     StyleContextExt,
+    ButtonExt,
     LabelExt,
     RevealerExt,
     EntryExt,
+    InfoBarExt,
+    ResponseType,
 };
 use crate::gtk_util::GtkUtil;
 use crate::Resources;
@@ -16,6 +19,7 @@ use news_flash::models::{
     PluginInfo,
     PluginIcon,
     LoginGUI,
+    PasswordLoginGUI,
 };
 
 
@@ -32,6 +36,8 @@ pub struct PasswordLogin {
     http_user_entry: gtk::Entry,
     http_pass_entry: gtk::Entry,
     http_revealer: gtk::Revealer,
+    info_bar: gtk::InfoBar,
+    login_button: gtk::Button,
 }
 
 impl PasswordLogin {
@@ -49,6 +55,21 @@ impl PasswordLogin {
         let http_user_entry : gtk::Entry = builder.get_object("http_user_entry").ok_or(format_err!("some err"))?;
         let http_pass_entry : gtk::Entry = builder.get_object("http_pass_entry").ok_or(format_err!("some err"))?;
         let http_revealer : gtk::Revealer = builder.get_object("http_auth_revealer").ok_or(format_err!("some err"))?;
+        let login_button : gtk::Button = builder.get_object("login_button").ok_or(format_err!("some err"))?;
+        let info_bar : gtk::InfoBar = builder.get_object("info_bar").ok_or(format_err!("some err"))?;
+
+        info_bar.connect_close(|bar| {
+            PasswordLogin::hide_info_bar(bar);
+        });
+        info_bar.connect_response(|bar, response| {
+            let response = ResponseType::from(response);
+            match response {
+                ResponseType::Close => {
+                    PasswordLogin::hide_info_bar(bar);
+                },
+                _ => {},
+            }
+        });
 
         let ctx = page.get_style_context().ok_or(format_err!("some err"))?;
         let scale = ctx.get_scale();
@@ -69,6 +90,8 @@ impl PasswordLogin {
             http_user_entry: http_user_entry,
             http_pass_entry: http_pass_entry,
             http_revealer: http_revealer,
+            info_bar: info_bar,
+            login_button: login_button,
         };
 
         Ok(page)
@@ -93,13 +116,73 @@ impl PasswordLogin {
         self.headline.set_text(&format!("Please log into {} and enjoy using NewsFlash", info.name));
 
 
-        // show/hide url & http-auth fields
-        if let LoginGUI::Password(pw_gui_desc) = gui_desc {
+        if let LoginGUI::Password(pw_gui_desc) = &gui_desc {
+
+             // show/hide url & http-auth fields
             self.url_label.set_visible(pw_gui_desc.url);
             self.url_entry.set_visible(pw_gui_desc.url);
             self.http_revealer.set_reveal_child(pw_gui_desc.http_auth);
-        }
 
+            // set focus to first entry
+            if pw_gui_desc.url {
+                self.url_entry.grab_focus();
+            }
+            else {
+                self.user_entry.grab_focus();
+            }
+
+            // check if "login" should be clickable
+            Self::setup_entry(
+                &self.url_entry,
+                &self.url_entry,
+                &self.user_entry,
+                &self.pass_entry,
+                &self.http_user_entry,
+                &self.http_pass_entry,
+                &self.login_button,
+                &pw_gui_desc
+            );
+            Self::setup_entry(
+                &self.user_entry,
+                &self.url_entry,
+                &self.user_entry,
+                &self.pass_entry,
+                &self.http_user_entry,
+                &self.http_pass_entry,
+                &self.login_button,
+                &pw_gui_desc
+            );
+            Self::setup_entry(
+                &self.pass_entry,
+                &self.url_entry,
+                &self.user_entry,
+                &self.pass_entry,
+                &self.http_user_entry,
+                &self.http_pass_entry,
+                &self.login_button,
+                &pw_gui_desc
+            );
+            Self::setup_entry(
+                &self.http_pass_entry,
+                &self.url_entry,
+                &self.user_entry,
+                &self.pass_entry,
+                &self.http_user_entry,
+                &self.http_pass_entry,
+                &self.login_button,
+                &pw_gui_desc
+            );
+            Self::setup_entry(
+                &self.http_user_entry,
+                &self.url_entry,
+                &self.user_entry,
+                &self.pass_entry,
+                &self.http_user_entry,
+                &self.http_pass_entry,
+                &self.login_button,
+                &pw_gui_desc
+            );
+        }
         Ok(())
     }
 
@@ -113,5 +196,67 @@ impl PasswordLogin {
         self.pass_entry.set_text("");
         self.http_user_entry.set_text("");
         self.http_pass_entry.set_text("");
+    }
+
+    fn hide_info_bar(bar: &gtk::InfoBar) {
+        bar.set_revealed(false);
+        let clone = bar.clone();
+        gtk::timeout_add(200, move || {
+            clone.set_visible(false);
+            gtk::Continue(false)
+        });
+    }
+
+    // fn show_info_bar(bar: &gtk::InfoBar) {
+    //     bar.set_visible(true);
+    //     bar.set_revealed(true);
+    // }
+
+    fn setup_entry(
+        entry: &gtk::Entry,
+        url_entry: &gtk::Entry,
+        user_entry: &gtk::Entry,
+        pass_entry: &gtk::Entry,
+        http_user_entry: &gtk::Entry,
+        http_pass_entry: &gtk::Entry,
+        button: &gtk::Button,
+        gui_desc: &PasswordLoginGUI,
+    ) {
+        let entry = entry.clone();
+        let button = button.clone();
+        let gui_desc = gui_desc.clone();
+        let url_entry = url_entry.clone();
+        let user_entry = user_entry.clone();
+        let pass_entry = pass_entry.clone();
+        let http_user_entry = http_user_entry.clone();
+        let http_pass_entry = http_pass_entry.clone();
+
+        entry.connect_property_text_notify(move |_entry| {
+            if gui_desc.url
+            && GtkUtil::is_entry_emty(&url_entry) {
+                button.set_sensitive(false);
+                return;
+            }
+            if GtkUtil::is_entry_emty(&user_entry) {
+                button.set_sensitive(false);
+                return;
+            }
+            if GtkUtil::is_entry_emty(&pass_entry) {
+                button.set_sensitive(false);
+                return;
+            }
+            if gui_desc.http_auth {
+                if GtkUtil::is_entry_emty(&http_user_entry) {
+                    button.set_sensitive(false);
+                    return;
+                }
+                if GtkUtil::is_entry_emty(&http_pass_entry) {
+                    button.set_sensitive(false);
+                    return;
+                }
+            }
+
+            button.set_sensitive(true);
+        });
     }
 }

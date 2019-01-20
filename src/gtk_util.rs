@@ -1,3 +1,6 @@
+use gtk::{
+    EntryExt,
+};
 use gdk_pixbuf::{
     Pixbuf,
     Colorspace,
@@ -54,5 +57,12 @@ impl GtkUtil {
         )?;
         Context::cairo_surface_create_from_pixbuf(&pixbuf, scale_factor, None)
             .ok_or(format_err!("some err"))
+    }
+
+    pub fn is_entry_emty(entry: &gtk::Entry) -> bool {
+        if entry.get_text_length() == 0 {
+            return true;
+        }
+        false
     }
 }
