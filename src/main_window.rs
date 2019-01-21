@@ -37,8 +37,10 @@ use crate::Resources;
 use failure::Error;
 use failure::format_err;
 use std::str;
+use std::rc::Rc;
+use std::cell::RefCell;
 
-
+type GtkHandle<T> = Rc<RefCell<T>>;
 
 #[derive(Clone, Debug)]
 pub struct MainWindow {
@@ -89,9 +91,10 @@ impl MainWindow {
         window.set_titlebar(&welcome_header.widget());
         window.show_all();
         
-        Self::setup_show_password_page_action(&window, pw_login.clone(), &stack, login_header.widget());
+        let pw_login_handle = Rc::new(RefCell::new(pw_login));
+        Self::setup_show_password_page_action(&window, &pw_login_handle, &stack, login_header.widget());
         Self::setup_show_oauth_page_action(&window, oauth_login.clone(), &stack, login_header.widget());
-        Self::setup_show_welcome_page_action(&window, oauth_login, pw_login, &stack, welcome_header.widget());
+        Self::setup_show_welcome_page_action(&window, oauth_login, &pw_login_handle, &stack, welcome_header.widget());
 
         Ok(MainWindow {
             widget: window,
@@ -116,17 +119,18 @@ impl MainWindow {
         Ok(web_login)
     }
 
-    fn setup_show_password_page_action(window: &ApplicationWindow, pw_page: PasswordLogin, stack: &Stack, headerbar: HeaderBar) {
+    fn setup_show_password_page_action(window: &ApplicationWindow, pw_page: &GtkHandle<PasswordLogin>, stack: &Stack, headerbar: HeaderBar) {
         let application_window = window.clone();
         let stack = stack.clone();
         let show_pw_page = SimpleAction::new("show-pw-page", glib::VariantTy::new("s").ok());
+        let pw_page = pw_page.clone();
         show_pw_page.connect_activate(move |_action, data| {
             if let Some(data) = data {
                 if let Some(id_string) = data.get_str() {
                     let id = PluginID::new(id_string);
                     if let Some(service_meta) = NewsFlash::list_backends().get(&id) {
                         if let Ok(gui_desc) = service_meta.login_gui() {
-                            if let Ok(()) = pw_page.set_service(service_meta.info(), gui_desc) {
+                            if let Ok(()) = pw_page.borrow_mut().set_service(service_meta.info(), gui_desc) {
                                 application_window.set_titlebar(&headerbar);
                                 stack.set_transition_type(StackTransitionType::SlideLeft);
                                 stack.set_visible_child_name("password_login");
@@ -164,13 +168,14 @@ impl MainWindow {
         window.add_action(&show_pw_page);
     }
 
-    fn setup_show_welcome_page_action(window: &ApplicationWindow, oauth_page: WebLogin, pw_page: PasswordLogin, stack: &Stack, headerbar: HeaderBar) {
+    fn setup_show_welcome_page_action(window: &ApplicationWindow, oauth_page: WebLogin, pw_page: &GtkHandle<PasswordLogin>, stack: &Stack, headerbar: HeaderBar) {
         let application_window = window.clone();
         let stack = stack.clone();
         let show_welcome_page = SimpleAction::new("show-welcome-page", None);
+        let pw_page = pw_page.clone();
         show_welcome_page.connect_activate(move |_action, _data| {
             application_window.set_titlebar(&headerbar);
-            pw_page.reset();
+            pw_page.borrow_mut().reset();
             oauth_page.reset();
             stack.set_transition_type(StackTransitionType::SlideRight);
             stack.set_visible_child_name("welcome");

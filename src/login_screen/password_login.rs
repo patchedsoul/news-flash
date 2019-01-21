@@ -10,6 +10,14 @@ use gtk::{
     InfoBarExt,
     ResponseType,
 };
+use glib::{
+    signal::SignalHandlerId,
+    object::ObjectExt,
+    translate::{
+        ToGlib,
+        FromGlib,
+    },
+};
 use crate::gtk_util::GtkUtil;
 use crate::Resources;
 use failure::Error;
@@ -20,6 +28,8 @@ use news_flash::models::{
     PluginIcon,
     LoginGUI,
     PasswordLoginGUI,
+    LoginData,
+    PasswordLogin as PasswordLoginData,
 };
 
 
@@ -38,6 +48,14 @@ pub struct PasswordLogin {
     http_revealer: gtk::Revealer,
     info_bar: gtk::InfoBar,
     login_button: gtk::Button,
+    info_bar_close_signal: Option<u64>,
+    info_bar_response_signal: Option<u64>,
+    url_entry_signal: Option<u64>,
+    user_entry_signal: Option<u64>,
+    pass_entry_signal: Option<u64>,
+    http_user_entry_signal: Option<u64>,
+    http_pass_entry_signal: Option<u64>,
+    login_button_signal: Option<u64>,
 }
 
 impl PasswordLogin {
@@ -57,19 +75,6 @@ impl PasswordLogin {
         let http_revealer : gtk::Revealer = builder.get_object("http_auth_revealer").ok_or(format_err!("some err"))?;
         let login_button : gtk::Button = builder.get_object("login_button").ok_or(format_err!("some err"))?;
         let info_bar : gtk::InfoBar = builder.get_object("info_bar").ok_or(format_err!("some err"))?;
-
-        info_bar.connect_close(|bar| {
-            PasswordLogin::hide_info_bar(bar);
-        });
-        info_bar.connect_response(|bar, response| {
-            let response = ResponseType::from(response);
-            match response {
-                ResponseType::Close => {
-                    PasswordLogin::hide_info_bar(bar);
-                },
-                _ => {},
-            }
-        });
 
         let ctx = page.get_style_context().ok_or(format_err!("some err"))?;
         let scale = ctx.get_scale();
@@ -92,12 +97,20 @@ impl PasswordLogin {
             http_revealer: http_revealer,
             info_bar: info_bar,
             login_button: login_button,
+            info_bar_close_signal: None,
+            info_bar_response_signal: None,
+            url_entry_signal: None,
+            user_entry_signal: None,
+            pass_entry_signal: None,
+            http_user_entry_signal: None,
+            http_pass_entry_signal: None,
+            login_button_signal: None,
         };
 
         Ok(page)
     }
 
-    pub fn set_service(&self, info: PluginInfo, gui_desc: LoginGUI) -> Result<(), Error> {
+    pub fn set_service(&mut self, info: PluginInfo, gui_desc: LoginGUI) -> Result<(), Error> {
         
         // set Icon
         if let Some(icon) = info.icon {
@@ -114,6 +127,18 @@ impl PasswordLogin {
 
         // set headline
         self.headline.set_text(&format!("Please log into {} and enjoy using NewsFlash", info.name));
+
+        // setup infobar
+        self.info_bar_close_signal = Some(self.info_bar.connect_close(|bar| {
+            PasswordLogin::hide_info_bar(bar);
+        }).to_glib());
+        self.info_bar_response_signal = Some(self.info_bar.connect_response(|bar, response| {
+            let response = ResponseType::from(response);
+            match response {
+                ResponseType::Close => PasswordLogin::hide_info_bar(bar),
+                _ => {},
+            }
+        }).to_glib());
 
 
         if let LoginGUI::Password(pw_gui_desc) = &gui_desc {
@@ -132,11 +157,47 @@ impl PasswordLogin {
             }
 
             // check if "login" should be clickable
-            self.setup_entry(&self.url_entry,       &pw_gui_desc);
-            self.setup_entry(&self.user_entry,      &pw_gui_desc);
-            self.setup_entry(&self.pass_entry,      &pw_gui_desc);
-            self.setup_entry(&self.http_pass_entry, &pw_gui_desc);
-            self.setup_entry(&self.http_user_entry, &pw_gui_desc);
+            self.url_entry_signal = Some(self.setup_entry(&self.url_entry, &pw_gui_desc).to_glib());
+            self.user_entry_signal = Some(self.setup_entry(&self.user_entry, &pw_gui_desc).to_glib());
+            self.pass_entry_signal = Some(self.setup_entry(&self.pass_entry, &pw_gui_desc).to_glib());
+            self.http_user_entry_signal = Some(self.setup_entry(&self.http_user_entry, &pw_gui_desc).to_glib());
+            self.http_pass_entry_signal = Some(self.setup_entry(&self.http_pass_entry, &pw_gui_desc).to_glib());
+
+            // harvest login data
+            let url_entry = self.url_entry.clone();
+            let user_entry = self.user_entry.clone();
+            let pass_entry = self.pass_entry.clone();
+            let http_user_entry = self.http_user_entry.clone();
+            let http_pass_entry = self.http_pass_entry.clone();
+            let pw_gui_desc = pw_gui_desc.clone();
+            self.login_button_signal = Some(
+                self.login_button.connect_clicked(move |_button| {
+                    let url : Option<String> = match pw_gui_desc.url {
+                        true => url_entry.get_text(),
+                        false => None,
+                    };
+                    let user = user_entry.get_text().unwrap();
+                    let pass = pass_entry.get_text().unwrap();
+                    let http_user : Option<String> = match pw_gui_desc.http_auth {
+                        true => http_user_entry.get_text(),
+                        false => None,
+                    };
+                    let http_pass : Option<String> = match pw_gui_desc.http_auth {
+                        true => http_pass_entry.get_text(),
+                        false => None,
+                    };
+                    
+                    let login_data = PasswordLoginData {
+                        url: url,
+                        user: user,
+                        password: pass,
+                        http_user: http_user,
+                        http_password: http_pass,
+                    };
+                    let login_data = LoginData::Password(login_data);
+                    let login_data_json = serde_json::to_string(&login_data).unwrap();
+                }).to_glib()
+            );
         }
         Ok(())
     }
@@ -145,12 +206,30 @@ impl PasswordLogin {
         self.page.clone()
     }
 
-    pub fn reset(&self) {
+    pub fn reset(&mut self) {
         self.url_entry.set_text("");
         self.user_entry.set_text("");
         self.pass_entry.set_text("");
         self.http_user_entry.set_text("");
         self.http_pass_entry.set_text("");
+
+
+        Self::disconnect_signal(self.info_bar_close_signal, &self.info_bar);
+        Self::disconnect_signal(self.info_bar_response_signal, &self.info_bar);
+        Self::disconnect_signal(self.url_entry_signal, &self.url_entry);
+        Self::disconnect_signal(self.user_entry_signal, &self.user_entry);
+        Self::disconnect_signal(self.pass_entry_signal, &self.pass_entry);
+        Self::disconnect_signal(self.http_user_entry_signal, &self.http_user_entry);
+        Self::disconnect_signal(self.http_pass_entry_signal, &self.http_pass_entry);
+        Self::disconnect_signal(self.login_button_signal, &self.login_button);
+        self.info_bar_close_signal = None;
+        self.info_bar_response_signal = None;
+        self.url_entry_signal = None;
+        self.user_entry_signal = None;
+        self.pass_entry_signal = None;
+        self.http_user_entry_signal = None;
+        self.http_pass_entry_signal = None;
+        self.login_button_signal = None;
     }
 
     fn hide_info_bar(bar: &gtk::InfoBar) {
@@ -171,7 +250,7 @@ impl PasswordLogin {
         &self,
         entry: &gtk::Entry,
         gui_desc: &PasswordLoginGUI,
-    ) {
+    ) -> SignalHandlerId {
         let entry = entry.clone();
         let gui_desc = gui_desc.clone();
         let button = self.login_button.clone();
@@ -207,6 +286,13 @@ impl PasswordLogin {
             }
 
             button.set_sensitive(true);
-        });
+        })
+    }
+
+    fn disconnect_signal<T: ObjectExt>(signal_id: Option<u64>, widget: &T) {
+        if let Some(signal_id) = signal_id {
+            let signal_id = SignalHandlerId::from_glib(signal_id);
+            widget.disconnect(signal_id);
+        }
     }
 }
