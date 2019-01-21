@@ -132,56 +132,11 @@ impl PasswordLogin {
             }
 
             // check if "login" should be clickable
-            Self::setup_entry(
-                &self.url_entry,
-                &self.url_entry,
-                &self.user_entry,
-                &self.pass_entry,
-                &self.http_user_entry,
-                &self.http_pass_entry,
-                &self.login_button,
-                &pw_gui_desc
-            );
-            Self::setup_entry(
-                &self.user_entry,
-                &self.url_entry,
-                &self.user_entry,
-                &self.pass_entry,
-                &self.http_user_entry,
-                &self.http_pass_entry,
-                &self.login_button,
-                &pw_gui_desc
-            );
-            Self::setup_entry(
-                &self.pass_entry,
-                &self.url_entry,
-                &self.user_entry,
-                &self.pass_entry,
-                &self.http_user_entry,
-                &self.http_pass_entry,
-                &self.login_button,
-                &pw_gui_desc
-            );
-            Self::setup_entry(
-                &self.http_pass_entry,
-                &self.url_entry,
-                &self.user_entry,
-                &self.pass_entry,
-                &self.http_user_entry,
-                &self.http_pass_entry,
-                &self.login_button,
-                &pw_gui_desc
-            );
-            Self::setup_entry(
-                &self.http_user_entry,
-                &self.url_entry,
-                &self.user_entry,
-                &self.pass_entry,
-                &self.http_user_entry,
-                &self.http_pass_entry,
-                &self.login_button,
-                &pw_gui_desc
-            );
+            self.setup_entry(&self.url_entry,       &pw_gui_desc);
+            self.setup_entry(&self.user_entry,      &pw_gui_desc);
+            self.setup_entry(&self.pass_entry,      &pw_gui_desc);
+            self.setup_entry(&self.http_pass_entry, &pw_gui_desc);
+            self.setup_entry(&self.http_user_entry, &pw_gui_desc);
         }
         Ok(())
     }
@@ -213,23 +168,18 @@ impl PasswordLogin {
     // }
 
     fn setup_entry(
+        &self,
         entry: &gtk::Entry,
-        url_entry: &gtk::Entry,
-        user_entry: &gtk::Entry,
-        pass_entry: &gtk::Entry,
-        http_user_entry: &gtk::Entry,
-        http_pass_entry: &gtk::Entry,
-        button: &gtk::Button,
         gui_desc: &PasswordLoginGUI,
     ) {
         let entry = entry.clone();
-        let button = button.clone();
         let gui_desc = gui_desc.clone();
-        let url_entry = url_entry.clone();
-        let user_entry = user_entry.clone();
-        let pass_entry = pass_entry.clone();
-        let http_user_entry = http_user_entry.clone();
-        let http_pass_entry = http_pass_entry.clone();
+        let button = self.login_button.clone();
+        let url_entry = self.url_entry.clone();
+        let user_entry = self.user_entry.clone();
+        let pass_entry = self.pass_entry.clone();
+        let http_user_entry = self.http_user_entry.clone();
+        let http_pass_entry = self.http_pass_entry.clone();
 
         entry.connect_property_text_notify(move |_entry| {
             if gui_desc.url
