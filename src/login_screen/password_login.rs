@@ -17,6 +17,11 @@ use glib::{
         ToGlib,
         FromGlib,
     },
+    Variant,
+};
+use gio::{
+    ActionMapExt,
+    ActionExt,
 };
 use crate::gtk_util::GtkUtil;
 use crate::Resources;
@@ -170,6 +175,7 @@ impl PasswordLogin {
             let http_user_entry = self.http_user_entry.clone();
             let http_pass_entry = self.http_pass_entry.clone();
             let pw_gui_desc = pw_gui_desc.clone();
+            let plugin_id = info.id;
             self.login_button_signal = Some(
                 self.login_button.connect_clicked(move |_button| {
                     let url : Option<String> = match pw_gui_desc.url {
@@ -188,6 +194,7 @@ impl PasswordLogin {
                     };
                     
                     let login_data = PasswordLoginData {
+                        id: plugin_id.clone(),
                         url: url,
                         user: user,
                         password: pass,
@@ -196,6 +203,14 @@ impl PasswordLogin {
                     };
                     let login_data = LoginData::Password(login_data);
                     let login_data_json = serde_json::to_string(&login_data).unwrap();
+
+                    if let Ok(main_window) = GtkUtil::get_main_window(&url_entry) {
+                        if let Some(action) = main_window.lookup_action("login") {
+                            let login_data_json = Variant::from(&login_data_json);
+                            action.activate(Some(&login_data_json));
+                        }
+                    }
+                    
                 }).to_glib()
             );
         }

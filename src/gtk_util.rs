@@ -1,5 +1,7 @@
 use gtk::{
     EntryExt,
+    Cast,
+    WidgetExt,
 };
 use gdk_pixbuf::{
     Pixbuf,
@@ -10,6 +12,7 @@ use gio::{
 };
 use glib::{
     Bytes,
+    object::IsA,
 };
 use cairo::{
     Context,
@@ -64,5 +67,20 @@ impl GtkUtil {
             return true;
         }
         false
+    }
+
+    pub fn is_main_window<W: IsA<gtk::Object> + IsA<gtk::Widget> + Clone>(widget: &W) -> bool {
+        widget.clone().upcast::<gtk::Widget>().is::<gtk::ApplicationWindow>()
+    }
+
+    pub fn get_main_window<W: IsA<gtk::Object> + IsA<gtk::Widget> + WidgetExt + Clone>(widget: &W) -> Result<gtk::ApplicationWindow, Error> {
+        if let Some(toplevel) = widget.get_toplevel() {
+            if Self::is_main_window(&toplevel) {
+                let main_window = toplevel.downcast::<gtk::ApplicationWindow>().unwrap();
+                return Ok(main_window)
+            }
+        }
+        
+        Err(format_err!("some err"))
     }
 }

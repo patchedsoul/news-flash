@@ -4,7 +4,6 @@ mod welcome_screen;
 mod login_screen;
 mod gtk_util;
 
-use cairo;
 use gio::{
     self,
     ApplicationExt,
@@ -16,7 +15,6 @@ use gtk::{
 };
 use crate::main_window::MainWindow;
 use rust_embed::RustEmbed;
-use failure;
 use std::env::args;
 use std::str;
 

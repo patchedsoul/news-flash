@@ -31,6 +31,7 @@ use gio::{
 };
 use news_flash::models::{
     PluginID,
+    LoginData,
 };
 use news_flash::NewsFlash;
 use crate::Resources;
@@ -95,6 +96,7 @@ impl MainWindow {
         Self::setup_show_password_page_action(&window, &pw_login_handle, &stack, login_header.widget());
         Self::setup_show_oauth_page_action(&window, oauth_login.clone(), &stack, login_header.widget());
         Self::setup_show_welcome_page_action(&window, oauth_login, &pw_login_handle, &stack, welcome_header.widget());
+        Self::setup_login_action(&window);
 
         Ok(MainWindow {
             widget: window,
@@ -182,6 +184,27 @@ impl MainWindow {
         });
         show_welcome_page.set_enabled(true);
         window.add_action(&show_welcome_page);
+    }
+
+    fn setup_login_action(window: &ApplicationWindow) {
+        let login_action = SimpleAction::new("login", glib::VariantTy::new("s").ok());
+        login_action.connect_activate(move |_action, data| {
+            if let Some(data) = data {
+                if let Some(data) = data.get_str() {
+                    let info: LoginData = serde_json::from_str(&data).unwrap();
+                    println!("{:?}", info);
+                    let id = match info {
+                        LoginData::OAuth(oauth) => oauth.id,
+                        LoginData::Password(pass) => pass.id,
+                    };
+                    if let Some(service_meta) = NewsFlash::list_backends().get(&id) {
+                        
+                    }
+                }
+            }
+        });
+        login_action.set_enabled(true);
+        window.add_action(&login_action);
     }
 
     pub fn present(&self) {
