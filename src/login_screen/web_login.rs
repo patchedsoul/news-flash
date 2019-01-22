@@ -47,9 +47,9 @@ impl WebLogin {
         self.webview.clone()
     }
 
-    pub fn set_service(&self, info: PluginInfo, gui_desc: LoginGUI) -> Result<(), Error> {
+    pub fn set_service(&self, info: PluginInfo) -> Result<(), Error> {
 
-        if let LoginGUI::OAuth(web_login_desc) = gui_desc {
+        if let LoginGUI::OAuth(web_login_desc) = info.login_gui.clone() {
             if let Some(url) = web_login_desc.clone().login_website {
                 self.webview.load_uri(url.as_str());
                 self.webview.connect_load_changed(move |webview, event| {

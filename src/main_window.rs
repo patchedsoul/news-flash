@@ -131,12 +131,10 @@ impl MainWindow {
                 if let Some(id_string) = data.get_str() {
                     let id = PluginID::new(id_string);
                     if let Some(service_meta) = NewsFlash::list_backends().get(&id) {
-                        if let Ok(gui_desc) = service_meta.login_gui() {
-                            if let Ok(()) = pw_page.borrow_mut().set_service(service_meta.info(), gui_desc) {
-                                application_window.set_titlebar(&headerbar);
-                                stack.set_transition_type(StackTransitionType::SlideLeft);
-                                stack.set_visible_child_name("password_login");
-                            }
+                        if let Ok(()) = pw_page.borrow_mut().set_service(service_meta.clone()) {
+                            application_window.set_titlebar(&headerbar);
+                            stack.set_transition_type(StackTransitionType::SlideLeft);
+                            stack.set_visible_child_name("password_login");
                         }
                     }
                 }
@@ -155,12 +153,10 @@ impl MainWindow {
                 if let Some(id_string) = data.get_str() {
                     let id = PluginID::new(id_string);
                     if let Some(service_meta) = NewsFlash::list_backends().get(&id) {
-                        if let Ok(gui_desc) = service_meta.login_gui() {
-                            if let Ok(()) = oauth_page.set_service(service_meta.info(), gui_desc) {
-                                application_window.set_titlebar(&headerbar);
-                                stack.set_transition_type(StackTransitionType::SlideLeft);
-                                stack.set_visible_child_name("oauth_login");
-                            }
+                        if let Ok(()) = oauth_page.set_service(service_meta.clone()) {
+                            application_window.set_titlebar(&headerbar);
+                            stack.set_transition_type(StackTransitionType::SlideLeft);
+                            stack.set_visible_child_name("oauth_login");
                         }
                     }
                 }
@@ -197,9 +193,6 @@ impl MainWindow {
                         LoginData::OAuth(oauth) => oauth.id,
                         LoginData::Password(pass) => pass.id,
                     };
-                    if let Some(service_meta) = NewsFlash::list_backends().get(&id) {
-                        
-                    }
                 }
             }
         });

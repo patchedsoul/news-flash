@@ -115,7 +115,7 @@ impl PasswordLogin {
         Ok(page)
     }
 
-    pub fn set_service(&mut self, info: PluginInfo, gui_desc: LoginGUI) -> Result<(), Error> {
+    pub fn set_service(&mut self, info: PluginInfo) -> Result<(), Error> {
         
         // set Icon
         if let Some(icon) = info.icon {
@@ -146,7 +146,7 @@ impl PasswordLogin {
         }).to_glib());
 
 
-        if let LoginGUI::Password(pw_gui_desc) = &gui_desc {
+        if let LoginGUI::Password(pw_gui_desc) = &info.login_gui {
 
              // show/hide url & http-auth fields
             self.url_label.set_visible(pw_gui_desc.url);
