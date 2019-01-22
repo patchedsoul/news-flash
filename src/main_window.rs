@@ -40,15 +40,13 @@ use failure::format_err;
 use std::str;
 use std::rc::Rc;
 use std::cell::RefCell;
+use std::path::PathBuf;
 
 type GtkHandle<T> = Rc<RefCell<T>>;
 
-#[derive(Clone, Debug)]
 pub struct MainWindow {
     widget: ApplicationWindow,
-    stack: Stack,
-    login_headerbar: HeaderBar,
-    welcome_headerbar: HeaderBar,
+    news_flash: GtkHandle<Option<NewsFlash>>,
 }
 
 impl MainWindow {
@@ -93,17 +91,18 @@ impl MainWindow {
         window.show_all();
         
         let pw_login_handle = Rc::new(RefCell::new(pw_login));
-        Self::setup_show_password_page_action(&window, &pw_login_handle, &stack, login_header.widget());
-        Self::setup_show_oauth_page_action(&window, oauth_login.clone(), &stack, login_header.widget());
-        Self::setup_show_welcome_page_action(&window, oauth_login, &pw_login_handle, &stack, welcome_header.widget());
-        Self::setup_login_action(&window);
-
-        Ok(MainWindow {
+        let news_flash_handle = Rc::new(RefCell::new(None));
+        
+        let main_window = MainWindow {
             widget: window,
-            stack: stack,
-            login_headerbar: login_header.widget(),
-            welcome_headerbar: welcome_header.widget(),
-        })
+            news_flash: news_flash_handle,
+        };
+
+        Self::setup_show_password_page_action(&main_window.widget, &pw_login_handle, &stack, login_header.widget());
+        Self::setup_show_oauth_page_action(&main_window.widget, oauth_login.clone(), &stack, login_header.widget());
+        Self::setup_show_welcome_page_action(&main_window.widget, oauth_login, &pw_login_handle, &stack, welcome_header.widget());
+        Self::setup_login_action(&main_window.widget, main_window.news_flash.clone());
+        Ok(main_window)
     }
 
     fn setup_welcome_page(window: &ApplicationWindow) -> Result<WelcomePage, Error> {
@@ -182,17 +181,20 @@ impl MainWindow {
         window.add_action(&show_welcome_page);
     }
 
-    fn setup_login_action(window: &ApplicationWindow) {
+    fn setup_login_action(window: &ApplicationWindow, news_flash: GtkHandle<Option<NewsFlash>>) {
         let login_action = SimpleAction::new("login", glib::VariantTy::new("s").ok());
         login_action.connect_activate(move |_action, data| {
             if let Some(data) = data {
                 if let Some(data) = data.get_str() {
                     let info: LoginData = serde_json::from_str(&data).unwrap();
-                    println!("{:?}", info);
-                    let id = match info {
-                        LoginData::OAuth(oauth) => oauth.id,
-                        LoginData::Password(pass) => pass.id,
+                    //println!("{:?}", info);
+                    let id = match &info {
+                        LoginData::OAuth(oauth) => oauth.id.clone(),
+                        LoginData::Password(pass) => pass.id.clone(),
                     };
+                    let mut news_flash_lib = NewsFlash::new(&PathBuf::from("/home/jeanluc/.news-flash"), &id).unwrap();
+                    news_flash_lib.login(info).unwrap();
+                    *news_flash.borrow_mut() = Some(news_flash_lib);
                 }
             }
         });
