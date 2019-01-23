@@ -34,6 +34,7 @@ use news_flash::models::{
     LoginData,
 };
 use news_flash::NewsFlash;
+use std::collections::HashMap;
 use crate::Resources;
 use failure::Error;
 use failure::format_err;
@@ -42,7 +43,8 @@ use std::rc::Rc;
 use std::cell::RefCell;
 use std::path::PathBuf;
 
-type GtkHandle<T> = Rc<RefCell<T>>;
+pub type GtkHandle<T> = Rc<RefCell<T>>;
+pub type GtkHandleMap<T, K> = GtkHandle<HashMap<T, K>>;
 
 pub struct MainWindow {
     widget: ApplicationWindow,
@@ -187,7 +189,6 @@ impl MainWindow {
             if let Some(data) = data {
                 if let Some(data) = data.get_str() {
                     let info: LoginData = serde_json::from_str(&data).unwrap();
-                    //println!("{:?}", info);
                     let id = match &info {
                         LoginData::OAuth(oauth) => oauth.id.clone(),
                         LoginData::Password(pass) => pass.id.clone(),

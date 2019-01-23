@@ -4,6 +4,11 @@ use gio::{
 };
 use glib::{
     Variant,
+    signal::SignalHandlerId,
+    translate::{
+        ToGlib,
+        FromGlib,
+    },
 };
 use webkit2gtk::{
     WebContext,
@@ -12,6 +17,9 @@ use webkit2gtk::{
     WebViewExtManual,
     UserContentManager,
     LoadEvent,
+};
+use gtk::{
+    ObjectExt,
 };
 use failure::Error;
 use failure::format_err;
@@ -22,11 +30,15 @@ use news_flash::models::{
     OAuthData,
 };
 use crate::gtk_util::GtkUtil;
+use crate::main_window::GtkHandle;
+use std::rc::Rc;
+use std::cell::RefCell;
 
 
 #[derive(Clone, Debug)]
 pub struct WebLogin {
     webview: WebView,
+    redirect_signal_id: GtkHandle<Option<u64>>,
 }
 
 impl WebLogin {
@@ -38,6 +50,7 @@ impl WebLogin {
 
         let page = WebLogin {
             webview: webview,
+            redirect_signal_id: Rc::new(RefCell::new(None)),
         };
 
         Ok(page)
@@ -52,7 +65,8 @@ impl WebLogin {
         if let LoginGUI::OAuth(web_login_desc) = info.login_gui.clone() {
             if let Some(url) = web_login_desc.clone().login_website {
                 self.webview.load_uri(url.as_str());
-                self.webview.connect_load_changed(move |webview, event| {
+                let redirect_signal_id = self.redirect_signal_id.clone();
+                let signal_id = self.webview.connect_load_changed(move |webview, event| {
                     match event {
                         LoadEvent::Started |
                         LoadEvent::Redirected => {
@@ -70,6 +84,10 @@ impl WebLogin {
                                             if let Some(action) = main_window.lookup_action("login") {
                                                 let login_data_json = Variant::from(&oauth_data_json);
                                                 // FIXME: stop action activating multiple times
+                                                if let Some(signal_id) = *redirect_signal_id.borrow() {
+                                                    let signal_id = SignalHandlerId::from_glib(signal_id);
+                                                    webview.disconnect(signal_id);
+                                                }
                                                 webview.stop_loading();
                                                 action.activate(Some(&login_data_json));
                                             }
@@ -83,6 +101,8 @@ impl WebLogin {
                         },
                     }
                 });
+
+                *self.redirect_signal_id.borrow_mut() = Some(signal_id.to_glib());
             }
         }
 

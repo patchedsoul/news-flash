@@ -24,9 +24,7 @@ use news_flash::models::{
 };
 use super::service_row::ServiceRow;
 use std::collections::HashMap;
-
-type GtkHandle<T> = Rc<RefCell<T>>;
-type GtkHandleMap<T, K> = GtkHandle<HashMap<T, K>>;
+use crate::main_window::GtkHandleMap;
 
 #[derive(Clone, Debug)]
 pub struct WelcomePage {

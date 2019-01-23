@@ -35,8 +35,7 @@ use news_flash::models::{
     ServiceType,
     ServicePrice,
 };
-
-type GtkHandle<T> = Rc<RefCell<T>>;
+use crate::main_window::GtkHandle;
 
 #[derive(Clone, Debug)]
 pub struct ServiceRow {

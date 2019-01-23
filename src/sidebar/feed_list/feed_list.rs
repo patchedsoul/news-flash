@@ -45,9 +45,7 @@ use crate::sidebar::feed_list::error::{
     FeedListError,
     FeedListErrorKind,
 };
-
-type GtkHandle<T> = Rc<RefCell<T>>;
-type GtkHandleMap<T, K> = GtkHandle<HashMap<T, K>>;
+use crate::main_window::GtkHandleMap;
 
 
 #[derive(Clone, Debug)]
