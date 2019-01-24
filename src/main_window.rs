@@ -93,6 +93,7 @@ impl MainWindow {
         window.show_all();
         
         let pw_login_handle = Rc::new(RefCell::new(pw_login));
+        let oauht_login_handle = Rc::new(RefCell::new(oauth_login));
         let news_flash_handle = Rc::new(RefCell::new(None));
         
         let main_window = MainWindow {
@@ -101,9 +102,9 @@ impl MainWindow {
         };
 
         Self::setup_show_password_page_action(&main_window.widget, &pw_login_handle, &stack, login_header.widget());
-        Self::setup_show_oauth_page_action(&main_window.widget, oauth_login.clone(), &stack, login_header.widget());
-        Self::setup_show_welcome_page_action(&main_window.widget, oauth_login, &pw_login_handle, &stack, welcome_header.widget());
-        Self::setup_login_action(&main_window.widget, main_window.news_flash.clone());
+        Self::setup_show_oauth_page_action(&main_window.widget, &oauht_login_handle, &stack, login_header.widget());
+        Self::setup_show_welcome_page_action(&main_window.widget, &oauht_login_handle, &pw_login_handle, &stack, welcome_header.widget());
+        Self::setup_login_action(&main_window.widget, &main_window.news_flash, &oauht_login_handle, &pw_login_handle);
         Ok(main_window)
     }
 
@@ -145,16 +146,17 @@ impl MainWindow {
         window.add_action(&show_pw_page);
     }
 
-    fn setup_show_oauth_page_action(window: &ApplicationWindow, oauth_page: WebLogin, stack: &Stack, headerbar: HeaderBar) {
+    fn setup_show_oauth_page_action(window: &ApplicationWindow, oauth_page: &GtkHandle<WebLogin>, stack: &Stack, headerbar: HeaderBar) {
         let application_window = window.clone();
         let stack = stack.clone();
+        let oauth_page = oauth_page.clone();
         let show_pw_page = SimpleAction::new("show-oauth-page", glib::VariantTy::new("s").ok());
         show_pw_page.connect_activate(move |_action, data| {
             if let Some(data) = data {
                 if let Some(id_string) = data.get_str() {
                     let id = PluginID::new(id_string);
                     if let Some(service_meta) = NewsFlash::list_backends().get(&id) {
-                        if let Ok(()) = oauth_page.set_service(service_meta.clone()) {
+                        if let Ok(()) = oauth_page.borrow_mut().set_service(service_meta.clone()) {
                             application_window.set_titlebar(&headerbar);
                             stack.set_transition_type(StackTransitionType::SlideLeft);
                             stack.set_visible_child_name("oauth_login");
@@ -167,15 +169,22 @@ impl MainWindow {
         window.add_action(&show_pw_page);
     }
 
-    fn setup_show_welcome_page_action(window: &ApplicationWindow, oauth_page: WebLogin, pw_page: &GtkHandle<PasswordLogin>, stack: &Stack, headerbar: HeaderBar) {
+    fn setup_show_welcome_page_action(
+        window: &ApplicationWindow,
+        oauth_page: &GtkHandle<WebLogin>,
+        pw_page: &GtkHandle<PasswordLogin>,
+        stack: &Stack,
+        headerbar: HeaderBar
+    ) {
         let application_window = window.clone();
         let stack = stack.clone();
         let show_welcome_page = SimpleAction::new("show-welcome-page", None);
         let pw_page = pw_page.clone();
+        let oauth_page = oauth_page.clone();
         show_welcome_page.connect_activate(move |_action, _data| {
             application_window.set_titlebar(&headerbar);
             pw_page.borrow_mut().reset();
-            oauth_page.reset();
+            oauth_page.borrow_mut().reset();
             stack.set_transition_type(StackTransitionType::SlideRight);
             stack.set_visible_child_name("welcome");
         });
@@ -183,7 +192,15 @@ impl MainWindow {
         window.add_action(&show_welcome_page);
     }
 
-    fn setup_login_action(window: &ApplicationWindow, news_flash: GtkHandle<Option<NewsFlash>>) {
+    fn setup_login_action(
+        window: &ApplicationWindow,
+        news_flash: &GtkHandle<Option<NewsFlash>>,
+        oauth_page: &GtkHandle<WebLogin>,
+        pw_page: &GtkHandle<PasswordLogin>,
+    ) {
+        let news_flash = news_flash.clone();
+        let pw_page = pw_page.clone();
+        let oauth_page = oauth_page.clone();
         let login_action = SimpleAction::new("login", glib::VariantTy::new("s").ok());
         login_action.connect_activate(move |_action, data| {
             if let Some(data) = data {
@@ -194,8 +211,21 @@ impl MainWindow {
                         LoginData::Password(pass) => pass.id.clone(),
                     };
                     let mut news_flash_lib = NewsFlash::new(&PathBuf::from("/home/jeanluc/.news-flash"), &id).unwrap();
-                    news_flash_lib.login(info).unwrap();
-                    *news_flash.borrow_mut() = Some(news_flash_lib);
+                    match news_flash_lib.login(info.clone()) {
+                        Ok(()) => {
+                            *news_flash.borrow_mut() = Some(news_flash_lib);
+                        },
+                        Err(error) => {
+                            match info {
+                                LoginData::OAuth(_) => {
+                                    oauth_page.borrow_mut().show_error(error);
+                                },
+                                LoginData::Password(_) => {
+                                    pw_page.borrow_mut().show_error(error);
+                                },
+                            }
+                        },
+                    }
                 }
             }
         });

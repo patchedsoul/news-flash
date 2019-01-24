@@ -20,6 +20,10 @@ use webkit2gtk::{
 };
 use gtk::{
     ObjectExt,
+    BoxExt,
+    InfoBarExt,
+    WidgetExt,
+    ResponseType,
 };
 use failure::Error;
 use failure::format_err;
@@ -33,34 +37,85 @@ use crate::gtk_util::GtkUtil;
 use crate::main_window::GtkHandle;
 use std::rc::Rc;
 use std::cell::RefCell;
+use crate::Resources;
+use std::str;
+use news_flash::{
+    NewsFlashError,
+    NewsFlashErrorKind,
+};
 
 
 #[derive(Clone, Debug)]
 pub struct WebLogin {
     webview: WebView,
+    page: gtk::Box,
+    info_bar: gtk::InfoBar,
     redirect_signal_id: GtkHandle<Option<u64>>,
+    info_bar_close_signal: Option<u64>,
+    info_bar_response_signal: Option<u64>,
 }
 
 impl WebLogin {
     pub fn new() -> Result<Self, Error> {
-        
+        let ui_data = Resources::get("ui/oauth_login.ui").ok_or(format_err!("some err"))?;
+        let ui_string = str::from_utf8(ui_data.as_ref())?;
+        let builder = gtk::Builder::new_from_string(ui_string);
+        let page : gtk::Box = builder.get_object("oauth_box").ok_or(format_err!("some err"))?;
+        let info_bar : gtk::InfoBar = builder.get_object("info_bar").ok_or(format_err!("some err"))?;
+
         let context = WebContext::get_default().ok_or(format_err!("some err"))?;
         let content_manager = UserContentManager::new();
         let webview = WebView::new_with_context_and_user_content_manager(&context, &content_manager);
 
+        page.pack_start(&webview, true, true, 0);
+
         let page = WebLogin {
             webview: webview,
+            page: page,
+            info_bar: info_bar,
             redirect_signal_id: Rc::new(RefCell::new(None)),
+            info_bar_close_signal: None,
+            info_bar_response_signal: None,
         };
 
         Ok(page)
     }
 
-    pub fn widget(&self) -> WebView {
-        self.webview.clone()
+    pub fn widget(&self) -> gtk::Box {
+        self.page.clone()
     }
 
-    pub fn set_service(&self, info: PluginInfo) -> Result<(), Error> {
+    fn hide_info_bar(bar: &gtk::InfoBar) {
+        bar.set_revealed(false);
+        let clone = bar.clone();
+        gtk::timeout_add(200, move || {
+            clone.set_visible(false);
+            gtk::Continue(false)
+        });
+    }
+
+    pub fn show_error(&self, error: NewsFlashError) {
+        self.info_bar.set_visible(true);
+        self.info_bar.set_revealed(true);
+        match error.kind() {
+            NewsFlashErrorKind::Login => {},
+            _ => {},
+        }
+    }
+
+    pub fn set_service(&mut self, info: PluginInfo) -> Result<(), Error> {
+
+        // setup infobar
+        self.info_bar_close_signal = Some(self.info_bar.connect_close(|bar| {
+            WebLogin::hide_info_bar(bar);
+        }).to_glib());
+        self.info_bar_response_signal = Some(self.info_bar.connect_response(|bar, response| {
+            let response = ResponseType::from(response);
+            match response {
+                ResponseType::Close => WebLogin::hide_info_bar(bar),
+                _ => {},
+            }
+        }).to_glib());
 
         if let LoginGUI::OAuth(web_login_desc) = info.login_gui.clone() {
             if let Some(url) = web_login_desc.clone().login_website {
@@ -110,6 +165,17 @@ impl WebLogin {
     }
 
     pub fn reset(&self) {
+        self.info_bar.set_revealed(false);
+        self.info_bar.set_visible(false);
+        Self::disconnect_signal(self.info_bar_close_signal, &self.info_bar);
+        Self::disconnect_signal(self.info_bar_response_signal, &self.info_bar);
         self.webview.load_plain_text("");
+    }
+
+    fn disconnect_signal<T: ObjectExt>(signal_id: Option<u64>, widget: &T) {
+        if let Some(signal_id) = signal_id {
+            let signal_id = SignalHandlerId::from_glib(signal_id);
+            widget.disconnect(signal_id);
+        }
     }
 }

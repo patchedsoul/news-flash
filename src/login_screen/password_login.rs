@@ -25,8 +25,11 @@ use gio::{
 };
 use crate::gtk_util::GtkUtil;
 use crate::Resources;
-use failure::Error;
-use failure::format_err;
+use failure::{
+    Error,
+    Fail,
+    format_err,
+};
 use std::str;
 use news_flash::models::{
     PluginInfo,
@@ -35,6 +38,12 @@ use news_flash::models::{
     PasswordLoginGUI,
     LoginData,
     PasswordLogin as PasswordLoginData,
+};
+use news_flash::{
+    NewsFlashError,
+    NewsFlashErrorKind,
+    FeedApiError,
+    FeedApiErrorKind,
 };
 
 
@@ -52,6 +61,7 @@ pub struct PasswordLogin {
     http_pass_entry: gtk::Entry,
     http_revealer: gtk::Revealer,
     info_bar: gtk::InfoBar,
+    info_bar_label: gtk::Label,
     login_button: gtk::Button,
     info_bar_close_signal: Option<u64>,
     info_bar_response_signal: Option<u64>,
@@ -80,6 +90,7 @@ impl PasswordLogin {
         let http_revealer : gtk::Revealer = builder.get_object("http_auth_revealer").ok_or(format_err!("some err"))?;
         let login_button : gtk::Button = builder.get_object("login_button").ok_or(format_err!("some err"))?;
         let info_bar : gtk::InfoBar = builder.get_object("info_bar").ok_or(format_err!("some err"))?;
+        let info_bar_label : gtk::Label = builder.get_object("info_bar_label").ok_or(format_err!("some err"))?;
 
         let ctx = page.get_style_context().ok_or(format_err!("some err"))?;
         let scale = ctx.get_scale();
@@ -101,6 +112,7 @@ impl PasswordLogin {
             http_pass_entry: http_pass_entry,
             http_revealer: http_revealer,
             info_bar: info_bar,
+            info_bar_label: info_bar_label,
             login_button: login_button,
             info_bar_close_signal: None,
             info_bar_response_signal: None,
@@ -222,6 +234,8 @@ impl PasswordLogin {
     }
 
     pub fn reset(&mut self) {
+        self.info_bar.set_revealed(false);
+        self.info_bar.set_visible(false);
         self.url_entry.set_text("");
         self.user_entry.set_text("");
         self.pass_entry.set_text("");
@@ -256,10 +270,40 @@ impl PasswordLogin {
         });
     }
 
-    // fn show_info_bar(bar: &gtk::InfoBar) {
-    //     bar.set_visible(true);
-    //     bar.set_revealed(true);
-    // }
+    pub fn show_error(&self, error: NewsFlashError) {
+        self.info_bar.set_visible(true);
+        self.info_bar.set_revealed(true);
+        println!("{}", error.kind());
+        match error.kind() {
+            NewsFlashErrorKind::Login => {
+                if let Some(cause) = error.cause() {
+                    if let Some(api_err) = cause.downcast_ref::<FeedApiError>() {
+                        println!("FeedApiError: {}", api_err.kind());
+                        match api_err.kind() {
+                            FeedApiErrorKind::HTTPAuth => {
+                                self.http_revealer.set_reveal_child(true);
+                                self.info_bar_label.set_text("HTTP Authentication required.");
+                                return;
+                            },
+                            FeedApiErrorKind::Login |
+                            FeedApiErrorKind::Api => {
+                                self.info_bar_label.set_text("Failed to log in");
+                                return;
+                            },
+                            FeedApiErrorKind::Url => {
+                                self.info_bar_label.set_text("Invalid URL.");
+                                return;
+                            },
+                            _ => {},
+                        }
+                    }
+                }
+                println!("{:?}", error);
+                self.info_bar_label.set_text("Unknown error.");
+            },
+            _ => {},
+        }
+    }
 
     fn setup_entry(
         &self,
