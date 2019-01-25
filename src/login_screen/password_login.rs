@@ -273,7 +273,7 @@ impl PasswordLogin {
     pub fn show_error(&self, error: NewsFlashError) {
         self.info_bar.set_visible(true);
         self.info_bar.set_revealed(true);
-        println!("{}", error.kind());
+
         match error.kind() {
             NewsFlashErrorKind::Login => {
                 if let Some(cause) = error.cause() {
@@ -285,23 +285,20 @@ impl PasswordLogin {
                                 self.info_bar_label.set_text("HTTP Authentication required.");
                                 return;
                             },
+                            FeedApiErrorKind::TLSCert => {
+                                self.info_bar_label.set_text("No valid CA certificate available.");
+                                // FIXME: show button to ignore error
+                            },
                             FeedApiErrorKind::Login |
                             FeedApiErrorKind::Api => {
                                 self.info_bar_label.set_text("Failed to log in");
-                                return;
-                            },
-                            FeedApiErrorKind::Url => {
-                                self.info_bar_label.set_text("Invalid URL.");
-                                return;
                             },
                             _ => {},
                         }
                     }
                 }
-                println!("{:?}", error);
-                self.info_bar_label.set_text("Unknown error.");
             },
-            _ => {},
+            _ => self.info_bar_label.set_text("Unknown error."),
         }
     }
 
