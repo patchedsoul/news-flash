@@ -63,6 +63,8 @@ pub struct PasswordLogin {
     info_bar: gtk::InfoBar,
     info_bar_label: gtk::Label,
     login_button: gtk::Button,
+    ignore_tls_button: gtk::Button,
+    error_details_button: gtk::Button,
     info_bar_close_signal: Option<u64>,
     info_bar_response_signal: Option<u64>,
     url_entry_signal: Option<u64>,
@@ -71,6 +73,8 @@ pub struct PasswordLogin {
     http_user_entry_signal: Option<u64>,
     http_pass_entry_signal: Option<u64>,
     login_button_signal: Option<u64>,
+    ignore_tls_signal: Option<u64>,
+    error_details_signal: Option<u64>,
 }
 
 impl PasswordLogin {
@@ -91,6 +95,8 @@ impl PasswordLogin {
         let login_button : gtk::Button = builder.get_object("login_button").ok_or(format_err!("some err"))?;
         let info_bar : gtk::InfoBar = builder.get_object("info_bar").ok_or(format_err!("some err"))?;
         let info_bar_label : gtk::Label = builder.get_object("info_bar_label").ok_or(format_err!("some err"))?;
+        let ignore_tls_button : gtk::Button = builder.get_object("ignore_button").ok_or(format_err!("some err"))?;
+        let error_details_button : gtk::Button = builder.get_object("details_button").ok_or(format_err!("some err"))?;
 
         let ctx = page.get_style_context().ok_or(format_err!("some err"))?;
         let scale = ctx.get_scale();
@@ -114,6 +120,8 @@ impl PasswordLogin {
             info_bar: info_bar,
             info_bar_label: info_bar_label,
             login_button: login_button,
+            ignore_tls_button: ignore_tls_button,
+            error_details_button: error_details_button,
             info_bar_close_signal: None,
             info_bar_response_signal: None,
             url_entry_signal: None,
@@ -122,6 +130,8 @@ impl PasswordLogin {
             http_user_entry_signal: None,
             http_pass_entry_signal: None,
             login_button_signal: None,
+            ignore_tls_signal: None,
+            error_details_signal: None,
         };
 
         Ok(page)
@@ -251,6 +261,8 @@ impl PasswordLogin {
         Self::disconnect_signal(self.http_user_entry_signal, &self.http_user_entry);
         Self::disconnect_signal(self.http_pass_entry_signal, &self.http_pass_entry);
         Self::disconnect_signal(self.login_button_signal, &self.login_button);
+        Self::disconnect_signal(self.ignore_tls_signal, &self.ignore_tls_button);
+        Self::disconnect_signal(self.error_details_signal, &self.error_details_button);
         self.info_bar_close_signal = None;
         self.info_bar_response_signal = None;
         self.url_entry_signal = None;
@@ -271,14 +283,15 @@ impl PasswordLogin {
     }
 
     pub fn show_error(&self, error: NewsFlashError) {
-        self.info_bar.set_visible(true);
-        self.info_bar.set_revealed(true);
+        Self::disconnect_signal(self.ignore_tls_signal, &self.ignore_tls_button);
+        Self::disconnect_signal(self.error_details_signal, &self.error_details_button);
+        self.ignore_tls_button.set_visible(false);
+        self.error_details_button.set_visible(false);
 
         match error.kind() {
             NewsFlashErrorKind::Login => {
                 if let Some(cause) = error.cause() {
                     if let Some(api_err) = cause.downcast_ref::<FeedApiError>() {
-                        println!("FeedApiError: {}", api_err.kind());
                         match api_err.kind() {
                             FeedApiErrorKind::HTTPAuth => {
                                 self.http_revealer.set_reveal_child(true);
@@ -287,19 +300,26 @@ impl PasswordLogin {
                             },
                             FeedApiErrorKind::TLSCert => {
                                 self.info_bar_label.set_text("No valid CA certificate available.");
-                                // FIXME: show button to ignore error
+                                self.ignore_tls_button.set_visible(true);
+                                // FIXME: make button do something
+                                return;
                             },
                             FeedApiErrorKind::Login |
-                            FeedApiErrorKind::Api => {
+                            FeedApiErrorKind::Api |
+                            _ => {
                                 self.info_bar_label.set_text("Failed to log in");
                             },
-                            _ => {},
                         }
                     }
                 }
             },
             _ => self.info_bar_label.set_text("Unknown error."),
         }
+
+        self.error_details_button.set_visible(true);
+        // FIXME: make button spawn dialog that shows details
+        self.info_bar.set_visible(true);
+        self.info_bar.set_revealed(true);
     }
 
     fn setup_entry(
