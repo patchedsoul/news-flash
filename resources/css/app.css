@@ -134,3 +134,10 @@
   from { -gtk-icon-transform: rotate(0deg); }
   to   { -gtk-icon-transform: rotate(-90deg); }
 }
+
+.error_list {
+  background: white;
+  border-width: 1px;
+  border-style: solid;
+  border-color: rgba(0, 0, 0, 0.3);
+}
