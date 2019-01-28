@@ -138,7 +138,6 @@ impl WebLogin {
                                         if let Ok(main_window) = GtkUtil::get_main_window(webview) {
                                             if let Some(action) = main_window.lookup_action("login") {
                                                 let login_data_json = Variant::from(&oauth_data_json);
-                                                // FIXME: stop action activating multiple times
                                                 if let Some(signal_id) = *redirect_signal_id.borrow() {
                                                     let signal_id = SignalHandlerId::from_glib(signal_id);
                                                     webview.disconnect(signal_id);

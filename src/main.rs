@@ -3,6 +3,7 @@ mod main_window;
 mod welcome_screen;
 mod login_screen;
 mod gtk_util;
+mod error_dialog;
 
 use gio::{
     self,

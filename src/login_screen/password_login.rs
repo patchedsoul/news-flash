@@ -24,6 +24,7 @@ use gio::{
     ActionExt,
 };
 use crate::gtk_util::GtkUtil;
+use crate::error_dialog::ErrorDialog;
 use crate::Resources;
 use failure::{
     Error,
@@ -271,6 +272,8 @@ impl PasswordLogin {
         self.http_user_entry_signal = None;
         self.http_pass_entry_signal = None;
         self.login_button_signal = None;
+        self.ignore_tls_signal = None;
+        self.error_details_signal = None;
     }
 
     fn hide_info_bar(bar: &gtk::InfoBar) {
@@ -282,9 +285,12 @@ impl PasswordLogin {
         });
     }
 
-    pub fn show_error(&self, error: NewsFlashError) {
+    pub fn show_error(&mut self, error: NewsFlashError) {
         Self::disconnect_signal(self.ignore_tls_signal, &self.ignore_tls_button);
         Self::disconnect_signal(self.error_details_signal, &self.error_details_button);
+        self.ignore_tls_signal = None;
+        self.error_details_signal = None;
+
         self.ignore_tls_button.set_visible(false);
         self.error_details_button.set_visible(false);
 
@@ -317,7 +323,10 @@ impl PasswordLogin {
         }
 
         self.error_details_button.set_visible(true);
-        // FIXME: make button spawn dialog that shows details
+        self.error_details_signal = Some(self.error_details_button.connect_clicked(move |button| {
+            let parent = GtkUtil::get_main_window(button).unwrap();
+            let _dialog = ErrorDialog::new(&error, parent).unwrap();
+        }).to_glib());
         self.info_bar.set_visible(true);
         self.info_bar.set_revealed(true);
     }
