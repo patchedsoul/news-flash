@@ -26,12 +26,6 @@ use log4rs::config::{
     Config,
     Root
 };
-use log::{
-    warn,
-    info,
-    error,
-    trace,
-};
 
 #[derive(RustEmbed)]
 #[folder = "resources/"]
@@ -42,20 +36,15 @@ fn main() {
         .expect("Initialization failed...");
 
     let stdout = ConsoleAppender::builder()
-        .encoder(Box::new(PatternEncoder::new("{d(%Y-%m-%d %H:%M:%S)} - {({l}):5.5} - {f}:{L} - {m}\n")))
+        .encoder(Box::new(PatternEncoder::new("{d(%H:%M:%S)} - {h({({l}):5.5})} - {M}:{L} - {m}\n")))
         .build();
 
     let config = Config::builder()
         .appender(Appender::builder().build("stdout", Box::new(stdout)))
-        .build(Root::builder().appender("stdout").build(LevelFilter::Trace))
+        .build(Root::builder().appender("stdout").build(LevelFilter::Info))
         .unwrap();
 
     let _handle = log4rs::init_config(config).unwrap();
-
-    info!("some info");
-    warn!("some warning");
-    error!("some error");
-    trace!("some trace");
 
     application.connect_startup(move |_app| {
 
