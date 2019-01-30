@@ -35,13 +35,22 @@ fn main() {
     let application = Application::new("com.gitlab.newsflash", gio::ApplicationFlags::empty())
         .expect("Initialization failed...");
 
+    let encoder = PatternEncoder::new("{d(%H:%M:%S)} - {h({({l}):5.5})} - {m:<35.} (({M}:{L}))\n");
+
     let stdout = ConsoleAppender::builder()
-        .encoder(Box::new(PatternEncoder::new("{d(%H:%M:%S)} - {h({({l}):5.5})} - {M}:{L} - {m}\n")))
+        .encoder(Box::new(encoder))
         .build();
 
+    let appender = Appender::builder()
+        .build("stdout", Box::new(stdout));
+
+    let root = Root::builder()
+        .appender("stdout")
+        .build(LevelFilter::Info);
+
     let config = Config::builder()
-        .appender(Appender::builder().build("stdout", Box::new(stdout)))
-        .build(Root::builder().appender("stdout").build(LevelFilter::Info))
+        .appender(appender)
+        .build(root)
         .unwrap();
 
     let _handle = log4rs::init_config(config).unwrap();
