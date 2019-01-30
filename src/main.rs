@@ -1,9 +1,10 @@
 mod main_window;
-//mod sidebar;
+mod sidebar;
 mod welcome_screen;
 mod login_screen;
 mod gtk_util;
 mod error_dialog;
+mod content_page;
 
 use gio::{
     self,

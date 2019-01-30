@@ -28,6 +28,7 @@ use gio::{
     SimpleAction,
     SimpleActionExt,
     ActionMapExt,
+    ActionExt,
 };
 use news_flash::models::{
     PluginID,
@@ -42,6 +43,7 @@ use std::str;
 use std::rc::Rc;
 use std::cell::RefCell;
 use std::path::PathBuf;
+use crate::content_page::ContentPage;
 
 pub type GtkHandle<T> = Rc<RefCell<T>>;
 pub type GtkHandleMap<T, K> = GtkHandle<HashMap<T, K>>;
@@ -87,6 +89,9 @@ impl MainWindow {
 
         let oauth_login = Self::setup_web_login_page()?;
         stack.add_named(&oauth_login.widget(), "oauth_login");
+
+        let content = Self::setup_content_page()?;
+        stack.add_named(&content.widget(), "content");
         
         stack.set_visible_child_name("welcome");
         window.set_titlebar(&welcome_header.widget());
@@ -104,6 +109,7 @@ impl MainWindow {
         Self::setup_show_password_page_action(&main_window.widget, &pw_login_handle, &stack, login_header.widget());
         Self::setup_show_oauth_page_action(&main_window.widget, &oauht_login_handle, &stack, login_header.widget());
         Self::setup_show_welcome_page_action(&main_window.widget, &oauht_login_handle, &pw_login_handle, &stack, welcome_header.widget());
+        Self::setup_show_content_page_action(&main_window.widget, &stack, welcome_header.widget());
         Self::setup_login_action(&main_window.widget, &main_window.news_flash, &oauht_login_handle, &pw_login_handle);
         Ok(main_window)
     }
@@ -121,6 +127,11 @@ impl MainWindow {
     fn setup_web_login_page() -> Result<WebLogin, Error> {
         let web_login = WebLogin::new()?;
         Ok(web_login)
+    }
+
+    fn setup_content_page() -> Result<ContentPage, Error> {
+        let content = ContentPage::new()?;
+        Ok(content)
     }
 
     fn setup_show_password_page_action(window: &ApplicationWindow, pw_page: &GtkHandle<PasswordLogin>, stack: &Stack, headerbar: HeaderBar) {
@@ -192,6 +203,19 @@ impl MainWindow {
         window.add_action(&show_welcome_page);
     }
 
+    fn setup_show_content_page_action(window: &ApplicationWindow, stack: &Stack, headerbar: HeaderBar) {
+        let application_window = window.clone();
+        let stack = stack.clone();
+        let show_content_page = SimpleAction::new("show-content-page", None);
+        show_content_page.connect_activate(move |_action, _data| {
+            application_window.set_titlebar(&headerbar);
+            stack.set_transition_type(StackTransitionType::SlideLeft);
+            stack.set_visible_child_name("content");
+        });
+        show_content_page.set_enabled(true);
+        window.add_action(&show_content_page);
+    }
+
     fn setup_login_action(
         window: &ApplicationWindow,
         news_flash: &GtkHandle<Option<NewsFlash>>,
@@ -199,6 +223,7 @@ impl MainWindow {
         pw_page: &GtkHandle<PasswordLogin>,
     ) {
         let news_flash = news_flash.clone();
+        let main_window = window.clone();
         let pw_page = pw_page.clone();
         let oauth_page = oauth_page.clone();
         let login_action = SimpleAction::new("login", glib::VariantTy::new("s").ok());
@@ -213,7 +238,13 @@ impl MainWindow {
                     let mut news_flash_lib = NewsFlash::new(&PathBuf::from("/home/jeanluc/.news-flash"), &id).unwrap();
                     match news_flash_lib.login(info.clone()) {
                         Ok(()) => {
+                            // create main obj
                             *news_flash.borrow_mut() = Some(news_flash_lib);
+
+                            // show content page
+                            if let Some(action) = main_window.lookup_action("show-content-page") {
+                                action.activate(None);
+                            }
                         },
                         Err(error) => {
                             match info {

@@ -24,6 +24,8 @@ use gtk::{
     InfoBarExt,
     WidgetExt,
     ResponseType,
+    LabelExt,
+    ButtonExt,
 };
 use failure::Error;
 use failure::format_err;
@@ -35,6 +37,7 @@ use news_flash::models::{
 };
 use crate::gtk_util::GtkUtil;
 use crate::main_window::GtkHandle;
+use crate::error_dialog::ErrorDialog;
 use std::rc::Rc;
 use std::cell::RefCell;
 use crate::Resources;
@@ -50,9 +53,12 @@ pub struct WebLogin {
     webview: WebView,
     page: gtk::Box,
     info_bar: gtk::InfoBar,
+    info_bar_label: gtk::Label,
+    error_details_button: gtk::Button,
     redirect_signal_id: GtkHandle<Option<u64>>,
     info_bar_close_signal: Option<u64>,
     info_bar_response_signal: Option<u64>,
+    error_details_signal: Option<u64>,
 }
 
 impl WebLogin {
@@ -62,6 +68,8 @@ impl WebLogin {
         let builder = gtk::Builder::new_from_string(ui_string);
         let page : gtk::Box = builder.get_object("oauth_box").ok_or(format_err!("some err"))?;
         let info_bar : gtk::InfoBar = builder.get_object("info_bar").ok_or(format_err!("some err"))?;
+        let error_details_button : gtk::Button = builder.get_object("details_button").ok_or(format_err!("some err"))?;
+        let info_bar_label : gtk::Label = builder.get_object("info_bar_label").ok_or(format_err!("some err"))?;
 
         let context = WebContext::get_default().ok_or(format_err!("some err"))?;
         let content_manager = UserContentManager::new();
@@ -73,9 +81,12 @@ impl WebLogin {
             webview: webview,
             page: page,
             info_bar: info_bar,
+            info_bar_label: info_bar_label,
+            error_details_button: error_details_button,
             redirect_signal_id: Rc::new(RefCell::new(None)),
             info_bar_close_signal: None,
             info_bar_response_signal: None,
+            error_details_signal: None,
         };
 
         Ok(page)
@@ -94,13 +105,22 @@ impl WebLogin {
         });
     }
 
-    pub fn show_error(&self, error: NewsFlashError) {
+    pub fn show_error(&mut self, error: NewsFlashError) {
+        Self::disconnect_signal(self.error_details_signal, &self.error_details_button);
+        self.error_details_signal = None;
+
+        match error.kind() {
+            NewsFlashErrorKind::Login => self.info_bar_label.set_text("Failed to log in"),
+            _ => self.info_bar_label.set_text("Unknown error."),
+        }
+
+        self.error_details_signal = Some(self.error_details_button.connect_clicked(move |button| {
+            let parent = GtkUtil::get_main_window(button).unwrap();
+            let _dialog = ErrorDialog::new(&error, parent).unwrap();
+        }).to_glib());
+
         self.info_bar.set_visible(true);
         self.info_bar.set_revealed(true);
-        match error.kind() {
-            NewsFlashErrorKind::Login => {},
-            _ => {},
-        }
     }
 
     pub fn set_service(&mut self, info: PluginInfo) -> Result<(), Error> {
