@@ -1,19 +1,57 @@
+@define-color feedlist-bg #444;
+@define-color feedlist-slider shade(@feedlist-bg, 2.5);
+@define-color feedlist-label shade(@feedlist-bg, 3);
+@define-color feedlist-selected shade(@feedlist-bg, 1.6);
+
+/***************/
+/*   sidebar   */
+/***************/
+
+.sidebar {
+	background: @feedlist-bg;
+}
+
+.sidebar label {
+	color: white;
+}
+
+.sidebar separator {
+	background-color: shade(@feedlist-bg, 0.82);
+	border: none;
+}
+
+/******************/
+/* sidebar footer */
+/******************/
+
+.footer {
+	background: shade(@feedlist-bg, 0.9);
+}
+.footer button:hover,
+.footer-popover {
+	background: shade(@feedlist-bg, 1.1);
+}
+.footer button {
+	border: 0;
+	border-radius:0;
+	-gtk-icon-shadow: none;
+	box-shadow: none;
+}
+.footer button:disabled {
+	color:shade(@feedlist-label, 0.9);
+}
+
 /***************/
 /*  feed list  */
 /***************/
-
-.feedlist {
-  background: #555;
-}
-
 .feedlist .activatable {
 	box-shadow: None;
 }
 
 .feedlist row {
 	border-top: none;
-  border-bottom: none;
-  padding: 0;
+	border-bottom: none;
+	padding: 0;
 }
 
 .feedlist row:not(.hidden) {
@@ -28,48 +66,44 @@
 }
 
 .feedlist-drag-above {
-  border-bottom: 1px solid white;
+	border-bottom: 1px solid white;
 }
 
 .feedlist-drag-below {
-  border-top: 1px solid white;
+	border-top: 1px solid white;
 }
 
 .feedlist-drag-icon {
-  background: #555;
-  border: 1px solid white;
-}
-
-.category-label {
-  color: white;
+	background: #555;
+	border: 1px solid white;
 }
 
 .item-count {
-  background-color: #EEE;
-  color: black;
-  font-weight: bold;
-  font-size: 0.8em;
-  border-radius: 12px;
-  min-width: 12px;
-  padding: 2px 5px 1px;
+	background-color: #EEE;
+	color: black;
+	font-weight: bold;
+	font-size: 0.8em;
+	border-radius: 12px;
+	min-width: 12px;
+	padding: 2px 5px 1px;
 }
 
 .feedlist-expanded {
-  animation: expand 1 forwards 200ms;
+	animation: expand 1 forwards 200ms;
 }
 
 .feedlist-collapsed {
-  animation: collapse 1 forwards 200ms;
+	animation: collapse 1 forwards 200ms;
 }
 
 @keyframes collapse {
-  from { -gtk-icon-transform: rotate(90deg); }
-  to   { -gtk-icon-transform: rotate(0deg); }
+	from { -gtk-icon-transform: rotate(90deg); }
+	to   { -gtk-icon-transform: rotate(0deg); }
 }
 
 @keyframes expand {
-  from { -gtk-icon-transform: rotate(0deg); }
-  to   { -gtk-icon-transform: rotate(90deg); }
+	from { -gtk-icon-transform: rotate(0deg); }
+	to   { -gtk-icon-transform: rotate(90deg); }
 }
 
 /***************/
@@ -118,16 +152,16 @@
 }
 
 .backward-arrow-expanded {
-  animation: expand 1 forwards 200ms;
+	animation: expand 1 forwards 200ms;
 }
 
 .backward-arrow-collapsed {
-  animation: collapse 1 forwards 200ms;
+	animation: collapse 1 forwards 200ms;
 }
 
 @keyframes collapse {
-  from { -gtk-icon-transform: rotate(-90deg); }
-  to   { -gtk-icon-transform: rotate(0deg); }
+	from { -gtk-icon-transform: rotate(-90deg); }
+	to   { -gtk-icon-transform: rotate(0deg); }
 }
 
 @keyframes expand {

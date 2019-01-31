@@ -34,6 +34,11 @@ use news_flash::models::{
     PluginID,
     LoginData,
 };
+use log::{
+    info,
+    warn,
+    error,
+};
 use news_flash::NewsFlash;
 use std::collections::HashMap;
 use crate::Resources;
@@ -48,9 +53,10 @@ use crate::content_page::ContentPage;
 pub type GtkHandle<T> = Rc<RefCell<T>>;
 pub type GtkHandleMap<T, K> = GtkHandle<HashMap<T, K>>;
 
+static DATA_DIR: &'static str = "/home/jeanluc/.news-flash";
+
 pub struct MainWindow {
     widget: ApplicationWindow,
-    news_flash: GtkHandle<Option<NewsFlash>>,
 }
 
 impl MainWindow {
@@ -93,24 +99,35 @@ impl MainWindow {
         let content = Self::setup_content_page()?;
         stack.add_named(&content.widget(), "content");
         
-        stack.set_visible_child_name("welcome");
-        window.set_titlebar(&welcome_header.widget());
-        window.show_all();
-        
         let pw_login_handle = Rc::new(RefCell::new(pw_login));
         let oauht_login_handle = Rc::new(RefCell::new(oauth_login));
         let news_flash_handle = Rc::new(RefCell::new(None));
         
+        Self::setup_show_password_page_action(&window, &pw_login_handle, &stack, login_header.widget());
+        Self::setup_show_oauth_page_action(&window, &oauht_login_handle, &stack, login_header.widget());
+        Self::setup_show_welcome_page_action(&window, &oauht_login_handle, &pw_login_handle, &stack, welcome_header.widget());
+        Self::setup_show_content_page_action(&window, &stack, welcome_header.widget());
+        Self::setup_login_action(&window, &news_flash_handle, &oauht_login_handle, &pw_login_handle);
+
+        if let Ok(news_flash_lib) = NewsFlash::try_load(&PathBuf::from(DATA_DIR)) {
+            info!("Successful load from config");
+            stack.set_visible_child_name("content");
+            *news_flash_handle.borrow_mut() = Some(news_flash_lib);
+
+            // FIXME
+            window.set_titlebar(&welcome_header.widget());
+        }
+        else {
+            warn!("No account configured");
+            stack.set_visible_child_name("welcome");
+            window.set_titlebar(&welcome_header.widget());
+        }
+        window.show_all();
+
         let main_window = MainWindow {
             widget: window,
-            news_flash: news_flash_handle,
         };
 
-        Self::setup_show_password_page_action(&main_window.widget, &pw_login_handle, &stack, login_header.widget());
-        Self::setup_show_oauth_page_action(&main_window.widget, &oauht_login_handle, &stack, login_header.widget());
-        Self::setup_show_welcome_page_action(&main_window.widget, &oauht_login_handle, &pw_login_handle, &stack, welcome_header.widget());
-        Self::setup_show_content_page_action(&main_window.widget, &stack, welcome_header.widget());
-        Self::setup_login_action(&main_window.widget, &main_window.news_flash, &oauht_login_handle, &pw_login_handle);
         Ok(main_window)
     }
 
@@ -235,7 +252,7 @@ impl MainWindow {
                         LoginData::OAuth(oauth) => oauth.id.clone(),
                         LoginData::Password(pass) => pass.id.clone(),
                     };
-                    let mut news_flash_lib = NewsFlash::new(&PathBuf::from("/home/jeanluc/.news-flash"), &id).unwrap();
+                    let mut news_flash_lib = NewsFlash::new(&PathBuf::from(DATA_DIR), &id).unwrap();
                     match news_flash_lib.login(info.clone()) {
                         Ok(()) => {
                             // create main obj
@@ -247,6 +264,7 @@ impl MainWindow {
                             }
                         },
                         Err(error) => {
+                            error!("Login failed! Plguin: {}, Error: {}", id, error);
                             match info {
                                 LoginData::OAuth(_) => {
                                     oauth_page.borrow_mut().show_error(error);
