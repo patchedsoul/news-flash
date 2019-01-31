@@ -6,7 +6,7 @@ use gtk::{
     Builder,
     BoxExt,
 };
-use crate::sidebar::SideBarToplevel;
+use crate::sidebar::SideBar;
 
 
 pub struct ContentPage {
@@ -21,7 +21,7 @@ impl ContentPage {
         let page : gtk::Box = builder.get_object("page").ok_or(format_err!("some err"))?;
         let feed_list_box : gtk::Box = builder.get_object("feedlist_box").ok_or(format_err!("some err"))?;
         
-        let sidebar = SideBarToplevel::new()?;
+        let sidebar = SideBar::new()?;
 
         feed_list_box.pack_start(&sidebar.widget(), false, true, 0);
 
