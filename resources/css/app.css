@@ -12,7 +12,9 @@
 }
 
 .sidebar label {
-	color: white;
+	color: @feedlist-label;
+	font-weight: bold;
+	text-shadow: none;
 }
 
 .sidebar separator {
@@ -20,24 +22,28 @@
 	border: none;
 }
 
+.sidebar .logo {
+	color: @feedlist-label;
+}
+
 /******************/
 /* sidebar footer */
 /******************/
 
-.footer {
+.sidebar .footer {
 	background: shade(@feedlist-bg, 0.9);
 }
-.footer button:hover,
-.footer-popover {
+.sidebar .footer button:hover,
+.sidebar .footer-popover {
 	background: shade(@feedlist-bg, 1.1);
 }
-.footer button {
+.sidebar .footer button {
 	border: 0;
 	border-radius:0;
 	-gtk-icon-shadow: none;
 	box-shadow: none;
 }
-.footer button:disabled {
+.sidebar .footer button:disabled {
 	color:shade(@feedlist-label, 0.9);
 }
 

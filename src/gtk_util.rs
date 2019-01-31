@@ -34,9 +34,9 @@ use failure::{
 pub struct GtkUtil;
 
 impl GtkUtil {
-    pub fn create_surface_from_bitmap(icon: PixelIcon, scale_factor: i32) -> Result<Surface, Error> {
+    pub fn create_surface_from_bitmap(icon: &PixelIcon, scale_factor: i32) -> Result<Surface, Error> {
         let pixbuf = Pixbuf::new_from_vec(
-            icon.data, 
+            icon.data.clone(), 
             Colorspace::Rgb,
             icon.has_alpha, 
             icon.bits_per_sample, 

@@ -101,17 +101,22 @@ impl MainWindow {
         
         let pw_login_handle = Rc::new(RefCell::new(pw_login));
         let oauht_login_handle = Rc::new(RefCell::new(oauth_login));
+        let content_page_handle = Rc::new(RefCell::new(content));
         let news_flash_handle = Rc::new(RefCell::new(None));
         
         Self::setup_show_password_page_action(&window, &pw_login_handle, &stack, login_header.widget());
         Self::setup_show_oauth_page_action(&window, &oauht_login_handle, &stack, login_header.widget());
         Self::setup_show_welcome_page_action(&window, &oauht_login_handle, &pw_login_handle, &stack, welcome_header.widget());
-        Self::setup_show_content_page_action(&window, &stack, welcome_header.widget());
+        Self::setup_show_content_page_action(&window, &stack, &content_page_handle, welcome_header.widget());
         Self::setup_login_action(&window, &news_flash_handle, &oauht_login_handle, &pw_login_handle);
 
         if let Ok(news_flash_lib) = NewsFlash::try_load(&PathBuf::from(DATA_DIR)) {
             info!("Successful load from config");
+
             stack.set_visible_child_name("content");
+            let id = news_flash_lib.id().ok_or(format_err!("some err"))?;
+            content_page_handle.borrow().set_service(&id)?;
+
             *news_flash_handle.borrow_mut() = Some(news_flash_lib);
 
             // FIXME
@@ -220,14 +225,26 @@ impl MainWindow {
         window.add_action(&show_welcome_page);
     }
 
-    fn setup_show_content_page_action(window: &ApplicationWindow, stack: &Stack, headerbar: HeaderBar) {
+    fn setup_show_content_page_action(
+        window: &ApplicationWindow,
+        stack: &Stack,
+        content_page: &GtkHandle<ContentPage>,
+        headerbar: HeaderBar
+    ) {
         let application_window = window.clone();
         let stack = stack.clone();
-        let show_content_page = SimpleAction::new("show-content-page", None);
-        show_content_page.connect_activate(move |_action, _data| {
-            application_window.set_titlebar(&headerbar);
-            stack.set_transition_type(StackTransitionType::SlideLeft);
-            stack.set_visible_child_name("content");
+        let content_page = content_page.clone();
+        let show_content_page = SimpleAction::new("show-content-page", glib::VariantTy::new("s").ok());
+        show_content_page.connect_activate(move |_action, data| {
+            if let Some(data) = data {
+                if let Some(id_string) = data.get_str() {
+                    let id = PluginID::new(id_string);
+                    content_page.borrow().set_service(&id).unwrap();
+                    application_window.set_titlebar(&headerbar);
+                    stack.set_transition_type(StackTransitionType::SlideLeft);
+                    stack.set_visible_child_name("content");
+                }
+            }
         });
         show_content_page.set_enabled(true);
         window.add_action(&show_content_page);
@@ -260,7 +277,8 @@ impl MainWindow {
 
                             // show content page
                             if let Some(action) = main_window.lookup_action("show-content-page") {
-                                action.activate(None);
+                                let id = glib::Variant::from(id.to_str());
+                                action.activate(Some(&id));
                             }
                         },
                         Err(error) => {

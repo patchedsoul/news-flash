@@ -7,10 +7,13 @@ use gtk::{
     BoxExt,
 };
 use crate::sidebar::SideBar;
-
+use news_flash::models::{
+    PluginID,
+};
 
 pub struct ContentPage {
     page: gtk::Box,
+    sidebar: SideBar,
 }
 
 impl ContentPage {
@@ -27,10 +30,16 @@ impl ContentPage {
 
         Ok(ContentPage {
             page: page,
+            sidebar: sidebar,
         })
     }
 
     pub fn widget(&self) -> gtk::Box {
         self.page.clone()
+    }
+
+    pub fn set_service(&self, id: &PluginID) -> Result<(), Error> {
+        self.sidebar.set_service(id)?;
+        Ok(())
     }
 }

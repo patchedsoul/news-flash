@@ -147,7 +147,7 @@ impl PasswordLogin {
                     GtkUtil::create_surface_from_svg(&icon.data, icon.width, icon.height, self.scale_factor)?
                 },
                 PluginIcon::Pixel(icon) => {
-                    GtkUtil::create_surface_from_bitmap(icon, self.scale_factor)?
+                    GtkUtil::create_surface_from_bitmap(&icon, self.scale_factor)?
                 },
             };
             self.logo.set_from_surface(&surface);
