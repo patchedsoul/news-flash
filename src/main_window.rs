@@ -48,7 +48,10 @@ use std::str;
 use std::rc::Rc;
 use std::cell::RefCell;
 use std::path::PathBuf;
-use crate::content_page::ContentPage;
+use crate::content_page::{
+    ContentPage,
+    ContentHeader,
+};
 
 pub type GtkHandle<T> = Rc<RefCell<T>>;
 pub type GtkHandleMap<T, K> = GtkHandle<HashMap<T, K>>;
@@ -80,6 +83,7 @@ impl MainWindow {
 
         let login_header = LoginHeaderbar::new(&window)?;
         let welcome_header = WelcomeHeaderbar::new()?;
+        let content_header = ContentHeader::new()?;
 
         window.set_application(app);
         window.connect_delete_event(move |win, _| {
@@ -107,7 +111,7 @@ impl MainWindow {
         Self::setup_show_password_page_action(&window, &pw_login_handle, &stack, login_header.widget());
         Self::setup_show_oauth_page_action(&window, &oauht_login_handle, &stack, login_header.widget());
         Self::setup_show_welcome_page_action(&window, &oauht_login_handle, &pw_login_handle, &stack, welcome_header.widget());
-        Self::setup_show_content_page_action(&window, &stack, &content_page_handle, welcome_header.widget());
+        Self::setup_show_content_page_action(&window, &news_flash_handle, &stack, &content_page_handle, content_header.widget());
         Self::setup_login_action(&window, &news_flash_handle, &oauht_login_handle, &pw_login_handle);
 
         if let Ok(news_flash_lib) = NewsFlash::try_load(&PathBuf::from(DATA_DIR)) {
@@ -115,12 +119,10 @@ impl MainWindow {
 
             stack.set_visible_child_name("content");
             let id = news_flash_lib.id().ok_or(format_err!("some err"))?;
-            content_page_handle.borrow().set_service(&id)?;
+            content_page_handle.borrow().set_service(&id, news_flash_lib.user_name())?;
 
             *news_flash_handle.borrow_mut() = Some(news_flash_lib);
-
-            // FIXME
-            window.set_titlebar(&welcome_header.widget());
+            window.set_titlebar(&content_header.widget());
         }
         else {
             warn!("No account configured");
@@ -227,10 +229,12 @@ impl MainWindow {
 
     fn setup_show_content_page_action(
         window: &ApplicationWindow,
+        news_flash: &GtkHandle<Option<NewsFlash>>,
         stack: &Stack,
         content_page: &GtkHandle<ContentPage>,
-        headerbar: HeaderBar
+        headerbar: gtk::Paned
     ) {
+        let news_flash = news_flash.clone();
         let application_window = window.clone();
         let stack = stack.clone();
         let content_page = content_page.clone();
@@ -239,7 +243,11 @@ impl MainWindow {
             if let Some(data) = data {
                 if let Some(id_string) = data.get_str() {
                     let id = PluginID::new(id_string);
-                    content_page.borrow().set_service(&id).unwrap();
+                    let mut user_name : Option<String> = None;
+                    if let Some(api) = &*news_flash.borrow() {
+                        user_name = api.user_name();
+                    }
+                    content_page.borrow().set_service(&id, user_name).unwrap();
                     application_window.set_titlebar(&headerbar);
                     stack.set_transition_type(StackTransitionType::SlideLeft);
                     stack.set_visible_child_name("content");

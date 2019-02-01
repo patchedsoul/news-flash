@@ -1,3 +1,7 @@
+mod content_header;
+
+pub use self::content_header::ContentHeader;
+
 use failure::Error;
 use failure::format_err;
 use crate::Resources;
@@ -38,8 +42,8 @@ impl ContentPage {
         self.page.clone()
     }
 
-    pub fn set_service(&self, id: &PluginID) -> Result<(), Error> {
-        self.sidebar.set_service(id)?;
+    pub fn set_service(&self, id: &PluginID, user_name: Option<String>) -> Result<(), Error> {
+        self.sidebar.set_service(id, user_name)?;
         Ok(())
     }
 }

@@ -37,12 +37,16 @@ impl SideBar {
         let sidebar : gtk::Box = builder.get_object("toplevel").ok_or(format_err!("some err"))?;
         let logo : gtk::Image = builder.get_object("logo").ok_or(format_err!("some err"))?;
         let service_label : gtk::Label = builder.get_object("service_label").ok_or(format_err!("some err"))?;
+        let all_icon : gtk::Image = builder.get_object("all_icon").ok_or(format_err!("some err"))?;
 
         let scale = sidebar
             .get_style_context()
             .ok_or(format_err!("some err"))?
             .get_scale();
 
+        let icon = Resources::get("icons/feed_service_generic_symbolic.svg").ok_or(format_err!("some err"))?;
+        let icon = GtkUtil::create_surface_from_svg(&icon, 16, 16, scale)?;
+        all_icon.set_from_surface(&icon);
 
         Ok(SideBar {
             sidebar: sidebar,
@@ -56,7 +60,7 @@ impl SideBar {
         self.sidebar.clone()
     }
 
-    pub fn set_service(&self, id: &PluginID) -> Result<(), Error> {
+    pub fn set_service(&self, id: &PluginID, user_name: Option<String>) -> Result<(), Error> {
         let list = NewsFlash::list_backends();
         let info = list.get(id).ok_or(format_err!("some err"))?;
         if let Some(icon) = &info.icon_symbolic {
@@ -75,8 +79,13 @@ impl SideBar {
             let surface = GtkUtil::create_surface_from_svg(&generic_logo_data, 64, 64, self.scale_factor)?;
             self.logo.set_from_surface(&surface);
         }
-        
-        self.service_label.set_text(&info.name);
+
+        if let Some(user_name) = user_name {
+            self.service_label.set_text(&user_name);
+        }
+        else {
+            self.service_label.set_text(&info.name);
+        }
 
         Ok(())
     }

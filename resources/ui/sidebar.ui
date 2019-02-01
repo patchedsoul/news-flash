@@ -40,7 +40,7 @@
       <object class="GtkSeparator">
         <property name="visible">True</property>
         <property name="can_focus">False</property>
-        <property name="margin_top">20</property>
+        <property name="margin_top">10</property>
       </object>
       <packing>
         <property name="expand">False</property>
@@ -49,11 +49,50 @@
       </packing>
     </child>
     <child>
-      <object class="GtkLabel">
-        <property name="height_request">40</property>
+      <object class="GtkButton">
+        <property name="height_request">30</property>
         <property name="visible">True</property>
-        <property name="can_focus">False</property>
-        <property name="label" translatable="yes">All Articles</property>
+        <property name="can_focus">True</property>
+        <property name="receives_default">True</property>
+        <property name="margin_top">5</property>
+        <property name="margin_bottom">5</property>
+        <property name="relief">none</property>
+        <child>
+          <object class="GtkBox">
+            <property name="visible">True</property>
+            <property name="can_focus">False</property>
+            <property name="spacing">5</property>
+            <child>
+              <object class="GtkImage" id="all_icon">
+                <property name="width_request">24</property>
+                <property name="height_request">24</property>
+                <property name="visible">True</property>
+                <property name="can_focus">False</property>
+                <property name="stock">gtk-missing-image</property>
+                <style>
+                  <class name="logo"/>
+                </style>
+              </object>
+              <packing>
+                <property name="expand">False</property>
+                <property name="fill">True</property>
+                <property name="position">0</property>
+              </packing>
+            </child>
+            <child>
+              <object class="GtkLabel">
+                <property name="visible">True</property>
+                <property name="can_focus">False</property>
+                <property name="label" translatable="yes">All Articles</property>
+              </object>
+              <packing>
+                <property name="expand">False</property>
+                <property name="fill">True</property>
+                <property name="position">1</property>
+              </packing>
+            </child>
+          </object>
+        </child>
       </object>
       <packing>
         <property name="expand">False</property>
@@ -65,7 +104,7 @@
       <object class="GtkSeparator">
         <property name="visible">True</property>
         <property name="can_focus">False</property>
-        <property name="margin_bottom">20</property>
+        <property name="margin_bottom">10</property>
       </object>
       <packing>
         <property name="expand">False</property>
@@ -74,11 +113,41 @@
       </packing>
     </child>
     <child>
-      <object class="GtkLabel">
+      <object class="GtkBox">
         <property name="height_request">30</property>
         <property name="visible">True</property>
         <property name="can_focus">False</property>
-        <property name="label" translatable="yes">Categories</property>
+        <property name="margin_left">10</property>
+        <property name="spacing">5</property>
+        <child>
+          <object class="GtkImage">
+            <property name="width_request">24</property>
+            <property name="height_request">24</property>
+            <property name="visible">True</property>
+            <property name="can_focus">False</property>
+            <property name="icon_name">go-next-symbolic</property>
+            <style>
+              <class name="logo"/>
+            </style>
+          </object>
+          <packing>
+            <property name="expand">False</property>
+            <property name="fill">True</property>
+            <property name="position">0</property>
+          </packing>
+        </child>
+        <child>
+          <object class="GtkLabel">
+            <property name="visible">True</property>
+            <property name="can_focus">False</property>
+            <property name="label" translatable="yes">Categories</property>
+          </object>
+          <packing>
+            <property name="expand">False</property>
+            <property name="fill">True</property>
+            <property name="position">1</property>
+          </packing>
+        </child>
       </object>
       <packing>
         <property name="expand">False</property>
@@ -100,11 +169,41 @@
       </packing>
     </child>
     <child>
-      <object class="GtkLabel">
+      <object class="GtkBox">
         <property name="height_request">30</property>
         <property name="visible">True</property>
         <property name="can_focus">False</property>
-        <property name="label" translatable="yes">Tags</property>
+        <property name="margin_left">10</property>
+        <property name="spacing">5</property>
+        <child>
+          <object class="GtkImage">
+            <property name="width_request">24</property>
+            <property name="height_request">24</property>
+            <property name="visible">True</property>
+            <property name="can_focus">False</property>
+            <property name="icon_name">go-next-symbolic</property>
+            <style>
+              <class name="logo"/>
+            </style>
+          </object>
+          <packing>
+            <property name="expand">False</property>
+            <property name="fill">True</property>
+            <property name="position">0</property>
+          </packing>
+        </child>
+        <child>
+          <object class="GtkLabel">
+            <property name="visible">True</property>
+            <property name="can_focus">False</property>
+            <property name="label" translatable="yes">Tags</property>
+          </object>
+          <packing>
+            <property name="expand">False</property>
+            <property name="fill">True</property>
+            <property name="position">1</property>
+          </packing>
+        </child>
       </object>
       <packing>
         <property name="expand">False</property>
@@ -143,12 +242,15 @@
         <property name="can_focus">False</property>
         <child>
           <object class="GtkButton">
-            <property name="label" translatable="yes">+</property>
+            <property name="label">+</property>
             <property name="visible">True</property>
             <property name="can_focus">True</property>
             <property name="receives_default">True</property>
             <property name="hexpand">True</property>
             <property name="relief">none</property>
+            <style>
+              <class name="h3"/>
+            </style>
           </object>
           <packing>
             <property name="expand">False</property>
@@ -169,12 +271,15 @@
         </child>
         <child>
           <object class="GtkButton">
-            <property name="label" translatable="yes">-</property>
+            <property name="label">-</property>
             <property name="visible">True</property>
             <property name="can_focus">True</property>
             <property name="receives_default">True</property>
             <property name="hexpand">True</property>
             <property name="relief">none</property>
+            <style>
+              <class name="h3"/>
+            </style>
           </object>
           <packing>
             <property name="expand">False</property>
