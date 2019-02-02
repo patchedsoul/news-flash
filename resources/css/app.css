@@ -94,24 +94,6 @@
 	padding: 2px 5px 1px;
 }
 
-.feedlist-expanded {
-	animation: expand 1 forwards 200ms;
-}
-
-.feedlist-collapsed {
-	animation: collapse 1 forwards 200ms;
-}
-
-@keyframes collapse {
-	from { -gtk-icon-transform: rotate(90deg); }
-	to   { -gtk-icon-transform: rotate(0deg); }
-}
-
-@keyframes expand {
-	from { -gtk-icon-transform: rotate(0deg); }
-	to   { -gtk-icon-transform: rotate(90deg); }
-}
-
 /***************/
 /* text styles */
 /***************/
@@ -157,20 +139,38 @@
 	border-bottom-color: rgba(128, 128, 128, 0.3);
 }
 
+.forward-arrow-expanded {
+	animation: forward-arrow-expand 1 forwards 200ms;
+}
+
+.forward-arrow-collapsed {
+	animation: forward-arrow-collapse 1 forwards 200ms;
+}
+
+@keyframes forward-arrow-collapse {
+	from { -gtk-icon-transform: rotate(+90deg); }
+	to   { -gtk-icon-transform: rotate(0deg); }
+}
+
+@keyframes forward-arrow-expand {
+	from { -gtk-icon-transform: rotate(0deg); }
+	to   { -gtk-icon-transform: rotate(+90deg); }
+}
+
 .backward-arrow-expanded {
-	animation: expand 1 forwards 200ms;
+	animation: backward-arrow-expand 1 forwards 200ms;
 }
 
 .backward-arrow-collapsed {
-	animation: collapse 1 forwards 200ms;
+	animation: backward-arrow-collapse 1 forwards 200ms;
 }
 
-@keyframes collapse {
+@keyframes backward-arrow-collapse {
 	from { -gtk-icon-transform: rotate(-90deg); }
 	to   { -gtk-icon-transform: rotate(0deg); }
 }
 
-@keyframes expand {
+@keyframes backward-arrow-expand {
   from { -gtk-icon-transform: rotate(0deg); }
   to   { -gtk-icon-transform: rotate(-90deg); }
 }

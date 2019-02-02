@@ -98,12 +98,12 @@ impl CategoryRow {
         let context = arrow_image.get_style_context().unwrap();
 
         if expanded {
-            context.add_class("feedlist-expanded");
-            context.remove_class("feedlist-collapsed");
+            context.add_class("forward-arrow-collapse");
+            context.remove_class("forward-arrow-collapsed");
         }
         else {
-            context.remove_class("feedlist-expanded");
-            context.add_class("feedlist-collapsed");
+            context.remove_class("forward-arrow-expanded");
+            context.add_class("forward-arrow-collapsed");
         }
     }
 

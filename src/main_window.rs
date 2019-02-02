@@ -57,6 +57,7 @@ pub type GtkHandle<T> = Rc<RefCell<T>>;
 pub type GtkHandleMap<T, K> = GtkHandle<HashMap<T, K>>;
 
 static DATA_DIR: &'static str = "/home/jeanluc/.news-flash";
+const PANED_DEFAULT_POS: i32 = 600;
 
 pub struct MainWindow {
     widget: ApplicationWindow,
@@ -106,13 +107,15 @@ impl MainWindow {
         let pw_login_handle = Rc::new(RefCell::new(pw_login));
         let oauht_login_handle = Rc::new(RefCell::new(oauth_login));
         let content_page_handle = Rc::new(RefCell::new(content));
+        let content_header_handle = Rc::new(RefCell::new(content_header));
         let news_flash_handle = Rc::new(RefCell::new(None));
         
         Self::setup_show_password_page_action(&window, &pw_login_handle, &stack, login_header.widget());
         Self::setup_show_oauth_page_action(&window, &oauht_login_handle, &stack, login_header.widget());
         Self::setup_show_welcome_page_action(&window, &oauht_login_handle, &pw_login_handle, &stack, welcome_header.widget());
-        Self::setup_show_content_page_action(&window, &news_flash_handle, &stack, &content_page_handle, content_header.widget());
+        Self::setup_show_content_page_action(&window, &news_flash_handle, &stack, &content_page_handle, content_header_handle.borrow().widget());
         Self::setup_login_action(&window, &news_flash_handle, &oauht_login_handle, &pw_login_handle);
+        Self::setup_sync_paned_action(&window, &content_page_handle, &content_header_handle);
 
         if let Ok(news_flash_lib) = NewsFlash::try_load(&PathBuf::from(DATA_DIR)) {
             info!("Successful load from config");
@@ -122,13 +125,16 @@ impl MainWindow {
             content_page_handle.borrow().set_service(&id, news_flash_lib.user_name())?;
 
             *news_flash_handle.borrow_mut() = Some(news_flash_lib);
-            window.set_titlebar(&content_header.widget());
+            window.set_titlebar(&content_header_handle.borrow().widget());
         }
         else {
             warn!("No account configured");
             stack.set_visible_child_name("welcome");
             window.set_titlebar(&welcome_header.widget());
         }
+        
+        content_header_handle.borrow().set_paned(PANED_DEFAULT_POS);
+        content_page_handle.borrow().set_paned(PANED_DEFAULT_POS);
         window.show_all();
 
         let main_window = MainWindow {
@@ -306,6 +312,26 @@ impl MainWindow {
         });
         login_action.set_enabled(true);
         window.add_action(&login_action);
+    }
+
+    fn setup_sync_paned_action(
+        window: &ApplicationWindow,
+        content_page: &GtkHandle<ContentPage>,
+        content_header: &GtkHandle<ContentHeader>,
+    ) {
+        let content_page = content_page.clone();
+        let content_header = content_header.clone();
+        let sync_paned = SimpleAction::new("sync-paned", glib::VariantTy::new("i").ok());
+        sync_paned.connect_activate(move |_action, data| {
+            if let Some(data) = data {
+                if let Some(pos) = data.get::<i32>() {
+                    content_page.borrow().set_paned(pos);
+                    content_header.borrow().set_paned(pos);
+                }
+            }
+        });
+        sync_paned.set_enabled(true);
+        window.add_action(&sync_paned);
     }
 
     pub fn present(&self) {

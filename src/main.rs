@@ -47,7 +47,7 @@ fn main() {
 
     let root = Root::builder()
         .appender("stdout")
-        .build(LevelFilter::Info);
+        .build(LevelFilter::Debug);
 
     let config = Config::builder()
         .appender(appender)
