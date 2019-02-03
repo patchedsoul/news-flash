@@ -2,6 +2,7 @@
 @define-color feedlist-slider shade(@feedlist-bg, 2.5);
 @define-color feedlist-label shade(@feedlist-bg, 3);
 @define-color feedlist-selected shade(@feedlist-bg, 1.6);
+@define-color feedlist-hightlight shade(@feedlist-bg, 1.2);
 
 /***************/
 /*   sidebar   */
@@ -24,6 +25,10 @@
 
 .sidebar .logo {
 	color: @feedlist-label;
+}
+
+.sidebar .highlight {
+	background-color: @feedlist-hightlight;
 }
 
 /******************/

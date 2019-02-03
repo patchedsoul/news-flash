@@ -112,19 +112,17 @@
       </packing>
     </child>
     <child>
-      <object class="GtkButton">
-        <property name="height_request">30</property>
+      <object class="GtkEventBox" id="all_event_box">
         <property name="visible">True</property>
         <property name="can_focus">False</property>
-        <property name="focus_on_click">False</property>
-        <property name="receives_default">True</property>
         <property name="margin_top">5</property>
         <property name="margin_bottom">5</property>
-        <property name="relief">none</property>
         <child>
           <object class="GtkBox">
+            <property name="height_request">30</property>
             <property name="visible">True</property>
             <property name="can_focus">False</property>
+            <property name="margin_left">10</property>
             <property name="spacing">5</property>
             <child>
               <object class="GtkImage" id="all_icon">
@@ -177,40 +175,47 @@
       </packing>
     </child>
     <child>
-      <object class="GtkBox">
-        <property name="height_request">30</property>
+      <object class="GtkEventBox" id="categories_event_box">
         <property name="visible">True</property>
         <property name="can_focus">False</property>
-        <property name="margin_left">10</property>
-        <property name="spacing">5</property>
         <child>
-          <object class="GtkImage">
-            <property name="width_request">24</property>
-            <property name="height_request">24</property>
+          <object class="GtkBox">
+            <property name="height_request">30</property>
             <property name="visible">True</property>
             <property name="can_focus">False</property>
-            <property name="icon_name">go-next-symbolic</property>
-            <style>
-              <class name="logo"/>
-            </style>
+            <property name="margin_left">10</property>
+            <property name="spacing">5</property>
+            <child>
+              <object class="GtkImage" id="categories_expander">
+                <property name="width_request">24</property>
+                <property name="height_request">24</property>
+                <property name="visible">True</property>
+                <property name="can_focus">False</property>
+                <property name="icon_name">go-next-symbolic</property>
+                <style>
+                  <class name="logo"/>
+                  <class name="forward-arrow-expanded"/>
+                </style>
+              </object>
+              <packing>
+                <property name="expand">False</property>
+                <property name="fill">True</property>
+                <property name="position">0</property>
+              </packing>
+            </child>
+            <child>
+              <object class="GtkLabel">
+                <property name="visible">True</property>
+                <property name="can_focus">False</property>
+                <property name="label" translatable="yes">Categories</property>
+              </object>
+              <packing>
+                <property name="expand">False</property>
+                <property name="fill">True</property>
+                <property name="position">1</property>
+              </packing>
+            </child>
           </object>
-          <packing>
-            <property name="expand">False</property>
-            <property name="fill">True</property>
-            <property name="position">0</property>
-          </packing>
-        </child>
-        <child>
-          <object class="GtkLabel">
-            <property name="visible">True</property>
-            <property name="can_focus">False</property>
-            <property name="label" translatable="yes">Categories</property>
-          </object>
-          <packing>
-            <property name="expand">False</property>
-            <property name="fill">True</property>
-            <property name="position">1</property>
-          </packing>
         </child>
       </object>
       <packing>
@@ -220,7 +225,7 @@
       </packing>
     </child>
     <child>
-      <object class="GtkRevealer">
+      <object class="GtkRevealer" id="categories_revealer">
         <property name="visible">True</property>
         <property name="can_focus">False</property>
         <property name="reveal_child">True</property>
@@ -235,40 +240,47 @@
       </packing>
     </child>
     <child>
-      <object class="GtkBox">
-        <property name="height_request">30</property>
+      <object class="GtkEventBox" id="tags_event_box">
         <property name="visible">True</property>
         <property name="can_focus">False</property>
-        <property name="margin_left">10</property>
-        <property name="spacing">5</property>
         <child>
-          <object class="GtkImage">
-            <property name="width_request">24</property>
-            <property name="height_request">24</property>
+          <object class="GtkBox">
+            <property name="height_request">30</property>
             <property name="visible">True</property>
             <property name="can_focus">False</property>
-            <property name="icon_name">go-next-symbolic</property>
-            <style>
-              <class name="logo"/>
-            </style>
+            <property name="margin_left">10</property>
+            <property name="spacing">5</property>
+            <child>
+              <object class="GtkImage" id="tags_expander">
+                <property name="width_request">24</property>
+                <property name="height_request">24</property>
+                <property name="visible">True</property>
+                <property name="can_focus">False</property>
+                <property name="icon_name">go-next-symbolic</property>
+                <style>
+                  <class name="logo"/>
+                  <class name="forward-arrow-expanded"/>
+                </style>
+              </object>
+              <packing>
+                <property name="expand">False</property>
+                <property name="fill">True</property>
+                <property name="position">0</property>
+              </packing>
+            </child>
+            <child>
+              <object class="GtkLabel">
+                <property name="visible">True</property>
+                <property name="can_focus">False</property>
+                <property name="label" translatable="yes">Tags</property>
+              </object>
+              <packing>
+                <property name="expand">False</property>
+                <property name="fill">True</property>
+                <property name="position">1</property>
+              </packing>
+            </child>
           </object>
-          <packing>
-            <property name="expand">False</property>
-            <property name="fill">True</property>
-            <property name="position">0</property>
-          </packing>
-        </child>
-        <child>
-          <object class="GtkLabel">
-            <property name="visible">True</property>
-            <property name="can_focus">False</property>
-            <property name="label" translatable="yes">Tags</property>
-          </object>
-          <packing>
-            <property name="expand">False</property>
-            <property name="fill">True</property>
-            <property name="position">1</property>
-          </packing>
         </child>
       </object>
       <packing>
@@ -278,7 +290,7 @@
       </packing>
     </child>
     <child>
-      <object class="GtkRevealer">
+      <object class="GtkRevealer" id="tags_revealer">
         <property name="visible">True</property>
         <property name="can_focus">False</property>
         <property name="reveal_child">True</property>

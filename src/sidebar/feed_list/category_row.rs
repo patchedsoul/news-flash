@@ -98,7 +98,7 @@ impl CategoryRow {
         let context = arrow_image.get_style_context().unwrap();
 
         if expanded {
-            context.add_class("forward-arrow-collapse");
+            context.add_class("forward-arrow-collapsed");
             context.remove_class("forward-arrow-collapsed");
         }
         else {
