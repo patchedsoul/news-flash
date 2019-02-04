@@ -325,7 +325,7 @@ impl PasswordLogin {
         self.error_details_button.set_visible(true);
         self.error_details_signal = Some(self.error_details_button.connect_clicked(move |button| {
             let parent = GtkUtil::get_main_window(button).unwrap();
-            let _dialog = ErrorDialog::new(&error, parent).unwrap();
+            let _dialog = ErrorDialog::new(&error, &parent).unwrap();
         }).to_glib());
         self.info_bar.set_visible(true);
         self.info_bar.set_revealed(true);

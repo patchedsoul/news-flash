@@ -1,34 +1,51 @@
-@define-color feedlist-bg #444;
-@define-color feedlist-slider shade(@feedlist-bg, 2.5);
-@define-color feedlist-label shade(@feedlist-bg, 3);
-@define-color feedlist-selected shade(@feedlist-bg, 1.6);
-@define-color feedlist-hightlight shade(@feedlist-bg, 1.2);
+@define-color sidebar-bg #444;
+@define-color sidebar-slider shade(@sidebar-bg, 2.5);
+@define-color sidebar-label shade(@sidebar-bg, 3);
+@define-color sidebar-label-disabled shade(@sidebar-label, 0.9);
+@define-color sidebar-selected shade(@sidebar-bg, 1.6);
+@define-color sidebar-hightlight shade(@sidebar-bg, 1.2);
+@define-color sidebar-backdrop shade(@sidebar-bg, 1.1);
+@define-color sidebar-footer shade(@sidebar-bg, 0.9);
 
 /***************/
 /*   sidebar   */
 /***************/
 
 .sidebar {
-	background: @feedlist-bg;
+	background: @sidebar-bg;
 }
 
-.sidebar label {
-	color: @feedlist-label;
+.sidebar label:not(.item-count) {
+	color: @sidebar-label;
 	font-weight: bold;
 	text-shadow: none;
 }
 
 .sidebar separator {
-	background-color: shade(@feedlist-bg, 0.82);
+	background-color: shade(@sidebar-bg, 0.82);
 	border: none;
 }
 
 .sidebar .logo {
-	color: @feedlist-label;
+	color: @sidebar-label;
 }
 
 .sidebar .highlight {
-	background-color: @feedlist-hightlight;
+	background-color: @sidebar-hightlight;
+}
+
+.sidebar .backdrop {
+	background-color: @sidebar-backdrop;
+}
+
+.sidebar .item-count {
+	background-color: @sidebar-label;
+	color: black;
+	font-weight: bold;
+	font-size: 0.8em;
+	border-radius: 12px;
+	min-width: 12px;
+	padding: 2px 5px 1px;
 }
 
 /******************/
@@ -36,11 +53,12 @@
 /******************/
 
 .sidebar .footer {
-	background: shade(@feedlist-bg, 0.9);
+	background: @sidebar-footer;
 }
+
 .sidebar .footer button:hover,
 .sidebar .footer-popover {
-	background: shade(@feedlist-bg, 1.1);
+	background: @sidebar-hightlight;
 }
 .sidebar .footer button {
 	border: 0;
@@ -49,7 +67,7 @@
 	box-shadow: none;
 }
 .sidebar .footer button:disabled {
-	color:shade(@feedlist-label, 0.9);
+	color: @sidebar-label-disabled;
 }
 
 /***************/
@@ -87,16 +105,6 @@
 .feedlist-drag-icon {
 	background: #555;
 	border: 1px solid white;
-}
-
-.item-count {
-	background-color: #EEE;
-	color: black;
-	font-weight: bold;
-	font-size: 0.8em;
-	border-radius: 12px;
-	min-width: 12px;
-	padding: 2px 5px 1px;
 }
 
 /***************/

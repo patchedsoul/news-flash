@@ -23,7 +23,7 @@ pub struct ErrorDialog {
 }
 
 impl ErrorDialog {
-    pub fn new(error: &NewsFlashError, parent: gtk::ApplicationWindow) -> Result<Self, Error> {
+    pub fn new(error: &NewsFlashError, parent: &gtk::ApplicationWindow) -> Result<Self, Error> {
         let ui_data = Resources::get("ui/error_detail_dialog.ui").ok_or(format_err!("some err1"))?;
         let ui_string = str::from_utf8(ui_data.as_ref())?;
         let builder = gtk::Builder::new_from_string(ui_string);
@@ -62,7 +62,7 @@ impl ErrorDialog {
             list_box.pack_start(&separator, false, true, 0);
         }
 
-        error_dialog.set_transient_for(&parent);
+        error_dialog.set_transient_for(parent);
         error_dialog.show_all();
 
         Ok(ErrorDialog{

@@ -40,6 +40,7 @@ use log::{
     error,
 };
 use news_flash::NewsFlash;
+use crate::error_dialog::ErrorDialog;
 use std::collections::HashMap;
 use crate::Resources;
 use failure::Error;
@@ -116,6 +117,7 @@ impl MainWindow {
         Self::setup_show_content_page_action(&window, &news_flash_handle, &stack, &content_page_handle, content_header_handle.borrow().widget());
         Self::setup_login_action(&window, &news_flash_handle, &oauht_login_handle, &pw_login_handle);
         Self::setup_sync_paned_action(&window, &content_page_handle, &content_header_handle);
+        Self::setup_sync_action(&window, &content_page_handle, &content_header_handle, &news_flash_handle);
 
         if let Ok(news_flash_lib) = NewsFlash::try_load(&PathBuf::from(DATA_DIR)) {
             info!("Successful load from config");
@@ -132,7 +134,7 @@ impl MainWindow {
             stack.set_visible_child_name("welcome");
             window.set_titlebar(&welcome_header.widget());
         }
-        
+
         content_header_handle.borrow().set_paned(PANED_DEFAULT_POS);
         content_page_handle.borrow().set_paned(PANED_DEFAULT_POS);
         window.show_all();
@@ -332,6 +334,31 @@ impl MainWindow {
         });
         sync_paned.set_enabled(true);
         window.add_action(&sync_paned);
+    }
+
+    fn setup_sync_action(
+        window: &ApplicationWindow,
+        content_page: &GtkHandle<ContentPage>,
+        content_header: &GtkHandle<ContentHeader>,
+        news_flash: &GtkHandle<Option<NewsFlash>>,
+    ) {
+        let _content_page = content_page.clone();
+        let parent = window.clone();
+        let content_header = content_header.clone();
+        let news_flash = news_flash.clone();
+        let sync_action = SimpleAction::new("sync", None);
+        sync_action.connect_activate(move |_action, _data| {
+            if let Some(news_flash) = news_flash.borrow_mut().as_mut() {
+                match news_flash.sync() {
+                    Ok(()) => content_header.borrow().finish_sync(),
+                    Err(error) => {
+                        let _dialog = ErrorDialog::new(&error, &parent).unwrap();
+                    },
+                }
+            }
+        });
+        sync_action.set_enabled(true);
+        window.add_action(&sync_action);
     }
 
     pub fn present(&self) {

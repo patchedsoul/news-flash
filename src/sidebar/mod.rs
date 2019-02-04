@@ -46,7 +46,6 @@ impl SideBar {
         let sidebar : gtk::Box = builder.get_object("toplevel").ok_or(format_err!("some err"))?;
         let logo : gtk::Image = builder.get_object("logo").ok_or(format_err!("some err"))?;
         let service_label : gtk::Label = builder.get_object("service_label").ok_or(format_err!("some err"))?;
-        let all_icon : gtk::Image = builder.get_object("all_icon").ok_or(format_err!("some err"))?;
         let categories_event_box : gtk::EventBox = builder.get_object("categories_event_box").ok_or(format_err!("some err"))?;
         let categories_expander : gtk::Image = builder.get_object("categories_expander").ok_or(format_err!("some err"))?;
         let tags_event_box : gtk::EventBox = builder.get_object("tags_event_box").ok_or(format_err!("some err"))?;
@@ -66,10 +65,6 @@ impl SideBar {
         Self::setup_expander(&categories_event_box, &categories_expander, &categories_revealer, &expanded_categories);
         Self::setup_expander(&tags_event_box, &tags_expander, &tags_revealer, &expanded_tags);
         Self::setup_all_button(&all_event_box);
-
-        let icon = Resources::get("icons/feed_service_generic_symbolic.svg").ok_or(format_err!("some err"))?;
-        let icon = GtkUtil::create_surface_from_svg(&icon, 16, 16, scale)?;
-        all_icon.set_from_surface(&icon);
 
         Ok(SideBar {
             sidebar: sidebar,
@@ -142,13 +137,13 @@ impl SideBar {
                 let expanded_bool = *expanded.borrow();
 
                 if expanded_bool {
-                    context.add_class("forward-arrow-collapsed");
-                    context.remove_class("forward-arrow-expanded");
+                    context.add_class("backward-arrow-collapsed");
+                    context.remove_class("backward-arrow-expanded");
                     revealer.set_reveal_child(false);
                 }
                 else {
-                    context.remove_class("forward-arrow-collapsed");
-                    context.add_class("forward-arrow-expanded");
+                    context.remove_class("backward-arrow-collapsed");
+                    context.add_class("backward-arrow-expanded");
                     revealer.set_reveal_child(true);
                 }
 

@@ -9,6 +9,8 @@ use gtk::{
     ToggleButton,
     ToggleButtonExt,
     WidgetExt,
+    ButtonExt,
+    StackExt,
 };
 use glib::{
     Variant,
@@ -21,6 +23,8 @@ use gio::{
 
 pub struct ContentHeader {
     header: gtk::Paned,
+    stack: gtk::Stack,
+    update_button: gtk::Button,
 }
 
 impl ContentHeader {
@@ -32,10 +36,15 @@ impl ContentHeader {
         let all_button : ToggleButton = builder.get_object("all_button").ok_or(format_err!("some err"))?;
         let unread_button : ToggleButton = builder.get_object("unread_button").ok_or(format_err!("some err"))?;
         let marked_button : ToggleButton = builder.get_object("marked_button").ok_or(format_err!("some err"))?;
+        let update_button : gtk::Button = builder.get_object("update_button").ok_or(format_err!("some err"))?;
+        let update_stack : gtk::Stack = builder.get_object("update_stack").ok_or(format_err!("some err"))?;
 
+
+        
         Self::setup_linked_button(&all_button, &unread_button, &marked_button);
         Self::setup_linked_button(&unread_button, &all_button, &marked_button);
         Self::setup_linked_button(&marked_button, &unread_button, &all_button);
+        Self::setup_update_button(&update_button, &update_stack);
 
         header.connect_property_position_notify(|paned| {
             if let Ok(main_window) = GtkUtil::get_main_window(paned) {
@@ -48,6 +57,8 @@ impl ContentHeader {
 
         Ok(ContentHeader {
             header: header,
+            stack: update_stack,
+            update_button: update_button,
         })
     }
 
@@ -57,6 +68,11 @@ impl ContentHeader {
 
     pub fn set_paned(&self, pos: i32) {
         self.header.set_position(pos);
+    }
+
+    pub fn finish_sync(&self) {
+        self.update_button.set_sensitive(true);
+        self.stack.set_visible_child_name("icon");
     }
 
     fn setup_linked_button(button: &ToggleButton, other_button_1: &ToggleButton, other_button_2: &ToggleButton) {
@@ -71,6 +87,20 @@ impl ContentHeader {
             other_button_1.set_active(false);
             other_button_2.set_active(false);
             Inhibit(false)
+        });
+    }
+
+    fn setup_update_button(button: &gtk::Button, stack: &gtk::Stack) {
+        let stack = stack.clone();
+        button.connect_clicked(move |button| {
+            button.set_sensitive(false);
+            stack.set_visible_child_name("spinner");
+
+            if let Ok(main_window) = GtkUtil::get_main_window(button) {
+                if let Some(action) = main_window.lookup_action("sync") {
+                    action.activate(None);
+                }
+            }
         });
     }
 }
