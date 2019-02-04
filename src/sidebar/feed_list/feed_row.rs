@@ -94,9 +94,9 @@ impl FeedRow {
             let surface = ImageSurface::create(Format::ARgb32, alloc.width, alloc.height).unwrap();
             let cairo_context = cairo::Context::new(&surface);
             let style_context = row.get_style_context().unwrap();
-            style_context.add_class("feedlist-drag-icon");
+            style_context.add_class("drag-icon");
             row.draw(&cairo_context);
-            style_context.remove_class("feedlist-drag-icon");
+            style_context.remove_class("drag-icon");
             drag_context.drag_set_icon_surface(&surface);
         });
         

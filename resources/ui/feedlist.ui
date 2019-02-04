@@ -8,7 +8,7 @@
     <property name="can_focus">False</property>
     <property name="activate_on_single_click">False</property>
     <style>
-      <class name="feedlist"/>
+      <class name="backdrop"/>
     </style>
   </object>
 </interface>

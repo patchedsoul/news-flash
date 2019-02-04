@@ -14,7 +14,7 @@
         <property name="margin_top">20</property>
         <property name="stock">gtk-missing-image</property>
         <style>
-          <class name="logo"/>
+          <class name="symbolic"/>
         </style>
       </object>
       <packing>
@@ -73,15 +73,21 @@
               </packing>
             </child>
             <child>
-              <object class="GtkLabel">
-                <property name="height_request">20</property>
+              <object class="GtkEventBox">
+                <property name="width_request">24</property>
                 <property name="visible">True</property>
                 <property name="can_focus">False</property>
-                <property name="valign">center</property>
-                <property name="label" translatable="yes">0</property>
-                <style>
-                  <class name="item-count"/>
-                </style>
+                <child>
+                  <object class="GtkLabel">
+                    <property name="visible">True</property>
+                    <property name="can_focus">False</property>
+                    <property name="valign">center</property>
+                    <property name="label" translatable="yes">0</property>
+                    <style>
+                      <class name="item-count"/>
+                    </style>
+                  </object>
+                </child>
               </object>
               <packing>
                 <property name="expand">False</property>
@@ -135,7 +141,7 @@
                     <property name="can_focus">False</property>
                     <property name="icon_name">pan-start-symbolic</property>
                     <style>
-                      <class name="logo"/>
+                      <class name="symbolic"/>
                       <class name="backward-arrow-expanded"/>
                     </style>
                   </object>
@@ -184,25 +190,12 @@
             <property name="can_focus">False</property>
             <property name="reveal_child">True</property>
             <child>
-              <object class="GtkBox">
+              <object class="GtkBox" id="feed_list_box">
                 <property name="visible">True</property>
                 <property name="can_focus">False</property>
                 <property name="orientation">vertical</property>
                 <child>
-                  <object class="GtkImage">
-                    <property name="height_request">100</property>
-                    <property name="visible">True</property>
-                    <property name="can_focus">False</property>
-                    <property name="stock">gtk-missing-image</property>
-                    <style>
-                      <class name="backdrop"/>
-                    </style>
-                  </object>
-                  <packing>
-                    <property name="expand">False</property>
-                    <property name="fill">True</property>
-                    <property name="position">0</property>
-                  </packing>
+                  <placeholder/>
                 </child>
                 <child>
                   <object class="GtkSeparator">
@@ -344,7 +337,7 @@
                     <property name="can_focus">False</property>
                     <property name="icon_name">pan-start-symbolic</property>
                     <style>
-                      <class name="logo"/>
+                      <class name="symbolic"/>
                       <class name="backward-arrow-expanded"/>
                     </style>
                   </object>
