@@ -22,7 +22,7 @@ impl FeedListCategoryModel {
     pub fn new(category: &Category, item_count: i32, level: i32) -> Self {
         FeedListCategoryModel {
             id: category.category_id.clone(),
-            parent_id: category.parent.clone(),
+            parent_id: category.parent_id.clone(),
             label: category.label.clone(),
             item_count: item_count,
             sort_index: match category.sort_index {

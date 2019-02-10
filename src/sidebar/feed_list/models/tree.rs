@@ -61,7 +61,7 @@ impl FeedListTree {
     }
 
     pub fn add_category(&mut self, category: &Category, item_count: i32) -> Result<(), FeedListModelError> {
-        if category.parent == self.top_level_id {
+        if category.parent_id == self.top_level_id {
             let contains_category = self.top_level.iter().any(|item| {
                 if let FeedListItem::Category(item) = item {
                     return item.id == category.category_id
@@ -80,7 +80,7 @@ impl FeedListTree {
             }
             return Ok(())
         }
-        if let Some((parent, level)) = self.find_category(&category.parent) {
+        if let Some((parent, level)) = self.find_category(&category.parent_id) {
             let category_ = FeedListCategoryModel::new(&category, item_count, level);
             let item = FeedListItem::Category(category_);
             parent.add_child(item);
@@ -380,19 +380,19 @@ mod tests {
         let category_1 = Category {
             category_id: CategoryID::new("category_1"),
             label: "Cateogry 1".to_owned(),
-            parent: NEWSFLASH_TOPLEVEL.clone(),
+            parent_id: NEWSFLASH_TOPLEVEL.clone(),
             sort_index: Some(0),
         };
         let category_2 = Category {
             category_id: CategoryID::new("category_2"),
             label: "Cateogry 2".to_owned(),
-            parent: NEWSFLASH_TOPLEVEL.clone(),
+            parent_id: NEWSFLASH_TOPLEVEL.clone(),
             sort_index: Some(1),
         };
         let category_3 = Category {
             category_id: CategoryID::new("category_3"),
             label: "Cateogry 3".to_owned(),
-            parent: NEWSFLASH_TOPLEVEL.clone(),
+            parent_id: NEWSFLASH_TOPLEVEL.clone(),
             sort_index: Some(2),
         };
         let feed_1 = Feed {

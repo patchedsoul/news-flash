@@ -67,7 +67,7 @@ impl SideBar {
             category_id: CategoryID::new("category_1"),
             label: "category 1".to_owned(),
             sort_index: None,
-            parent: NEWSFLASH_TOPLEVEL.clone(),
+            parent_id: NEWSFLASH_TOPLEVEL.clone(),
         };
         let feed_1 = FeedModel {
             feed_id: FeedID::new("feed_1"),
@@ -97,7 +97,7 @@ impl SideBar {
             category_id: CategoryID::new("category_2"),
             label: "category 2".to_owned(),
             sort_index: Some(0),
-            parent: CategoryID::new("category_1"),
+            parent_id: CategoryID::new("category_1"),
         };
         let feed_3 = FeedModel {
             feed_id: FeedID::new("feed_3"),
