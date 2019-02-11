@@ -102,6 +102,7 @@
                 <property name="orientation">vertical</property>
                 <child>
                   <object class="GtkLabel">
+                    <property name="width_request">300</property>
                     <property name="visible">True</property>
                     <property name="can_focus">False</property>
                     <property name="vexpand">True</property>
@@ -133,6 +134,7 @@
             <property name="orientation">vertical</property>
             <child>
               <object class="GtkLabel">
+                <property name="width_request">300</property>
                 <property name="visible">True</property>
                 <property name="can_focus">False</property>
                 <property name="vexpand">True</property>

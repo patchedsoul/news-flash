@@ -9,6 +9,8 @@
       <object class="GtkHeaderBar">
         <property name="visible">True</property>
         <property name="can_focus">False</property>
+        <property name="has_subtitle">False</property>
+        <property name="spacing">5</property>
         <child>
           <object class="GtkBox">
             <property name="visible">True</property>
@@ -127,13 +129,12 @@
             <property name="can_focus">False</property>
             <property name="focus_on_click">False</property>
             <property name="receives_default">True</property>
-            <property name="relief">none</property>
             <property name="always_show_image">True</property>
             <child>
               <object class="GtkImage">
                 <property name="visible">True</property>
                 <property name="can_focus">False</property>
-                <property name="icon_name">emblem-system-symbolic</property>
+                <property name="icon_name">open-menu-symbolic</property>
               </object>
             </child>
           </object>

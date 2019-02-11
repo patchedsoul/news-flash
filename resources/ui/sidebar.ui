@@ -3,6 +3,7 @@
 <interface>
   <requires lib="gtk+" version="3.20"/>
   <object class="GtkBox" id="toplevel">
+    <property name="width_request">200</property>
     <property name="visible">True</property>
     <property name="can_focus">False</property>
     <property name="vexpand">True</property>
