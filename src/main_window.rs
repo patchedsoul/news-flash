@@ -24,6 +24,9 @@ use crate::login_screen::{
     WebLogin,
     LoginHeaderbar,
 };
+use crate::sidebar::{
+    FeedListTree,
+};
 use gio::{
     SimpleAction,
     SimpleActionExt,
@@ -31,8 +34,14 @@ use gio::{
     ActionExt,
 };
 use news_flash::models::{
+    Category as CategoryModel,
+    Feed as FeedModel,
+    FeedMapping,
+    CategoryID,
+    FeedID,
     PluginID,
     LoginData,
+    NEWSFLASH_TOPLEVEL,
 };
 use log::{
     info,
@@ -125,6 +134,14 @@ impl MainWindow {
             stack.set_visible_child_name("content");
             let id = news_flash_lib.id().ok_or(format_err!("some err"))?;
             content_page_handle.borrow().set_service(&id, news_flash_lib.user_name())?;
+
+            // try to fill content page with data
+            let mut tree = FeedListTree::new();
+            let categories = news_flash_lib.get_categories().unwrap();
+            for category in categories {
+                tree.add_category(&category, 0).unwrap();
+            }
+            content_page_handle.borrow_mut().update_feedlist(tree);
 
             *news_flash_handle.borrow_mut() = Some(news_flash_lib);
             window.set_titlebar(&content_header_handle.borrow().widget());
@@ -363,5 +380,66 @@ impl MainWindow {
 
     pub fn present(&self) {
         self.widget.present();
+    }
+
+    fn demo_feedlist() -> FeedListTree {
+
+        let category_1 = CategoryModel {
+            category_id: CategoryID::new("category_1"),
+            label: "category 1".to_owned(),
+            sort_index: None,
+            parent_id: NEWSFLASH_TOPLEVEL.clone(),
+        };
+        let feed_1 = FeedModel {
+            feed_id: FeedID::new("feed_1"),
+            label: "Feed 1".to_owned(),
+            website: None,
+            feed_url: None,
+            icon_url: None,
+            sort_index: Some(2),
+        };
+        let mapping_1 = FeedMapping {
+            feed_id: FeedID::new("feed_1"),
+            category_id: CategoryID::new("category_1"),
+        };
+        let feed_2 = FeedModel {
+            feed_id: FeedID::new("feed_2"),
+            label: "Feed 2".to_owned(),
+            website: None,
+            feed_url: None,
+            icon_url: None,
+            sort_index: Some(1),
+        };
+        let mapping_2 = FeedMapping {
+            feed_id: FeedID::new("feed_2"),
+            category_id: CategoryID::new("category_1"),
+        };
+        let category_2 = CategoryModel {
+            category_id: CategoryID::new("category_2"),
+            label: "category 2".to_owned(),
+            sort_index: Some(0),
+            parent_id: CategoryID::new("category_1"),
+        };
+        let feed_3 = FeedModel {
+            feed_id: FeedID::new("feed_3"),
+            label: "Feed 3".to_owned(),
+            website: None,
+            feed_url: None,
+            icon_url: None,
+            sort_index: Some(0),
+        };
+        let mapping_3 = FeedMapping {
+            feed_id: FeedID::new("feed_3"),
+            category_id: CategoryID::new("category_2"),
+        };
+
+        
+        let mut tree = FeedListTree::new();
+        tree.add_category(&category_1, 7).unwrap();
+        tree.add_category(&category_2, 5).unwrap();
+        tree.add_feed(&feed_1, &mapping_1, 2).unwrap();
+        tree.add_feed(&feed_2, &mapping_2, 0).unwrap();
+        tree.add_feed(&feed_3, &mapping_3, 5).unwrap();
+        tree
     }
 }

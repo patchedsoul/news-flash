@@ -21,19 +21,13 @@ use gdk::{
 };
 use crate::gtk_util::GtkUtil;
 use news_flash::models::{
-    Category as CategoryModel,
-    Feed as FeedModel,
-    FeedMapping,
-    CategoryID,
-    FeedID,
     PluginIcon,
     PluginID,
-    NEWSFLASH_TOPLEVEL,
 };
 use news_flash::NewsFlash;
 use crate::main_window::GtkHandle;
 use self::feed_list::FeedList;
-use crate::sidebar::feed_list::models::{
+pub use crate::sidebar::feed_list::models::{
     FeedListTree,
 };
 
@@ -63,66 +57,7 @@ impl SideBar {
         let all_event_box : gtk::EventBox = builder.get_object("all_event_box").ok_or(format_err!("some err"))?;
         let feed_list_box : gtk::Box = builder.get_object("feed_list_box").ok_or(format_err!("some err"))?;
 
-        let category_1 = CategoryModel {
-            category_id: CategoryID::new("category_1"),
-            label: "category 1".to_owned(),
-            sort_index: None,
-            parent_id: NEWSFLASH_TOPLEVEL.clone(),
-        };
-        let feed_1 = FeedModel {
-            feed_id: FeedID::new("feed_1"),
-            label: "Feed 1".to_owned(),
-            website: None,
-            feed_url: None,
-            icon_url: None,
-            sort_index: Some(2),
-        };
-        let mapping_1 = FeedMapping {
-            feed_id: FeedID::new("feed_1"),
-            category_id: CategoryID::new("category_1"),
-        };
-        let feed_2 = FeedModel {
-            feed_id: FeedID::new("feed_2"),
-            label: "Feed 2".to_owned(),
-            website: None,
-            feed_url: None,
-            icon_url: None,
-            sort_index: Some(1),
-        };
-        let mapping_2 = FeedMapping {
-            feed_id: FeedID::new("feed_2"),
-            category_id: CategoryID::new("category_1"),
-        };
-        let category_2 = CategoryModel {
-            category_id: CategoryID::new("category_2"),
-            label: "category 2".to_owned(),
-            sort_index: Some(0),
-            parent_id: CategoryID::new("category_1"),
-        };
-        let feed_3 = FeedModel {
-            feed_id: FeedID::new("feed_3"),
-            label: "Feed 3".to_owned(),
-            website: None,
-            feed_url: None,
-            icon_url: None,
-            sort_index: Some(0),
-        };
-        let mapping_3 = FeedMapping {
-            feed_id: FeedID::new("feed_3"),
-            category_id: CategoryID::new("category_2"),
-        };
-
-        
-        let mut tree = FeedListTree::new();
-        tree.add_category(&category_1, 7).unwrap();
-        tree.add_category(&category_2, 5).unwrap();
-        tree.add_feed(&feed_1, &mapping_1, 2).unwrap();
-        tree.add_feed(&feed_2, &mapping_2, 0).unwrap();
-        tree.add_feed(&feed_3, &mapping_3, 5).unwrap();
-
-
-        let mut feed_list = FeedList::new()?;
-        feed_list.update(tree);
+        let feed_list = FeedList::new()?;
         feed_list_box.pack_start(&feed_list.widget(), false, true, 0);
 
         let scale = sidebar
@@ -148,6 +83,11 @@ impl SideBar {
 
     pub fn widget(&self) -> gtk::Box {
         self.sidebar.clone()
+    }
+
+    pub fn update_feedlist(&mut self, tree: FeedListTree) {
+        self.feed_list.update(tree);
+        self.sidebar.show_all();
     }
 
     pub fn set_service(&self, id: &PluginID, user_name: Option<String>) -> Result<(), Error> {

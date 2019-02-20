@@ -19,7 +19,10 @@ use gio::{
     ActionMapExt,
 };
 use crate::gtk_util::GtkUtil;
-use crate::sidebar::SideBar;
+use crate::sidebar::{
+    SideBar,
+    FeedListTree,
+};
 use news_flash::models::{
     PluginID,
 };
@@ -65,6 +68,10 @@ impl ContentPage {
 
     pub fn widget(&self) -> gtk::Box {
         self.page.clone()
+    }
+
+    pub fn update_feedlist(&mut self, tree: FeedListTree) {
+        self.sidebar.update_feedlist(tree);
     }
 
     pub fn set_service(&self, id: &PluginID, user_name: Option<String>) -> Result<(), Error> {
