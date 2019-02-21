@@ -35,6 +35,7 @@ pub use crate::sidebar::feed_list::models::{
 pub struct SideBar {
     sidebar: gtk::Box,
     logo: gtk::Image,
+    unread_label: gtk::Label,
     service_label: gtk::Label,
     scale_factor: i32,
     feed_list: FeedList,
@@ -47,6 +48,7 @@ impl SideBar {
         let builder = Builder::new_from_string(ui_string);
         let sidebar : gtk::Box = builder.get_object("toplevel").ok_or(format_err!("some err"))?;
         let logo : gtk::Image = builder.get_object("logo").ok_or(format_err!("some err"))?;
+        let unread_label : gtk::Label = builder.get_object("unread_count_all").ok_or(format_err!("some err"))?;
         let service_label : gtk::Label = builder.get_object("service_label").ok_or(format_err!("some err"))?;
         let categories_event_box : gtk::EventBox = builder.get_object("categories_event_box").ok_or(format_err!("some err"))?;
         let categories_expander : gtk::Image = builder.get_object("categories_expander").ok_or(format_err!("some err"))?;
@@ -75,6 +77,7 @@ impl SideBar {
         Ok(SideBar {
             sidebar: sidebar,
             logo: logo,
+            unread_label: unread_label,
             service_label: service_label,
             scale_factor: scale,
             feed_list: feed_list,
@@ -88,6 +91,10 @@ impl SideBar {
     pub fn update_feedlist(&mut self, tree: FeedListTree) {
         self.feed_list.update(tree);
         self.sidebar.show_all();
+    }
+
+    pub fn update_unread_all(&mut self, count: i64) {
+        self.unread_label.set_text(&format!("{}", count));
     }
 
     pub fn set_service(&self, id: &PluginID, user_name: Option<String>) -> Result<(), Error> {

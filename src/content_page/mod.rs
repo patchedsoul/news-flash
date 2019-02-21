@@ -70,8 +70,9 @@ impl ContentPage {
         self.page.clone()
     }
 
-    pub fn update_feedlist(&mut self, tree: FeedListTree) {
+    pub fn update_feedlist(&mut self, tree: FeedListTree, total_unread: i64) {
         self.sidebar.update_feedlist(tree);
+        self.sidebar.update_unread_all(total_unread);
     }
 
     pub fn set_service(&self, id: &PluginID, user_name: Option<String>) -> Result<(), Error> {

@@ -10,16 +10,6 @@ use gtk::{
     Inhibit,
     StyleContextExt,
 };
-use gdk_pixbuf::{
-    Pixbuf,
-    Colorspace,
-};
-use gio::{
-    MemoryInputStream,
-};
-use glib::{
-    Bytes,
-};
 use gdk::{
     NotifyType,
     EventType,
@@ -35,6 +25,7 @@ use news_flash::models::{
     ServiceType,
     ServicePrice,
 };
+use crate::gtk_util::GtkUtil;
 use crate::main_window::GtkHandle;
 
 #[derive(Clone, Debug)]
@@ -113,28 +104,16 @@ impl ServiceRow {
 
         let arrow_image : gtk::Image = builder.get_object("arrow_image").ok_or(format_err!("some err"))?;
 
+        let ctx = row.get_style_context().ok_or(format_err!("some err"))?;
+        let scale = ctx.get_scale();
+
         let image : gtk::Image = builder.get_object("icon").ok_or(format_err!("get icon widget"))?;
         if let Some(icon) = info.icon {
-            match icon {
-                PluginIcon::Vector(icon) => {
-                    let bytes = Bytes::from(&icon.data);
-                    let stream = MemoryInputStream::new_from_bytes(&bytes);
-                    let pixbuf = Pixbuf::new_from_stream(&stream, None)?;
-                    image.set_from_pixbuf(&pixbuf);
-                },
-                PluginIcon::Pixel(icon) => {
-                    let pixbuf = Pixbuf::new_from_vec(
-                        icon.data, 
-                        Colorspace::Rgb,
-                        icon.has_alpha, 
-                        icon.bits_per_sample, 
-                        icon.width, 
-                        icon.height, 
-                        icon.row_stride,
-                    );
-                    image.set_from_pixbuf(&pixbuf);
-                },
-            }
+            let surface = match icon {
+                PluginIcon::Vector(icon) => GtkUtil::create_surface_from_svg(&icon.data, 64, 64, scale)?,
+                PluginIcon::Pixel(icon) => GtkUtil::create_surface_from_bitmap(&icon, scale)?,
+            };
+            image.set_from_surface(&surface);
         }
         else {
             // FIXME: default Icon

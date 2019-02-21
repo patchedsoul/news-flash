@@ -5,7 +5,7 @@ use news_flash::models::{
     FeedID,
     Feed,
     FeedMapping,
-    Url,
+    FavIcon,
 };
 
 #[derive(Eq, Clone, Debug)]
@@ -15,12 +15,12 @@ pub struct FeedListFeedModel {
     pub label: String,
     pub item_count: i32,
     pub sort_index: i32,
-    pub icon: Option<Url>,
+    pub icon: Option<FavIcon>,
     pub level: i32,
 }
 
 impl FeedListFeedModel {
-    pub fn new(feed: &Feed, mapping: &FeedMapping, item_count: i32, level: i32) -> Self {
+    pub fn new(feed: &Feed, mapping: &FeedMapping, item_count: i32, level: i32, icon: Option<FavIcon>) -> Self {
         FeedListFeedModel {
             id: feed.feed_id.clone(),
             parent_id: mapping.category_id.clone(),
@@ -30,7 +30,7 @@ impl FeedListFeedModel {
                 Some(index) => index,
                 None => std::i32::MAX,
             },
-            icon: feed.icon_url.clone(),
+            icon: icon,
             level: level,
         }
     }

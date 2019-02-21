@@ -10,6 +10,7 @@ use gtk::{
     TargetEntry,
     TargetFlags,
     DragContextExtManual,
+    ImageExt,
 };
 use gdk::{
     DragAction,
@@ -22,6 +23,8 @@ use cairo::{
 };
 use news_flash::models::{
     FeedID,
+    FavIcon,
+    PixelIcon,
 };
 use crate::sidebar::feed_list::models::{
     FeedListFeedModel,
@@ -30,6 +33,7 @@ use std::str;
 use std::rc::Rc;
 use std::cell::RefCell;
 use crate::Resources;
+use crate::gtk_util::GtkUtil;
 
 #[derive(Clone, Debug)]
 pub struct FeedRow {
@@ -39,6 +43,7 @@ pub struct FeedRow {
     item_count_event: gtk::EventBox,
     title: gtk::Label,
     revealer: gtk::Revealer,
+    favicon: gtk::Image,
 }
 
 impl FeedRow {
@@ -52,6 +57,7 @@ impl FeedRow {
         let title_label : gtk::Label = builder.get_object("feed_title").unwrap();
         let item_count_label : gtk::Label = builder.get_object("item_count").unwrap();
         let item_count_event : gtk::EventBox = builder.get_object("item_count_event").unwrap();
+        let favicon : gtk::Image = builder.get_object("favicon").unwrap();
 
         let feed = FeedRow {
             id: model.id.clone(),
@@ -60,9 +66,11 @@ impl FeedRow {
             title: title_label,
             revealer: feed,
             item_count_event: item_count_event,
+            favicon: favicon,
         };
         feed.update_item_count(model.item_count);
         feed.update_title(&model.label);
+        feed.update_favicon(&model.icon);
         if !visible {
             feed.collapse();
         }
@@ -114,6 +122,24 @@ impl FeedRow {
         }
         else {
             self.item_count_event.set_visible(false);
+        }
+    }
+
+    pub fn update_favicon(&self, icon: &Option<FavIcon>) {
+        if let Some(icon) = icon {
+            // FIXME: deal with different icon formats and sizes
+            if let Some(data) = &icon.data {
+                let icon = PixelIcon {
+                    data: data.clone(),
+                    width: 16,
+                    height: 16,
+                    has_alpha: true,
+                    bits_per_sample: 8,
+                    row_stride: 512,
+                };
+                let surface = GtkUtil::create_surface_from_bitmap(&icon, 1).unwrap();
+                self.favicon.set_from_surface(&surface);
+            }
         }
     }
 

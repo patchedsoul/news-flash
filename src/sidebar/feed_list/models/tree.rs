@@ -11,6 +11,7 @@ use news_flash::models::{
     FeedMapping,
     Feed,
     FeedID,
+    FavIcon,
 };
 use super::error::{
     FeedListModelError,
@@ -31,7 +32,7 @@ impl FeedListTree {
         }
     }
 
-    pub fn add_feed(&mut self, feed: &Feed, mapping: &FeedMapping, item_count: i32) -> Result<(), FeedListModelError> {
+    pub fn add_feed(&mut self, feed: &Feed, mapping: &FeedMapping, item_count: i32, icon: Option<FavIcon>) -> Result<(), FeedListModelError> {
         if mapping.category_id == self.top_level_id {
             let contains_feed = self.top_level.iter().any(|item| {
                 if let FeedListItem::Feed(item) = item {
@@ -40,7 +41,7 @@ impl FeedListTree {
                 false
             });
             if !contains_feed {
-                let feed = FeedListFeedModel::new(feed, mapping, item_count, 0);
+                let feed = FeedListFeedModel::new(feed, mapping, item_count, 0, icon);
                 let item = FeedListItem::Feed(feed);
                 self.top_level.push(item);
                 self.top_level.sort();
@@ -51,7 +52,7 @@ impl FeedListTree {
             return Ok(())
         }
         if let Some((parent, level)) = self.find_category(&mapping.category_id) {
-            let feed = FeedListFeedModel::new(feed, mapping, item_count, level);
+            let feed = FeedListFeedModel::new(feed, mapping, item_count, level, icon);
             let item = FeedListItem::Feed(feed);
             parent.add_child(item);
             return Ok(())
@@ -436,7 +437,7 @@ mod tests {
         old_tree.add_category(&category_1, 5).unwrap();
         old_tree.add_category(&category_2, 0).unwrap();
         old_tree.add_category(&category_3, 0).unwrap();
-        old_tree.add_feed(&feed_1, &mapping_1, 1).unwrap();
+        old_tree.add_feed(&feed_1, &mapping_1, 1, None).unwrap();
 
         let mut new_tree = FeedListTree::new();
         category_1.label = "Category 1 new".to_owned();
@@ -445,7 +446,7 @@ mod tests {
         new_tree.add_category(&category_2, 0).unwrap();
         category_3.sort_index = Some(1);
         new_tree.add_category(&category_3, 1).unwrap();
-        new_tree.add_feed(&feed_1, &mapping_2, 2).unwrap();
+        new_tree.add_feed(&feed_1, &mapping_2, 2, None).unwrap();
         
 
         let diff = old_tree.generate_diff(&new_tree);
@@ -453,7 +454,7 @@ mod tests {
         assert_eq!(diff.len(), 7);
         assert_eq!(diff.get(0), Some(&FeedListChangeSet::CategoryUpdateItemCount(category_1.category_id.clone(), 2)));
         assert_eq!(diff.get(1), Some(&FeedListChangeSet::CategoryUpdateLabel(category_1.category_id.clone(), "Category 1 new".to_owned())));
-        assert_eq!(diff.get(2), Some(&FeedListChangeSet::AddFeed(FeedListFeedModel::new(&feed_1, &mapping_2, 2, 1), 1, false)));
+        assert_eq!(diff.get(2), Some(&FeedListChangeSet::AddFeed(FeedListFeedModel::new(&feed_1, &mapping_2, 2, 1, None), 1, false)));
         assert_eq!(diff.get(3), Some(&FeedListChangeSet::RemoveCategory(category_2.category_id.clone())));
         assert_eq!(diff.get(4), Some(&FeedListChangeSet::RemoveFeed(feed_1.feed_id.clone())));
         assert_eq!(diff.get(5), Some(&FeedListChangeSet::CategoryUpdateItemCount(category_3.category_id.clone(), 1)));
@@ -468,8 +469,8 @@ mod tests {
         tree.add_category(&category_1, 5).unwrap();
         tree.add_category(&category_2, 0).unwrap();
         tree.add_category(&category_3, 0).unwrap();
-        tree.add_feed(&feed_1, &mapping_1, 1).unwrap();
-        tree.add_feed(&feed_2, &mapping_3, 1).unwrap();
+        tree.add_feed(&feed_1, &mapping_1, 1, None).unwrap();
+        tree.add_feed(&feed_2, &mapping_3, 1, None).unwrap();
 
         let (id, pos) = tree.calculate_dnd(2).unwrap();
 

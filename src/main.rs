@@ -1,4 +1,5 @@
 mod main_window;
+mod main_window_actions;
 mod sidebar;
 mod welcome_screen;
 mod login_screen;
