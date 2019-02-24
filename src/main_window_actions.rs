@@ -32,6 +32,7 @@ use crate::content_page::{
     ContentHeader,
 };
 use crate::main_window::{
+    MainWindow,
     GtkHandle,
     DATA_DIR,
 };
@@ -215,7 +216,7 @@ impl MainWindowActions {
         content_header: &GtkHandle<ContentHeader>,
         news_flash: &GtkHandle<Option<NewsFlash>>,
     ) {
-        let _content_page = content_page.clone();
+        let content_page = content_page.clone();
         let parent = window.clone();
         let content_header = content_header.clone();
         let news_flash = news_flash.clone();
@@ -223,7 +224,10 @@ impl MainWindowActions {
         sync_action.connect_activate(move |_action, _data| {
             if let Some(news_flash) = news_flash.borrow_mut().as_mut() {
                 match news_flash.sync() {
-                    Ok(()) => content_header.borrow().finish_sync(),
+                    Ok(()) => {
+                        content_header.borrow().finish_sync();
+                        MainWindow::update_sidebar_from_ref(news_flash, &content_page);
+                    },
                     Err(error) => {
                         let _dialog = ErrorDialog::new(&error, &parent).unwrap();
                     },

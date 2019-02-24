@@ -110,8 +110,8 @@ impl ServiceRow {
         let image : gtk::Image = builder.get_object("icon").ok_or(format_err!("get icon widget"))?;
         if let Some(icon) = info.icon {
             let surface = match icon {
-                PluginIcon::Vector(icon) => GtkUtil::create_surface_from_svg(&icon.data, 64, 64, scale)?,
-                PluginIcon::Pixel(icon) => GtkUtil::create_surface_from_bitmap(&icon, scale)?,
+                PluginIcon::Vector(icon) => GtkUtil::create_surface_from_bytes(&icon.data, 64, 64, scale)?,
+                PluginIcon::Pixel(icon) => GtkUtil::create_surface_from_pixelicon(&icon, scale)?,
             };
             image.set_from_surface(&surface);
         }

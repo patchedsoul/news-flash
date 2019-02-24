@@ -103,17 +103,17 @@ impl SideBar {
         if let Some(icon) = &info.icon_symbolic {
             let surface = match icon {
                 PluginIcon::Vector(icon) => {
-                    GtkUtil::create_surface_from_svg(&icon.data, icon.width, icon.height, self.scale_factor)?
+                    GtkUtil::create_surface_from_bytes(&icon.data, icon.width, icon.height, self.scale_factor)?
                 },
                 PluginIcon::Pixel(icon) => {
-                    GtkUtil::create_surface_from_bitmap(icon, self.scale_factor)?
+                    GtkUtil::create_surface_from_pixelicon(icon, self.scale_factor)?
                 },
             };
             self.logo.set_from_surface(&surface);
         }
         else {
             let generic_logo_data = Resources::get("icons/feed_service_generic.svg").ok_or(format_err!("some err"))?;
-            let surface = GtkUtil::create_surface_from_svg(&generic_logo_data, 64, 64, self.scale_factor)?;
+            let surface = GtkUtil::create_surface_from_bytes(&generic_logo_data, 64, 64, self.scale_factor)?;
             self.logo.set_from_surface(&surface);
         }
 

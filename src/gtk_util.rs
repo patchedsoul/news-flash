@@ -34,7 +34,7 @@ use failure::{
 pub struct GtkUtil;
 
 impl GtkUtil {
-    pub fn create_surface_from_bitmap(icon: &PixelIcon, scale_factor: i32) -> Result<Surface, Error> {
+    pub fn create_surface_from_pixelicon(icon: &PixelIcon, scale_factor: i32) -> Result<Surface, Error> {
         let pixbuf = Pixbuf::new_from_vec(
             icon.data.clone(),
             Colorspace::Rgb,
@@ -48,7 +48,7 @@ impl GtkUtil {
             .ok_or(format_err!("some err"))
     }
 
-    pub fn create_surface_from_svg(data: &[u8], width: i32, height: i32, scale_factor: i32)-> Result<Surface, Error> {
+    pub fn create_surface_from_bytes(data: &[u8], width: i32, height: i32, scale_factor: i32)-> Result<Surface, Error> {
         let bytes = Bytes::from(data);
         let stream = MemoryInputStream::new_from_bytes(&bytes);
         let pixbuf = Pixbuf::new_from_stream_at_scale(

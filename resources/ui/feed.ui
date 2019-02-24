@@ -24,7 +24,10 @@
             <property name="visible">True</property>
             <property name="can_focus">False</property>
             <property name="margin_left">10</property>
-            <property name="stock">gtk-missing-image</property>
+            <property name="icon_name">application-rss+xml-symbolic</property>
+            <style>
+              <class name="symbolic"/>
+            </style>
           </object>
           <packing>
             <property name="expand">False</property>

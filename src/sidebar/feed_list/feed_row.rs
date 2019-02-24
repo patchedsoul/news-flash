@@ -24,7 +24,6 @@ use cairo::{
 use news_flash::models::{
     FeedID,
     FavIcon,
-    PixelIcon,
 };
 use crate::sidebar::feed_list::models::{
     FeedListFeedModel,
@@ -129,15 +128,7 @@ impl FeedRow {
         if let Some(icon) = icon {
             // FIXME: deal with different icon formats and sizes
             if let Some(data) = &icon.data {
-                let icon = PixelIcon {
-                    data: data.clone(),
-                    width: 16,
-                    height: 16,
-                    has_alpha: true,
-                    bits_per_sample: 8,
-                    row_stride: 512,
-                };
-                let surface = GtkUtil::create_surface_from_bitmap(&icon, 1).unwrap();
+                let surface = GtkUtil::create_surface_from_bytes(data, 16, 16, 1).unwrap();
                 self.favicon.set_from_surface(&surface);
             }
         }

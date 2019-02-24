@@ -149,25 +149,32 @@ impl MainWindow {
         content_page_handle: &GtkHandle<ContentPage>,
     ) {
         if let Some(news_flash) = news_flash_handle.borrow_mut().as_mut() {
-            // feedlist
-            let mut tree = FeedListTree::new();
-            let categories = news_flash.get_categories().unwrap();
-            for category in categories {
-                let count = news_flash.unread_count_category(&category.category_id).unwrap();
-                tree.add_category(&category, count as i32).unwrap();
-            }
-            let (feeds, mappings) = news_flash.get_feeds().unwrap();
-            for mapping in mappings {
-                let count = news_flash.unread_count_feed(&mapping.feed_id).unwrap();
-                let feed = feeds.iter().find(|feed| feed.feed_id == mapping.feed_id).unwrap();
-                let favicon = match news_flash.get_icon_info(&feed) {
-                    Ok(favicon) => Some(favicon),
-                    Err(_) => None,
-                };
-                tree.add_feed(&feed, &mapping, count as i32, favicon).unwrap();
-            }
-            let total_unread = news_flash.unread_count_all().unwrap();
-            content_page_handle.borrow_mut().update_feedlist(tree, total_unread);
+            Self::update_sidebar_from_ref(news_flash, content_page_handle);
         }
+    }
+
+    pub fn update_sidebar_from_ref(
+        news_flash: &mut NewsFlash,
+        content_page_handle: &GtkHandle<ContentPage>,
+    ) {
+        // feedlist
+        let mut tree = FeedListTree::new();
+        let categories = news_flash.get_categories().unwrap();
+        for category in categories {
+            let count = news_flash.unread_count_category(&category.category_id).unwrap();
+            tree.add_category(&category, count as i32).unwrap();
+        }
+        let (feeds, mappings) = news_flash.get_feeds().unwrap();
+        for mapping in mappings {
+            let count = news_flash.unread_count_feed(&mapping.feed_id).unwrap();
+            let feed = feeds.iter().find(|feed| feed.feed_id == mapping.feed_id).unwrap();
+            let favicon = match news_flash.get_icon_info(&feed) {
+                Ok(favicon) => Some(favicon),
+                Err(_) => None,
+            };
+            tree.add_feed(&feed, &mapping, count as i32, favicon).unwrap();
+        }
+        let total_unread = news_flash.unread_count_all().unwrap();
+        content_page_handle.borrow_mut().update_feedlist(tree, total_unread);
     }
 }
