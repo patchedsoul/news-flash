@@ -5,6 +5,7 @@ pub mod error;
 
 
 use crate::Resources;
+use crate::gtk_util::GtkUtil;
 use std::str;
 use std::rc::Rc;
 use std::cell::RefCell;
@@ -30,7 +31,6 @@ use crate::sidebar::feed_list::{
 };
 use gtk::{
     self,
-    ListBoxRow,
     ListBoxExt,
     ListBoxRowExt,
     StyleContextExt,
@@ -41,7 +41,6 @@ use gtk::{
     TargetFlags,
     TargetEntry,
     Inhibit,
-    Cast,
 };
 use gdk::{
     EventType,
@@ -65,10 +64,10 @@ pub struct FeedList {
 
 impl FeedList {
     pub fn new() -> Result<Self, FeedListError> {
-        let ui_data = Resources::get("ui/feedlist.ui").ok_or(FeedListErrorKind::UIFile)?;
+        let ui_data = Resources::get("ui/sidebar_list.ui").ok_or(FeedListErrorKind::UIFile)?;
         let ui_string = str::from_utf8(ui_data.as_ref()).context(FeedListErrorKind::EmbedFile)?;
         let builder = gtk::Builder::new_from_string(ui_string);
-        let list_box : gtk::ListBox = builder.get_object("feed_list").ok_or(FeedListErrorKind::UIFile)?;
+        let list_box : gtk::ListBox = builder.get_object("sidebar_list").ok_or(FeedListErrorKind::UIFile)?;
 
         let feed_list = FeedList {
             list: list_box,
@@ -93,11 +92,9 @@ impl FeedList {
             // maybe we should keep track of the previous highlighted rows instead of iterating over all of them
             let children = widget.get_children();
             for widget in children {
-                if let Ok(row) = widget.downcast::<ListBoxRow>() {
-                    if let Some(style_context) = row.get_style_context() {
-                        style_context.remove_class("drag-above");
-                        style_context.remove_class("drag-below");
-                    }
+                if let Some(ctx) = GtkUtil::get_dnd_style_context_widget(&widget) {
+                    ctx.remove_class("drag-above");
+                    ctx.remove_class("drag-below");
                 }
             }
 
@@ -108,27 +105,27 @@ impl FeedList {
                 match y < alloc.y + (alloc.height / 2) {
                     true => {
                         if let Some(_) = widget.get_row_at_index(index - 1) {
-                            if let Some(style_context_below) = row.get_style_context() {
-                                style_context_below.add_class("drag-below");
+                            if let Some(ctx) = GtkUtil::get_dnd_style_context_listboxrow(&row) {
+                                ctx.add_class("drag-below");
                             }
                         }
                         else {
                             // row before doesn't exist -> insert at first pos
-                            if let Some(style_context) = row.get_style_context() {
-                                style_context.add_class("drag-below");
+                            if let Some(ctx) = GtkUtil::get_dnd_style_context_listboxrow(&row) {
+                                ctx.add_class("drag-below");
                             }
                         }
                     },
                     false => {
                         if let Some(row_below) = widget.get_row_at_index(index + 1) {
-                            if let Some(style_context_below) = row_below.get_style_context() {
-                                style_context_below.add_class("drag-below");
+                            if let Some(ctx) = GtkUtil::get_dnd_style_context_listboxrow(&row_below) {
+                                ctx.add_class("drag-below");
                             }
                         }
                         else {
                             // row after doesn't exist -> insert at last pos
-                            if let Some(style_context) = row.get_style_context() {
-                                style_context.add_class("drag-above");
+                            if let Some(ctx) = GtkUtil::get_dnd_style_context_listboxrow(&row) {
+                                ctx.add_class("drag-above");
                             }
                         }
                     },
@@ -140,22 +137,18 @@ impl FeedList {
         self.list.connect_drag_leave(|widget, _drag_context, _time| {
             let children = widget.get_children();
             for widget in children {
-                if let Ok(row) = widget.downcast::<ListBoxRow>() {
-                    if let Some(style_context) = row.get_style_context() {
-                        style_context.remove_class("drag-above");
-                        style_context.remove_class("drag-below");
-                    }
+                if let Some(ctx) = GtkUtil::get_dnd_style_context_widget(&widget) {
+                    ctx.remove_class("drag-above");
+                    ctx.remove_class("drag-below");
                 }
             }
         });
         self.list.connect_drag_data_received(move |widget, _ctx, _x, y, selection_data, _info, _time| {
             let children = widget.get_children();
             for widget in children {
-                if let Ok(row) = widget.downcast::<ListBoxRow>() {
-                    if let Some(style_context) = row.get_style_context() {
-                        style_context.remove_class("drag-above");
-                        style_context.remove_class("drag-below");
-                    }
+                if let Some(ctx) = GtkUtil::get_dnd_style_context_widget(&widget) {
+                    ctx.remove_class("drag-above");
+                    ctx.remove_class("drag-below");
                 }
             }
 
@@ -255,26 +248,31 @@ impl FeedList {
         self.categories.borrow_mut().insert(category.id.clone(), category_widget.clone());
 
         category_widget.borrow().expander_event().connect_button_press_event(move |_widget, event| {
-            if event.get_event_type() == EventType::ButtonPress {
-                if let Some((feed_ids, category_ids, expaneded)) = tree.borrow_mut().collapse_expand_ids(&category_id) {
-                    for feed_id in feed_ids {
-                        if let Some(feed_handle) = feeds.borrow().get(&feed_id) {
-                            if expaneded {
-                                feed_handle.borrow_mut().expand();
-                            }
-                            else {
-                                feed_handle.borrow_mut().collapse();
-                            }
+            if event.get_button() != 1 {
+                return gtk::Inhibit(true)
+            }
+            match event.get_event_type() {
+                EventType::ButtonPress => (),
+                _ => return gtk::Inhibit(true),
+            }
+            if let Some((feed_ids, category_ids, expaneded)) = tree.borrow_mut().collapse_expand_ids(&category_id) {
+                for feed_id in feed_ids {
+                    if let Some(feed_handle) = feeds.borrow().get(&feed_id) {
+                        if expaneded {
+                            feed_handle.borrow_mut().expand();
+                        }
+                        else {
+                            feed_handle.borrow_mut().collapse();
                         }
                     }
-                    for category_id in category_ids {
-                        if let Some(category_handle) = categories.borrow().get(&category_id) {
-                            if expaneded {
-                                category_handle.borrow_mut().expand();
-                            }
-                            else {
-                                category_handle.borrow_mut().collapse();
-                            }
+                }
+                for category_id in category_ids {
+                    if let Some(category_handle) = categories.borrow().get(&category_id) {
+                        if expaneded {
+                            category_handle.borrow_mut().expand();
+                        }
+                        else {
+                            category_handle.borrow_mut().collapse();
                         }
                     }
                 }

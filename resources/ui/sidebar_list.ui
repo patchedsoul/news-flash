@@ -2,7 +2,7 @@
 <!-- Generated with glade 3.22.1 -->
 <interface>
   <requires lib="gtk+" version="3.20"/>
-  <object class="GtkListBox" id="feed_list">
+  <object class="GtkListBox" id="sidebar_list">
     <property name="width_request">150</property>
     <property name="visible">True</property>
     <property name="can_focus">False</property>

@@ -11,10 +11,15 @@ use gtk::{
     TargetFlags,
     DragContextExtManual,
     ImageExt,
+    Continue,
 };
 use gdk::{
     DragAction,
     ModifierType,
+};
+use glib::{
+    Source,
+    translate::ToGlib,
 };
 use cairo::{
     self,
@@ -33,6 +38,7 @@ use std::rc::Rc;
 use std::cell::RefCell;
 use crate::Resources;
 use crate::gtk_util::GtkUtil;
+use crate::main_window::GtkHandle;
 
 #[derive(Clone, Debug)]
 pub struct FeedRow {
@@ -42,28 +48,31 @@ pub struct FeedRow {
     item_count_event: gtk::EventBox,
     title: gtk::Label,
     revealer: gtk::Revealer,
+    hide_timeout: GtkHandle<Option<u32>>,
     favicon: gtk::Image,
 }
 
 impl FeedRow {
-    pub fn new(model: &FeedListFeedModel, visible: bool) -> Rc<RefCell<FeedRow>> {
+    pub fn new(model: &FeedListFeedModel, visible: bool) -> GtkHandle<FeedRow> {
         let ui_data = Resources::get("ui/feed.ui").unwrap();
         let ui_string = str::from_utf8(ui_data.as_ref()).unwrap();
         let builder = gtk::Builder::new_from_string(ui_string);
-        let feed : gtk::Revealer = builder.get_object("feed_row").unwrap();
-        feed.set_margin_start(model.level*24);
+        let revealer : gtk::Revealer = builder.get_object("feed_row").unwrap();
+        let level_margin : gtk::Box = builder.get_object("level_margin").unwrap();
+        level_margin.set_margin_start(model.level*24);
         
         let title_label : gtk::Label = builder.get_object("feed_title").unwrap();
         let item_count_label : gtk::Label = builder.get_object("item_count").unwrap();
         let item_count_event : gtk::EventBox = builder.get_object("item_count_event").unwrap();
         let favicon : gtk::Image = builder.get_object("favicon").unwrap();
 
-        let feed = FeedRow {
+        let mut feed = FeedRow {
             id: model.id.clone(),
-            widget: Self::create_row(&feed, &model.id),
+            widget: Self::create_row(&revealer, &model.id),
             item_count: item_count_label,
             title: title_label,
-            revealer: feed,
+            revealer: revealer,
+            hide_timeout: Rc::new(RefCell::new(None)),
             item_count_event: item_count_event,
             favicon: favicon,
         };
@@ -126,7 +135,6 @@ impl FeedRow {
 
     pub fn update_favicon(&self, icon: &Option<FavIcon>) {
         if let Some(icon) = icon {
-            // FIXME: deal with different icon formats and sizes
             if let Some(data) = &icon.data {
                 let surface = GtkUtil::create_surface_from_bytes(data, 16, 16, 1).unwrap();
                 self.favicon.set_from_surface(&surface);
@@ -138,13 +146,36 @@ impl FeedRow {
         self.title.set_label(title);
     }
 
-    pub fn collapse(&self) {
+    pub fn collapse(&mut self) {
         self.revealer.set_reveal_child(false);
         self.revealer.get_style_context().unwrap().add_class("hidden");
         self.widget.set_selectable(false);
+
+        // hide row after animation finished
+        {
+            // add new timeout
+            let widget = self.row();
+            let hide_timeout = self.hide_timeout.clone();
+            let source_id = gtk::timeout_add(250, move || {
+                widget.set_visible(false);
+                *hide_timeout.borrow_mut() = None;
+                Continue(false)
+            });
+            *self.hide_timeout.borrow_mut() = Some(source_id.to_glib());
+        }
     }
 
     pub fn expand(&self) {
+
+        // clear out timeout to fully hide row
+        {
+            if let Some(source_id) = *self.hide_timeout.borrow() {
+                Source::remove(source_id);
+            }
+            *self.hide_timeout.borrow_mut() = None;
+        }
+
+        self.widget.set_visible(true);
         self.revealer.set_reveal_child(true);
         self.revealer.get_style_context().unwrap().remove_class("hidden");
         self.widget.set_selectable(true);

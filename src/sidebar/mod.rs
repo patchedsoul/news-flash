@@ -1,4 +1,5 @@
 mod feed_list;
+mod tag_list;
 
 use std::rc::Rc;
 use std::cell::RefCell;
@@ -27,6 +28,7 @@ use news_flash::models::{
 use news_flash::NewsFlash;
 use crate::main_window::GtkHandle;
 use self::feed_list::FeedList;
+use self::tag_list::TagList;
 pub use crate::sidebar::feed_list::models::{
     FeedListTree,
 };
@@ -58,9 +60,13 @@ impl SideBar {
         let tags_revealer : gtk::Revealer = builder.get_object("tags_revealer").ok_or(format_err!("some err"))?;
         let all_event_box : gtk::EventBox = builder.get_object("all_event_box").ok_or(format_err!("some err"))?;
         let feed_list_box : gtk::Box = builder.get_object("feed_list_box").ok_or(format_err!("some err"))?;
+        let tag_list_box : gtk::Box = builder.get_object("tags_list_box").ok_or(format_err!("some err"))?;
 
         let feed_list = FeedList::new()?;
         feed_list_box.pack_start(&feed_list.widget(), false, true, 0);
+
+        let tag_list = TagList::new()?;
+        tag_list_box.pack_start(&tag_list.widget(), false, true, 0);
 
         let scale = sidebar
             .get_style_context()
@@ -68,7 +74,7 @@ impl SideBar {
             .get_scale();
 
         let expanded_categories = Rc::new(RefCell::new(true));
-        let expanded_tags =  Rc::new(RefCell::new(true));
+        let expanded_tags =  Rc::new(RefCell::new(false));
 
         Self::setup_expander(&categories_event_box, &categories_expander, &categories_revealer, &expanded_categories);
         Self::setup_expander(&tags_event_box, &tags_expander, &tags_revealer, &expanded_tags);

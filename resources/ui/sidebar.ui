@@ -269,7 +269,7 @@
                                 <property name="icon_name">pan-start-symbolic</property>
                                 <style>
                                   <class name="symbolic"/>
-                                  <class name="backward-arrow-expanded"/>
+                                  <class name="backward-arrow-collapsed"/>
                                 </style>
                               </object>
                               <packing>
@@ -315,27 +315,13 @@
                       <object class="GtkRevealer" id="tags_revealer">
                         <property name="visible">True</property>
                         <property name="can_focus">False</property>
-                        <property name="reveal_child">True</property>
                         <child>
-                          <object class="GtkBox">
+                          <object class="GtkBox" id="tags_list_box">
                             <property name="visible">True</property>
                             <property name="can_focus">False</property>
                             <property name="orientation">vertical</property>
                             <child>
-                              <object class="GtkImage">
-                                <property name="height_request">100</property>
-                                <property name="visible">True</property>
-                                <property name="can_focus">False</property>
-                                <property name="stock">gtk-missing-image</property>
-                                <style>
-                                  <class name="backdrop"/>
-                                </style>
-                              </object>
-                              <packing>
-                                <property name="expand">False</property>
-                                <property name="fill">True</property>
-                                <property name="position">0</property>
-                              </packing>
+                              <placeholder/>
                             </child>
                             <child>
                               <object class="GtkSeparator">

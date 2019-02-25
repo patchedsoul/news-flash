@@ -2,6 +2,10 @@ use gtk::{
     EntryExt,
     Cast,
     WidgetExt,
+    ListBoxRow,
+    BinExt,
+    Revealer,
+    StyleContext,
 };
 use gdk_pixbuf::{
     Pixbuf,
@@ -82,5 +86,27 @@ impl GtkUtil {
         }
         
         Err(format_err!("some err"))
+    }
+
+    pub fn get_dnd_style_context_widget(row: &gtk::Widget) -> Option<StyleContext> {
+        if let Ok(row) = row.clone().downcast::<ListBoxRow>() {
+            return Self::get_dnd_style_context_listboxrow(&row)
+        }
+
+        None
+    }
+
+    pub fn get_dnd_style_context_listboxrow(row: &gtk::ListBoxRow) -> Option<StyleContext> {
+        if let Some(row) = row.get_child() {
+            if let Ok(row) = row.downcast::<Revealer>() {
+                if let Some(row) = row.get_child() {
+                    if let Some(style_context) = row.get_style_context() {
+                        return Some(style_context)
+                    }
+                }
+            }
+        }
+
+        None
     }
 }
