@@ -38,7 +38,7 @@ impl FeedListFeedModel {
 
 impl PartialEq for FeedListFeedModel {
     fn eq(&self, other: &FeedListFeedModel) -> bool {
-        self.id == other.id && self.sort_index == other.sort_index
+        self.id == other.id //&& self.sort_index == other.sort_index
     }
 }
 

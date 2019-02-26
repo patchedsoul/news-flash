@@ -1,3 +1,5 @@
+mod models;
+
 use news_flash::models::{
     TagID,
     Tag,

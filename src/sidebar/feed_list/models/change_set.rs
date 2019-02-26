@@ -9,12 +9,12 @@ use news_flash::models::{
 pub enum FeedListChangeSet {
     RemoveFeed(FeedID),
     RemoveCategory(CategoryID),
-    AddFeed(FeedListFeedModel, i32, bool),
-    AddCategory(FeedListCategoryModel, i32, bool),
-    FeedUpdateItemCount(FeedID, i32),
-    CategoryUpdateItemCount(CategoryID, i32),
-    FeedUpdateLabel(FeedID, String),
-    CategoryUpdateLabel(CategoryID, String),
+    AddFeed(FeedListFeedModel, i32, bool), // pos, visible
+    AddCategory(FeedListCategoryModel, i32, bool), // pos, visible
+    FeedUpdateItemCount(FeedID, i32), // item count
+    CategoryUpdateItemCount(CategoryID, i32), // item count
+    FeedUpdateLabel(FeedID, String), // label
+    CategoryUpdateLabel(CategoryID, String), // label
 }
 
 impl PartialEq for FeedListChangeSet {
