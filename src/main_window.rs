@@ -24,12 +24,17 @@ use crate::login_screen::{
 };
 use crate::sidebar::{
     FeedListTree,
+    TagListModel,
 };
 use log::{
     info,
     warn,
 };
 use news_flash::NewsFlash;
+use news_flash::models::{
+    Tag,
+    TagID,
+};
 use std::collections::HashMap;
 use crate::Resources;
 use failure::Error;
@@ -174,7 +179,43 @@ impl MainWindow {
             };
             tree.add_feed(&feed, &mapping, count as i32, favicon).unwrap();
         }
+
+        // tag list
+        let mut list = TagListModel::new();
+        //let tags = news_flash.get_tags().unwrap();
+        let tags = Self::demo_tag_list();
+        for tag in tags {
+            let count = news_flash.unread_count_tags(&tag.tag_id).unwrap();
+            list.add(&tag, count as i32).unwrap();
+        }
+        
         let total_unread = news_flash.unread_count_all().unwrap();
-        content_page_handle.borrow_mut().update_feedlist(tree, total_unread);
+        content_page_handle.borrow_mut().update_sidebar(tree, list, total_unread);
+    }
+
+    fn demo_tag_list() -> Vec<Tag> {
+        let tag_1 = Tag {
+            tag_id: TagID::new("Tag_1"),
+            label: "label_1".to_owned(),
+            color: None,
+            sort_index: Some(0),
+        };
+        let tag_2 = Tag {
+            tag_id: TagID::new("Tag_2"),
+            label: "label_2".to_owned(),
+            color: None,
+            sort_index: Some(1),
+        };
+        let tag_3 = Tag {
+            tag_id: TagID::new("Tag_3"),
+            label: "label_3".to_owned(),
+            color: None,
+            sort_index: Some(2),
+        };
+        let mut list = Vec::new();
+        list.push(tag_1);
+        list.push(tag_2);
+        list.push(tag_3);
+        list
     }
 }

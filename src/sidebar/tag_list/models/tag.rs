@@ -11,7 +11,7 @@ pub static DEFAULT_COLOUR: &'static str = "#FF00FF";
 pub struct TagListTagModel {
     pub id: TagID,
     pub label: String,
-    pub colour: String,
+    pub color: String,
     pub item_count: i32,
     pub sort_index: i32,
 }
@@ -21,7 +21,7 @@ impl TagListTagModel {
         TagListTagModel {
             id: tag.tag_id.clone(),
             label: tag.label.clone(),
-            colour: match &tag.color {
+            color: match &tag.color {
                 Some(colour) => colour.clone(),
                 None => DEFAULT_COLOUR.to_owned(),
             },

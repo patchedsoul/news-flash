@@ -4,20 +4,21 @@ mod change_set;
 use failure::Error;
 use failure::format_err;
 use std::collections::HashMap;
-use tag::TagListTagModel;
-use change_set::TagListChangeSet;
+pub use tag::TagListTagModel;
+pub use change_set::TagListChangeSet;
 use news_flash::models::{
     Tag,
     TagID,
 };
 
-struct TagList {
+#[derive(Clone, Debug)]
+pub struct TagListModel {
     tags: HashMap<TagID, TagListTagModel>,
 }
 
-impl TagList {
+impl TagListModel {
     pub fn new() -> Self {
-        TagList {
+        TagListModel {
             tags: HashMap::new(),
         }
     }
@@ -35,7 +36,7 @@ impl TagList {
         &self.tags
     }
 
-    pub fn generate_diff(&self, other: &TagList) -> Vec<TagListChangeSet> {
+    pub fn generate_diff(&self, other: &TagListModel) -> Vec<TagListChangeSet> {
         let mut diff : Vec<TagListChangeSet> = Vec::new();
         let mut list_pos = 0;
         let mut old_index = 0;
@@ -102,7 +103,7 @@ impl TagList {
 
 #[cfg(test)]
 mod tests {
-    use super::TagList;
+    use super::TagListModel;
     use news_flash::models::{
         Tag,
         TagID,
@@ -130,12 +131,12 @@ mod tests {
             sort_index: Some(2),
         };
 
-        let mut old_list = TagList::new();
+        let mut old_list = TagListModel::new();
         old_list.add(&tag_1, 2).unwrap();
         old_list.add(&tag_2, 0).unwrap();
         old_list.add(&tag_3, 4).unwrap();
 
-        let mut new_list = TagList::new();
+        let mut new_list = TagListModel::new();
         tag_1.sort_index = Some(1);
         tag_2.sort_index = Some(0);
         new_list.add(&tag_1, 1).unwrap();

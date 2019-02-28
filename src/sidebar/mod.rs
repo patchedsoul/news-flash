@@ -29,9 +29,8 @@ use news_flash::NewsFlash;
 use crate::main_window::GtkHandle;
 use self::feed_list::FeedList;
 use self::tag_list::TagList;
-pub use crate::sidebar::feed_list::models::{
-    FeedListTree,
-};
+pub use feed_list::models::FeedListTree;
+pub use tag_list::models::TagListModel;
 
 #[derive(Clone, Debug)]
 pub struct SideBar {
@@ -41,6 +40,7 @@ pub struct SideBar {
     service_label: gtk::Label,
     scale_factor: i32,
     feed_list: FeedList,
+    tag_list: TagList,
 }
 
 impl SideBar {
@@ -87,6 +87,7 @@ impl SideBar {
             service_label: service_label,
             scale_factor: scale,
             feed_list: feed_list,
+            tag_list: tag_list,
         })
     }
 
@@ -96,6 +97,11 @@ impl SideBar {
 
     pub fn update_feedlist(&mut self, tree: FeedListTree) {
         self.feed_list.update(tree);
+        self.sidebar.show_all();
+    }
+
+    pub fn update_taglist(&mut self, list: TagListModel) {
+        self.tag_list.update(list);
         self.sidebar.show_all();
     }
 

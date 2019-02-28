@@ -22,6 +22,7 @@ use crate::gtk_util::GtkUtil;
 use crate::sidebar::{
     SideBar,
     FeedListTree,
+    TagListModel,
 };
 use news_flash::models::{
     PluginID,
@@ -70,8 +71,9 @@ impl ContentPage {
         self.page.clone()
     }
 
-    pub fn update_feedlist(&mut self, tree: FeedListTree, total_unread: i64) {
-        self.sidebar.update_feedlist(tree);
+    pub fn update_sidebar(&mut self, feed_tree: FeedListTree, tag_list: TagListModel, total_unread: i64) {
+        self.sidebar.update_feedlist(feed_tree);
+        self.sidebar.update_taglist(tag_list);
         self.sidebar.update_unread_all(total_unread);
     }
 
