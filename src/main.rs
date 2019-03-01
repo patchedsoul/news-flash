@@ -6,6 +6,7 @@ mod login_screen;
 mod gtk_util;
 mod error_dialog;
 mod content_page;
+mod color;
 
 use gio::{
     self,

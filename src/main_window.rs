@@ -196,19 +196,19 @@ impl MainWindow {
     fn demo_tag_list() -> Vec<Tag> {
         let tag_1 = Tag {
             tag_id: TagID::new("Tag_1"),
-            label: "label_1".to_owned(),
+            label: "Demo Label 1".to_owned(),
             color: None,
             sort_index: Some(0),
         };
         let tag_2 = Tag {
             tag_id: TagID::new("Tag_2"),
-            label: "label_2".to_owned(),
+            label: "Demo Label 2".to_owned(),
             color: None,
             sort_index: Some(1),
         };
         let tag_3 = Tag {
             tag_id: TagID::new("Tag_3"),
-            label: "label_3".to_owned(),
+            label: "Demo Label 2".to_owned(),
             color: None,
             sort_index: Some(2),
         };
