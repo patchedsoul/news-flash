@@ -25,6 +25,7 @@ use std::rc::Rc;
 use std::cell::RefCell;
 use crate::Resources;
 use crate::main_window::GtkHandle;
+use crate::color::ColorRGBA;
 
 #[derive(Clone, Debug)]
 pub struct TagRow {
@@ -107,12 +108,24 @@ impl TagRow {
                     cairo_ctx.set_fill_rule(FillRule::EvenOdd);
                     cairo_ctx.set_line_width(2.0);
 
-                    cairo_ctx.set_source_rgba(1.0, 1.0, 1.0, 1.0);
+                    let mut rgba = ColorRGBA::parse_string(color).unwrap();
+                    cairo_ctx.set_source_rgba(
+                        rgba.red_normalized(),
+                        rgba.green_normalized(),
+                        rgba.blue_normalized(),
+                        rgba.alpha_normalized()
+                    );
                     cairo_ctx.arc(half_size, half_size, half_size, 0.0, 2.0 * std::f64::consts::PI);
                     cairo_ctx.fill_preserve();
 
+                    rgba.adjust_lightness(0.15).unwrap();
                     cairo_ctx.arc(half_size, half_size, half_size - (half_size / 4.0), 0.0, 2.0 * std::f64::consts::PI);
-                    cairo_ctx.set_source_rgba(0.0, 0.0, 0.0, 1.0);
+                    cairo_ctx.set_source_rgba(
+                        rgba.red_normalized(),
+                        rgba.green_normalized(),
+                        rgba.blue_normalized(),
+                        rgba.alpha_normalized()
+                    );
                     cairo_ctx.fill_preserve();
 
                     tag_color_circle.set_from_surface(&surface);

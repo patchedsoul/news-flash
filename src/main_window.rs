@@ -197,19 +197,19 @@ impl MainWindow {
         let tag_1 = Tag {
             tag_id: TagID::new("Tag_1"),
             label: "Demo Label 1".to_owned(),
-            color: None,
+            color: Some("#4696C8".to_owned()),
             sort_index: Some(0),
         };
         let tag_2 = Tag {
             tag_id: TagID::new("Tag_2"),
             label: "Demo Label 2".to_owned(),
-            color: None,
+            color: Some("#FF0000".to_owned()),
             sort_index: Some(1),
         };
         let tag_3 = Tag {
             tag_id: TagID::new("Tag_3"),
             label: "Demo Label 2".to_owned(),
-            color: None,
+            color: Some("#2565FA".to_owned()),
             sort_index: Some(2),
         };
         let mut list = Vec::new();
