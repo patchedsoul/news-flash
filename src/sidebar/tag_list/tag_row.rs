@@ -108,23 +108,25 @@ impl TagRow {
                     cairo_ctx.set_fill_rule(FillRule::EvenOdd);
                     cairo_ctx.set_line_width(2.0);
 
-                    let mut rgba = ColorRGBA::parse_string(color).unwrap();
+                    let rgba_outer = ColorRGBA::parse_string(color).unwrap();
+                    let mut rgba_inner = ColorRGBA::parse_string(color).unwrap();
+                    rgba_inner.adjust_lightness(0.05).unwrap();
+
                     cairo_ctx.set_source_rgba(
-                        rgba.red_normalized(),
-                        rgba.green_normalized(),
-                        rgba.blue_normalized(),
-                        rgba.alpha_normalized()
+                        rgba_inner.red_normalized(),
+                        rgba_inner.green_normalized(),
+                        rgba_inner.blue_normalized(),
+                        rgba_inner.alpha_normalized()
                     );
                     cairo_ctx.arc(half_size, half_size, half_size, 0.0, 2.0 * std::f64::consts::PI);
                     cairo_ctx.fill_preserve();
 
-                    rgba.adjust_lightness(0.15).unwrap();
                     cairo_ctx.arc(half_size, half_size, half_size - (half_size / 4.0), 0.0, 2.0 * std::f64::consts::PI);
                     cairo_ctx.set_source_rgba(
-                        rgba.red_normalized(),
-                        rgba.green_normalized(),
-                        rgba.blue_normalized(),
-                        rgba.alpha_normalized()
+                        rgba_outer.red_normalized(),
+                        rgba_outer.green_normalized(),
+                        rgba_outer.blue_normalized(),
+                        rgba_outer.alpha_normalized()
                     );
                     cairo_ctx.fill_preserve();
 

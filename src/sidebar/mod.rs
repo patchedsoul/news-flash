@@ -12,6 +12,7 @@ use gtk::{
     BoxExt,
     ImageExt,
     StyleContextExt,
+    ListBoxExt,
     WidgetExt,
     LabelExt,
     RevealerExt,
@@ -39,8 +40,8 @@ pub struct SideBar {
     unread_label: gtk::Label,
     service_label: gtk::Label,
     scale_factor: i32,
-    feed_list: FeedList,
-    tag_list: TagList,
+    feed_list: GtkHandle<FeedList>,
+    tag_list: GtkHandle<TagList>,
 }
 
 impl SideBar {
@@ -63,10 +64,39 @@ impl SideBar {
         let tag_list_box : gtk::Box = builder.get_object("tags_list_box").ok_or(format_err!("some err"))?;
 
         let feed_list = FeedList::new()?;
-        feed_list_box.pack_start(&feed_list.widget(), false, true, 0);
-
         let tag_list = TagList::new()?;
-        tag_list_box.pack_start(&tag_list.widget(), false, true, 0);
+        
+        let feed_list_handle = Rc::new(RefCell::new(feed_list));
+        let tag_list_handle = Rc::new(RefCell::new(tag_list));
+
+        feed_list_box.pack_start(&feed_list_handle.borrow().widget(), false, true, 0);
+        tag_list_box.pack_start(&tag_list_handle.borrow().widget(), false, true, 0);
+
+        let feed_list_all_event_box = all_event_box.clone();
+        let feed_list_tag_list_handle = tag_list_handle.clone();
+        feed_list_handle.borrow().widget().connect_row_selected(move |_list, row| {
+            // do nothing if selection was cleared
+            if row.is_none() {
+                return
+            }
+            // deselect 'all' & tag_list
+            let context = feed_list_all_event_box.get_style_context().unwrap();
+            context.remove_class("selected");
+            feed_list_tag_list_handle.borrow().deselect();
+        });
+
+        let tag_list_all_event_box = all_event_box.clone();
+        let tag_list_feed_list_handle = feed_list_handle.clone();
+        tag_list_handle.borrow().widget().connect_row_selected(move |_list, row| {
+            // do nothing if selection was cleared
+            if row.is_none() {
+                return
+            }
+            // deselect 'all' & tag_list
+            let context = tag_list_all_event_box.get_style_context().unwrap();
+            context.remove_class("selected");
+            tag_list_feed_list_handle.borrow().deselect();
+        });
 
         let scale = sidebar
             .get_style_context()
@@ -78,7 +108,7 @@ impl SideBar {
 
         Self::setup_expander(&categories_event_box, &categories_expander, &categories_revealer, &expanded_categories);
         Self::setup_expander(&tags_event_box, &tags_expander, &tags_revealer, &expanded_tags);
-        Self::setup_all_button(&all_event_box);
+        Self::setup_all_button(&all_event_box, feed_list_handle.clone(), tag_list_handle.clone());
 
         Ok(SideBar {
             sidebar: sidebar,
@@ -86,8 +116,8 @@ impl SideBar {
             unread_label: unread_label,
             service_label: service_label,
             scale_factor: scale,
-            feed_list: feed_list,
-            tag_list: tag_list,
+            feed_list: feed_list_handle,
+            tag_list: tag_list_handle,
         })
     }
 
@@ -96,12 +126,12 @@ impl SideBar {
     }
 
     pub fn update_feedlist(&mut self, tree: FeedListTree) {
-        self.feed_list.update(tree);
+        self.feed_list.borrow_mut().update(tree);
         self.sidebar.show_all();
     }
 
     pub fn update_taglist(&mut self, list: TagListModel) {
-        self.tag_list.update(list);
+        self.tag_list.borrow_mut().update(list);
         self.sidebar.show_all();
     }
 
@@ -164,6 +194,13 @@ impl SideBar {
 
         event_box.connect_button_press_event(move |_widget, event| {
             if event.get_event_type() == EventType::ButtonPress {
+                if event.get_button() != 1 {
+                    return gtk::Inhibit(false)
+                }
+                match event.get_event_type() {
+                    EventType::ButtonPress => (),
+                    _ => return gtk::Inhibit(false),
+                }
                 let context = expander.get_style_context().unwrap();
                 let expanded_bool = *expanded.borrow();
 
@@ -184,7 +221,11 @@ impl SideBar {
         });
     }
 
-    fn setup_all_button(event_box: &gtk::EventBox) {
+    fn setup_all_button(
+        event_box: &gtk::EventBox,
+        feed_list_handle: GtkHandle<FeedList>,
+        tag_list_handle: GtkHandle<TagList>
+    ) {
         event_box.set_events(EventMask::BUTTON_PRESS_MASK.bits() as i32);
         event_box.set_events(EventMask::ENTER_NOTIFY_MASK.bits() as i32);
         event_box.set_events(EventMask::LEAVE_NOTIFY_MASK.bits() as i32);
@@ -199,8 +240,18 @@ impl SideBar {
             gtk::Inhibit(false)
         });
 
-        event_box.connect_button_press_event(move |_widget, _event| {
-
+        event_box.connect_button_press_event(move |widget, event| {
+            if event.get_button() != 1 {
+                return gtk::Inhibit(false)
+            }
+            match event.get_event_type() {
+                EventType::ButtonPress => (),
+                _ => return gtk::Inhibit(false),
+            }
+            let context = widget.get_style_context().unwrap();
+            context.add_class("selected");
+            feed_list_handle.borrow().deselect();
+            tag_list_handle.borrow().deselect();
             gtk::Inhibit(false)
         });
     }

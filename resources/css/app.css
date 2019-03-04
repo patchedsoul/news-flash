@@ -39,6 +39,7 @@
 	padding: 0;
 }
 
+.sidebar .selected,
 .sidebar row:selected {
 	background: @sidebar-selected;
 }

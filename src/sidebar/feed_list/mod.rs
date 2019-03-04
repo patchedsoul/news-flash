@@ -286,4 +286,8 @@ impl FeedList {
         self.list.insert(&feed_widget.borrow().row(), pos);
         self.feeds.borrow_mut().insert(feed.id.clone(), feed_widget);
     }
+
+    pub fn deselect(&self) {
+        self.list.unselect_all();
+    }
 }

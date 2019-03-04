@@ -192,26 +192,6 @@ pub struct ColorHSLA {
 }
 
 impl ColorHSLA {
-    #[allow(dead_code)]
-    pub fn hue(&self) -> f64 {
-        self.hue
-    }
-
-    #[allow(dead_code)]
-    pub fn saturation(&self) -> f64 {
-        self.saturation
-    }
-
-    #[allow(dead_code)]
-    pub fn lightness(&self) -> f64 {
-        self.lightness
-    }
-
-    #[allow(dead_code)]
-    pub fn alpha(&self) -> f64 {
-        self.alpha
-    }
-
     pub fn lightness_percentage(&mut self, percentage: f64) {
         let mut new_lightness = self.lightness * (1.0 + percentage);
         if new_lightness > 1.0 {

@@ -12,6 +12,9 @@ use gtk::{
     ButtonExt,
     StackExt,
 };
+use gdk::{
+    EventType,
+};
 use glib::{
     Variant,
     signal::Inhibit,
@@ -79,7 +82,14 @@ impl ContentHeader {
         let button_clone = button.clone();
         let other_button_1 = other_button_1.clone();
         let other_button_2 = other_button_2.clone();
-        button.connect_button_press_event(move |_button, _event| {
+        button.connect_button_press_event(move |_button, event| {
+            if event.get_button() != 1 {
+                return gtk::Inhibit(false)
+            }
+            match event.get_event_type() {
+                EventType::ButtonPress => (),
+                _ => return gtk::Inhibit(false),
+            }
             if button_clone.get_active() {
                 // ignore deactivating toggle-button
                 return Inhibit(true)

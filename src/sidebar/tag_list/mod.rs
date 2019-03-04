@@ -87,4 +87,8 @@ impl TagList {
         self.list.insert(&tag_widget.borrow().row(), pos);
         self.tags.borrow_mut().insert(tag.id.clone(), tag_widget);
     }
+
+    pub fn deselect(&self) {
+        self.list.unselect_all();
+    }
 }

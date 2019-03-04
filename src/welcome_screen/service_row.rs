@@ -154,22 +154,27 @@ impl ServiceRow {
 
         let info_revealer = self.info_revealer.clone();
         self.arrow_event.borrow().connect_button_press_event(move |widget, event| {
-            if event.get_event_type() == EventType::ButtonPress {
-                let arrow_image = widget.get_child().unwrap();
-                let context = arrow_image.get_style_context().unwrap();
-                let expanded = handle.borrow().show_info;
-                if !expanded {
-                    context.add_class("backward-arrow-expanded");
-                    context.remove_class("backward-arrow-collapsed");
-                    info_revealer.borrow().set_reveal_child(true);
-                }
-                else {
-                    context.remove_class("backward-arrow-expanded");
-                    context.add_class("backward-arrow-collapsed");
-                    info_revealer.borrow().set_reveal_child(false);
-                }
-                handle.borrow_mut().show_info = !expanded;
+            if event.get_button() != 1 {
+                return gtk::Inhibit(false)
             }
+            match event.get_event_type() {
+                EventType::ButtonPress => (),
+                _ => return gtk::Inhibit(false),
+            }
+            let arrow_image = widget.get_child().unwrap();
+            let context = arrow_image.get_style_context().unwrap();
+            let expanded = handle.borrow().show_info;
+            if !expanded {
+                context.add_class("backward-arrow-expanded");
+                context.remove_class("backward-arrow-collapsed");
+                info_revealer.borrow().set_reveal_child(true);
+            }
+            else {
+                context.remove_class("backward-arrow-expanded");
+                context.add_class("backward-arrow-collapsed");
+                info_revealer.borrow().set_reveal_child(false);
+            }
+            handle.borrow_mut().show_info = !expanded;
             gtk::Inhibit(true)
         });
     }
