@@ -1,14 +1,16 @@
-pub mod change_set;
-pub mod category;
-pub mod feed;
-pub mod item;
-pub mod tree;
-pub mod dnd_action;
+mod change_set;
+mod category;
+mod feed;
+mod item;
+mod tree;
+mod dnd_action;
+mod selection;
 mod error;
 
-pub use self::tree::FeedListTree;
-pub use self::category::FeedListCategoryModel;
-pub use self::feed::FeedListFeedModel;
-pub use self::change_set::FeedListChangeSet;
-pub use self::item::FeedListItem;
-pub use self::dnd_action::FeedListDndAction;
+pub use tree::FeedListTree;
+pub use category::FeedListCategoryModel;
+pub use feed::FeedListFeedModel;
+pub use change_set::FeedListChangeSet;
+pub use item::FeedListItem;
+pub use dnd_action::FeedListDndAction;
+pub use selection::FeedListSelection;

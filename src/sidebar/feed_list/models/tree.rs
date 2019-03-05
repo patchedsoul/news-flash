@@ -13,6 +13,7 @@ use news_flash::models::{
     FeedID,
     FavIcon,
 };
+use super::FeedListSelection;
 use super::error::{
     FeedListModelError,
     FeedListModelErrorKind,
@@ -299,10 +300,10 @@ impl FeedListTree {
 
     pub fn calculate_dnd(&self, pos: i32) -> Result<(CategoryID, i32), FeedListModelError> {
         let mut pos_iter = 0;
-        self.calc_subcategory(&self.top_level, &self.top_level_id, pos, &mut pos_iter)
+        self.calc_dnd_subcategory(&self.top_level, &self.top_level_id, pos, &mut pos_iter)
     }
 
-    fn calc_subcategory(&self,
+    fn calc_dnd_subcategory(&self,
         category: &Vec<FeedListItem>,
         parent_id: &CategoryID,
         list_pos: i32,
@@ -320,7 +321,7 @@ impl FeedListTree {
             local_pos_iter += 1;
 
             if let FeedListItem::Category(model) = item {
-                if let Ok((parent, pos)) = self.calc_subcategory(&model.children, &model.id, list_pos, global_pos_iter) {
+                if let Ok((parent, pos)) = self.calc_dnd_subcategory(&model.children, &model.id, list_pos, global_pos_iter) {
                     return Ok((parent, pos));
                 }
             }
@@ -336,21 +337,49 @@ impl FeedListTree {
         return Err(FeedListModelErrorKind::DnD)?
     }
 
-    #[allow(dead_code)]
-    pub fn print(&self) {
-        self.print_internal(&self.top_level, 0);
+    pub fn calculate_selection(&self, selected_index: i32) -> Option<FeedListSelection> {
+        let mut index = 0;
+        return Self::calculate_selection_internal(selected_index + 1, &self.top_level, &mut index);
     }
 
-    fn print_internal(&self, category: &Vec<FeedListItem>, level: i32) {
+    fn calculate_selection_internal(selected_index: i32, items: &Vec<FeedListItem>, index: &mut i32) -> Option<FeedListSelection> {
+        for item in items {
+            *index += 1;
+            match item {
+                FeedListItem::Feed(feed) => {
+                    if *index == selected_index {
+                        return Some(FeedListSelection::Feed(feed.id.clone()))
+                    }
+                },
+                FeedListItem::Category(category) => {
+                    if *index == selected_index {
+                        return Some(FeedListSelection::Cateogry(category.id.clone()))
+                    }
+                    if let Some(selection) = Self::calculate_selection_internal(selected_index, &category.children, index) {
+                        return Some(selection)
+                    }
+                },
+            }
+        }
+        None
+    }
+
+    #[allow(dead_code)]
+    pub fn print(&self) {
+        self.print_internal(&self.top_level, &mut 0);
+    }
+
+    fn print_internal(&self, category: &Vec<FeedListItem>, level: &mut i32) {
+        let mut new_level = *level + 1;
         for item in category {
-            for _ in 0..level+1 {
+            for _ in 0..new_level {
                 print!("-- ");
             }
             
             match item {
                 FeedListItem::Category(model) => {
                     println!("{}", model.label);
-                    self.print_internal(&model.children, level+1);
+                    self.print_internal(&model.children, &mut new_level);
                 },
                 FeedListItem::Feed(model) => {
                     println!("{}", model.label);

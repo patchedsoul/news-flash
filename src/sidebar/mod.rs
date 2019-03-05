@@ -1,5 +1,6 @@
 mod feed_list;
 mod tag_list;
+pub mod models;
 
 use std::rc::Rc;
 use std::cell::RefCell;
@@ -21,16 +22,25 @@ use gdk::{
     EventMask,
     EventType,
 };
+use glib::Variant;
+use gio::{
+    ActionMapExt,
+    ActionExt,
+};
 use crate::gtk_util::GtkUtil;
 use news_flash::models::{
     PluginIcon,
     PluginID,
 };
 use news_flash::NewsFlash;
+use models::SidebarSelection;
 use crate::main_window::GtkHandle;
-use self::feed_list::FeedList;
-use self::tag_list::TagList;
-pub use feed_list::models::FeedListTree;
+use feed_list::FeedList;
+use tag_list::TagList;
+pub use feed_list::models::{
+    FeedListTree,
+    FeedListSelection,
+};
 pub use tag_list::models::TagListModel;
 
 #[derive(Clone, Debug)]
@@ -74,7 +84,8 @@ impl SideBar {
 
         let feed_list_all_event_box = all_event_box.clone();
         let feed_list_tag_list_handle = tag_list_handle.clone();
-        feed_list_handle.borrow().widget().connect_row_selected(move |_list, row| {
+        let feed_list_feed_list_handle = feed_list_handle.clone();
+        feed_list_handle.borrow().widget().connect_row_selected(move |list, row| {
             // do nothing if selection was cleared
             if row.is_none() {
                 return
@@ -83,11 +94,24 @@ impl SideBar {
             let context = feed_list_all_event_box.get_style_context().unwrap();
             context.remove_class("selected");
             feed_list_tag_list_handle.borrow().deselect();
+
+            if let Some(selection) = feed_list_feed_list_handle.borrow().get_selection() {
+                let selection = SidebarSelection::from_feed_list_selection(selection);
+                if let Ok(selection_json) = serde_json::to_string(&selection) {
+                    if let Ok(main_window) = GtkUtil::get_main_window(list) {
+                        if let Some(action) = main_window.lookup_action("sidebar-selection") {
+                            let selection = Variant::from(&selection_json);
+                            action.activate(Some(&selection));
+                        }
+                    }
+                }
+            }
         });
 
         let tag_list_all_event_box = all_event_box.clone();
         let tag_list_feed_list_handle = feed_list_handle.clone();
-        tag_list_handle.borrow().widget().connect_row_selected(move |_list, row| {
+        let tag_list_tag_list_handle = tag_list_handle.clone();
+        tag_list_handle.borrow().widget().connect_row_selected(move |list, row| {
             // do nothing if selection was cleared
             if row.is_none() {
                 return
@@ -96,6 +120,18 @@ impl SideBar {
             let context = tag_list_all_event_box.get_style_context().unwrap();
             context.remove_class("selected");
             tag_list_feed_list_handle.borrow().deselect();
+
+            if let Some(selected_id) = tag_list_tag_list_handle.borrow().get_selection() {
+                let selection = SidebarSelection::Tag(selected_id);
+                if let Ok(selection_json) = serde_json::to_string(&selection) {
+                    if let Ok(main_window) = GtkUtil::get_main_window(list) {
+                        if let Some(action) = main_window.lookup_action("sidebar-selection") {
+                            let selection = Variant::from(&selection_json);
+                            action.activate(Some(&selection));
+                        }
+                    }
+                }
+            }
         });
 
         let scale = sidebar
@@ -252,6 +288,16 @@ impl SideBar {
             context.add_class("selected");
             feed_list_handle.borrow().deselect();
             tag_list_handle.borrow().deselect();
+
+            let selection = SidebarSelection::All;
+            if let Ok(selection_json) = serde_json::to_string(&selection) {
+                if let Ok(main_window) = GtkUtil::get_main_window(widget) {
+                    if let Some(action) = main_window.lookup_action("sidebar-selection") {
+                        let selection = Variant::from(&selection_json);
+                        action.activate(Some(&selection));
+                    }
+                }
+            }
             gtk::Inhibit(false)
         });
     }

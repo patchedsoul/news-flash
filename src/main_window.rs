@@ -114,6 +114,7 @@ impl MainWindow {
         MainWindowActions::setup_login_action(&window, &news_flash_handle, &oauht_login_handle, &pw_login_handle);
         MainWindowActions::setup_sync_paned_action(&window, &content_page_handle, &content_header_handle);
         MainWindowActions::setup_sync_action(&window, &content_page_handle, &content_header_handle, &news_flash_handle);
+        MainWindowActions::setup_sidebar_selection_action(&window);
 
         if let Ok(news_flash_lib) = NewsFlash::try_load(&PathBuf::from(DATA_DIR)) {
             info!("Successful load from config");
@@ -196,19 +197,19 @@ impl MainWindow {
     fn demo_tag_list() -> Vec<Tag> {
         let tag_1 = Tag {
             tag_id: TagID::new("Tag_1"),
-            label: "Demo Label 1".to_owned(),
+            label: "Tag Label 1".to_owned(),
             color: Some("#4696C8".to_owned()),
             sort_index: Some(0),
         };
         let tag_2 = Tag {
             tag_id: TagID::new("Tag_2"),
-            label: "Demo Label 2".to_owned(),
+            label: "Tag Label 2".to_owned(),
             color: Some("#FF0000".to_owned()),
             sort_index: Some(1),
         };
         let tag_3 = Tag {
             tag_id: TagID::new("Tag_3"),
-            label: "Demo Label 2".to_owned(),
+            label: "Tag Label 3".to_owned(),
             color: Some("#2565FA".to_owned()),
             sort_index: Some(2),
         };

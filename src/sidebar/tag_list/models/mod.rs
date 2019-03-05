@@ -3,7 +3,9 @@ mod change_set;
 
 use failure::Error;
 use failure::format_err;
-use std::collections::HashMap;
+use std::collections::{
+    HashSet,
+};
 pub use tag::TagListTagModel;
 pub use change_set::TagListChangeSet;
 use news_flash::models::{
@@ -13,37 +15,35 @@ use news_flash::models::{
 
 #[derive(Clone, Debug)]
 pub struct TagListModel {
-    tags: HashMap<TagID, TagListTagModel>,
+    models: Vec<TagListTagModel>,
+    tags: HashSet<TagID>,
 }
 
 impl TagListModel {
     pub fn new() -> Self {
         TagListModel {
-            tags: HashMap::new(),
+            models: Vec::new(),
+            tags: HashSet::new(),
         }
     }
 
     pub fn add(&mut self, tag: &Tag, item_count: i32) -> Result<(), Error> {
-        if self.tags.contains_key(&tag.tag_id) {
+        if self.tags.contains(&tag.tag_id) {
             return Err(format_err!("some err"))
         }
         let model = TagListTagModel::new(tag, item_count);
-        self.tags.insert(tag.tag_id.clone(), model);
+        self.tags.insert(model.id.clone());
+        self.models.push(model);
         Ok(())
     }
 
-    fn get_map(&self) -> &HashMap<TagID, TagListTagModel> {
-        &self.tags
-    }
-
-    pub fn generate_diff(&self, other: &TagListModel) -> Vec<TagListChangeSet> {
+    pub fn generate_diff(&mut self, other: &mut TagListModel) -> Vec<TagListChangeSet> {
         let mut diff : Vec<TagListChangeSet> = Vec::new();
         let mut list_pos = 0;
         let mut old_index = 0;
         let mut new_index = 0;
-        let map = other.get_map();
-        let mut old_items: Vec<&TagListTagModel> = self.tags.iter().map(|(_, value)| value).collect();
-        let mut new_items: Vec<&TagListTagModel> = map.iter().map(|(_, value)| value).collect();
+        let old_items = &mut self.models;
+        let new_items = &mut other.models;
         old_items.sort_by(|a, b| a.cmp(b));
         new_items.sort_by(|a, b| a.cmp(b));
         loop {
@@ -56,7 +56,7 @@ impl TagListModel {
             }
 
             // add all items after old_items ran out of items to compare
-            if let Some(&new_item) = new_item {
+            if let Some(new_item) = new_item {
                 if old_item.is_none() {
                     new_index += 1;
                     diff.push(TagListChangeSet::Add(new_item.clone(), list_pos));
@@ -99,11 +99,16 @@ impl TagListModel {
         }
         diff
     }
+
+    pub fn calculate_selection(&self, selected_index: i32) -> Option<(usize, &TagListTagModel)> {
+        self.models.iter().enumerate().find(|(index, _)| index == &(selected_index as usize))
+    }
 }
 
 #[cfg(test)]
 mod tests {
     use super::TagListModel;
+    use super::TagListChangeSet;
     use news_flash::models::{
         Tag,
         TagID,
@@ -143,7 +148,8 @@ mod tests {
         new_list.add(&tag_2, 1).unwrap();
         new_list.add(&tag_3, 0).unwrap();
 
-        let diff = old_list.generate_diff(&new_list);
-        println!("{:?}", diff);
+        let diff = old_list.generate_diff(&mut new_list);
+        assert_eq!(diff.len(), 5);
+        assert_eq!(diff.get(0), Some(&TagListChangeSet::Remove(TagID::new("Tag_1"))));
     }
 }

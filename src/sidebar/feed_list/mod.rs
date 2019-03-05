@@ -27,6 +27,7 @@ use crate::sidebar::feed_list::{
         FeedListFeedModel,
         FeedListChangeSet,
         FeedListDndAction,
+        FeedListSelection,
     },
 };
 use gtk::{
@@ -289,5 +290,13 @@ impl FeedList {
 
     pub fn deselect(&self) {
         self.list.unselect_all();
+    }
+
+    pub fn get_selection(&self) -> Option<FeedListSelection> {
+        if let Some(row) = self.list.get_selected_row() {
+            let index = row.get_index();
+            return self.tree.borrow().calculate_selection(index)
+        }
+        None
     }
 }

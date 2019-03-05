@@ -11,6 +11,7 @@ use failure::{
 };
 use gtk::{
     ListBoxExt,
+    ListBoxRowExt,
     ContainerExt,
 };
 use std::rc::Rc;
@@ -56,7 +57,7 @@ impl TagList {
     pub fn update(&mut self, new_list: TagListModel) {
         let old_list = self.list_model.clone();
         self.list_model = Rc::new(RefCell::new(new_list));
-        let list_diff = old_list.borrow().generate_diff(&self.list_model.borrow());
+        let list_diff = old_list.borrow_mut().generate_diff(&mut self.list_model.borrow_mut());
         for diff in list_diff {
             match diff {
                 TagListChangeSet::Remove(id) => {
@@ -90,5 +91,15 @@ impl TagList {
 
     pub fn deselect(&self) {
         self.list.unselect_all();
+    }
+
+    pub fn get_selection(&self) -> Option<TagID> {
+        if let Some(row) = self.list.get_selected_row() {
+            let index = row.get_index();
+            if let Some((_, model)) = self.list_model.borrow().calculate_selection(index) {
+                return Some(model.id.clone())
+            }
+        }
+        None
     }
 }
