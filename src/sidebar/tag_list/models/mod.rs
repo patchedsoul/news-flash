@@ -42,10 +42,10 @@ impl TagListModel {
         let mut list_pos = 0;
         let mut old_index = 0;
         let mut new_index = 0;
+        self.sort();
+        other.sort();
         let old_items = &mut self.models;
         let new_items = &mut other.models;
-        old_items.sort_by(|a, b| a.cmp(b));
-        new_items.sort_by(|a, b| a.cmp(b));
         loop {
             let old_item = old_items.get(old_index);
             let new_item = new_items.get(new_index);
@@ -98,6 +98,10 @@ impl TagListModel {
             }
         }
         diff
+    }
+
+    fn sort(&mut self) {
+        self.models.sort_by(|a, b| a.cmp(b));
     }
 
     pub fn calculate_selection(&self, selected_index: i32) -> Option<(usize, &TagListTagModel)> {

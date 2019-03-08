@@ -24,6 +24,7 @@ use crate::sidebar::{
     FeedListTree,
     TagListModel,
 };
+use crate::article_list::ArticleList;
 use news_flash::models::{
     PluginID,
 };
@@ -34,6 +35,7 @@ pub struct ContentPage {
     page: gtk::Box,
     paned: gtk::Paned,
     sidebar: SideBar,
+    article_list: ArticleList,
 }
 
 impl ContentPage {
@@ -43,6 +45,7 @@ impl ContentPage {
         let builder = Builder::new_from_string(ui_string);
         let page : gtk::Box = builder.get_object("page").ok_or(format_err!("some err"))?;
         let feed_list_box : gtk::Box = builder.get_object("feedlist_box").ok_or(format_err!("some err"))?;
+        let article_list_box : gtk::Box = builder.get_object("articlelist_box").ok_or(format_err!("some err"))?;
         let paned : gtk::Paned = builder.get_object("paned_lists_article_view").ok_or(format_err!("some err"))?;
         let sidebar_paned : gtk::Paned = builder.get_object("paned_lists").ok_or(format_err!("some err"))?;
         sidebar_paned.set_position(SIDEBAR_PANED_DEFAULT_POS);
@@ -57,13 +60,16 @@ impl ContentPage {
         });
         
         let sidebar = SideBar::new()?;
+        let article_list = ArticleList::new()?;
 
         feed_list_box.pack_start(&sidebar.widget(), false, true, 0);
+        article_list_box.pack_start(&article_list.widget(), false, true, 0);
 
         Ok(ContentPage {
             page: page,
             paned: paned,
             sidebar: sidebar,
+            article_list: article_list,
         })
     }
 

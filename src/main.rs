@@ -7,6 +7,7 @@ mod gtk_util;
 mod error_dialog;
 mod content_page;
 mod color;
+mod article_list;
 
 use gio::{
     self,
