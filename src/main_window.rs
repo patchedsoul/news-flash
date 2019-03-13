@@ -26,6 +26,7 @@ use crate::sidebar::{
     FeedListTree,
     TagListModel,
 };
+use crate::article_list::ArticleListModel;
 use log::{
     info,
     warn,
@@ -126,6 +127,7 @@ impl MainWindow {
 
             // try to fill content page with data
             Self::update_sidebar(&news_flash_handle, &content_page_handle);
+            Self::update_article_list(&news_flash_handle, &content_page_handle);
 
             window.set_titlebar(&content_header_handle.borrow().widget());
         }
@@ -148,6 +150,25 @@ impl MainWindow {
 
     pub fn present(&self) {
         self.widget.present();
+    }
+
+    pub fn update_article_list(
+        news_flash_handle: &GtkHandle<Option<NewsFlash>>,
+        content_page_handle: &GtkHandle<ContentPage>,
+    ) {
+        if let Some(news_flash) = news_flash_handle.borrow_mut().as_mut() {
+            Self::update_article_list_from_ref(news_flash, content_page_handle);
+        }
+    }
+
+    pub fn update_article_list_from_ref(
+        news_flash: &mut NewsFlash,
+        content_page_handle: &GtkHandle<ContentPage>,
+    ) {
+        let mut list_model = ArticleListModel::new();
+        let mut articles = news_flash.get_articles(None, None, None, None, None, None, None, None, None, None).unwrap();
+        let _ : Vec<_> = articles.drain(..).map(|article| list_model.add(article)).collect();
+        content_page_handle.borrow_mut().update_article_list(list_model);
     }
 
     pub fn update_sidebar(

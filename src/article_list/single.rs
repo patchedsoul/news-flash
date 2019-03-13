@@ -1,13 +1,29 @@
 use gtk::{
     Builder,
+    ContainerExt,
+    ListBoxExt,
 };
+use news_flash::models::{
+    ArticleID,
+    article::{
+        Article,
+        Read,
+        Marked,
+    },
+};
+use super::article_row::ArticleRow;
+use std::collections::HashMap;
 use std::str;
 use failure::Error;
 use failure::format_err;
+use std::rc::Rc;
+use std::cell::RefCell;
 use crate::Resources;
+use crate::main_window::GtkHandle;
 
 pub struct SingleArticleList {
     scroll: gtk::ScrolledWindow,
+    articles: HashMap<ArticleID, GtkHandle<ArticleRow>>,
     list: gtk::ListBox,
 }
 
@@ -21,11 +37,33 @@ impl SingleArticleList {
 
         Ok(SingleArticleList {
             scroll: scroll,
+            articles: HashMap::new(),
             list: list,
         })
     }
 
     pub fn widget(&self) -> gtk::ScrolledWindow {
         self.scroll.clone()
+    }
+
+    pub fn add(&mut self, article: Article, pos: i32) {
+        let article_row = ArticleRow::new().unwrap();
+        self.list.insert(&article_row.widget(), pos);
+        self.articles.insert(article.article_id.clone(), Rc::new(RefCell::new(article_row)));
+    }
+
+    pub fn remove(&mut self, id: ArticleID) {
+        if let Some(article_row) = self.articles.get(&id) {
+            self.list.remove(&article_row.borrow().widget());
+        }
+        let _ = self.articles.remove(&id);
+    }
+
+    pub fn update_marked(&mut self, id: ArticleID, marked: Marked) {
+
+    }
+
+    pub fn update_read(&mut self, id: ArticleID, read: Read) {
+
     }
 }

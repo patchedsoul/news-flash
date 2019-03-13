@@ -25,6 +25,7 @@ use crate::sidebar::{
     TagListModel,
 };
 use crate::article_list::ArticleList;
+use crate::article_list::ArticleListModel;
 use news_flash::models::{
     PluginID,
 };
@@ -81,6 +82,10 @@ impl ContentPage {
         self.sidebar.update_feedlist(feed_tree);
         self.sidebar.update_taglist(tag_list);
         self.sidebar.update_unread_all(total_unread);
+    }
+
+    pub fn update_article_list(&mut self, list_model: ArticleListModel) {
+        self.article_list.update(list_model);
     }
 
     pub fn set_service(&self, id: &PluginID, user_name: Option<String>) -> Result<(), Error> {

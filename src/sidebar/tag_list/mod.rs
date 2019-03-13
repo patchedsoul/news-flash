@@ -20,7 +20,6 @@ use std::collections::HashMap;
 use std::str;
 use crate::Resources;
 use crate::main_window::GtkHandle;
-use crate::main_window::GtkHandleMap;
 use models::{
     TagListModel,
     TagListChangeSet,
@@ -31,7 +30,7 @@ use tag_row::TagRow;
 #[derive(Clone, Debug)]
 pub struct TagList {
     list: gtk::ListBox,
-    tags: GtkHandleMap<TagID, GtkHandle<TagRow>>,
+    tags: HashMap<TagID, GtkHandle<TagRow>>,
     list_model: GtkHandle<TagListModel>,
 }
 
@@ -44,7 +43,7 @@ impl TagList {
 
         let tag_list = TagList {
             list: list_box,
-            tags: Rc::new(RefCell::new(HashMap::new())),
+            tags: HashMap::new(),
             list_model: Rc::new(RefCell::new(TagListModel::new())),
         };
         Ok(tag_list)
@@ -61,21 +60,21 @@ impl TagList {
         for diff in list_diff {
             match diff {
                 TagListChangeSet::Remove(id) => {
-                    if let Some(tag_handle) = self.tags.borrow().get(&id) {
+                    if let Some(tag_handle) = self.tags.get(&id) {
                         self.list.remove(&tag_handle.borrow().row());
                     }
-                    self.tags.borrow_mut().remove(&id);
+                    self.tags.remove(&id);
                 },
                 TagListChangeSet::Add(model, pos) => {
                     self.add_tag(&model, pos);
                 },
                 TagListChangeSet::UpdateItemCount(id, count) => {
-                    if let Some(tag_handle) = self.tags.borrow().get(&id) {
+                    if let Some(tag_handle) = self.tags.get(&id) {
                         tag_handle.borrow().update_item_count(count);
                     }
                 },
                 TagListChangeSet::UpdateLabel(id, label) => {
-                    if let Some(tag_handle) = self.tags.borrow().get(&id) {
+                    if let Some(tag_handle) = self.tags.get(&id) {
                         tag_handle.borrow().update_title(&label);
                     }
                 },
@@ -86,7 +85,7 @@ impl TagList {
     fn add_tag(&mut self, tag: &TagListTagModel, pos: i32) {
         let tag_widget = TagRow::new(tag);
         self.list.insert(&tag_widget.borrow().row(), pos);
-        self.tags.borrow_mut().insert(tag.id.clone(), tag_widget);
+        self.tags.insert(tag.id.clone(), tag_widget);
     }
 
     pub fn deselect(&self) {

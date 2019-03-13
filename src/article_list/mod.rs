@@ -1,22 +1,27 @@
 mod single;
 mod models;
+mod article_row;
 
 use gtk::{
     Builder,
     StackExt,
 };
 use single::SingleArticleList;
-use models::ArticleListModel;
+pub use models::ArticleListModel;
+use models::ArticleListChangeSet;
 use std::str;
 use failure::Error;
 use failure::format_err;
 use crate::Resources;
+use std::rc::Rc;
+use std::cell::RefCell;
+use crate::main_window::GtkHandle;
 
 pub struct ArticleList {
     stack: gtk::Stack,
     list_1: SingleArticleList,
     list_2: SingleArticleList,
-    model: ArticleListModel,
+    list_model: GtkHandle<ArticleListModel>,
 }
 
 impl ArticleList {
@@ -38,11 +43,34 @@ impl ArticleList {
             stack: stack,
             list_1: list_1,
             list_2: list_2,
-            model: model,
+            list_model: Rc::new(RefCell::new(model)),
         })
     }
 
     pub fn widget(&self) -> gtk::Stack {
         self.stack.clone()
+    }
+
+    pub fn update(&mut self, new_list: ArticleListModel) {
+        let old_list = self.list_model.clone();
+        self.list_model = Rc::new(RefCell::new(new_list));
+        let list_diff = old_list.borrow_mut().generate_diff(&mut self.list_model.borrow_mut());
+
+        for diff in list_diff {
+            match diff {
+                ArticleListChangeSet::Add(article, pos) => {
+                    self.list_1.add(article, pos);
+                },
+                ArticleListChangeSet::Remove(id) => {
+                    self.list_1.remove(id);
+                },
+                ArticleListChangeSet::UpdateMarked(id, marked) => {
+                    self.list_1.update_marked(id, marked);
+                },
+                ArticleListChangeSet::UpdateRead(id, read) => {
+                    self.list_1.update_read(id, read);
+                },
+            }
+        }
     }
 }

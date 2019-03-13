@@ -3,7 +3,7 @@ mod change_set;
 use std::collections::HashSet;
 use failure::Error;
 use failure::format_err;
-use change_set::ArticleListChangeSet;
+pub use change_set::ArticleListChangeSet;
 use news_flash::models::{
     Article,
     ArticleID,
