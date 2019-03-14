@@ -11,6 +11,7 @@ use news_flash::models::{
     ArticleID,
     FavIcon,
 };
+use crate::util::DateUtil;
 use failure::Error;
 use failure::format_err;
 use std::str;
@@ -57,6 +58,7 @@ impl ArticleRow {
         }
 
         feed_label.set_text(&feed_name);
+        date_label.set_text(&DateUtil::format(&article.date));
 
         Ok(ArticleRow {
             article_id: article.article_id.clone(),
