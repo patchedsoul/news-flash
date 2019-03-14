@@ -18,7 +18,7 @@ use gio::{
     ActionExt,
     ActionMapExt,
 };
-use crate::gtk_util::GtkUtil;
+use crate::util::GtkUtil;
 use crate::sidebar::{
     SideBar,
     FeedListTree,

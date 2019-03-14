@@ -2,7 +2,7 @@ use failure::Error;
 use failure::format_err;
 use crate::Resources;
 use std::str;
-use crate::gtk_util::GtkUtil;
+use crate::util::GtkUtil;
 use gtk::{
     Builder,
     PanedExt,

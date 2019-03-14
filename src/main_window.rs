@@ -32,6 +32,7 @@ use log::{
     warn,
 };
 use news_flash::NewsFlash;
+use news_flash::ArticleOrder;
 use news_flash::models::{
     Tag,
     TagID,
@@ -165,9 +166,9 @@ impl MainWindow {
         news_flash: &mut NewsFlash,
         content_page_handle: &GtkHandle<ContentPage>,
     ) {
-        let mut list_model = ArticleListModel::new();
-        let mut articles = news_flash.get_articles(None, None, None, None, None, None, None, None, None, None).unwrap();
-        let _ : Vec<_> = articles.drain(..).map(|article| list_model.add(article)).collect();
+        let mut list_model = ArticleListModel::new(ArticleOrder::NewestFirst);
+        let mut articles = news_flash.get_articles(None, None, Some(ArticleOrder::NewestFirst), None, None, None, None, None, None, None).unwrap();
+        let _ : Vec<_> = articles.drain(..).map(|article| list_model.add(article, String::from("asdf"), None)).collect();
         content_page_handle.borrow_mut().update_article_list(list_model);
     }
 

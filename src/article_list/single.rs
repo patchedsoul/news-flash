@@ -5,6 +5,7 @@ use gtk::{
 };
 use news_flash::models::{
     ArticleID,
+    FavIcon,
     article::{
         Article,
         Read,
@@ -46,8 +47,8 @@ impl SingleArticleList {
         self.scroll.clone()
     }
 
-    pub fn add(&mut self, article: Article, pos: i32) {
-        let article_row = ArticleRow::new().unwrap();
+    pub fn add(&mut self, article: Article, pos: i32, feed_name: String, icon: Option<FavIcon>) {
+        let article_row = ArticleRow::new(&article, feed_name, icon).unwrap();
         self.list.insert(&article_row.widget(), pos);
         self.articles.insert(article.article_id.clone(), Rc::new(RefCell::new(article_row)));
     }

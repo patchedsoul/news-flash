@@ -27,7 +27,7 @@ use gio::{
     ActionMapExt,
     ActionExt,
 };
-use crate::gtk_util::GtkUtil;
+use crate::util::GtkUtil;
 use news_flash::models::{
     PluginIcon,
     PluginID,

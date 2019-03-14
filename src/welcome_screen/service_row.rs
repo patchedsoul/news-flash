@@ -25,7 +25,7 @@ use news_flash::models::{
     ServiceType,
     ServicePrice,
 };
-use crate::gtk_util::GtkUtil;
+use crate::util::GtkUtil;
 use crate::main_window::GtkHandle;
 
 #[derive(Clone, Debug)]

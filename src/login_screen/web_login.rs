@@ -35,7 +35,7 @@ use news_flash::models::{
     LoginData,
     OAuthData,
 };
-use crate::gtk_util::GtkUtil;
+use crate::util::GtkUtil;
 use crate::main_window::GtkHandle;
 use crate::error_dialog::ErrorDialog;
 use std::rc::Rc;

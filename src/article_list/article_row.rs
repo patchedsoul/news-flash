@@ -4,6 +4,12 @@ use gtk::{
     WidgetExt,
     ContainerExt,
     StyleContextExt,
+    LabelExt,
+};
+use news_flash::models::{
+    Article,
+    ArticleID,
+    FavIcon,
 };
 use failure::Error;
 use failure::format_err;
@@ -11,6 +17,7 @@ use std::str;
 use crate::Resources;
 
 pub struct ArticleRow {
+    article_id: ArticleID,
     widget: gtk::ListBoxRow,
     favicon: gtk::Image,
     article_eventbox: gtk::EventBox,
@@ -25,7 +32,7 @@ pub struct ArticleRow {
 }
 
 impl ArticleRow {
-    pub fn new() -> Result<Self, Error> {
+    pub fn new(article: &Article, feed_name: String, icon: Option<FavIcon>) -> Result<Self, Error> {
         let ui_data = Resources::get("ui/article.ui").ok_or(format_err!("some err"))?;
         let ui_string = str::from_utf8(ui_data.as_ref())?;
         let builder = Builder::new_from_string(ui_string);
@@ -41,7 +48,18 @@ impl ArticleRow {
         let feed_label : gtk::Label = builder.get_object("feed_label").ok_or(format_err!("some err"))?;
         let date_label : gtk::Label = builder.get_object("date_label").ok_or(format_err!("some err"))?;
 
+        if let Some(title) = &article.title {
+            title_label.set_text(&title);
+        }
+        
+        if let Some(summary) = &article.summary {
+            summary_label.set_text(summary);
+        }
+
+        feed_label.set_text(&feed_name);
+
         Ok(ArticleRow {
+            article_id: article.article_id.clone(),
             widget: Self::create_row(&article_eventbox),
             favicon: favicon,
             article_eventbox: article_eventbox,

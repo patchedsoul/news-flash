@@ -3,7 +3,7 @@ mod main_window_actions;
 mod sidebar;
 mod welcome_screen;
 mod login_screen;
-mod gtk_util;
+mod util;
 mod error_dialog;
 mod content_page;
 mod color;

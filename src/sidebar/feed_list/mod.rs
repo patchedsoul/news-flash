@@ -5,7 +5,7 @@ pub mod error;
 
 
 use crate::Resources;
-use crate::gtk_util::GtkUtil;
+use crate::util::GtkUtil;
 use std::str;
 use std::rc::Rc;
 use std::cell::RefCell;

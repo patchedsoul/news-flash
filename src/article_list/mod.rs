@@ -9,6 +9,7 @@ use gtk::{
 use single::SingleArticleList;
 pub use models::ArticleListModel;
 use models::ArticleListChangeSet;
+use news_flash::ArticleOrder;
 use std::str;
 use failure::Error;
 use failure::format_err;
@@ -34,7 +35,7 @@ impl ArticleList {
         let list_1 = SingleArticleList::new()?;
         let list_2 = SingleArticleList::new()?;
 
-        let model = ArticleListModel::new();
+        let model = ArticleListModel::new(ArticleOrder::NewestFirst);
 
         stack.add_named(&list_1.widget(), "list_1");
         stack.add_named(&list_2.widget(), "list_2");
@@ -58,8 +59,8 @@ impl ArticleList {
 
         for diff in list_diff {
             match diff {
-                ArticleListChangeSet::Add(article, pos) => {
-                    self.list_1.add(article, pos);
+                ArticleListChangeSet::Add(article, pos, feed_name, favicon) => {
+                    self.list_1.add(article, pos, feed_name, favicon);
                 },
                 ArticleListChangeSet::Remove(id) => {
                     self.list_1.remove(id);

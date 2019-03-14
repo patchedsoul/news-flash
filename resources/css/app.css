@@ -81,6 +81,16 @@
 }
 
 /******************/
+/*  article list  */
+/******************/
+
+.article-list row {
+	border-bottom-width: 1px;
+	border-bottom-style: solid;
+	border-bottom-color: rgba(128, 128, 128, 0.3);
+}
+
+/******************/
 /* sidebar footer */
 /******************/
 
@@ -122,19 +132,13 @@
 .h4 {
 	font-weight: bold
 }
-.preview {
+.small {
 	font-size: small;
 }
-.headline-read,
-.headline-unread {
+.headline {
 	font-style: normal;
 	font-size: large;
-}
-.headline-read {
 	font-weight: normal;
-}
-.headline-unread {
-	font-weight: bold;
 }
 
 

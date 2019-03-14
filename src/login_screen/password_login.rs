@@ -23,7 +23,7 @@ use gio::{
     ActionMapExt,
     ActionExt,
 };
-use crate::gtk_util::GtkUtil;
+use crate::util::GtkUtil;
 use crate::error_dialog::ErrorDialog;
 use crate::Resources;
 use failure::{
