@@ -4,11 +4,14 @@ use gtk::{
     WidgetExt,
     ContainerExt,
     StyleContextExt,
+    StackExt,
     LabelExt,
     ImageExt,
 };
 use news_flash::models::{
     ArticleID,
+    Read,
+    Marked,
 };
 use super::models::ArticleListArticleModel;
 use crate::util::{
@@ -82,6 +85,20 @@ impl ArticleRow {
                 let surface = GtkUtil::create_surface_from_bytes(data, 16, 16, scale).unwrap();
                 favicon.set_from_surface(&surface);
             }
+        }
+
+        match article.unread {
+            Read::Read => unread_stack.set_visible_child_name("empty"),
+            Read::Unread => {
+                unread_stack.set_visible_child_name("unread");
+                let context = title_label.get_style_context().unwrap();
+                context.add_class("bold");
+            },
+        }
+
+        match article.marked {
+            Marked::Unmarked => marked_stack.set_visible_child_name("empty"),
+            Marked::Marked => marked_stack.set_visible_child_name("marked"),
         }
 
         Ok(ArticleRow {
