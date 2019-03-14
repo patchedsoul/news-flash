@@ -1,15 +1,14 @@
+use super::article::ArticleListArticleModel;
 use news_flash::models::{
-    Article,
     ArticleID,
     Read,
     Marked,
-    FavIcon
 };
 
 #[derive(Debug)]
 pub enum ArticleListChangeSet {
     Remove(ArticleID),
-    Add(Article, i32, String, Option<FavIcon>), // pos, feed_name, favicon
+    Add(ArticleListArticleModel, i32), // pos
     UpdateRead(ArticleID, Read),
     UpdateMarked(ArticleID, Marked),
 }
@@ -23,9 +22,9 @@ impl PartialEq for ArticleListChangeSet {
                     _ => false,
                 }
             },
-            ArticleListChangeSet::Add(model, pos, _, _) => {
+            ArticleListChangeSet::Add(model, pos) => {
                 match other {
-                    ArticleListChangeSet::Add(other_model, other_pos, _, _) => model.article_id == other_model.article_id && pos == other_pos,
+                    ArticleListChangeSet::Add(other_model, other_pos) => model.id == other_model.id && pos == other_pos,
                     _ => false,
                 }
             },

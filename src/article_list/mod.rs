@@ -59,8 +59,8 @@ impl ArticleList {
 
         for diff in list_diff {
             match diff {
-                ArticleListChangeSet::Add(article, pos, feed_name, favicon) => {
-                    self.list_1.add(article, pos, feed_name, favicon);
+                ArticleListChangeSet::Add(article, pos) => {
+                    self.list_1.add(article, pos);
                 },
                 ArticleListChangeSet::Remove(id) => {
                     self.list_1.remove(id);

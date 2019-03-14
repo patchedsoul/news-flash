@@ -12,6 +12,7 @@ use news_flash::models::{
         Marked,
     },
 };
+use super::models::ArticleListArticleModel;
 use super::article_row::ArticleRow;
 use std::collections::HashMap;
 use std::str;
@@ -47,10 +48,10 @@ impl SingleArticleList {
         self.scroll.clone()
     }
 
-    pub fn add(&mut self, article: Article, pos: i32, feed_name: String, icon: Option<FavIcon>) {
-        let article_row = ArticleRow::new(&article, feed_name, icon).unwrap();
+    pub fn add(&mut self, article: ArticleListArticleModel, pos: i32) {
+        let article_row = ArticleRow::new(&article).unwrap();
         self.list.insert(&article_row.widget(), pos);
-        self.articles.insert(article.article_id.clone(), Rc::new(RefCell::new(article_row)));
+        self.articles.insert(article.id.clone(), Rc::new(RefCell::new(article_row)));
     }
 
     pub fn remove(&mut self, id: ArticleID) {

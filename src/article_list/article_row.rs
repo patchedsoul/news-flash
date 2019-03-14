@@ -7,10 +7,9 @@ use gtk::{
     LabelExt,
 };
 use news_flash::models::{
-    Article,
     ArticleID,
-    FavIcon,
 };
+use super::models::ArticleListArticleModel;
 use crate::util::DateUtil;
 use failure::Error;
 use failure::format_err;
@@ -20,20 +19,16 @@ use crate::Resources;
 pub struct ArticleRow {
     article_id: ArticleID,
     widget: gtk::ListBoxRow,
-    favicon: gtk::Image,
     article_eventbox: gtk::EventBox,
     unread_eventbox: gtk::EventBox,
     marked_eventbox: gtk::EventBox,
     unread_stack: gtk::Stack,
     marked_stack: gtk::Stack,
     title_label: gtk::Label,
-    summary_label: gtk::Label,
-    feed_label: gtk::Label,
-    date_label: gtk::Label,
 }
 
 impl ArticleRow {
-    pub fn new(article: &Article, feed_name: String, icon: Option<FavIcon>) -> Result<Self, Error> {
+    pub fn new(article: &ArticleListArticleModel) -> Result<Self, Error> {
         let ui_data = Resources::get("ui/article.ui").ok_or(format_err!("some err"))?;
         let ui_string = str::from_utf8(ui_data.as_ref())?;
         let builder = Builder::new_from_string(ui_string);
@@ -49,30 +44,20 @@ impl ArticleRow {
         let feed_label : gtk::Label = builder.get_object("feed_label").ok_or(format_err!("some err"))?;
         let date_label : gtk::Label = builder.get_object("date_label").ok_or(format_err!("some err"))?;
 
-        if let Some(title) = &article.title {
-            title_label.set_text(&title);
-        }
-        
-        if let Some(summary) = &article.summary {
-            summary_label.set_text(summary);
-        }
-
-        feed_label.set_text(&feed_name);
+        title_label.set_text(&article.title);
+        summary_label.set_text(&article.summary);
+        feed_label.set_text(&article.feed_title);
         date_label.set_text(&DateUtil::format(&article.date));
 
         Ok(ArticleRow {
-            article_id: article.article_id.clone(),
+            article_id: article.id.clone(),
             widget: Self::create_row(&article_eventbox),
-            favicon: favicon,
             article_eventbox: article_eventbox,
             unread_eventbox: unread_eventbox,
             marked_eventbox: marked_eventbox,
             unread_stack: unread_stack,
             marked_stack: marked_stack,
             title_label: title_label,
-            summary_label: summary_label,
-            feed_label: feed_label,
-            date_label: date_label,
         })
     }
 
