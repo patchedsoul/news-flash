@@ -168,7 +168,15 @@ impl MainWindow {
     ) {
         let mut list_model = ArticleListModel::new(ArticleOrder::NewestFirst);
         let mut articles = news_flash.get_articles(None, None, Some(ArticleOrder::NewestFirst), None, None, None, None, None, None, None).unwrap();
-        let _ : Vec<_> = articles.drain(..).map(|article| list_model.add(article, String::from("asdf"), None)).collect();
+        let (feeds, _) = news_flash.get_feeds().unwrap();
+        let _ : Vec<_> = articles.drain(..).map(|article| {
+            let feed = feeds.iter().find(|&f| f.feed_id == article.feed_id).unwrap();
+            let favicon = match news_flash.get_icon_info(&feed) {
+                Ok(favicon) => Some(favicon),
+                Err(_) => None,
+            };
+            list_model.add(article, feed.label.clone(), favicon)
+        }).collect();
         content_page_handle.borrow_mut().update_article_list(list_model);
     }
 

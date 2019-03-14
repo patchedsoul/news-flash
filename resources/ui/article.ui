@@ -44,7 +44,7 @@
                     <property name="transition_duration">50</property>
                     <property name="transition_type">crossfade</property>
                     <child>
-                      <object class="GtkImage">
+                      <object class="GtkImage" id="read">
                         <property name="visible">True</property>
                         <property name="can_focus">False</property>
                         <property name="icon_name">mail-read</property>
@@ -55,7 +55,7 @@
                       </packing>
                     </child>
                     <child>
-                      <object class="GtkImage">
+                      <object class="GtkImage" id="unread">
                         <property name="visible">True</property>
                         <property name="can_focus">False</property>
                         <property name="icon_name">mail-unread</property>
@@ -89,7 +89,7 @@
                     <property name="transition_duration">50</property>
                     <property name="transition_type">crossfade</property>
                     <child>
-                      <object class="GtkImage">
+                      <object class="GtkImage" id="unmarked">
                         <property name="visible">True</property>
                         <property name="can_focus">False</property>
                         <property name="icon_name">non-starred</property>
@@ -100,7 +100,7 @@
                       </packing>
                     </child>
                     <child>
-                      <object class="GtkImage">
+                      <object class="GtkImage" id="marked">
                         <property name="visible">True</property>
                         <property name="can_focus">False</property>
                         <property name="icon_name">starred</property>
