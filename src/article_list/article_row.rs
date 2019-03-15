@@ -7,13 +7,19 @@ use gtk::{
     StackExt,
     LabelExt,
     ImageExt,
+    Inhibit,
+};
+use gdk::{
+    NotifyType,
 };
 use news_flash::models::{
     ArticleID,
     Read,
     Marked,
 };
-use super::models::ArticleListArticleModel;
+use super::models::{
+    ArticleListArticleModel,
+};
 use crate::util::{
     DateUtil,
     GtkUtil,
@@ -21,7 +27,10 @@ use crate::util::{
 use failure::Error;
 use failure::format_err;
 use std::str;
+use std::rc::Rc;
+use std::cell::RefCell;
 use crate::Resources;
+use crate::main_window::GtkHandle;
 
 pub struct ArticleRow {
     article_id: ArticleID,
@@ -87,19 +96,10 @@ impl ArticleRow {
             }
         }
 
-        match article.unread {
-            Read::Read => unread_stack.set_visible_child_name("empty"),
-            Read::Unread => {
-                unread_stack.set_visible_child_name("unread");
-                let context = title_label.get_style_context().unwrap();
-                context.add_class("bold");
-            },
-        }
+        let read_handle = Rc::new(RefCell::new(article.unread));
+        let marked_handle = Rc::new(RefCell::new(article.marked));
 
-        match article.marked {
-            Marked::Unmarked => marked_stack.set_visible_child_name("empty"),
-            Marked::Marked => marked_stack.set_visible_child_name("marked"),
-        }
+        Self::setup_row_eventbox(&article_eventbox, &read_handle, &marked_handle, &unread_stack, &marked_stack, &title_label);
 
         Ok(ArticleRow {
             article_id: article.id.clone(),
@@ -125,5 +125,67 @@ impl ArticleRow {
         context.remove_class("activatable");
 
         row
+    }
+
+    fn setup_row_eventbox(
+        eventbox: &gtk::EventBox,
+        read: &GtkHandle<Read>,
+        marked: &GtkHandle<Marked>,
+        unread_stack: &gtk::Stack,
+        marked_stack: &gtk::Stack,
+        title_label: &gtk::Label,
+    ) {
+        match *read.borrow() {
+            Read::Read => unread_stack.set_visible_child_name("empty"),
+            Read::Unread => {
+                unread_stack.set_visible_child_name("unread");
+                let context = title_label.get_style_context().unwrap();
+                context.add_class("bold");
+            },
+        }
+
+        match *marked.borrow() {
+            Marked::Unmarked => marked_stack.set_visible_child_name("empty"),
+            Marked::Marked => marked_stack.set_visible_child_name("marked"),
+        }
+
+        let read_1 = read.clone();
+        let marked_1 = marked.clone();
+        let unread_stack_1 = unread_stack.clone();
+        let marked_stack_1 = marked_stack.clone();
+        eventbox.connect_enter_notify_event(move |_widget, event| {
+            if event.get_detail() == NotifyType::Inferior {
+                return Inhibit(true)
+            }
+            match *read_1.borrow() {
+                Read::Read => unread_stack_1.set_visible_child_name("read"),
+                Read::Unread => unread_stack_1.set_visible_child_name("unread"),
+            }
+            match *marked_1.borrow() {
+                Marked::Marked => marked_stack_1.set_visible_child_name("marked"),
+                Marked::Unmarked => marked_stack_1.set_visible_child_name("unmarked"),
+            }
+            Inhibit(true)
+        });
+
+
+        let read_2 = read.clone();
+        let marked_2 = marked.clone();
+        let unread_stack_2 = unread_stack.clone();
+        let marked_stack_2 = marked_stack.clone();
+        eventbox.connect_leave_notify_event(move |_widget, event| {
+            if event.get_detail() == NotifyType::Inferior {
+                return Inhibit(true)
+            }
+            match *read_2.borrow() {
+                Read::Read => unread_stack_2.set_visible_child_name("empty"),
+                Read::Unread => unread_stack_2.set_visible_child_name("unread"),
+            }
+            match *marked_2.borrow() {
+                Marked::Marked => marked_stack_2.set_visible_child_name("marked"),
+                Marked::Unmarked => marked_stack_2.set_visible_child_name("empty"),
+            }
+            Inhibit(true)
+        });
     }
 }
