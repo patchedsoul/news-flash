@@ -48,7 +48,7 @@ impl SingleArticleList {
         self.scroll.clone()
     }
 
-    pub fn add(&mut self, article: ArticleListArticleModel, pos: i32) {
+    pub fn add(&mut self, article: &ArticleListArticleModel, pos: i32) {
         let article_row = ArticleRow::new(&article).unwrap();
         self.list.insert(&article_row.widget(), pos);
         self.articles.insert(article.id.clone(), Rc::new(RefCell::new(article_row)));

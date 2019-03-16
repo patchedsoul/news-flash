@@ -11,6 +11,7 @@ use gtk::{
 };
 use gdk::{
     NotifyType,
+    EventType,
 };
 use news_flash::models::{
     ArticleID,
@@ -35,11 +36,6 @@ use crate::main_window::GtkHandle;
 pub struct ArticleRow {
     article_id: ArticleID,
     widget: gtk::ListBoxRow,
-    article_eventbox: gtk::EventBox,
-    unread_eventbox: gtk::EventBox,
-    marked_eventbox: gtk::EventBox,
-    unread_stack: gtk::Stack,
-    marked_stack: gtk::Stack,
 }
 
 impl ArticleRow {
@@ -58,6 +54,7 @@ impl ArticleRow {
         let summary_label : gtk::Label = builder.get_object("summary_label").ok_or(format_err!("some err"))?;
         let feed_label : gtk::Label = builder.get_object("feed_label").ok_or(format_err!("some err"))?;
         let date_label : gtk::Label = builder.get_object("date_label").ok_or(format_err!("some err"))?;
+        let row = Self::create_row(&article_eventbox);
 
         let scale = match favicon.get_style_context() {
             Some(ctx) => ctx.get_scale(),
@@ -100,15 +97,12 @@ impl ArticleRow {
         let marked_handle = Rc::new(RefCell::new(article.marked));
 
         Self::setup_row_eventbox(&article_eventbox, &read_handle, &marked_handle, &unread_stack, &marked_stack, &title_label);
+        Self::setup_unread_eventbox(&unread_eventbox, &read_handle, &unread_stack);
+        Self::setup_marked_eventbox(&marked_eventbox, &marked_handle, &marked_stack);
 
         Ok(ArticleRow {
             article_id: article.id.clone(),
-            widget: Self::create_row(&article_eventbox),
-            article_eventbox: article_eventbox,
-            unread_eventbox: unread_eventbox,
-            marked_eventbox: marked_eventbox,
-            unread_stack: unread_stack,
-            marked_stack: marked_stack,
+            widget: row,
         })
     }
 
@@ -125,6 +119,92 @@ impl ArticleRow {
         context.remove_class("activatable");
 
         row
+    }
+
+    fn setup_unread_eventbox(
+        eventbox: &gtk::EventBox,
+        read: &GtkHandle<Read>,
+        unread_stack: &gtk::Stack,
+    ) {
+        let read_1 = read.clone();
+        let stack_1 = unread_stack.clone();
+        eventbox.connect_enter_notify_event(move |_widget, _event| {
+            match *read_1.borrow() {
+                Read::Unread => stack_1.set_visible_child_name("read"),
+                Read::Read => stack_1.set_visible_child_name("unread"),
+            }
+            Inhibit(false)
+        });
+        let read_2 = read.clone();
+        let stack_2 = unread_stack.clone();
+        eventbox.connect_leave_notify_event(move |_widget, _event| {
+            match *read_2.borrow() {
+                Read::Unread => stack_2.set_visible_child_name("unread"),
+                Read::Read => stack_2.set_visible_child_name("read"),
+            }
+            Inhibit(false)
+        });
+        let read_3 = read.clone();
+        eventbox.connect_button_press_event(move |_widget, event| {
+            if event.get_button() != 1 {
+                return Inhibit(false)
+            }
+            match event.get_event_type() {
+                EventType::ButtonRelease |
+                EventType::DoubleButtonPress |
+                EventType::TripleButtonPress => return Inhibit(false),
+                _ => {},
+            }
+            let read = *read_3.borrow();
+            match read {
+                Read::Read => *read_3.borrow_mut() = Read::Unread,
+                Read::Unread => *read_3.borrow_mut() = Read::Read,
+            }
+            Inhibit(true)
+        });
+    }
+
+    fn setup_marked_eventbox(
+        eventbox: &gtk::EventBox,
+        marked: &GtkHandle<Marked>,
+        marked_stack: &gtk::Stack,
+    ) {
+        let marked_1 = marked.clone();
+        let stack_1 = marked_stack.clone();
+        eventbox.connect_enter_notify_event(move |_widget, _event| {
+            match *marked_1.borrow() {
+                Marked::Marked => stack_1.set_visible_child_name("unmarked"),
+                Marked::Unmarked => stack_1.set_visible_child_name("marked"),
+            }
+            Inhibit(false)
+        });
+        let marked_2 = marked.clone();
+        let stack_2 = marked_stack.clone();
+        eventbox.connect_leave_notify_event(move |_widget, _event| {
+            match *marked_2.borrow() {
+                Marked::Marked => stack_2.set_visible_child_name("marked"),
+                Marked::Unmarked => stack_2.set_visible_child_name("unmarked"),
+            }
+            Inhibit(false)
+        });
+        let marked_3 = marked.clone();
+        eventbox.connect_button_press_event(move |_widget, event| {
+            if event.get_button() != 1 {
+                return Inhibit(false)
+            }
+            match event.get_event_type() {
+                EventType::ButtonRelease |
+                EventType::DoubleButtonPress |
+                EventType::TripleButtonPress => return Inhibit(false),
+                _ => {},
+            }
+            let read = *marked_3.borrow();
+            match read {
+                Marked::Marked => *marked_3.borrow_mut() = Marked::Unmarked,
+                Marked::Unmarked => *marked_3.borrow_mut() = Marked::Marked,
+            }
+            Inhibit(true)
+        });
     }
 
     fn setup_row_eventbox(

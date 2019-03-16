@@ -54,8 +54,10 @@ impl ArticleList {
 
     pub fn update(&mut self, new_list: ArticleListModel) {
         let old_list = self.list_model.clone();
+        let mut old_list = old_list.borrow_mut();
         self.list_model = Rc::new(RefCell::new(new_list));
-        let list_diff = old_list.borrow_mut().generate_diff(&mut self.list_model.borrow_mut());
+        let mut new_list = self.list_model.borrow_mut();
+        let list_diff = old_list.generate_diff(&mut new_list);
 
         for diff in list_diff {
             match diff {
@@ -63,13 +65,13 @@ impl ArticleList {
                     self.list_1.add(article, pos);
                 },
                 ArticleListChangeSet::Remove(id) => {
-                    self.list_1.remove(id);
+                    self.list_1.remove(id.clone());
                 },
                 ArticleListChangeSet::UpdateMarked(id, marked) => {
-                    self.list_1.update_marked(id, marked);
+                    self.list_1.update_marked(id.clone(), marked);
                 },
                 ArticleListChangeSet::UpdateRead(id, read) => {
-                    self.list_1.update_read(id, read);
+                    self.list_1.update_read(id.clone(), read);
                 },
             }
         }

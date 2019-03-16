@@ -6,14 +6,14 @@ use news_flash::models::{
 };
 
 #[derive(Debug)]
-pub enum ArticleListChangeSet {
+pub enum ArticleListChangeSet<'a> {
     Remove(ArticleID),
-    Add(ArticleListArticleModel, i32), // pos
+    Add(&'a ArticleListArticleModel, i32), // pos
     UpdateRead(ArticleID, Read),
     UpdateMarked(ArticleID, Marked),
 }
 
-impl PartialEq for ArticleListChangeSet {
+impl<'a> PartialEq for ArticleListChangeSet<'a> {
     fn eq(&self, other: &ArticleListChangeSet) -> bool {
         match self {
             ArticleListChangeSet::Remove(id) => {

@@ -38,7 +38,7 @@ impl ArticleListModel {
         Ok(())
     }
 
-    pub fn generate_diff(&mut self, other: &mut ArticleListModel) -> Vec<ArticleListChangeSet> {
+    pub fn generate_diff<'a>(&'a mut self, other: &'a mut ArticleListModel) -> Vec<ArticleListChangeSet> {
         let mut diff : Vec<ArticleListChangeSet> = Vec::new();
         let mut list_pos = 0;
         let mut old_index = 0;
@@ -61,7 +61,7 @@ impl ArticleListModel {
             if let Some(new_model) = new_item {
                 if old_item.is_none() {
                     new_index += 1;
-                    diff.push(ArticleListChangeSet::Add(new_model.clone(), list_pos));
+                    diff.push(ArticleListChangeSet::Add(&new_model, list_pos));
                     list_pos += 1;
                     continue
                 }
