@@ -5,9 +5,7 @@ use gtk::{
 };
 use news_flash::models::{
     ArticleID,
-    FavIcon,
     article::{
-        Article,
         Read,
         Marked,
     },

@@ -42,6 +42,7 @@ use gtk::{
     TargetFlags,
     TargetEntry,
     Inhibit,
+    SelectionMode,
 };
 use gdk::{
     EventType,
@@ -69,6 +70,16 @@ impl FeedList {
         let ui_string = str::from_utf8(ui_data.as_ref()).context(FeedListErrorKind::EmbedFile)?;
         let builder = gtk::Builder::new_from_string(ui_string);
         let list_box : gtk::ListBox = builder.get_object("sidebar_list").ok_or(FeedListErrorKind::UIFile)?;
+
+        // set selection mode from NONE -> SINGLE after a delay after it's been shown
+        // this ensures selection mode is in SINGLE without having a selected row in the list
+        list_box.connect_show(|list| {
+            let list = list.clone();
+            gtk::timeout_add(50, move || {
+                list.set_selection_mode(SelectionMode::Single);
+                gtk::Continue(false)
+            });
+        });
 
         let feed_list = FeedList {
             list: list_box,

@@ -262,6 +262,8 @@ impl SideBar {
         feed_list_handle: GtkHandle<FeedList>,
         tag_list_handle: GtkHandle<TagList>
     ) {
+        let context = event_box.get_style_context().unwrap();
+        context.add_class("selected");
         event_box.set_events(EventMask::BUTTON_PRESS_MASK.bits() as i32);
         event_box.set_events(EventMask::ENTER_NOTIFY_MASK.bits() as i32);
         event_box.set_events(EventMask::LEAVE_NOTIFY_MASK.bits() as i32);

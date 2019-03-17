@@ -4,9 +4,8 @@
   <requires lib="gtk+" version="3.20"/>
   <object class="GtkListBox" id="sidebar_list">
     <property name="width_request">150</property>
-    <property name="visible">True</property>
     <property name="can_focus">False</property>
-    <property name="activate_on_single_click">False</property>
+    <property name="selection_mode">none</property>
     <style>
       <class name="backdrop"/>
     </style>
