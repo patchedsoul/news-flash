@@ -23,9 +23,12 @@ use news_flash::models::{
 };
 use log::{
     error,
+    debug,
 };
 use news_flash::NewsFlash;
 use crate::sidebar::models::SidebarSelection;
+use crate::content_page::HeaderSelection;
+use crate::main_window_state::MainWindowState;
 use crate::error_dialog::ErrorDialog;
 use std::path::PathBuf;
 use crate::content_page::{
@@ -239,24 +242,50 @@ impl MainWindowActions {
         window.add_action(&sync_action);
     }
 
-    pub fn setup_sidebar_selection_action(
-        window: &ApplicationWindow,
-    ) {
+    pub fn setup_sidebar_selection_action(window: &ApplicationWindow, state: &GtkHandle<MainWindowState>) {
+        let state = state.clone();
         let sidebar_selection_action = SimpleAction::new("sidebar-selection", glib::VariantTy::new("s").ok());
         sidebar_selection_action.connect_activate(move |_action, data| {
             if let Some(data) = data {
                 if let Some(data) = data.get_str() {
                     let selection: SidebarSelection = serde_json::from_str(&data).unwrap();
-                    match selection {
-                        SidebarSelection::All => {},
-                        SidebarSelection::Cateogry(_id) => {},
-                        SidebarSelection::Feed(_id) => {},
-                        SidebarSelection::Tag(_id) => {},
-                    }
+                    debug!("sidebar: {:?}", selection);
+                    state.borrow_mut().sidebar = selection;
                 }
             }
         });
         sidebar_selection_action.set_enabled(true);
         window.add_action(&sidebar_selection_action);
+    }
+
+    pub fn setup_headerbar_selection_action(window: &ApplicationWindow, state: &GtkHandle<MainWindowState>) {
+        let state = state.clone();
+        let headerbar_selection_action = SimpleAction::new("headerbar-selection", glib::VariantTy::new("s").ok());
+        headerbar_selection_action.connect_activate(move |_action, data| {
+            if let Some(data) = data {
+                if let Some(data) = data.get_str() {
+                    let selection: HeaderSelection = serde_json::from_str(&data).unwrap();
+                    debug!("headerbar: {:?}", selection);
+                    state.borrow_mut().header = selection;
+                }
+            }
+        });
+        headerbar_selection_action.set_enabled(true);
+        window.add_action(&headerbar_selection_action);
+    }
+
+    pub fn setup_search_action(window: &ApplicationWindow, state: &GtkHandle<MainWindowState>) {
+        let state = state.clone();
+        let search_action = SimpleAction::new("search-term", glib::VariantTy::new("s").ok());
+        search_action.connect_activate(move |_action, data| {
+            if let Some(data) = data {
+                if let Some(data) = data.get_str() {
+                    debug!("search: {}", data);
+                    state.borrow_mut().search_term = Some(data.to_owned());
+                }
+            }
+        });
+        search_action.set_enabled(true);
+        window.add_action(&search_action);
     }
 }

@@ -11,6 +11,8 @@ use gtk::{
     WidgetExt,
     ButtonExt,
     StackExt,
+    EntryExt,
+    SearchEntryExt,
 };
 use gdk::{
     EventType,
@@ -23,6 +25,7 @@ use gio::{
     ActionExt,
     ActionMapExt,
 };
+use super::header_selection::HeaderSelection;
 
 pub struct ContentHeader {
     header: gtk::Paned,
@@ -41,12 +44,21 @@ impl ContentHeader {
         let marked_button : ToggleButton = builder.get_object("marked_button").ok_or(format_err!("some err"))?;
         let update_button : gtk::Button = builder.get_object("update_button").ok_or(format_err!("some err"))?;
         let update_stack : gtk::Stack = builder.get_object("update_stack").ok_or(format_err!("some err"))?;
+        let search_entry : gtk::SearchEntry = builder.get_object("search_entry").ok_or(format_err!("some err"))?;
+        search_entry.connect_search_changed(|search_entry| {
+            if let Ok(main_window) = GtkUtil::get_main_window(search_entry) {
+                if let Some(action) = main_window.lookup_action("search-term") {
+                    if let Some(text) = search_entry.get_text() {
+                        let search_term = Variant::from(&text);
+                        action.activate(Some(&search_term));
+                    }
+                }
+            }
+        });
 
-
-        
-        Self::setup_linked_button(&all_button, &unread_button, &marked_button);
-        Self::setup_linked_button(&unread_button, &all_button, &marked_button);
-        Self::setup_linked_button(&marked_button, &unread_button, &all_button);
+        Self::setup_linked_button(&all_button, &unread_button, &marked_button, HeaderSelection::All);
+        Self::setup_linked_button(&unread_button, &all_button, &marked_button, HeaderSelection::Unread);
+        Self::setup_linked_button(&marked_button, &unread_button, &all_button, HeaderSelection::Marked);
         Self::setup_update_button(&update_button, &update_stack);
 
         header.connect_property_position_notify(|paned| {
@@ -78,11 +90,11 @@ impl ContentHeader {
         self.stack.set_visible_child_name("icon");
     }
 
-    fn setup_linked_button(button: &ToggleButton, other_button_1: &ToggleButton, other_button_2: &ToggleButton) {
+    fn setup_linked_button(button: &ToggleButton, other_button_1: &ToggleButton, other_button_2: &ToggleButton, mode: HeaderSelection) {
         let button_clone = button.clone();
         let other_button_1 = other_button_1.clone();
         let other_button_2 = other_button_2.clone();
-        button.connect_button_press_event(move |_button, event| {
+        button.connect_button_press_event(move |button, event| {
             if event.get_button() != 1 {
                 return gtk::Inhibit(false)
             }
@@ -96,6 +108,14 @@ impl ContentHeader {
             }
             other_button_1.set_active(false);
             other_button_2.set_active(false);
+            if let Ok(main_window) = GtkUtil::get_main_window(button) {
+                if let Some(action) = main_window.lookup_action("headerbar-selection") {
+                    if let Ok(json) = serde_json::to_string(&mode) {
+                        let json = Variant::from(&json);
+                        action.activate(Some(&json));
+                    }
+                }
+            }
             Inhibit(false)
         });
     }

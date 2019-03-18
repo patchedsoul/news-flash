@@ -1,6 +1,8 @@
 mod content_header;
+mod header_selection;
 
 pub use self::content_header::ContentHeader;
+pub use self::header_selection::HeaderSelection;
 
 use failure::Error;
 use failure::format_err;

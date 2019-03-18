@@ -52,6 +52,10 @@ impl ArticleList {
         self.stack.clone()
     }
 
+    pub fn new_list(&self) {
+        
+    }
+
     pub fn update(&mut self, new_list: ArticleListModel) {
         let old_list = self.list_model.clone();
         let mut old_list = old_list.borrow_mut();

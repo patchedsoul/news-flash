@@ -1,5 +1,6 @@
 mod main_window;
 mod main_window_actions;
+mod main_window_state;
 mod sidebar;
 mod welcome_screen;
 mod login_screen;

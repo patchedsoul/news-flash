@@ -50,6 +50,9 @@ use crate::content_page::{
     ContentHeader,
 };
 use crate::main_window_actions::MainWindowActions;
+use crate::main_window_state::MainWindowState;
+use crate::sidebar::models::SidebarSelection;
+use crate::content_page::HeaderSelection;
 
 pub type GtkHandle<T> = Rc<RefCell<T>>;
 pub type GtkHandleMap<T, K> = GtkHandle<HashMap<T, K>>;
@@ -108,6 +111,8 @@ impl MainWindow {
         let content_page_handle = Rc::new(RefCell::new(content));
         let content_header_handle = Rc::new(RefCell::new(content_header));
         let news_flash_handle = Rc::new(RefCell::new(None));
+
+        let state = Rc::new(RefCell::new(Self::initial_state()));
         
         MainWindowActions::setup_show_password_page_action(&window, &pw_login_handle, &stack, login_header.widget());
         MainWindowActions::setup_show_oauth_page_action(&window, &oauht_login_handle, &stack, login_header.widget());
@@ -116,7 +121,9 @@ impl MainWindow {
         MainWindowActions::setup_login_action(&window, &news_flash_handle, &oauht_login_handle, &pw_login_handle);
         MainWindowActions::setup_sync_paned_action(&window, &content_page_handle, &content_header_handle);
         MainWindowActions::setup_sync_action(&window, &content_page_handle, &content_header_handle, &news_flash_handle);
-        MainWindowActions::setup_sidebar_selection_action(&window);
+        MainWindowActions::setup_sidebar_selection_action(&window, &state);
+        MainWindowActions::setup_headerbar_selection_action(&window, &state);
+        MainWindowActions::setup_search_action(&window, &state);
 
         if let Ok(news_flash_lib) = NewsFlash::try_load(&PathBuf::from(DATA_DIR)) {
             info!("Successful load from config");
@@ -222,6 +229,14 @@ impl MainWindow {
         
         let total_unread = news_flash.unread_count_all().unwrap();
         content_page_handle.borrow_mut().update_sidebar(tree, list, total_unread);
+    }
+
+    pub fn initial_state() -> MainWindowState {
+        MainWindowState {
+            sidebar: SidebarSelection::All,
+            header: HeaderSelection::All,
+            search_term: None,
+        }
     }
 
     fn demo_tag_list() -> Vec<Tag> {
