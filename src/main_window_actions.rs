@@ -36,7 +36,6 @@ use crate::content_page::{
     ContentHeader,
 };
 use crate::main_window::{
-    MainWindow,
     GtkHandle,
     DATA_DIR,
 };
@@ -230,7 +229,7 @@ impl MainWindowActions {
                 match news_flash.sync() {
                     Ok(()) => {
                         content_header.borrow().finish_sync();
-                        MainWindow::update_sidebar_from_ref(news_flash, &content_page);
+                        content_page.borrow_mut().update_sidebar_from_ref(news_flash);
                     },
                     Err(error) => {
                         let _dialog = ErrorDialog::new(&error, &parent).unwrap();
@@ -244,6 +243,7 @@ impl MainWindowActions {
 
     pub fn setup_sidebar_selection_action(window: &ApplicationWindow, state: &GtkHandle<MainWindowState>) {
         let state = state.clone();
+        let main_window = window.clone();
         let sidebar_selection_action = SimpleAction::new("sidebar-selection", glib::VariantTy::new("s").ok());
         sidebar_selection_action.connect_activate(move |_action, data| {
             if let Some(data) = data {
@@ -251,6 +251,9 @@ impl MainWindowActions {
                     let selection: SidebarSelection = serde_json::from_str(&data).unwrap();
                     debug!("sidebar: {:?}", selection);
                     state.borrow_mut().sidebar = selection;
+                    if let Some(action) = main_window.lookup_action("update-article-list") {
+                        action.activate(None);
+                    }
                 }
             }
         });
@@ -260,6 +263,7 @@ impl MainWindowActions {
 
     pub fn setup_headerbar_selection_action(window: &ApplicationWindow, state: &GtkHandle<MainWindowState>) {
         let state = state.clone();
+        let main_window = window.clone();
         let headerbar_selection_action = SimpleAction::new("headerbar-selection", glib::VariantTy::new("s").ok());
         headerbar_selection_action.connect_activate(move |_action, data| {
             if let Some(data) = data {
@@ -267,6 +271,9 @@ impl MainWindowActions {
                     let selection: HeaderSelection = serde_json::from_str(&data).unwrap();
                     debug!("headerbar: {:?}", selection);
                     state.borrow_mut().header = selection;
+                    if let Some(action) = main_window.lookup_action("update-article-list") {
+                        action.activate(None);
+                    }
                 }
             }
         });
@@ -276,16 +283,37 @@ impl MainWindowActions {
 
     pub fn setup_search_action(window: &ApplicationWindow, state: &GtkHandle<MainWindowState>) {
         let state = state.clone();
+        let main_window = window.clone();
         let search_action = SimpleAction::new("search-term", glib::VariantTy::new("s").ok());
         search_action.connect_activate(move |_action, data| {
             if let Some(data) = data {
                 if let Some(data) = data.get_str() {
                     debug!("search: {}", data);
                     state.borrow_mut().search_term = Some(data.to_owned());
+                    if let Some(action) = main_window.lookup_action("update-article-list") {
+                        action.activate(None);
+                    }
                 }
             }
         });
         search_action.set_enabled(true);
         window.add_action(&search_action);
+    }
+
+    pub fn setup_update_article_list_action(
+        window: &ApplicationWindow,
+        state: &GtkHandle<MainWindowState>,
+        content_page: &GtkHandle<ContentPage>,
+        news_flash: &GtkHandle<Option<NewsFlash>>
+    ) {
+        let state = state.clone();
+        let content_page = content_page.clone();
+        let news_flash = news_flash.clone();
+        let update_article_list_action = SimpleAction::new("update-article-list", None);
+        update_article_list_action.connect_activate(move |_action, _data| {
+            content_page.borrow_mut().update_article_list(&news_flash, &state);
+        });
+        update_article_list_action.set_enabled(true);
+        window.add_action(&update_article_list_action);
     }
 }

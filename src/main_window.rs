@@ -22,17 +22,11 @@ use crate::login_screen::{
     WebLogin,
     LoginHeaderbar,
 };
-use crate::sidebar::{
-    FeedListTree,
-    TagListModel,
-};
-use crate::article_list::ArticleListModel;
 use log::{
     info,
     warn,
 };
 use news_flash::NewsFlash;
-use news_flash::ArticleOrder;
 use news_flash::models::{
     Tag,
     TagID,
@@ -103,7 +97,7 @@ impl MainWindow {
         let oauth_login = WebLogin::new()?;
         stack.add_named(&oauth_login.widget(), "oauth_login");
 
-        let content = ContentPage::new()?;
+        let content = ContentPage::new(Self::initial_state())?;
         stack.add_named(&content.widget(), "content");
         
         let pw_login_handle = Rc::new(RefCell::new(pw_login));
@@ -124,6 +118,7 @@ impl MainWindow {
         MainWindowActions::setup_sidebar_selection_action(&window, &state);
         MainWindowActions::setup_headerbar_selection_action(&window, &state);
         MainWindowActions::setup_search_action(&window, &state);
+        MainWindowActions::setup_update_article_list_action(&window, &state, &content_page_handle, &news_flash_handle);
 
         if let Ok(news_flash_lib) = NewsFlash::try_load(&PathBuf::from(DATA_DIR)) {
             info!("Successful load from config");
@@ -134,8 +129,8 @@ impl MainWindow {
             *news_flash_handle.borrow_mut() = Some(news_flash_lib);
 
             // try to fill content page with data
-            Self::update_sidebar(&news_flash_handle, &content_page_handle);
-            Self::update_article_list(&news_flash_handle, &content_page_handle);
+            content_page_handle.borrow_mut().update_sidebar(&news_flash_handle);
+            content_page_handle.borrow_mut().update_article_list(&news_flash_handle, &state);
 
             window.set_titlebar(&content_header_handle.borrow().widget());
         }
@@ -160,77 +155,6 @@ impl MainWindow {
         self.widget.present();
     }
 
-    pub fn update_article_list(
-        news_flash_handle: &GtkHandle<Option<NewsFlash>>,
-        content_page_handle: &GtkHandle<ContentPage>,
-    ) {
-        if let Some(news_flash) = news_flash_handle.borrow_mut().as_mut() {
-            Self::update_article_list_from_ref(news_flash, content_page_handle);
-        }
-    }
-
-    pub fn update_article_list_from_ref(
-        news_flash: &mut NewsFlash,
-        content_page_handle: &GtkHandle<ContentPage>,
-    ) {
-        let mut list_model = ArticleListModel::new(ArticleOrder::NewestFirst);
-        let mut articles = news_flash.get_articles(None, None, Some(ArticleOrder::NewestFirst), None, None, None, None, None, None, None).unwrap();
-        let (feeds, _) = news_flash.get_feeds().unwrap();
-        let _ : Vec<_> = articles.drain(..).map(|article| {
-            let feed = feeds.iter().find(|&f| f.feed_id == article.feed_id).unwrap();
-            let favicon = match news_flash.get_icon_info(&feed) {
-                Ok(favicon) => Some(favicon),
-                Err(_) => None,
-            };
-            list_model.add(article, feed.label.clone(), favicon)
-        }).collect();
-        content_page_handle.borrow_mut().update_article_list(list_model);
-    }
-
-    pub fn update_sidebar(
-        news_flash_handle: &GtkHandle<Option<NewsFlash>>,
-        content_page_handle: &GtkHandle<ContentPage>,
-    ) {
-        if let Some(news_flash) = news_flash_handle.borrow_mut().as_mut() {
-            Self::update_sidebar_from_ref(news_flash, content_page_handle);
-        }
-    }
-
-    pub fn update_sidebar_from_ref(
-        news_flash: &mut NewsFlash,
-        content_page_handle: &GtkHandle<ContentPage>,
-    ) {
-        // feedlist
-        let mut tree = FeedListTree::new();
-        let categories = news_flash.get_categories().unwrap();
-        for category in categories {
-            let count = news_flash.unread_count_category(&category.category_id).unwrap();
-            tree.add_category(&category, count as i32).unwrap();
-        }
-        let (feeds, mappings) = news_flash.get_feeds().unwrap();
-        for mapping in mappings {
-            let count = news_flash.unread_count_feed(&mapping.feed_id).unwrap();
-            let feed = feeds.iter().find(|feed| feed.feed_id == mapping.feed_id).unwrap();
-            let favicon = match news_flash.get_icon_info(&feed) {
-                Ok(favicon) => Some(favicon),
-                Err(_) => None,
-            };
-            tree.add_feed(&feed, &mapping, count as i32, favicon).unwrap();
-        }
-
-        // tag list
-        let mut list = TagListModel::new();
-        //let tags = news_flash.get_tags().unwrap();
-        let tags = Self::demo_tag_list();
-        for tag in tags {
-            let count = news_flash.unread_count_tags(&tag.tag_id).unwrap();
-            list.add(&tag, count as i32).unwrap();
-        }
-        
-        let total_unread = news_flash.unread_count_all().unwrap();
-        content_page_handle.borrow_mut().update_sidebar(tree, list, total_unread);
-    }
-
     pub fn initial_state() -> MainWindowState {
         MainWindowState {
             sidebar: SidebarSelection::All,
@@ -239,7 +163,7 @@ impl MainWindow {
         }
     }
 
-    fn demo_tag_list() -> Vec<Tag> {
+    pub fn demo_tag_list() -> Vec<Tag> {
         let tag_1 = Tag {
             tag_id: TagID::new("Tag_1"),
             label: "Tag Label 1".to_owned(),

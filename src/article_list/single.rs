@@ -59,12 +59,6 @@ impl SingleArticleList {
         let _ = self.articles.remove(&id);
     }
 
-    pub fn remove_all(&self)  {
-        for row in self.list.get_children() {
-            self.list.remove(&row);
-        }
-    }
-
     pub fn update_marked(&mut self, id: ArticleID, marked: Marked) {
 
     }

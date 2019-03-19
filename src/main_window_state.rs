@@ -1,6 +1,7 @@
 use crate::sidebar::models::SidebarSelection;
 use crate::content_page::HeaderSelection;
 
+#[derive(Clone, Debug)]
 pub struct MainWindowState {
     pub sidebar: SidebarSelection,
     pub header: HeaderSelection,
