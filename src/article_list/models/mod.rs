@@ -42,15 +42,16 @@ impl ArticleListModel {
         self.ids.contains(article_id)
     }
 
-    pub fn generate_diff<'a>(&'a mut self, other: &'a mut ArticleListModel) -> Vec<ArticleListChangeSet> {
+    pub fn generate_diff<'a>(&'a mut self, new_list: &'a mut ArticleListModel) -> Vec<ArticleListChangeSet> {
         let mut diff : Vec<ArticleListChangeSet> = Vec::new();
         let mut list_pos = 0;
         let mut old_index = 0;
         let mut new_index = 0;
         self.sort();
-        other.sort();
+        new_list.sort();
         let old_items = &mut self.models;
-        let new_items = &mut other.models;
+        let new_items = &mut new_list.models;
+        let new_articles = &mut new_list.ids;
         
         loop {
             let old_item = old_items.get(old_index);
@@ -96,6 +97,13 @@ impl ArticleListModel {
                         continue
                     }
 
+                    if new_articles.contains(&old_model.id) {
+                        diff.push(ArticleListChangeSet::Add(&new_model, list_pos));
+                        list_pos += 1;
+                        new_index += 1;
+                        continue
+                    }
+
                     // items differ -> remove old item and move on
                     diff.push(ArticleListChangeSet::Remove(old_model.id.clone()));
                     old_index += 1;
@@ -103,7 +111,11 @@ impl ArticleListModel {
                 }
             }
         }
-
+        
+        for change_set in &diff {
+            println!("{}", change_set);
+        }
+        
         diff
     }
 
