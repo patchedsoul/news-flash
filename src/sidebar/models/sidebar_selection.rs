@@ -22,3 +22,34 @@ impl SidebarSelection {
         }
     }
 }
+
+impl PartialEq for SidebarSelection {
+    fn eq(&self, other: &SidebarSelection) -> bool {
+        match self {
+            SidebarSelection::All => {
+                match other {
+                    SidebarSelection::All => true,
+                    _ => false,
+                }
+            },
+            SidebarSelection::Cateogry(self_id) => {
+                match other {
+                    SidebarSelection::Cateogry(other_id) => self_id == other_id,
+                    _ => false,
+                }
+            },
+            SidebarSelection::Feed(self_id) => {
+                match other {
+                    SidebarSelection::Feed(other_id) => self_id == other_id,
+                    _ => false,
+                }
+            },
+            SidebarSelection::Tag(self_id) => {
+                match other {
+                    SidebarSelection::Tag(other_id) => self_id == other_id,
+                    _ => false,
+                }
+            }
+        }
+    }
+}

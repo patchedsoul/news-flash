@@ -1,3 +1,4 @@
+use std::fmt;
 use super::article::ArticleListArticleModel;
 use news_flash::models::{
     ArticleID,
@@ -40,6 +41,17 @@ impl<'a> PartialEq for ArticleListChangeSet<'a> {
                     _ => false,
                 }
             },
+        }
+    }
+}
+
+impl<'a> fmt::Display for ArticleListChangeSet<'a> {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        match self {
+            ArticleListChangeSet::Add(model, pos) => write!(f, "Add id='{}' pos='{}'", model.id, pos),
+            ArticleListChangeSet::Remove(id) => write!(f, "Remove id='{}'", id),
+            ArticleListChangeSet::UpdateMarked(id, marked) => write!(f, "UpdateMarked id='{}' marked='{:?}'", id, marked),
+            ArticleListChangeSet::UpdateRead(id, read) => write!(f, "UpdateMarked id='{}' read='{:?}'", id, read),
         }
     }
 }

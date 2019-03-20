@@ -6,10 +6,10 @@ use std::collections::HashSet;
 use failure::Error;
 use failure::format_err;
 pub use change_set::ArticleListChangeSet;
-use news_flash::ArticleOrder;
 use news_flash::models::{
     Article,
     ArticleID,
+    ArticleOrder,
     FavIcon
 };
 
@@ -21,21 +21,25 @@ pub struct ArticleListModel {
 }
 
 impl ArticleListModel {
-    pub fn new(sort: ArticleOrder) -> Self {
+    pub fn new(sort: &ArticleOrder) -> Self {
         ArticleListModel {
             models: Vec::new(),
             ids: HashSet::new(),
-            sort: sort,
+            sort: sort.clone(),
         }
     }
 
     pub fn add(&mut self, article: Article, feed_name: String, icon: Option<FavIcon>) -> Result<(), Error> {
-        if self.ids.contains(&article.article_id) {
+        if self.contains(&article.article_id) {
             return Err(format_err!("some err"))
         }
         self.ids.insert(article.article_id.clone());
         self.models.push(ArticleListArticleModel::new(article, feed_name, icon));
         Ok(())
+    }
+
+    pub fn contains(&self, article_id: &ArticleID) -> bool {
+        self.ids.contains(article_id)
     }
 
     pub fn generate_diff<'a>(&'a mut self, other: &'a mut ArticleListModel) -> Vec<ArticleListChangeSet> {
@@ -116,7 +120,7 @@ impl ArticleListModel {
 
     pub fn calculate_selection(&mut self, selected_index: i32) -> Option<&ArticleListArticleModel> {
         self.sort();
-        if let Some((index, article)) = self.models.iter().enumerate().find(|(index, _)| index == &(selected_index as usize)) {
+        if let Some((_index, article)) = self.models.iter().enumerate().find(|(index, _)| index == &(selected_index as usize)) {
             return Some(article)
         }
         None

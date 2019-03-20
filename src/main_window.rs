@@ -30,6 +30,7 @@ use news_flash::NewsFlash;
 use news_flash::models::{
     Tag,
     TagID,
+    ArticleOrder,
 };
 use std::collections::HashMap;
 use crate::Resources;
@@ -97,7 +98,7 @@ impl MainWindow {
         let oauth_login = WebLogin::new()?;
         stack.add_named(&oauth_login.widget(), "oauth_login");
 
-        let content = ContentPage::new(Self::initial_state())?;
+        let content = ContentPage::new()?;
         stack.add_named(&content.widget(), "content");
         
         let pw_login_handle = Rc::new(RefCell::new(pw_login));
@@ -160,6 +161,7 @@ impl MainWindow {
             sidebar: SidebarSelection::All,
             header: HeaderSelection::All,
             search_term: None,
+            article_list_order: ArticleOrder::NewestFirst,
         }
     }
 

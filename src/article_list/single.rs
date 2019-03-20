@@ -2,6 +2,7 @@ use gtk::{
     Builder,
     ContainerExt,
     ListBoxExt,
+    WidgetExt,
 };
 use news_flash::models::{
     ArticleID,
@@ -49,6 +50,7 @@ impl SingleArticleList {
     pub fn add(&mut self, article: &ArticleListArticleModel, pos: i32) {
         let article_row = ArticleRow::new(&article).unwrap();
         self.list.insert(&article_row.widget(), pos);
+        article_row.widget().show();
         self.articles.insert(article.id.clone(), Rc::new(RefCell::new(article_row)));
     }
 

@@ -5,11 +5,14 @@ mod article_row;
 use gtk::{
     Builder,
     StackExt,
+    StackTransitionType,
 };
 use single::SingleArticleList;
 pub use models::ArticleListModel;
 use models::ArticleListChangeSet;
-use news_flash::ArticleOrder;
+use crate::main_window_state::MainWindowState;
+use crate::main_window::MainWindow;
+use crate::content_page::HeaderSelection;
 use std::str;
 use failure::Error;
 use failure::format_err;
@@ -23,6 +26,7 @@ pub struct ArticleList {
     list_1: SingleArticleList,
     list_2: SingleArticleList,
     list_model: GtkHandle<ArticleListModel>,
+    window_state: MainWindowState,
 }
 
 impl ArticleList {
@@ -35,7 +39,8 @@ impl ArticleList {
         let list_1 = SingleArticleList::new()?;
         let list_2 = SingleArticleList::new()?;
 
-        let model = ArticleListModel::new(ArticleOrder::NewestFirst);
+        let window_state = MainWindow::initial_state();
+        let model = ArticleListModel::new(&window_state.article_list_order);
 
         stack.add_named(&list_1.widget(), "list_1");
         stack.add_named(&list_2.widget(), "list_2");
@@ -45,6 +50,7 @@ impl ArticleList {
             list_1: list_1,
             list_2: list_2,
             list_model: Rc::new(RefCell::new(model)),
+            window_state: window_state,
         })
     }
 
@@ -52,11 +58,14 @@ impl ArticleList {
         self.stack.clone()
     }
 
-    pub fn new_list(&self) {
-        
-    }
+    pub fn update(&mut self, new_list: ArticleListModel, new_state: MainWindowState) {
+        self.stack.set_transition_type(self.calc_transition_type(&new_state));
 
-    pub fn update(&mut self, new_list: ArticleListModel) {
+        // check if a new list is reqired or current list should be updated
+        // if self.require_new_list(&new_state) {
+            
+        // }
+
         let old_list = self.list_model.clone();
         let mut old_list = old_list.borrow_mut();
         self.list_model = Rc::new(RefCell::new(new_list));
@@ -79,5 +88,41 @@ impl ArticleList {
                 },
             }
         }
+    }
+
+    fn require_new_list(&self, new_state: &MainWindowState) -> bool {
+        if &self.window_state == new_state {
+            return false
+        }
+        true
+    }
+
+    fn calc_transition_type(&self, new_state: &MainWindowState) -> StackTransitionType {
+        if self.require_new_list(new_state) {
+            match self.window_state.header {
+                HeaderSelection::All => {
+                    match new_state.header {
+                        HeaderSelection::All => {},
+                        HeaderSelection::Unread |
+                        HeaderSelection::Marked => return StackTransitionType::SlideLeft,
+                    }
+                },
+                HeaderSelection::Unread => {
+                    match new_state.header {
+                        HeaderSelection::All  => return StackTransitionType::SlideLeft,
+                        HeaderSelection::Unread => {},
+                        HeaderSelection::Marked => return StackTransitionType::SlideRight,
+                    }
+                },
+                HeaderSelection::Marked => {
+                    match new_state.header {
+                        HeaderSelection::All |
+                        HeaderSelection::Unread => return StackTransitionType::SlideRight,
+                        HeaderSelection::Marked => {},
+                    }
+                },
+            }
+        }
+        StackTransitionType::Crossfade
     }
 }

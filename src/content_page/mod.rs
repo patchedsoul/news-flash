@@ -31,7 +31,6 @@ use crate::article_list::ArticleListModel;
 use crate::sidebar::models::SidebarSelection;
 use crate::main_window_state::MainWindowState;
 use news_flash::NewsFlash;
-use news_flash::ArticleOrder;
 use news_flash::models::{
     PluginID,
     Read,
@@ -49,7 +48,7 @@ pub struct ContentPage {
 }
 
 impl ContentPage {
-    pub fn new(state: MainWindowState) -> Result<Self, Error> {
+    pub fn new() -> Result<Self, Error> {
         let ui_data = Resources::get("ui/content_page.ui").ok_or(format_err!("some err"))?;
         let ui_string = str::from_utf8(ui_data.as_ref())?;
         let builder = Builder::new_from_string(ui_string);
@@ -111,22 +110,23 @@ impl ContentPage {
         news_flash: &mut NewsFlash,
         window_state: &GtkHandle<MainWindowState>,
     ) {
-        let mut list_model = ArticleListModel::new(ArticleOrder::NewestFirst);
-        let unread = match window_state.borrow().header {
+        let window_state = window_state.borrow().clone();
+        let mut list_model = ArticleListModel::new(&window_state.article_list_order);
+        let unread = match window_state.header {
             HeaderSelection::All | HeaderSelection::Marked => None,
             HeaderSelection::Unread => Some(Read::Unread),
         };
-        let marked = match window_state.borrow().header {
+        let marked = match window_state.header {
             HeaderSelection::All | HeaderSelection::Unread => None,
             HeaderSelection::Marked => Some(Marked::Marked),
         };
-        let feed = match &window_state.borrow().sidebar {
+        let feed = match &window_state.sidebar {
             SidebarSelection::All |
             SidebarSelection::Cateogry(_) |
             SidebarSelection::Tag(_) => None,
             SidebarSelection::Feed(id) => Some(id.clone()),
         };
-        let category = match &window_state.borrow().sidebar {
+        let category = match &window_state.sidebar {
             SidebarSelection::All |
             SidebarSelection::Feed(_) |
             SidebarSelection::Tag(_) => None,
@@ -136,7 +136,7 @@ impl ContentPage {
         let mut articles = news_flash.get_articles(
             None,
             None,
-            Some(ArticleOrder::NewestFirst),
+            Some(window_state.article_list_order.clone()),
             unread,
             marked,
             feed,
@@ -155,7 +155,7 @@ impl ContentPage {
             };
             list_model.add(article, feed.label.clone(), favicon)
         }).collect();
-        self.article_list.update(list_model);
+        self.article_list.update(list_model, window_state);
     }
 
     pub fn update_sidebar(
