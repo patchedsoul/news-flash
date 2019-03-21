@@ -111,7 +111,7 @@ impl MainWindow {
         MainWindowActions::setup_show_content_page_action(&window, &news_flash_handle, &stack, &content_page_handle, content_header_handle.borrow().widget());
         MainWindowActions::setup_login_action(&window, &news_flash_handle, &oauht_login_handle, &pw_login_handle);
         MainWindowActions::setup_sync_paned_action(&window, &content_page_handle, &content_header_handle);
-        MainWindowActions::setup_sync_action(&window, &content_page_handle, &content_header_handle, &news_flash_handle);
+        MainWindowActions::setup_sync_action(&window, &content_page_handle, &content_header_handle, &news_flash_handle, &state);
         MainWindowActions::setup_sidebar_selection_action(&window, &state);
         MainWindowActions::setup_headerbar_selection_action(&window, &state);
         MainWindowActions::setup_search_action(&window, &state);

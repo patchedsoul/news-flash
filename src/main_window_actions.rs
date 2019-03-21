@@ -217,7 +217,9 @@ impl MainWindowActions {
         content_page: &GtkHandle<ContentPage>,
         content_header: &GtkHandle<ContentHeader>,
         news_flash: &GtkHandle<Option<NewsFlash>>,
+        state: &GtkHandle<MainWindowState>,
     ) {
+        let state = state.clone();
         let content_page = content_page.clone();
         let parent = window.clone();
         let content_header = content_header.clone();
@@ -229,6 +231,7 @@ impl MainWindowActions {
                     Ok(()) => {
                         content_header.borrow().finish_sync();
                         content_page.borrow_mut().update_sidebar_from_ref(news_flash);
+                        content_page.borrow_mut().update_article_list_from_ref(news_flash, &state);
                     },
                     Err(error) => {
                         let _dialog = ErrorDialog::new(&error, &parent).unwrap();
