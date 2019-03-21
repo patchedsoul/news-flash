@@ -14,7 +14,6 @@ use gdk::{
     EventType,
 };
 use news_flash::models::{
-    ArticleID,
     Read,
     Marked,
 };
@@ -31,11 +30,16 @@ use std::str;
 use std::rc::Rc;
 use std::cell::RefCell;
 use crate::Resources;
-use crate::main_window::GtkHandle;
+use crate::util::GtkHandle;
+use crate::gtk_handle;
 
 pub struct ArticleRow {
-    article_id: ArticleID,
     widget: gtk::ListBoxRow,
+    marked_handle: GtkHandle<Marked>,
+    unread_handle: GtkHandle<Read>,
+    marked_stack: gtk::Stack,
+    unread_stack: gtk::Stack,
+    title_label: gtk::Label,
 }
 
 impl ArticleRow {
@@ -93,21 +97,36 @@ impl ArticleRow {
             }
         }
 
-        let read_handle = Rc::new(RefCell::new(article.unread));
-        let marked_handle = Rc::new(RefCell::new(article.marked));
+        let unread_handle = gtk_handle!(article.unread);
+        let marked_handle = gtk_handle!(article.marked);
 
-        Self::setup_row_eventbox(&article_eventbox, &read_handle, &marked_handle, &unread_stack, &marked_stack, &title_label);
-        Self::setup_unread_eventbox(&unread_eventbox, &read_handle, &unread_stack);
+        Self::setup_row_eventbox(&article_eventbox, &unread_handle, &marked_handle, &unread_stack, &marked_stack, &title_label);
+        Self::setup_unread_eventbox(&unread_eventbox, &unread_handle, &unread_stack);
         Self::setup_marked_eventbox(&marked_eventbox, &marked_handle, &marked_stack);
 
         Ok(ArticleRow {
-            article_id: article.id.clone(),
             widget: row,
+            marked_handle: marked_handle,
+            unread_handle: unread_handle,
+            marked_stack: marked_stack,
+            unread_stack: unread_stack,
+            title_label: title_label,
         })
     }
 
     pub fn widget(&self) -> gtk::ListBoxRow {
         self.widget.clone()
+    }
+
+    pub fn update_marked(&mut self, marked: Marked) {
+        Self::update_marked_stack(&self.marked_stack, &marked);
+        *self.marked_handle.borrow_mut() = marked;
+    }
+
+    pub fn update_unread(&mut self, unread: Read) {
+        Self::update_title_label(&self.title_label, &unread);
+        Self::update_unread_stack(&self.unread_stack, &unread);
+        *self.unread_handle.borrow_mut() = unread;
     }
 
     fn create_row(widget: &gtk::EventBox) -> gtk::ListBoxRow {
@@ -215,19 +234,9 @@ impl ArticleRow {
         marked_stack: &gtk::Stack,
         title_label: &gtk::Label,
     ) {
-        match *read.borrow() {
-            Read::Read => unread_stack.set_visible_child_name("empty"),
-            Read::Unread => {
-                unread_stack.set_visible_child_name("unread");
-                let context = title_label.get_style_context().unwrap();
-                context.add_class("bold");
-            },
-        }
-
-        match *marked.borrow() {
-            Marked::Unmarked => marked_stack.set_visible_child_name("empty"),
-            Marked::Marked => marked_stack.set_visible_child_name("marked"),
-        }
+        Self::update_title_label(&title_label, &*read.borrow());
+        Self::update_unread_stack(&unread_stack, &*read.borrow());
+        Self::update_marked_stack(&marked_stack, &*marked.borrow());
 
         let read_1 = read.clone();
         let marked_1 = marked.clone();
@@ -267,5 +276,27 @@ impl ArticleRow {
             }
             Inhibit(true)
         });
+    }
+
+    fn update_title_label(title_label: &gtk::Label, read: &Read) {
+        let context = title_label.get_style_context().unwrap();
+        match read {
+            Read::Read => context.remove_class("bold"),
+            Read::Unread => context.add_class("bold"),
+        }
+    }
+
+    fn update_unread_stack(unread_stack: &gtk::Stack, read: &Read) {
+        match read {
+            Read::Read => unread_stack.set_visible_child_name("empty"),
+            Read::Unread => unread_stack.set_visible_child_name("unread"),
+        }
+    }
+
+    fn update_marked_stack(marked_stack: &gtk::Stack, marked: &Marked) {
+        match marked {
+            Marked::Unmarked => marked_stack.set_visible_child_name("empty"),
+            Marked::Marked => marked_stack.set_visible_child_name("marked"),
+        }
     }
 }

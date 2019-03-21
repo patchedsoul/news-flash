@@ -36,7 +36,8 @@ use news_flash::models::{
     OAuthData,
 };
 use crate::util::GtkUtil;
-use crate::main_window::GtkHandle;
+use crate::util::GtkHandle;
+use crate::gtk_handle;
 use crate::error_dialog::ErrorDialog;
 use std::rc::Rc;
 use std::cell::RefCell;
@@ -83,7 +84,7 @@ impl WebLogin {
             info_bar: info_bar,
             info_bar_label: info_bar_label,
             error_details_button: error_details_button,
-            redirect_signal_id: Rc::new(RefCell::new(None)),
+            redirect_signal_id: gtk_handle!(None),
             info_bar_close_signal: None,
             info_bar_response_signal: None,
             error_details_signal: None,

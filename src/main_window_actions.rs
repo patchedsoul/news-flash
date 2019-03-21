@@ -26,6 +26,7 @@ use log::{
     debug,
 };
 use news_flash::NewsFlash;
+use crate::util::GtkHandle;
 use crate::sidebar::models::SidebarSelection;
 use crate::content_page::HeaderSelection;
 use crate::main_window_state::MainWindowState;
@@ -36,7 +37,6 @@ use crate::content_page::{
     ContentHeader,
 };
 use crate::main_window::{
-    GtkHandle,
     DATA_DIR,
 };
 

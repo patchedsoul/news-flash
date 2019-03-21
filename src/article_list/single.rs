@@ -20,7 +20,8 @@ use failure::format_err;
 use std::rc::Rc;
 use std::cell::RefCell;
 use crate::Resources;
-use crate::main_window::GtkHandle;
+use crate::util::GtkHandle;
+use crate::gtk_handle;
 
 pub struct SingleArticleList {
     scroll: gtk::ScrolledWindow,
@@ -51,7 +52,7 @@ impl SingleArticleList {
         let article_row = ArticleRow::new(&article).unwrap();
         self.list.insert(&article_row.widget(), pos);
         article_row.widget().show();
-        self.articles.insert(article.id.clone(), Rc::new(RefCell::new(article_row)));
+        self.articles.insert(article.id.clone(), gtk_handle!(article_row));
     }
 
     pub fn remove(&mut self, id: ArticleID) {
@@ -62,10 +63,14 @@ impl SingleArticleList {
     }
 
     pub fn update_marked(&mut self, id: ArticleID, marked: Marked) {
-
+        if let Some(article_handle) = self.articles.get(&id) {
+            article_handle.borrow_mut().update_marked(marked);
+        }
     }
 
     pub fn update_read(&mut self, id: ArticleID, read: Read) {
-
+        if let Some(article_handle) = self.articles.get(&id) {
+            article_handle.borrow_mut().update_unread(read);
+        }
     }
 }

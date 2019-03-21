@@ -19,7 +19,8 @@ use failure::format_err;
 use crate::Resources;
 use std::rc::Rc;
 use std::cell::RefCell;
-use crate::main_window::GtkHandle;
+use crate::util::GtkHandle;
+use crate::gtk_handle;
 
 pub struct ArticleList {
     stack: gtk::Stack,
@@ -49,7 +50,7 @@ impl ArticleList {
             stack: stack,
             list_1: list_1,
             list_2: list_2,
-            list_model: Rc::new(RefCell::new(model)),
+            list_model: gtk_handle!(model),
             window_state: window_state,
         })
     }
@@ -68,7 +69,7 @@ impl ArticleList {
 
         let old_list = self.list_model.clone();
         let mut old_list = old_list.borrow_mut();
-        self.list_model = Rc::new(RefCell::new(new_list));
+        self.list_model = gtk_handle!(new_list);
         let mut new_list = self.list_model.borrow_mut();
         let list_diff = old_list.generate_diff(&mut new_list);
 

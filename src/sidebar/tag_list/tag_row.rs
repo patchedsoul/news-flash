@@ -20,11 +20,12 @@ use news_flash::models::{
 use crate::sidebar::tag_list::models::{
     TagListTagModel,
 };
-use std::str;
 use std::rc::Rc;
 use std::cell::RefCell;
+use std::str;
 use crate::Resources;
-use crate::main_window::GtkHandle;
+use crate::util::GtkHandle;
+use crate::gtk_handle;
 use crate::color::ColorRGBA;
 
 #[derive(Clone, Debug)]
@@ -65,7 +66,7 @@ impl TagRow {
         tag.update_item_count(model.item_count);
         tag.update_title(&model.label);
 
-        Rc::new(RefCell::new(tag))
+        gtk_handle!(tag)
     }
 
     fn create_row(widget: &gtk::Box, _id: &TagID) -> gtk::ListBoxRow {

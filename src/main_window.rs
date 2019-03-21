@@ -32,13 +32,13 @@ use news_flash::models::{
     TagID,
     ArticleOrder,
 };
-use std::collections::HashMap;
+use std::rc::Rc;
+use std::cell::RefCell;
 use crate::Resources;
 use failure::Error;
 use failure::format_err;
 use std::str;
-use std::rc::Rc;
-use std::cell::RefCell;
+use crate::gtk_handle;
 use std::path::PathBuf;
 use crate::content_page::{
     ContentPage,
@@ -48,9 +48,6 @@ use crate::main_window_actions::MainWindowActions;
 use crate::main_window_state::MainWindowState;
 use crate::sidebar::models::SidebarSelection;
 use crate::content_page::HeaderSelection;
-
-pub type GtkHandle<T> = Rc<RefCell<T>>;
-pub type GtkHandleMap<T, K> = GtkHandle<HashMap<T, K>>;
 
 pub static DATA_DIR: &'static str = "/home/jeanluc/.news-flash";
 const PANED_DEFAULT_POS: i32 = 600;
@@ -101,13 +98,13 @@ impl MainWindow {
         let content = ContentPage::new()?;
         stack.add_named(&content.widget(), "content");
         
-        let pw_login_handle = Rc::new(RefCell::new(pw_login));
-        let oauht_login_handle = Rc::new(RefCell::new(oauth_login));
-        let content_page_handle = Rc::new(RefCell::new(content));
-        let content_header_handle = Rc::new(RefCell::new(content_header));
-        let news_flash_handle = Rc::new(RefCell::new(None));
+        let pw_login_handle = gtk_handle!(pw_login);
+        let oauht_login_handle = gtk_handle!(oauth_login);
+        let content_page_handle = gtk_handle!(content);
+        let content_header_handle = gtk_handle!(content_header);
+        let news_flash_handle = gtk_handle!(None);
 
-        let state = Rc::new(RefCell::new(Self::initial_state()));
+        let state = gtk_handle!(Self::initial_state());
         
         MainWindowActions::setup_show_password_page_action(&window, &pw_login_handle, &stack, login_header.widget());
         MainWindowActions::setup_show_oauth_page_action(&window, &oauht_login_handle, &stack, login_header.widget());

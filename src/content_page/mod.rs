@@ -36,7 +36,7 @@ use news_flash::models::{
     Read,
     Marked,
 };
-use crate::main_window::GtkHandle;
+use crate::util::GtkHandle;
 
 const SIDEBAR_PANED_DEFAULT_POS: i32 = 220;
 

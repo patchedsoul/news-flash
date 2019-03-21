@@ -21,7 +21,8 @@ use std::cell::RefCell;
 use std::collections::HashMap;
 use std::str;
 use crate::Resources;
-use crate::main_window::GtkHandle;
+use crate::util::GtkHandle;
+use crate::gtk_handle;
 use models::{
     TagListModel,
     TagListChangeSet,
@@ -56,7 +57,7 @@ impl TagList {
         let tag_list = TagList {
             list: list_box,
             tags: HashMap::new(),
-            list_model: Rc::new(RefCell::new(TagListModel::new())),
+            list_model: gtk_handle!(TagListModel::new()),
         };
         Ok(tag_list)
     }
@@ -67,7 +68,7 @@ impl TagList {
 
     pub fn update(&mut self, new_list: TagListModel) {
         let old_list = self.list_model.clone();
-        self.list_model = Rc::new(RefCell::new(new_list));
+        self.list_model = gtk_handle!(new_list);
         let list_diff = old_list.borrow_mut().generate_diff(&mut self.list_model.borrow_mut());
         for diff in list_diff {
             match diff {

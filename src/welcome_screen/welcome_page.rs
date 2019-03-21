@@ -12,11 +12,11 @@ use gio::{
     ActionMapExt,
 };
 use crate::Resources;
+use std::rc::Rc;
+use std::cell::RefCell;
 use failure::Error;
 use failure::format_err;
 use std::str;
-use std::rc::Rc;
-use std::cell::RefCell;
 use news_flash::NewsFlash;
 use news_flash::models::{
     PluginID,
@@ -24,7 +24,8 @@ use news_flash::models::{
 };
 use super::service_row::ServiceRow;
 use std::collections::HashMap;
-use crate::main_window::GtkHandleMap;
+use crate::util::GtkHandleMap;
+use crate::gtk_handle;
 
 #[derive(Clone, Debug)]
 pub struct WelcomePage {
@@ -44,7 +45,7 @@ impl WelcomePage {
         let mut page = WelcomePage {
             page: page,
             list: list,
-            services: Rc::new(RefCell::new(HashMap::new())),
+            services: gtk_handle!(HashMap::new()),
         };
 
         page.populate()?;

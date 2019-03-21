@@ -3,3 +3,5 @@ mod date_util;
 
 pub use gtk_util::GtkUtil;
 pub use date_util::DateUtil;
+pub use gtk_util::GtkHandle;
+pub use gtk_util::GtkHandleMap;

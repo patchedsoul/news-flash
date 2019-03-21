@@ -23,6 +23,7 @@ use std::str;
 use std::rc::Rc;
 use std::cell::RefCell;
 use crate::Resources;
+use crate::gtk_handle;
 
 #[derive(Clone, Debug)]
 pub struct CategoryRow {
@@ -67,7 +68,7 @@ impl CategoryRow {
         if !visible {
             category.collapse();
         }
-        let handle = Rc::new(RefCell::new(category));
+        let handle = gtk_handle!(category);
         let handle1 = handle.clone();
 
         arrow_event.set_events(EventMask::BUTTON_PRESS_MASK.bits() as i32);

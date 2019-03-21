@@ -7,8 +7,6 @@ pub mod error;
 use crate::Resources;
 use crate::util::GtkUtil;
 use std::str;
-use std::rc::Rc;
-use std::cell::RefCell;
 use std::collections::HashMap;
 use failure::ResultExt;
 use log::{
@@ -52,8 +50,11 @@ use crate::sidebar::feed_list::error::{
     FeedListError,
     FeedListErrorKind,
 };
-use crate::main_window::GtkHandle;
-use crate::main_window::GtkHandleMap;
+use std::rc::Rc;
+use std::cell::RefCell;
+use crate::util::GtkHandle;
+use crate::util::GtkHandleMap;
+use crate::gtk_handle;
 
 
 #[derive(Clone, Debug)]
@@ -83,9 +84,9 @@ impl FeedList {
 
         let feed_list = FeedList {
             list: list_box,
-            categories: Rc::new(RefCell::new(HashMap::new())),
-            feeds: Rc::new(RefCell::new(HashMap::new())),
-            tree: Rc::new(RefCell::new(FeedListTree::new())),
+            categories: gtk_handle!(HashMap::new()),
+            feeds: gtk_handle!(HashMap::new()),
+            tree: gtk_handle!(FeedListTree::new()),
         };
         feed_list.setup_dnd();
         Ok(feed_list)
@@ -204,7 +205,7 @@ impl FeedList {
 
     pub fn update(&mut self, new_tree: FeedListTree) {
         let old_tree = self.tree.clone();
-        self.tree = Rc::new(RefCell::new(new_tree));
+        self.tree = gtk_handle!(new_tree);
         let tree_diff = old_tree.borrow().generate_diff(&self.tree.borrow());
         for diff in tree_diff {
             match diff {

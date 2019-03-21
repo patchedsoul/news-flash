@@ -34,7 +34,8 @@ use news_flash::models::{
 };
 use news_flash::NewsFlash;
 use models::SidebarSelection;
-use crate::main_window::GtkHandle;
+use crate::util::GtkHandle;
+use crate::gtk_handle;
 use feed_list::FeedList;
 use tag_list::TagList;
 pub use feed_list::models::{
@@ -76,8 +77,8 @@ impl SideBar {
         let feed_list = FeedList::new()?;
         let tag_list = TagList::new()?;
         
-        let feed_list_handle = Rc::new(RefCell::new(feed_list));
-        let tag_list_handle = Rc::new(RefCell::new(tag_list));
+        let feed_list_handle = gtk_handle!(feed_list);
+        let tag_list_handle = gtk_handle!(tag_list);
 
         feed_list_box.pack_start(&feed_list_handle.borrow().widget(), false, true, 0);
         tag_list_box.pack_start(&tag_list_handle.borrow().widget(), false, true, 0);
@@ -139,8 +140,8 @@ impl SideBar {
             .ok_or(format_err!("some err"))?
             .get_scale();
 
-        let expanded_categories = Rc::new(RefCell::new(true));
-        let expanded_tags =  Rc::new(RefCell::new(false));
+        let expanded_categories = gtk_handle!(true);
+        let expanded_tags =  gtk_handle!(false);
 
         Self::setup_expander(&categories_event_box, &categories_expander, &categories_revealer, &expanded_categories);
         Self::setup_expander(&tags_event_box, &tags_expander, &tags_revealer, &expanded_tags);

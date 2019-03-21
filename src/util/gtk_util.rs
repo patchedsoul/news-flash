@@ -34,6 +34,19 @@ use failure::{
     Error,
     format_err,
 };
+use std::collections::HashMap;
+use std::rc::Rc;
+use std::cell::RefCell;
+
+pub type GtkHandle<T> = Rc<RefCell<T>>;
+pub type GtkHandleMap<T, K> = GtkHandle<HashMap<T, K>>;
+
+#[macro_export]
+macro_rules! gtk_handle {
+    ($x:expr) => {
+        Rc::new(RefCell::new($x))
+    }
+}
 
 pub struct GtkUtil;
 

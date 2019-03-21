@@ -1,5 +1,3 @@
-use std::rc::Rc;
-use std::cell::RefCell;
 use gtk::{
     self,
     LabelExt,
@@ -18,6 +16,8 @@ use crate::Resources;
 use failure::Error;
 use failure::format_err;
 use std::str;
+use std::rc::Rc;
+use std::cell::RefCell;
 use news_flash::models::{
     PluginInfo,
     PluginIcon,
@@ -26,7 +26,8 @@ use news_flash::models::{
     ServicePrice,
 };
 use crate::util::GtkUtil;
-use crate::main_window::GtkHandle;
+use crate::util::GtkHandle;
+use crate::gtk_handle;
 
 #[derive(Clone, Debug)]
 pub struct ServiceRow {
@@ -121,13 +122,13 @@ impl ServiceRow {
 
         let service_row = ServiceRow {
             row: row,
-            arrow_revealer: Rc::new(RefCell::new(arrow_revealer)),
-            arrow_event: Rc::new(RefCell::new(arrow_event)),
-            arrow_image: Rc::new(RefCell::new(arrow_image)),
-            info_revealer: Rc::new(RefCell::new(info_revealer)),
+            arrow_revealer: gtk_handle!(arrow_revealer),
+            arrow_event: gtk_handle!(arrow_event),
+            arrow_image: gtk_handle!(arrow_image),
+            info_revealer: gtk_handle!(info_revealer),
             show_info: false,
         };
-        let self_handle = Rc::new(RefCell::new(service_row.clone()));
+        let self_handle = gtk_handle!(service_row.clone());
         service_row.setup_events(self_handle);
 
         Ok(service_row)

@@ -112,10 +112,6 @@ impl ArticleListModel {
             }
         }
         
-        for change_set in &diff {
-            println!("{}", change_set);
-        }
-        
         diff
     }
 

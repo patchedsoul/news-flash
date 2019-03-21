@@ -38,7 +38,8 @@ use std::rc::Rc;
 use std::cell::RefCell;
 use crate::Resources;
 use crate::util::GtkUtil;
-use crate::main_window::GtkHandle;
+use crate::util::GtkHandle;
+use crate::gtk_handle;
 
 #[derive(Clone, Debug)]
 pub struct FeedRow {
@@ -72,7 +73,7 @@ impl FeedRow {
             item_count: item_count_label,
             title: title_label,
             revealer: revealer,
-            hide_timeout: Rc::new(RefCell::new(None)),
+            hide_timeout: gtk_handle!(None),
             item_count_event: item_count_event,
             favicon: favicon,
         };
@@ -82,7 +83,7 @@ impl FeedRow {
         if !visible {
             feed.collapse();
         }
-        Rc::new(RefCell::new(feed))
+        gtk_handle!(feed)
     }
 
     fn create_row(widget: &gtk::Revealer, id: &FeedID) -> gtk::ListBoxRow {
