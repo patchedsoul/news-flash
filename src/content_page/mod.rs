@@ -132,6 +132,12 @@ impl ContentPage {
             SidebarSelection::Tag(_) => None,
             SidebarSelection::Cateogry(id) => Some(id.clone()),
         };
+        let tag = match &window_state.sidebar {
+            SidebarSelection::All |
+            SidebarSelection::Feed(_) |
+            SidebarSelection::Cateogry(_) => None,
+            SidebarSelection::Tag(id) => Some(id.clone()),
+        };
         
         let mut articles = news_flash.get_articles(
             None,
@@ -141,6 +147,7 @@ impl ContentPage {
             marked,
             feed,
             category,
+            tag,
             None,
             None,
             None

@@ -62,6 +62,13 @@ impl SingleArticleList {
         let _ = self.articles.remove(&id);
     }
 
+    pub fn clear(&mut self) {
+        for row in self.list.get_children() {
+            self.list.remove(&row);
+        }
+        self.articles.clear();
+    }
+
     pub fn update_marked(&mut self, id: ArticleID, marked: Marked) {
         if let Some(article_handle) = self.articles.get(&id) {
             article_handle.borrow_mut().update_marked(marked);
