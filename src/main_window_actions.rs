@@ -23,7 +23,6 @@ use news_flash::models::{
 };
 use log::{
     error,
-    debug,
 };
 use news_flash::NewsFlash;
 use crate::util::GtkHandle;
@@ -249,7 +248,6 @@ impl MainWindowActions {
             if let Some(data) = data {
                 if let Some(data) = data.get_str() {
                     let selection: SidebarSelection = serde_json::from_str(&data).unwrap();
-                    debug!("sidebar: {:?}", selection);
                     state.borrow_mut().sidebar = selection;
                     if let Some(action) = main_window.lookup_action("update-article-list") {
                         action.activate(None);
@@ -269,7 +267,6 @@ impl MainWindowActions {
             if let Some(data) = data {
                 if let Some(data) = data.get_str() {
                     let selection: HeaderSelection = serde_json::from_str(&data).unwrap();
-                    debug!("headerbar: {:?}", selection);
                     state.borrow_mut().header = selection;
                     if let Some(action) = main_window.lookup_action("update-article-list") {
                         action.activate(None);
@@ -288,7 +285,6 @@ impl MainWindowActions {
         search_action.connect_activate(move |_action, data| {
             if let Some(data) = data {
                 if let Some(data) = data.get_str() {
-                    debug!("search: {}", data);
                     state.borrow_mut().search_term = Some(data.to_owned());
                     if let Some(action) = main_window.lookup_action("update-article-list") {
                         action.activate(None);

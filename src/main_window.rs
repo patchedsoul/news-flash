@@ -39,7 +39,6 @@ use failure::Error;
 use failure::format_err;
 use std::str;
 use crate::gtk_handle;
-use std::path::PathBuf;
 use crate::content_page::{
     ContentPage,
     ContentHeader,
@@ -49,7 +48,7 @@ use crate::main_window_state::MainWindowState;
 use crate::sidebar::models::SidebarSelection;
 use crate::content_page::HeaderSelection;
 
-pub static DATA_DIR: &'static str = "/home/jeanluc/.news-flash";
+pub static DATA_DIR: &'static str = ".news-flash";
 const PANED_DEFAULT_POS: i32 = 600;
 
 pub struct MainWindow {
@@ -118,7 +117,9 @@ impl MainWindow {
         MainWindowActions::setup_search_action(&window, &state);
         MainWindowActions::setup_update_article_list_action(&window, &state, &content_page_handle, &news_flash_handle);
 
-        if let Ok(news_flash_lib) = NewsFlash::try_load(&PathBuf::from(DATA_DIR)) {
+        let mut data_dir = dirs::home_dir().expect("$HOME not available");
+        data_dir.push(DATA_DIR);
+        if let Ok(news_flash_lib) = NewsFlash::try_load(&data_dir) {
             info!("Successful load from config");
 
             stack.set_visible_child_name("content");
