@@ -29,7 +29,6 @@ impl ArticleListArticleModel {
             feed_id,
             _url,
             date,
-            _html,
             summary,
             _direction,
             unread,
