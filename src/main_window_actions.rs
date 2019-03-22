@@ -251,7 +251,7 @@ impl MainWindowActions {
             if let Some(data) = data {
                 if let Some(data) = data.get_str() {
                     let selection: SidebarSelection = serde_json::from_str(&data).unwrap();
-                    state.borrow_mut().sidebar = selection;
+                    state.borrow_mut().set_sidebar_selection(selection);
                     if let Some(action) = main_window.lookup_action("update-article-list") {
                         action.activate(None);
                     }
@@ -270,7 +270,7 @@ impl MainWindowActions {
             if let Some(data) = data {
                 if let Some(data) = data.get_str() {
                     let selection: HeaderSelection = serde_json::from_str(&data).unwrap();
-                    state.borrow_mut().header = selection;
+                    state.borrow_mut().set_header_selection(selection);
                     if let Some(action) = main_window.lookup_action("update-article-list") {
                         action.activate(None);
                     }
@@ -288,7 +288,7 @@ impl MainWindowActions {
         search_action.connect_activate(move |_action, data| {
             if let Some(data) = data {
                 if let Some(data) = data.get_str() {
-                    state.borrow_mut().search_term = Some(data.to_owned());
+                    state.borrow_mut().set_search_term(Some(data.to_owned()));
                     if let Some(action) = main_window.lookup_action("update-article-list") {
                         action.activate(None);
                     }
@@ -314,5 +314,24 @@ impl MainWindowActions {
         });
         update_article_list_action.set_enabled(true);
         window.add_action(&update_article_list_action);
+    }
+
+    pub fn setup_show_more_articles_action(
+        window: &ApplicationWindow,
+        state: &GtkHandle<MainWindowState>,
+        content_page: &GtkHandle<ContentPage>,
+        news_flash: &GtkHandle<Option<NewsFlash>>
+    ) {
+        let state = state.clone();
+        let content_page = content_page.clone();
+        let news_flash = news_flash.clone();
+        let show_more_articles_action = SimpleAction::new("show-more-articles", None);
+        show_more_articles_action.connect_activate(move |_action, _data| {
+            let offset = state.borrow().get_articles_showing();
+            state.borrow_mut().show_more();
+            content_page.borrow_mut().load_more_articles(&news_flash, &state, offset);
+        });
+        show_more_articles_action.set_enabled(true);
+        window.add_action(&show_more_articles_action);
     }
 }

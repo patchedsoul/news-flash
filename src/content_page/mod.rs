@@ -32,6 +32,7 @@ use crate::sidebar::models::SidebarSelection;
 use crate::main_window_state::MainWindowState;
 use news_flash::NewsFlash;
 use news_flash::models::{
+    Article,
     PluginID,
     Read,
     Marked,
@@ -111,47 +112,8 @@ impl ContentPage {
         window_state: &GtkHandle<MainWindowState>,
     ) {
         let window_state = window_state.borrow().clone();
-        let mut list_model = ArticleListModel::new(&window_state.article_list_order);
-        let unread = match window_state.header {
-            HeaderSelection::All | HeaderSelection::Marked => None,
-            HeaderSelection::Unread => Some(Read::Unread),
-        };
-        let marked = match window_state.header {
-            HeaderSelection::All | HeaderSelection::Unread => None,
-            HeaderSelection::Marked => Some(Marked::Marked),
-        };
-        let feed = match &window_state.sidebar {
-            SidebarSelection::All |
-            SidebarSelection::Cateogry(_) |
-            SidebarSelection::Tag(_) => None,
-            SidebarSelection::Feed(id) => Some(id.clone()),
-        };
-        let category = match &window_state.sidebar {
-            SidebarSelection::All |
-            SidebarSelection::Feed(_) |
-            SidebarSelection::Tag(_) => None,
-            SidebarSelection::Cateogry(id) => Some(id.clone()),
-        };
-        let tag = match &window_state.sidebar {
-            SidebarSelection::All |
-            SidebarSelection::Feed(_) |
-            SidebarSelection::Cateogry(_) => None,
-            SidebarSelection::Tag(id) => Some(id.clone()),
-        };
-        
-        let mut articles = news_flash.get_articles(
-            None,
-            None,
-            Some(window_state.article_list_order.clone()),
-            unread,
-            marked,
-            feed,
-            category,
-            tag,
-            None,
-            None,
-            None
-        ).unwrap();
+        let mut list_model = ArticleListModel::new(window_state.get_article_list_order());
+        let mut articles = Self::load_articles(news_flash, &window_state, None);
 
         let (feeds, _) = news_flash.get_feeds().unwrap();
         let _ : Vec<_> = articles.drain(..).map(|article| {
@@ -163,6 +125,74 @@ impl ContentPage {
             list_model.add(article, feed.label.clone(), favicon)
         }).collect();
         self.article_list.update(list_model, window_state);
+    }
+
+    pub fn load_more_articles(
+        &mut self,
+        news_flash_handle: &GtkHandle<Option<NewsFlash>>,
+        window_state: &GtkHandle<MainWindowState>,
+        offset: i64
+    ) {
+        let window_state = window_state.borrow().clone();
+        let mut list_model = ArticleListModel::new(window_state.get_article_list_order());
+        if let Some(news_flash) = news_flash_handle.borrow_mut().as_mut() {
+            let mut articles = Self::load_articles(news_flash, &window_state, Some(offset));
+            let (feeds, _) = news_flash.get_feeds().unwrap();
+            let _ : Vec<_> = articles.drain(..).map(|article| {
+                let feed = feeds.iter().find(|&f| f.feed_id == article.feed_id).unwrap();
+                let favicon = match news_flash.get_icon_info(&feed) {
+                    Ok(favicon) => Some(favicon),
+                    Err(_) => None,
+                };
+                list_model.add(article, feed.label.clone(), favicon)
+            }).collect();
+            self.article_list.add_more_articles(list_model);
+        }
+    }
+
+    fn load_articles(news_flash: &mut NewsFlash, window_state: &MainWindowState, offset: Option<i64>) -> Vec<Article> {
+        let unread = match window_state.get_header_selection() {
+            HeaderSelection::All | HeaderSelection::Marked => None,
+            HeaderSelection::Unread => Some(Read::Unread),
+        };
+        let marked = match window_state.get_header_selection() {
+            HeaderSelection::All | HeaderSelection::Unread => None,
+            HeaderSelection::Marked => Some(Marked::Marked),
+        };
+        let feed = match &window_state.get_sidebar_selection() {
+            SidebarSelection::All |
+            SidebarSelection::Cateogry(_) |
+            SidebarSelection::Tag(_) => None,
+            SidebarSelection::Feed(id) => Some(id.clone()),
+        };
+        let category = match &window_state.get_sidebar_selection() {
+            SidebarSelection::All |
+            SidebarSelection::Feed(_) |
+            SidebarSelection::Tag(_) => None,
+            SidebarSelection::Cateogry(id) => Some(id.clone()),
+        };
+        let tag = match &window_state.get_sidebar_selection() {
+            SidebarSelection::All |
+            SidebarSelection::Feed(_) |
+            SidebarSelection::Cateogry(_) => None,
+            SidebarSelection::Tag(id) => Some(id.clone()),
+        };
+        
+        let articles = news_flash.get_articles(
+            Some(window_state.get_articles_showing()),
+            offset,
+            Some(window_state.get_article_list_order().clone()),
+            unread,
+            marked,
+            feed,
+            category,
+            tag,
+            None,
+            None,
+            None
+        ).unwrap();
+
+        articles
     }
 
     pub fn update_sidebar(

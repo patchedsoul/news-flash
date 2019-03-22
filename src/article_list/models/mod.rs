@@ -42,6 +42,10 @@ impl ArticleListModel {
         self.ids.contains(article_id)
     }
 
+    pub fn models(&self) -> &Vec<ArticleListArticleModel> {
+        &self.models
+    }
+
     pub fn generate_diff<'a>(&'a mut self, new_list: &'a mut ArticleListModel) -> Vec<ArticleListChangeSet> {
         let mut diff : Vec<ArticleListChangeSet> = Vec::new();
         let mut list_pos = 0;

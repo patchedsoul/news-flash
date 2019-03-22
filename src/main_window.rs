@@ -30,7 +30,6 @@ use news_flash::NewsFlash;
 use news_flash::models::{
     Tag,
     TagID,
-    ArticleOrder,
 };
 use std::rc::Rc;
 use std::cell::RefCell;
@@ -45,8 +44,6 @@ use crate::content_page::{
 };
 use crate::main_window_actions::MainWindowActions;
 use crate::main_window_state::MainWindowState;
-use crate::sidebar::models::SidebarSelection;
-use crate::content_page::HeaderSelection;
 
 pub static DATA_DIR: &'static str = ".news-flash";
 const PANED_DEFAULT_POS: i32 = 600;
@@ -103,7 +100,7 @@ impl MainWindow {
         let content_header_handle = gtk_handle!(content_header);
         let news_flash_handle = gtk_handle!(None);
 
-        let state = gtk_handle!(Self::initial_state());
+        let state = gtk_handle!(MainWindowState::new());
         
         MainWindowActions::setup_show_password_page_action(&window, &pw_login_handle, &stack, login_header.widget());
         MainWindowActions::setup_show_oauth_page_action(&window, &oauht_login_handle, &stack, login_header.widget());
@@ -116,6 +113,7 @@ impl MainWindow {
         MainWindowActions::setup_headerbar_selection_action(&window, &state);
         MainWindowActions::setup_search_action(&window, &state);
         MainWindowActions::setup_update_article_list_action(&window, &state, &content_page_handle, &news_flash_handle);
+        MainWindowActions::setup_show_more_articles_action(&window, &state, &content_page_handle, &news_flash_handle);
 
         let mut data_dir = dirs::home_dir().expect("$HOME not available");
         data_dir.push(DATA_DIR);
@@ -152,15 +150,6 @@ impl MainWindow {
 
     pub fn present(&self) {
         self.widget.present();
-    }
-
-    pub fn initial_state() -> MainWindowState {
-        MainWindowState {
-            sidebar: SidebarSelection::All,
-            header: HeaderSelection::All,
-            search_term: None,
-            article_list_order: ArticleOrder::NewestFirst,
-        }
     }
 
     pub fn demo_tag_list() -> Vec<Tag> {

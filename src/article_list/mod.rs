@@ -12,7 +12,6 @@ use single::SingleArticleList;
 pub use models::ArticleListModel;
 use models::ArticleListChangeSet;
 use crate::main_window_state::MainWindowState;
-use crate::main_window::MainWindow;
 use crate::content_page::HeaderSelection;
 use std::str;
 use failure::Error;
@@ -47,8 +46,8 @@ impl ArticleList {
         let list_1 = SingleArticleList::new()?;
         let list_2 = SingleArticleList::new()?;
 
-        let window_state = MainWindow::initial_state();
-        let model = ArticleListModel::new(&window_state.article_list_order);
+        let window_state = MainWindowState::new();
+        let model = ArticleListModel::new(window_state.get_article_list_order());
 
         stack.add_named(&list_1.widget(), "list_1");
         stack.add_named(&list_2.widget(), "list_2");
@@ -73,7 +72,7 @@ impl ArticleList {
             CurrentList::List2 => CurrentList::List1,
         };
         self.current_list = current_list;
-        let mut empty_model = ArticleListModel::new(&self.window_state.article_list_order);
+        let mut empty_model = ArticleListModel::new(self.window_state.get_article_list_order());
         let diff = empty_model.generate_diff(&mut new_list);
 
         self.execute_diff(diff);
@@ -99,6 +98,17 @@ impl ArticleList {
 
         self.list_model = gtk_handle!(new_list);
         self.window_state = new_state;
+    }
+
+    pub fn add_more_articles(&mut self, new_list: ArticleListModel) {
+        let list = match self.current_list {
+            CurrentList::List1 => &mut self.list_1,
+            CurrentList::List2 => &mut self.list_2,
+        };
+
+        for model in new_list.models() {
+            list.borrow_mut().add(model, -1);
+        }
     }
 
     fn execute_diff(&mut self, diff: Vec<ArticleListChangeSet>) {
@@ -151,23 +161,23 @@ impl ArticleList {
 
     fn calc_transition_type(&self, new_state: &MainWindowState) -> StackTransitionType {
         if self.require_new_list(new_state) {
-            match self.window_state.header {
+            match self.window_state.get_header_selection() {
                 HeaderSelection::All => {
-                    match new_state.header {
+                    match new_state.get_header_selection() {
                         HeaderSelection::All => {},
                         HeaderSelection::Unread |
                         HeaderSelection::Marked => return StackTransitionType::SlideLeft,
                     }
                 },
                 HeaderSelection::Unread => {
-                    match new_state.header {
+                    match new_state.get_header_selection() {
                         HeaderSelection::All  => return StackTransitionType::SlideRight,
                         HeaderSelection::Unread => {},
                         HeaderSelection::Marked => return StackTransitionType::SlideLeft,
                     }
                 },
                 HeaderSelection::Marked => {
-                    match new_state.header {
+                    match new_state.get_header_selection() {
                         HeaderSelection::All |
                         HeaderSelection::Unread => return StackTransitionType::SlideRight,
                         HeaderSelection::Marked => {},

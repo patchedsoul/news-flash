@@ -3,6 +3,12 @@ use gtk::{
     ContainerExt,
     ListBoxExt,
     WidgetExt,
+    ScrolledWindowExt,
+    AdjustmentExt,
+};
+use gio::{
+    ActionExt,
+    ActionMapExt,
 };
 use news_flash::models::{
     ArticleID,
@@ -20,8 +26,11 @@ use failure::format_err;
 use std::rc::Rc;
 use std::cell::RefCell;
 use crate::Resources;
+use crate::util::GtkUtil;
 use crate::util::GtkHandle;
 use crate::gtk_handle;
+
+const LIST_BOTTOM_THREASHOLD: f64 = 200.0;
 
 pub struct SingleArticleList {
     scroll: gtk::ScrolledWindow,
@@ -36,6 +45,32 @@ impl SingleArticleList {
         let builder = Builder::new_from_string(ui_string);
         let scroll : gtk::ScrolledWindow = builder.get_object("article_list_scroll").ok_or(format_err!("some err"))?;
         let list : gtk::ListBox = builder.get_object("article_list_box").ok_or(format_err!("some err"))?;
+
+
+        let vadj_scroll = scroll.clone();
+        let cooldown = gtk_handle!(false);
+        if let Some(vadjustment) = scroll.get_vadjustment() {
+            vadjustment.connect_value_changed(move |vadj| {
+                let is_on_cooldown = *cooldown.borrow();
+                if !is_on_cooldown {
+                    let max = vadj.get_upper() - vadj.get_page_size();
+                    if max > 0.0 && vadj.get_value() >= (max - LIST_BOTTOM_THREASHOLD) {
+                        if let Ok(main_window) = GtkUtil::get_main_window(&vadj_scroll) {
+                            if let Some(action) = main_window.lookup_action("show-more-articles") {
+                                *cooldown.borrow_mut() = true;
+                                let cooldown = cooldown.clone();
+                                gtk::timeout_add(800, move || {
+                                    *cooldown.borrow_mut() = false;
+                                    gtk::Continue(false)
+                                });
+                                action.activate(None);
+                            }
+                        }
+                    }
+                }
+            });
+            
+        }
 
         Ok(SingleArticleList {
             scroll: scroll,
@@ -67,6 +102,9 @@ impl SingleArticleList {
             self.list.remove(&row);
         }
         self.articles.clear();
+        if let Some(vadjustment) = self.scroll.get_vadjustment() {
+            vadjustment.set_value(0.0);
+        }
     }
 
     pub fn update_marked(&mut self, id: ArticleID, marked: Marked) {
