@@ -177,9 +177,15 @@ impl ContentPage {
             SidebarSelection::Cateogry(_) => None,
             SidebarSelection::Tag(id) => Some(id.clone()),
         };
-        
+
+        let limit = window_state.get_articles_showing();
+        let limit = match offset {
+            Some(offset) => Some(limit - offset),
+            None => Some(limit),
+        };
+
         let articles = news_flash.get_articles(
-            Some(window_state.get_articles_showing()),
+            limit,
             offset,
             Some(window_state.get_article_list_order().clone()),
             unread,

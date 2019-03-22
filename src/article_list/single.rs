@@ -5,6 +5,7 @@ use gtk::{
     WidgetExt,
     ScrolledWindowExt,
     AdjustmentExt,
+    Continue,
 };
 use gio::{
     ActionExt,
@@ -61,7 +62,7 @@ impl SingleArticleList {
                                 let cooldown = cooldown.clone();
                                 gtk::timeout_add(800, move || {
                                     *cooldown.borrow_mut() = false;
-                                    gtk::Continue(false)
+                                    Continue(false)
                                 });
                                 action.activate(None);
                             }
@@ -99,7 +100,11 @@ impl SingleArticleList {
 
     pub fn clear(&mut self) {
         for row in self.list.get_children() {
-            self.list.remove(&row);
+            let list = self.list.clone();
+            gtk::idle_add(move || {
+                list.remove(&row);
+                Continue(false)
+            });
         }
         self.articles.clear();
         if let Some(vadjustment) = self.scroll.get_vadjustment() {

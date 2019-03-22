@@ -107,7 +107,13 @@ impl ArticleList {
         };
 
         for model in new_list.models() {
-            list.borrow_mut().add(model, -1);
+            //list.borrow_mut().add(&model, -1);
+            let model = model.clone();
+            let list = list.clone();
+            gtk::idle_add(move || {
+                list.borrow_mut().add(&model, -1);
+                Continue(false)
+            });
         }
     }
 
@@ -146,7 +152,7 @@ impl ArticleList {
             CurrentList::List2 => self.list_1.clone(),
         };
 
-        gtk::timeout_add(100, move || {
+        gtk::timeout_add(110, move || {
             old_list.borrow_mut().clear();
             Continue(false)
         });

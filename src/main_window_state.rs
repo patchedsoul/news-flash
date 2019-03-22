@@ -29,7 +29,7 @@ impl MainWindowState {
     }
 
     fn reset_article_list_size(&mut self) {
-        self.articles_showing = ARTICLE_LIST_PAGE_SIZE;
+        self.articles_showing = ARTICLE_LIST_PAGE_SIZE / 2;
     }
 
     pub fn get_sidebar_selection(&self) -> &SidebarSelection {
