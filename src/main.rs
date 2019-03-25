@@ -9,6 +9,7 @@ mod error_dialog;
 mod content_page;
 mod color;
 mod article_list;
+mod article_view;
 
 use gio::{
     self,

@@ -28,6 +28,7 @@ use crate::sidebar::{
 };
 use crate::article_list::ArticleList;
 use crate::article_list::ArticleListModel;
+use crate::article_view::ArticleView;
 use crate::sidebar::models::SidebarSelection;
 use crate::main_window_state::MainWindowState;
 use news_flash::NewsFlash;
@@ -46,6 +47,7 @@ pub struct ContentPage {
     paned: gtk::Paned,
     sidebar: SideBar,
     article_list: ArticleList,
+    article_view: ArticleView,
 }
 
 impl ContentPage {
@@ -56,6 +58,7 @@ impl ContentPage {
         let page : gtk::Box = builder.get_object("page").ok_or(format_err!("some err"))?;
         let feed_list_box : gtk::Box = builder.get_object("feedlist_box").ok_or(format_err!("some err"))?;
         let article_list_box : gtk::Box = builder.get_object("articlelist_box").ok_or(format_err!("some err"))?;
+        let articleview_box : gtk::Box = builder.get_object("articleview_box").ok_or(format_err!("some err"))?;
         let paned : gtk::Paned = builder.get_object("paned_lists_article_view").ok_or(format_err!("some err"))?;
         let sidebar_paned : gtk::Paned = builder.get_object("paned_lists").ok_or(format_err!("some err"))?;
         sidebar_paned.set_position(SIDEBAR_PANED_DEFAULT_POS);
@@ -71,15 +74,19 @@ impl ContentPage {
         
         let sidebar = SideBar::new()?;
         let article_list = ArticleList::new()?;
+        let article_view = ArticleView::new()?;
 
         feed_list_box.pack_start(&sidebar.widget(), false, true, 0);
         article_list_box.pack_start(&article_list.widget(), false, true, 0);
+        articleview_box.pack_start(&article_view.widget(), false, true, 0);
+
 
         Ok(ContentPage {
             page: page,
             paned: paned,
             sidebar: sidebar,
             article_list: article_list,
+            article_view: article_view,
         })
     }
 
