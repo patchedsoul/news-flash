@@ -15,8 +15,13 @@ use gio::{
     MemoryInputStream,
 };
 use glib::{
+    object::ObjectExt,
+    signal::SignalHandlerId,
     Bytes,
     object::IsA,
+    translate::{
+        FromGlib,
+    },
 };
 use cairo::{
     Context,
@@ -121,5 +126,12 @@ impl GtkUtil {
         }
 
         None
+    }
+
+    pub fn disconnect_signal<T: ObjectExt>(signal_id: Option<u64>, widget: &T) {
+        if let Some(signal_id) = signal_id {
+            let signal_id = SignalHandlerId::from_glib(signal_id);
+            widget.disconnect(signal_id);
+        }
     }
 }

@@ -50,6 +50,7 @@ impl MainWindowState {
         self.reset_article_list_size();
     }
 
+    #[allow(dead_code)]
     pub fn get_search_term(&self) -> &Option<String> {
         &self.search_term
     }
@@ -63,6 +64,7 @@ impl MainWindowState {
         &self.article_list_order
     }
 
+    #[allow(dead_code)]
     pub fn set_article_list_order(&mut self, order: ArticleOrder) {
         self.article_list_order = order;
         self.reset_article_list_size();

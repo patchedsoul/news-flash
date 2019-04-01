@@ -26,8 +26,10 @@ use crate::sidebar::{
     FeedListTree,
     TagListModel,
 };
-use crate::article_list::ArticleList;
-use crate::article_list::ArticleListModel;
+use crate::article_list::{
+    ArticleList,
+    ArticleListModel,
+};
 use crate::article_view::ArticleView;
 use crate::sidebar::models::SidebarSelection;
 use crate::main_window_state::MainWindowState;

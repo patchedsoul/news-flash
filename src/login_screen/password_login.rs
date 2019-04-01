@@ -12,11 +12,7 @@ use gtk::{
 };
 use glib::{
     signal::SignalHandlerId,
-    object::ObjectExt,
-    translate::{
-        ToGlib,
-        FromGlib,
-    },
+    translate::ToGlib,
     Variant,
 };
 use gio::{
@@ -254,16 +250,16 @@ impl PasswordLogin {
         self.http_pass_entry.set_text("");
 
 
-        Self::disconnect_signal(self.info_bar_close_signal, &self.info_bar);
-        Self::disconnect_signal(self.info_bar_response_signal, &self.info_bar);
-        Self::disconnect_signal(self.url_entry_signal, &self.url_entry);
-        Self::disconnect_signal(self.user_entry_signal, &self.user_entry);
-        Self::disconnect_signal(self.pass_entry_signal, &self.pass_entry);
-        Self::disconnect_signal(self.http_user_entry_signal, &self.http_user_entry);
-        Self::disconnect_signal(self.http_pass_entry_signal, &self.http_pass_entry);
-        Self::disconnect_signal(self.login_button_signal, &self.login_button);
-        Self::disconnect_signal(self.ignore_tls_signal, &self.ignore_tls_button);
-        Self::disconnect_signal(self.error_details_signal, &self.error_details_button);
+        GtkUtil::disconnect_signal(self.info_bar_close_signal, &self.info_bar);
+        GtkUtil::disconnect_signal(self.info_bar_response_signal, &self.info_bar);
+        GtkUtil::disconnect_signal(self.url_entry_signal, &self.url_entry);
+        GtkUtil::disconnect_signal(self.user_entry_signal, &self.user_entry);
+        GtkUtil::disconnect_signal(self.pass_entry_signal, &self.pass_entry);
+        GtkUtil::disconnect_signal(self.http_user_entry_signal, &self.http_user_entry);
+        GtkUtil::disconnect_signal(self.http_pass_entry_signal, &self.http_pass_entry);
+        GtkUtil::disconnect_signal(self.login_button_signal, &self.login_button);
+        GtkUtil::disconnect_signal(self.ignore_tls_signal, &self.ignore_tls_button);
+        GtkUtil::disconnect_signal(self.error_details_signal, &self.error_details_button);
         self.info_bar_close_signal = None;
         self.info_bar_response_signal = None;
         self.url_entry_signal = None;
@@ -286,8 +282,8 @@ impl PasswordLogin {
     }
 
     pub fn show_error(&mut self, error: NewsFlashError) {
-        Self::disconnect_signal(self.ignore_tls_signal, &self.ignore_tls_button);
-        Self::disconnect_signal(self.error_details_signal, &self.error_details_button);
+        GtkUtil::disconnect_signal(self.ignore_tls_signal, &self.ignore_tls_button);
+        GtkUtil::disconnect_signal(self.error_details_signal, &self.error_details_button);
         self.ignore_tls_signal = None;
         self.error_details_signal = None;
 
@@ -372,12 +368,5 @@ impl PasswordLogin {
 
             button.set_sensitive(true);
         })
-    }
-
-    fn disconnect_signal<T: ObjectExt>(signal_id: Option<u64>, widget: &T) {
-        if let Some(signal_id) = signal_id {
-            let signal_id = SignalHandlerId::from_glib(signal_id);
-            widget.disconnect(signal_id);
-        }
     }
 }

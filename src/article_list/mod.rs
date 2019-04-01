@@ -7,6 +7,16 @@ use gtk::{
     StackExt,
     StackTransitionType,
     Continue,
+    ListBoxExt,
+    ListBoxRowExt,
+};
+use gio::{
+    ActionExt,
+    ActionMapExt,
+};
+use glib::{
+    Variant,
+    translate::ToGlib,
 };
 use single::SingleArticleList;
 pub use models::ArticleListModel;
@@ -21,6 +31,7 @@ use std::rc::Rc;
 use std::cell::RefCell;
 use crate::util::GtkHandle;
 use crate::gtk_handle;
+use crate::util::GtkUtil;
 
 pub enum CurrentList {
     List1,
@@ -32,6 +43,7 @@ pub struct ArticleList {
     list_1: GtkHandle<SingleArticleList>,
     list_2: GtkHandle<SingleArticleList>,
     list_model: GtkHandle<ArticleListModel>,
+    list_select_signal: Option<u64>,
     window_state: MainWindowState,
     current_list: CurrentList,
 }
@@ -52,14 +64,19 @@ impl ArticleList {
         stack.add_named(&list_1.widget(), "list_1");
         stack.add_named(&list_2.widget(), "list_2");
 
-        Ok(ArticleList {
+        let mut article_list = ArticleList {
             stack: stack,
             list_1: gtk_handle!(list_1),
             list_2: gtk_handle!(list_2),
             list_model: gtk_handle!(model),
+            list_select_signal: None,
             window_state: window_state,
             current_list: CurrentList::List1,
-        })
+        };
+        
+        article_list.setup_list_selected_singal();
+
+        Ok(article_list)
     }
 
     pub fn widget(&self) -> gtk::Stack {
@@ -76,9 +93,10 @@ impl ArticleList {
         let diff = empty_model.generate_diff(&mut new_list);
 
         self.execute_diff(diff);
-        self.switch_lists();
 
-        self.list_model = gtk_handle!(new_list);
+        *self.list_model.borrow_mut() = new_list;
+
+        self.switch_lists();
     }
 
     pub fn update(&mut self, mut new_list: ArticleListModel, new_state: MainWindowState) {
@@ -90,13 +108,15 @@ impl ArticleList {
             self.window_state = new_state;
             return
         }
-        
-        let old_list = self.list_model.clone();
-        let mut old_list = old_list.borrow_mut();
-        let list_diff = old_list.generate_diff(&mut new_list);
-        self.execute_diff(list_diff);
 
-        self.list_model = gtk_handle!(new_list);
+        {
+            let old_list = self.list_model.clone();
+            let mut old_list = old_list.borrow_mut();
+            let list_diff = old_list.generate_diff(&mut new_list);
+            self.execute_diff(list_diff);
+        }
+
+        *self.list_model.borrow_mut() = new_list;
         self.window_state = new_state;
     }
 
@@ -141,11 +161,14 @@ impl ArticleList {
         }
     }
 
-    fn switch_lists(&self) {
+    fn switch_lists(&mut self) {
+        
         match self.current_list {
             CurrentList::List1 => self.stack.set_visible_child_name("list_1"),
             CurrentList::List2 => self.stack.set_visible_child_name("list_2"),
         }
+
+        self.setup_list_selected_singal();
 
         let old_list = match self.current_list {
             CurrentList::List1 => self.list_2.clone(),
@@ -156,6 +179,30 @@ impl ArticleList {
             old_list.borrow_mut().clear();
             Continue(false)
         });
+    }
+
+    fn setup_list_selected_singal(&mut self) {
+        let list_model_clone = self.list_model.clone();
+        let (new_list, old_list) = match self.current_list {
+            CurrentList::List1 => (&self.list_1, &self.list_2),
+            CurrentList::List2 => (&self.list_2, &self.list_1),
+        };
+        GtkUtil::disconnect_signal(self.list_select_signal, &old_list.borrow().list());
+        let select_signal_id = new_list.borrow().list().connect_row_selected(move |list, row| {
+            if let Some(selected_row) = row {
+                let selected_index = selected_row.get_index();
+                if let Some(selected_article) = list_model_clone.borrow_mut().calculate_selection(selected_index) {
+                    let selected_article_id = selected_article.id.clone();
+                    if let Ok(main_window) = GtkUtil::get_main_window(list) {
+                        if let Some(action) = main_window.lookup_action("FIXME") {
+                            let selected_article_id = Variant::from(&selected_article_id.to_str());
+                            action.activate(Some(&selected_article_id));
+                        }
+                    }
+                }
+            }
+        }).to_glib();
+        self.list_select_signal = Some(select_signal_id);
     }
 
     fn require_new_list(&self, new_state: &MainWindowState) -> bool {

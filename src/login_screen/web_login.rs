@@ -107,7 +107,7 @@ impl WebLogin {
     }
 
     pub fn show_error(&mut self, error: NewsFlashError) {
-        Self::disconnect_signal(self.error_details_signal, &self.error_details_button);
+        GtkUtil::disconnect_signal(self.error_details_signal, &self.error_details_button);
         self.error_details_signal = None;
 
         match error.kind() {
@@ -187,15 +187,8 @@ impl WebLogin {
     pub fn reset(&self) {
         self.info_bar.set_revealed(false);
         self.info_bar.set_visible(false);
-        Self::disconnect_signal(self.info_bar_close_signal, &self.info_bar);
-        Self::disconnect_signal(self.info_bar_response_signal, &self.info_bar);
+        GtkUtil::disconnect_signal(self.info_bar_close_signal, &self.info_bar);
+        GtkUtil::disconnect_signal(self.info_bar_response_signal, &self.info_bar);
         self.webview.load_plain_text("");
-    }
-
-    fn disconnect_signal<T: ObjectExt>(signal_id: Option<u64>, widget: &T) {
-        if let Some(signal_id) = signal_id {
-            let signal_id = SignalHandlerId::from_glib(signal_id);
-            widget.disconnect(signal_id);
-        }
     }
 }

@@ -19,6 +19,7 @@ use gdk::{
     EventMask,
 };
 use news_flash::models::{
+    ArticleID,
     FatArticle,
 };
 use self::models::{
@@ -34,6 +35,7 @@ use std::str;
 #[derive(Clone, Debug)]
 pub struct ArticleView {
     stack: gtk::Stack,
+    visible_article: Option<ArticleID>,
     internal_view: InternalView,
     theme: ArticleTheme,
 }
@@ -49,6 +51,7 @@ impl ArticleView {
 
         let mut article_view = ArticleView {
             stack: stack,
+            visible_article: None,
             internal_view: internal_view,
             theme: ArticleTheme::Default,
         };
@@ -62,9 +65,11 @@ impl ArticleView {
     }
 
     pub fn show_article(&mut self, article: FatArticle, feed_name: String) -> Result<(), Error> {
+        let article_id = article.article_id.clone();
         let webview = self.switch_view()?;
         let html = self.build_article(article, feed_name)?;
         webview.load_html(&html, None);
+        self.visible_article = Some(article_id);
         Ok(())
     }
 
