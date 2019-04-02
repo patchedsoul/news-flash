@@ -38,6 +38,15 @@ impl ArticleListModel {
         Ok(())
     }
 
+    pub fn add_model(&mut self, model: ArticleListArticleModel) -> Result<(), Error> {
+        if self.contains(&model.id) {
+            return Err(format_err!("some err"))
+        }
+        self.ids.insert(model.id.clone());
+        self.models.push(model);
+        Ok(())
+    }
+
     pub fn contains(&self, article_id: &ArticleID) -> bool {
         self.ids.contains(article_id)
     }

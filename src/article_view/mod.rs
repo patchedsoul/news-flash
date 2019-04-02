@@ -35,6 +35,7 @@ use std::str;
 #[derive(Clone, Debug)]
 pub struct ArticleView {
     stack: gtk::Stack,
+    parent_overlay: gtk::Overlay,
     visible_article: Option<ArticleID>,
     internal_view: InternalView,
     theme: ArticleTheme,
@@ -45,23 +46,26 @@ impl ArticleView {
         let ui_data = Resources::get("ui/article_view.ui").ok_or(format_err!("some err"))?;
         let ui_string = str::from_utf8(ui_data.as_ref())?;
         let builder = gtk::Builder::new_from_string(ui_string);
+        let overlay : gtk::Overlay = builder.get_object("parent_overlay").ok_or(format_err!("some err"))?;
         let stack : gtk::Stack = builder.get_object("article_view_stack").ok_or(format_err!("some err"))?;
+        stack.set_visible_child_name("empty");
 
-        let internal_view = InternalView::View1;
+        let internal_view = InternalView::Empty;
 
-        let mut article_view = ArticleView {
+        let article_view = ArticleView {
             stack: stack,
+            parent_overlay: overlay,
             visible_article: None,
             internal_view: internal_view,
             theme: ArticleTheme::Default,
         };
 
-        let _ = article_view.switch_view()?;
+        article_view.stack.show_all();
         Ok(article_view)
     }
 
-    pub fn widget(&self) -> gtk::Stack {
-        self.stack.clone()
+    pub fn widget(&self) -> gtk::Overlay {
+        self.parent_overlay.clone()
     }
 
     pub fn show_article(&mut self, article: FatArticle, feed_name: String) -> Result<(), Error> {
@@ -74,19 +78,23 @@ impl ArticleView {
     }
 
     fn switch_view(&mut self) -> Result<WebView, Error> {
-        let old_name = self.internal_view.to_str().to_owned();
+        let old_name = self.internal_view.clone();
         let stack_clone = self.stack.clone();
 
         let webview = Self::new_webview()?;
         self.internal_view = self.internal_view.switch();
-        let new_name = self.internal_view.to_str();
-        self.stack.add_named(&webview, new_name);
-        self.stack.set_visible_child_name(new_name);
+        if let Some(new_name) = self.internal_view.to_str() {
+            self.stack.add_named(&webview, new_name);
+            self.stack.show_all();
+            self.stack.set_visible_child_name(new_name);
+        }
 
         // remove old view after crossfade animation
         gtk::timeout_add(150, move || {
-            if let Some(old_view) = stack_clone.get_child_by_name(&old_name) {
-                stack_clone.remove(&old_view);
+            if let Some(old_name) = old_name.to_str() {
+                if let Some(old_view) = stack_clone.get_child_by_name(&old_name) {
+                    stack_clone.remove(&old_view);
+                }
             }
             Continue(false)
         });
@@ -138,14 +146,14 @@ impl ArticleView {
         let template_data = Resources::get("article_view/article.html").ok_or(format_err!("some err"))?;
         let template_str = str::from_utf8(template_data.as_ref())?;
         let mut template_string = template_str.to_owned();
-        template_string.push_str(template_str);
+        //template_string.push_str(template_str);
 
         let css_data = Resources::get("article_view/style.css").ok_or(format_err!("some err"))?;
         let css_string = str::from_utf8(css_data.as_ref())?;
 
         // FIXME
         let unselectable = true;
-        let font_size = 10;
+        let font_size = 12;
         let font_family = "Cantarell";
 
         let mut author_date = String::new();

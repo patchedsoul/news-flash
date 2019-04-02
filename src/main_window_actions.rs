@@ -18,6 +18,7 @@ use gio::{
     ActionExt,
 };
 use news_flash::models::{
+    ArticleID,
     PluginID,
     LoginData,
 };
@@ -329,9 +330,29 @@ impl MainWindowActions {
         show_more_articles_action.connect_activate(move |_action, _data| {
             let offset = state.borrow().get_articles_showing();
             state.borrow_mut().show_more();
-            content_page.borrow_mut().load_more_articles(&news_flash, &state, offset);
+            content_page.borrow_mut().load_more_articles(&news_flash, &state, offset).unwrap();
         });
         show_more_articles_action.set_enabled(true);
         window.add_action(&show_more_articles_action);
+    }
+
+    pub fn setup_show_article_action(
+        window: &ApplicationWindow,
+        content_page: &GtkHandle<ContentPage>,
+        news_flash: &GtkHandle<Option<NewsFlash>>
+    ) {
+        let content_page = content_page.clone();
+        let news_flash = news_flash.clone();
+        let show_article_action = SimpleAction::new("show-article", glib::VariantTy::new("s").ok());
+        show_article_action.connect_activate(move |_action, data| {
+            if let Some(data) = data {
+                if let Some(data) = data.get_str() {
+                    let article_id = ArticleID::new(data);
+                    content_page.borrow_mut().show_article(&article_id, &news_flash).unwrap();
+                }
+            }
+        });
+        show_article_action.set_enabled(true);
+        window.add_action(&show_article_action);
     }
 }

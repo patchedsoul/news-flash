@@ -36,6 +36,7 @@ use crate::main_window_state::MainWindowState;
 use news_flash::NewsFlash;
 use news_flash::models::{
     Article,
+    ArticleID,
     PluginID,
     Read,
     Marked,
@@ -141,7 +142,7 @@ impl ContentPage {
         news_flash_handle: &GtkHandle<Option<NewsFlash>>,
         window_state: &GtkHandle<MainWindowState>,
         offset: i64
-    ) {
+    ) -> Result<(), Error> {
         let window_state = window_state.borrow().clone();
         let mut list_model = ArticleListModel::new(window_state.get_article_list_order());
         if let Some(news_flash) = news_flash_handle.borrow_mut().as_mut() {
@@ -155,8 +156,9 @@ impl ContentPage {
                 };
                 list_model.add(article, feed.label.clone(), favicon)
             }).collect();
-            self.article_list.add_more_articles(list_model);
+            self.article_list.add_more_articles(list_model)?;
         }
+        Ok(())
     }
 
     fn load_articles(news_flash: &mut NewsFlash, window_state: &MainWindowState, offset: Option<i64>) -> Vec<Article> {
@@ -255,5 +257,20 @@ impl ContentPage {
         self.sidebar.update_feedlist(tree);
         self.sidebar.update_taglist(list);
         self.sidebar.update_unread_all(total_unread);
+    }
+
+    pub fn show_article(
+        &mut self,
+        article_id: &ArticleID,
+        news_flash_handle: &GtkHandle<Option<NewsFlash>>,
+    ) -> Result<(), Error> {
+        if let Some(news_flash) = news_flash_handle.borrow_mut().as_mut() {
+            let article = news_flash.get_fat_article(article_id).unwrap();
+            let (feeds, _) = news_flash.get_feeds().unwrap();
+            let feed = feeds.iter().find(|&f| f.feed_id == article.feed_id).unwrap();
+            self.article_view.show_article(article, feed.label.clone())?;
+            return Ok(())
+        }
+        Err(format_err!("some err"))
     }
 }

@@ -120,14 +120,14 @@ impl ArticleList {
         self.window_state = new_state;
     }
 
-    pub fn add_more_articles(&mut self, new_list: ArticleListModel) {
+    pub fn add_more_articles(&mut self, new_list: ArticleListModel) -> Result<(), Error> {
         let list = match self.current_list {
             CurrentList::List1 => &mut self.list_1,
             CurrentList::List2 => &mut self.list_2,
         };
 
         for model in new_list.models() {
-            //list.borrow_mut().add(&model, -1);
+            self.list_model.borrow_mut().add_model(model.clone())?;
             let model = model.clone();
             let list = list.clone();
             gtk::idle_add(move || {
@@ -135,6 +135,8 @@ impl ArticleList {
                 Continue(false)
             });
         }
+
+        Ok(())
     }
 
     fn execute_diff(&mut self, diff: Vec<ArticleListChangeSet>) {
@@ -194,7 +196,7 @@ impl ArticleList {
                 if let Some(selected_article) = list_model_clone.borrow_mut().calculate_selection(selected_index) {
                     let selected_article_id = selected_article.id.clone();
                     if let Ok(main_window) = GtkUtil::get_main_window(list) {
-                        if let Some(action) = main_window.lookup_action("FIXME") {
+                        if let Some(action) = main_window.lookup_action("show-article") {
                             let selected_article_id = Variant::from(&selected_article_id.to_str());
                             action.activate(Some(&selected_article_id));
                         }
