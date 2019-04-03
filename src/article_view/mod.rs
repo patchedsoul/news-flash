@@ -1,7 +1,9 @@
 mod models;
 mod url_overlay;
+mod progress_overlay;
 
 use self::url_overlay::UrlOverlay;
+use self::progress_overlay::ProgressOverlay;
 use failure::Error;
 use failure::format_err;
 use webkit2gtk::{
@@ -15,6 +17,9 @@ use webkit2gtk::{
     PolicyDecisionType,
     NavigationPolicyDecision,
     NavigationPolicyDecisionExt,
+    ContextMenuExt,
+    ContextMenuItemExt,
+    ContextMenuAction,
 };
 use gtk::{
     StackExt,
@@ -60,7 +65,7 @@ use std::str;
 #[derive(Clone, Debug)]
 pub struct ArticleView {
     stack: gtk::Stack,
-    parent_overlay: gtk::Overlay,
+    top_overlay: gtk::Overlay,
     visible_article: Option<ArticleID>,
     internal_view: InternalView,
     theme: ArticleTheme,
@@ -69,7 +74,10 @@ pub struct ArticleView {
     mouse_over_signal: Option<u64>,
     scroll_signal: Option<u64>,
     key_press_signal: Option<u64>,
-    url_overlay: GtkHandle<UrlOverlay>,
+    ctx_menu_signal: Option<u64>,
+    load_signal: Option<u64>,
+    url_overlay_label: GtkHandle<UrlOverlay>,
+    progress_overlay_label: GtkHandle<ProgressOverlay>,
 }
 
 impl ArticleView {
@@ -77,9 +85,15 @@ impl ArticleView {
         let ui_data = Resources::get("ui/article_view.ui").ok_or(format_err!("some err"))?;
         let ui_string = str::from_utf8(ui_data.as_ref())?;
         let builder = gtk::Builder::new_from_string(ui_string);
-        let overlay : gtk::Overlay = builder.get_object("url_overlay").ok_or(format_err!("some err"))?;
-        let url_overlay = UrlOverlay::new()?;
-        overlay.add_overlay(&url_overlay.widget());
+
+        let url_overlay : gtk::Overlay = builder.get_object("url_overlay").ok_or(format_err!("some err"))?;
+        let url_overlay_label = UrlOverlay::new()?;
+        url_overlay.add_overlay(&url_overlay_label.widget());
+
+        let progress_overlay : gtk::Overlay = builder.get_object("progress_overlay").ok_or(format_err!("some err"))?;
+        let progress_overlay_label = ProgressOverlay::new()?;
+        progress_overlay.add_overlay(&progress_overlay_label.widget());
+
         let stack : gtk::Stack = builder.get_object("article_view_stack").ok_or(format_err!("some err"))?;
         stack.set_visible_child_name("empty");
 
@@ -87,7 +101,7 @@ impl ArticleView {
 
         let article_view = ArticleView {
             stack: stack,
-            parent_overlay: overlay,
+            top_overlay: progress_overlay,
             visible_article: None,
             internal_view: internal_view,
             theme: ArticleTheme::Default,
@@ -96,7 +110,10 @@ impl ArticleView {
             mouse_over_signal: None,
             scroll_signal: None,
             key_press_signal: None,
-            url_overlay: gtk_handle!(url_overlay),
+            ctx_menu_signal: None,
+            load_signal: None,
+            url_overlay_label: gtk_handle!(url_overlay_label),
+            progress_overlay_label: gtk_handle!(progress_overlay_label),
         };
 
         article_view.stack.show_all();
@@ -104,7 +121,7 @@ impl ArticleView {
     }
 
     pub fn widget(&self) -> gtk::Overlay {
-        self.parent_overlay.clone()
+        self.top_overlay.clone()
     }
 
     pub fn show_article(&mut self, article: FatArticle, feed_name: String) -> Result<(), Error> {
@@ -126,14 +143,19 @@ impl ArticleView {
                 GtkUtil::disconnect_signal(self.mouse_over_signal, &old_webview);
                 GtkUtil::disconnect_signal(self.scroll_signal, &old_webview);
                 GtkUtil::disconnect_signal(self.key_press_signal, &old_webview);
+                GtkUtil::disconnect_signal(self.ctx_menu_signal, &old_webview);
+                GtkUtil::disconnect_signal(self.load_signal, &old_webview);
                 self.load_changed_signal = None;
                 self.decide_policy_signal = None;
                 self.mouse_over_signal = None;
                 self.scroll_signal = None;
                 self.key_press_signal = None;
+                self.ctx_menu_signal = None;
+                self.load_signal = None;
             }
         }
         let stack_clone = self.stack.clone();
+        self.progress_overlay_label.borrow().reveal(false);
 
         let webview = self.new_webview()?;
         self.internal_view = self.internal_view.switch();
@@ -226,7 +248,7 @@ impl ArticleView {
         //----------------------------------
         // show url overlay
         //----------------------------------
-        let url_overlay_handle = self.url_overlay.clone();
+        let url_overlay_handle = self.url_overlay_label.clone();
 		self.mouse_over_signal = Some(webview.connect_mouse_target_changed(move |_closure_webivew, hit_test, _modifiers| {
             if hit_test.context_is_link() {
                 if let Some(uri) = hit_test.get_link_uri() {
@@ -239,11 +261,11 @@ impl ArticleView {
                     }
 
                     url_overlay_handle.borrow().set_url(uri, align);
-                    url_overlay_handle.borrow_mut().reveal(true);
+                    url_overlay_handle.borrow().reveal(true);
                 }
             }
             else {
-                url_overlay_handle.borrow_mut().reveal(false);
+                url_overlay_handle.borrow().reveal(false);
             }
         }).to_glib());
 
@@ -288,14 +310,55 @@ impl ArticleView {
             Inhibit(false)
         }).to_glib());
 
-        //webview.context_menu.connect(onContextMenu);
+
+        //----------------------------------
+        // clean up context menu
+        //----------------------------------
+        self.ctx_menu_signal = Some(webview.connect_context_menu(|_closure_webivew, ctx_menu, _event, _hit_test| {
+            let menu_items = ctx_menu.get_items();
+
+            for item in menu_items {
+                if item.is_separator() {
+                    ctx_menu.remove(&item);
+                    continue
+                }
+
+                match item.get_stock_action() {
+                    ContextMenuAction::CopyLinkToClipboard |
+                    ContextMenuAction::Copy |
+                    ContextMenuAction::CopyImageToClipboard |
+                    ContextMenuAction::CopyImageUrlToClipboard => {},
+                    _ => ctx_menu.remove(&item),
+                }
+            }
+
+            if ctx_menu.first().is_none() {
+                return true
+            }
+
+            false
+        }).to_glib());
+
+        //----------------------------------
+        // display load progress
+        //----------------------------------
+        let progress_handle = self.progress_overlay_label.clone();
+        self.load_signal = Some(webview.connect_property_estimated_load_progress_notify(move |closure_webivew| {
+            let progress = closure_webivew.get_estimated_load_progress();
+            if progress >= 1.0 {
+                progress_handle.borrow().reveal(false);
+                return;
+            }
+            progress_handle.borrow().reveal(true);
+            progress_handle.borrow().set_percentage(progress);
+        }).to_glib());
+
 		//webview.button_press_event.connect(onClick);
 		//webview.button_release_event.connect(onRelease);
 		//webview.motion_notify_event.connect(onMouseMotion);
 		//webview.enter_fullscreen.connect(enterFullscreenVideo);
 		//webview.leave_fullscreen.connect(leaveFullscreenVideo);
 		//webview.web_process_terminated.connect(onCrash);
-		//webview.notify["estimated-load-progress"].connect(printProgress);
 		//webview.set_background_color(m_color);
 
         Ok(webview)

@@ -37,7 +37,7 @@ impl UrlOverlay {
         self.label.set_halign(align);
     }
 
-    pub fn reveal(&mut self, show: bool) {
+    pub fn reveal(&self, show: bool) {
         match show {
             true => {
                 self.label.show();
