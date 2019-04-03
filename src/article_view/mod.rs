@@ -207,11 +207,11 @@ impl ArticleView {
                     }
 
                     url_overlay_handle.borrow().set_url(uri, align);
-                    url_overlay_handle.borrow().reveal(true);
+                    url_overlay_handle.borrow_mut().reveal(true);
                 }
             }
             else {
-                url_overlay_handle.borrow().reveal(false);
+                url_overlay_handle.borrow_mut().reveal(false);
             }
         }).to_glib());
 
