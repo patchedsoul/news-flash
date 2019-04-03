@@ -11,6 +11,10 @@ use webkit2gtk::{
     Settings,
     SettingsExt,
     HitTestResultExt,
+    URIRequestExt,
+    PolicyDecisionType,
+    NavigationPolicyDecision,
+    NavigationPolicyDecisionExt,
 };
 use gtk::{
     StackExt,
@@ -30,6 +34,7 @@ use gdk::{
 };
 use glib::{
     translate::ToGlib,
+    object::Cast,
 };
 use news_flash::models::{
     ArticleID,
@@ -60,6 +65,7 @@ pub struct ArticleView {
     internal_view: InternalView,
     theme: ArticleTheme,
     load_changed_signal: Option<u64>,
+    decide_policy_signal: Option<u64>,
     mouse_over_signal: Option<u64>,
     scroll_signal: Option<u64>,
     key_press_signal: Option<u64>,
@@ -86,6 +92,7 @@ impl ArticleView {
             internal_view: internal_view,
             theme: ArticleTheme::Default,
             load_changed_signal: None,
+            decide_policy_signal: None,
             mouse_over_signal: None,
             scroll_signal: None,
             key_press_signal: None,
@@ -115,10 +122,12 @@ impl ArticleView {
         if let Some(old_name) = old_name.to_str() {
             if let Some(old_webview) = self.stack.get_child_by_name(old_name) {
                 GtkUtil::disconnect_signal(self.load_changed_signal, &old_webview);
+                GtkUtil::disconnect_signal(self.decide_policy_signal, &old_webview);
                 GtkUtil::disconnect_signal(self.mouse_over_signal, &old_webview);
                 GtkUtil::disconnect_signal(self.scroll_signal, &old_webview);
                 GtkUtil::disconnect_signal(self.key_press_signal, &old_webview);
                 self.load_changed_signal = None;
+                self.decide_policy_signal = None;
                 self.mouse_over_signal = None;
                 self.scroll_signal = None;
                 self.key_press_signal = None;
@@ -191,6 +200,29 @@ impl ArticleView {
             }
         }).to_glib());
 
+        self.decide_policy_signal = Some(webview.connect_decide_policy(|_closure_webivew, decision, decision_type| {
+            if decision_type == PolicyDecisionType::NewWindowAction {
+                if let Ok(navigation_decision) = decision.clone().downcast::<NavigationPolicyDecision>() {
+                    if let Some(frame_name) = navigation_decision.get_frame_name() {
+                        if &frame_name == "_blank" {
+                            if let Some(action) = navigation_decision.get_navigation_action() {
+                                if let Some(uri_req) = action.get_request() {
+                                    if let Some(uri) = uri_req.get_uri() {
+                                        if let Some(default_screen) = gdk::Screen::get_default() {
+                                            if let Err(_) = gtk::show_uri(&default_screen, &uri, glib::get_current_time().tv_sec as u32) {
+                                                return true;
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+            false
+        }).to_glib());
+
         //----------------------------------
         // show url overlay
         //----------------------------------
@@ -256,7 +288,6 @@ impl ArticleView {
             Inhibit(false)
         }).to_glib());
 
-
         //webview.context_menu.connect(onContextMenu);
 		//webview.button_press_event.connect(onClick);
 		//webview.button_release_event.connect(onRelease);
@@ -265,7 +296,6 @@ impl ArticleView {
 		//webview.leave_fullscreen.connect(leaveFullscreenVideo);
 		//webview.web_process_terminated.connect(onCrash);
 		//webview.notify["estimated-load-progress"].connect(printProgress);
-		//webview.decide_policy.connect(decidePolicy);
 		//webview.set_background_color(m_color);
 
         Ok(webview)
