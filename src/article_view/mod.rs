@@ -49,16 +49,20 @@ use gdk::{
     enums::key::KP_Subtract as KP_SUBTRACT,
 };
 use glib::{
-    translate::ToGlib,
+    translate::{
+        ToGlib,
+        FromGlib,
+    },
     object::Cast,
     MainLoop,
+    source::SourceId,
 };
 use news_flash::models::{
     ArticleID,
     FatArticle,
 };
 use self::models::{
-    InternalView,
+    InternalState,
     ArticleTheme,
 };
 use std::rc::Rc;
@@ -81,7 +85,7 @@ pub struct ArticleView {
     stack: gtk::Stack,
     top_overlay: gtk::Overlay,
     visible_article: Option<ArticleID>,
-    internal_view: InternalView,
+    internal_state: InternalState,
     theme: ArticleTheme,
     load_changed_signal: Option<u64>,
     decide_policy_signal: Option<u64>,
@@ -94,6 +98,7 @@ pub struct ArticleView {
     click_release_signal: Option<u64>,
     drag_motion_notify_signal: GtkHandle<Option<u64>>,
     drag_released_motion_signal: GtkHandle<Option<u32>>,
+    drag_buffer_update_signal: GtkHandle<Option<u32>>,
     url_overlay_label: GtkHandle<UrlOverlay>,
     progress_overlay_label: GtkHandle<ProgressOverlay>,
     drag_buffer: GtkHandle<[f64; 10]>,
@@ -119,13 +124,13 @@ impl ArticleView {
         let stack : gtk::Stack = builder.get_object("article_view_stack").ok_or(format_err!("some err"))?;
         stack.set_visible_child_name("empty");
 
-        let internal_view = InternalView::Empty;
+        let internal_state = InternalState::Empty;
 
         let article_view = ArticleView {
             stack: stack,
             top_overlay: progress_overlay,
             visible_article: None,
-            internal_view: internal_view,
+            internal_state: internal_state,
             theme: ArticleTheme::Default,
             load_changed_signal: None,
             decide_policy_signal: None,
@@ -138,6 +143,7 @@ impl ArticleView {
             click_release_signal: None,
             drag_motion_notify_signal: gtk_handle!(None),
             drag_released_motion_signal: gtk_handle!(None),
+            drag_buffer_update_signal: gtk_handle!(None),
             url_overlay_label: gtk_handle!(url_overlay_label),
             progress_overlay_label: gtk_handle!(progress_overlay_label),
             drag_buffer: gtk_handle!([0.0; 10]),
@@ -155,6 +161,8 @@ impl ArticleView {
     }
 
     pub fn show_article(&mut self, article: FatArticle, feed_name: String) -> Result<(), Error> {
+        self.stop_all_activity();
+        
         let article_id = article.article_id.clone();
         let webview = self.switch_view()?;
         let html = self.build_article(article, feed_name)?;
@@ -163,11 +171,16 @@ impl ArticleView {
         Ok(())
     }
 
+    fn stop_all_activity(&self) {
+        GtkUtil::remove_source(*self.drag_released_motion_signal.borrow());
+        GtkUtil::remove_source(*self.drag_buffer_update_signal.borrow());
+    }
+
     fn switch_view(&mut self) -> Result<WebView, Error> {
-        let old_name = self.internal_view.clone();
+        let old_state = self.internal_state.clone();
         // disconnect signals
-        if let Some(old_name) = old_name.to_str() {
-            if let Some(old_webview) = self.stack.get_child_by_name(old_name) {
+        if let Some(old_state) = old_state.to_str() {
+            if let Some(old_webview) = self.stack.get_child_by_name(old_state) {
                 GtkUtil::disconnect_signal(self.load_changed_signal, &old_webview);
                 GtkUtil::disconnect_signal(self.decide_policy_signal, &old_webview);
                 GtkUtil::disconnect_signal(self.mouse_over_signal, &old_webview);
@@ -192,8 +205,8 @@ impl ArticleView {
         self.progress_overlay_label.borrow().reveal(false);
 
         let webview = self.new_webview()?;
-        self.internal_view = self.internal_view.switch();
-        if let Some(new_name) = self.internal_view.to_str() {
+        self.internal_state = self.internal_state.switch();
+        if let Some(new_name) = self.internal_state.to_str() {
             self.stack.add_named(&webview, new_name);
             self.stack.show_all();
             self.stack.set_visible_child_name(new_name);
@@ -201,8 +214,8 @@ impl ArticleView {
 
         // remove old view after crossfade animation
         gtk::timeout_add(150, move || {
-            if let Some(old_name) = old_name.to_str() {
-                if let Some(old_view) = stack_clone.get_child_by_name(&old_name) {
+            if let Some(old_state) = old_state.to_str() {
+                if let Some(old_view) = stack_clone.get_child_by_name(&old_state) {
                     stack_clone.remove(&old_view);
                 }
             }
@@ -394,6 +407,7 @@ impl ArticleView {
         let drag_y_pos = self.drag_y_pos.clone();
         let drag_momentum = self.drag_momentum.clone();
         let drag_motion_notify_signal = self.drag_motion_notify_signal.clone();
+        let drag_buffer_update_signal = self.drag_buffer_update_signal.clone();
 		self.click_signal = Some(webview.connect_button_press_event(move |closure_webivew, event| {
             if event.get_button() == MIDDLE_MOUSE_BUTTON {
                 let (_, y) = event.get_position();
@@ -420,8 +434,10 @@ impl ArticleView {
                             let drag_momentum_update = drag_momentum.clone();
                             let drag_ongoing_update = drag_ongoing.clone();
                             let drag_y_pos_update = drag_y_pos.clone();
-                            gtk::timeout_add(10, move || {
+                            let drag_buffer_update_signal_clone = drag_buffer_update_signal.clone();
+                            *drag_buffer_update_signal.borrow_mut() = Some(gtk::timeout_add(10, move || {
                                 if !*drag_ongoing_update.borrow() {
+                                    *drag_buffer_update_signal_clone.borrow_mut() = None;
                                     return Continue(false)
                                 }
 
@@ -433,7 +449,7 @@ impl ArticleView {
                                 (*drag_buffer_update.borrow_mut())[0] = *drag_y_pos_update.borrow();
                                 *drag_momentum_update.borrow_mut() = (*drag_buffer_update.borrow())[9] - (*drag_buffer_update.borrow())[0];
                                 Continue(true)
-                            });
+                            }).to_glib());
 
                             let drag_y_pos_motion_update = drag_y_pos.clone();
                             *drag_motion_notify_signal.borrow_mut() = Some(closure_webivew.connect_motion_notify_event(move |view, event| {

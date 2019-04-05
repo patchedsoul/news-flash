@@ -17,6 +17,7 @@ use gio::{
 use glib::{
     object::ObjectExt,
     signal::SignalHandlerId,
+    source::SourceId,
     Bytes,
     object::IsA,
     translate::{
@@ -132,6 +133,13 @@ impl GtkUtil {
         if let Some(signal_id) = signal_id {
             let signal_id = SignalHandlerId::from_glib(signal_id);
             widget.disconnect(signal_id);
+        }
+    }
+
+    pub fn remove_source(source_id: Option<u32>) {
+        if let Some(source_id) = source_id {
+            let source_id = SourceId::from_glib(source_id);
+            glib::source::source_remove(source_id);
         }
     }
 }

@@ -1,28 +1,28 @@
 
 #[derive(Clone, Debug)]
-pub enum InternalView {
+pub enum InternalState {
     Empty,
     Crash,
     View1,
     View2,
 }
 
-impl InternalView {
+impl InternalState {
     pub fn to_str(&self) -> Option<&str> {
         match self {
-            InternalView::Empty => None,
-            InternalView::Crash => None,
-            InternalView::View1 => Some("view_1"),
-            InternalView::View2 => Some("view_2"),
+            InternalState::Empty => None,
+            InternalState::Crash => None,
+            InternalState::View1 => Some("view_1"),
+            InternalState::View2 => Some("view_2"),
         }
     }
 
     pub fn switch(&self) -> Self {
         match self {
-            InternalView::Empty => InternalView::View1,
-            InternalView::Crash => InternalView::View1,
-            InternalView::View1 => InternalView::View2,
-            InternalView::View2 => InternalView::View1,
+            InternalState::View1 => InternalState::View2,
+            InternalState::View2 => InternalState::View1,
+            InternalState::Empty => InternalState::View1,
+            InternalState::Crash => InternalState::View1,
         }
     }
 }
