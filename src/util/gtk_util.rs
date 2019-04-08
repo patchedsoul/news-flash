@@ -129,6 +129,10 @@ impl GtkUtil {
         None
     }
 
+    pub fn disconnect_signal_handle<T: ObjectExt>(signal_id: &GtkHandle<Option<u64>>, widget: &T) {
+        Self::disconnect_signal(*signal_id.borrow(), widget);
+    }
+
     pub fn disconnect_signal<T: ObjectExt>(signal_id: Option<u64>, widget: &T) {
         if let Some(signal_id) = signal_id {
             let signal_id = SignalHandlerId::from_glib(signal_id);
