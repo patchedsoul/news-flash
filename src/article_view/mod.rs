@@ -41,7 +41,6 @@ use gdk::{
     ScrollDirection,
     ModifierType,
     Display,
-    SeatCapabilities,
     Cursor,
     CursorType,
     enums::key::KP_0,
@@ -498,14 +497,15 @@ impl ArticleView {
                             if let Some(window) = closure_webivew.get_window() {
 
                                 let cursor = Cursor::new_for_display(&display, CursorType::Fleur);
-                                // let _grab_status = seat.grab(
-                                //     &window,
-                                //     SeatCapabilities::POINTER,
-                                //     false,
-                                //     Some(&cursor),
-                                //     None,
-                                //     None,
-                                // );
+                                // FIXME
+                                let _grab_status = seat.grab(
+                                    &window,
+                                    gdk::SeatCapabilities::POINTER,
+                                    false,
+                                    Some(&cursor),
+                                    None,
+                                    Some(&mut |_, _| {}),
+                                );
 
                                 gtk::device_grab_add(&widget, &pointer, false);
                                 let drag_buffer_update = drag_buffer.clone();
