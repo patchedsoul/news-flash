@@ -1,0 +1,16 @@
+[default]
+name=Default
+runtime=host
+toolchain=default
+config-opts=
+run-opts=
+prefix=/app
+app-id=
+postbuild=
+prebuild=
+default=true
+
+[default.environment]
+FEEDLY_CLIENT_ID=boutroue
+FEEDLY_CLIENT_SECRET=FE012EGICU4ZOBDRBEOVAJA1JZYH
+PASSWORD_CRYPT_KEY=ypsSXCLhJngks9qGUAqShd8JjRaZ824wT3e

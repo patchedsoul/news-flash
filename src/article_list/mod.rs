@@ -1,37 +1,24 @@
-mod single;
-mod models;
 mod article_row;
+mod models;
+mod single;
 
-use gtk::{
-    Builder,
-    StackExt,
-    StackTransitionType,
-    Continue,
-    ListBoxExt,
-    ListBoxRowExt,
-};
-use gio::{
-    ActionExt,
-    ActionMapExt,
-};
-use glib::{
-    Variant,
-    translate::ToGlib,
-};
-use single::SingleArticleList;
-pub use models::ArticleListModel;
-use models::ArticleListChangeSet;
-use crate::main_window_state::MainWindowState;
 use crate::content_page::HeaderSelection;
-use std::str;
-use failure::Error;
-use failure::format_err;
-use crate::Resources;
-use std::rc::Rc;
-use std::cell::RefCell;
-use crate::util::GtkHandle;
 use crate::gtk_handle;
+use crate::main_window_state::MainWindowState;
+use crate::util::GtkHandle;
 use crate::util::GtkUtil;
+use crate::Resources;
+use failure::format_err;
+use failure::Error;
+use gio::{ActionExt, ActionMapExt};
+use glib::{translate::ToGlib, Variant};
+use gtk::{Builder, Continue, ListBoxExt, ListBoxRowExt, StackExt, StackTransitionType};
+use models::ArticleListChangeSet;
+pub use models::ArticleListModel;
+use single::SingleArticleList;
+use std::cell::RefCell;
+use std::rc::Rc;
+use std::str;
 
 pub enum CurrentList {
     List1,
@@ -53,7 +40,7 @@ impl ArticleList {
         let ui_data = Resources::get("ui/article_list.ui").ok_or(format_err!("some err"))?;
         let ui_string = str::from_utf8(ui_data.as_ref())?;
         let builder = Builder::new_from_string(ui_string);
-        let stack : gtk::Stack = builder.get_object("article_list_stack").ok_or(format_err!("some err"))?;
+        let stack: gtk::Stack = builder.get_object("article_list_stack").ok_or(format_err!("some err"))?;
 
         let list_1 = SingleArticleList::new()?;
         let list_2 = SingleArticleList::new()?;
@@ -73,7 +60,7 @@ impl ArticleList {
             window_state: window_state,
             current_list: CurrentList::List1,
         };
-        
+
         article_list.setup_list_selected_singal();
 
         Ok(article_list)
@@ -106,7 +93,7 @@ impl ArticleList {
         if self.require_new_list(&new_state) {
             self.new_list(new_list);
             self.window_state = new_state;
-            return
+            return;
         }
 
         {
@@ -149,22 +136,21 @@ impl ArticleList {
             match diff {
                 ArticleListChangeSet::Add(article, pos) => {
                     list.borrow_mut().add(article, pos);
-                },
+                }
                 ArticleListChangeSet::Remove(id) => {
                     list.borrow_mut().remove(id.clone());
-                },
+                }
                 ArticleListChangeSet::UpdateMarked(id, marked) => {
                     list.borrow_mut().update_marked(id.clone(), marked);
-                },
+                }
                 ArticleListChangeSet::UpdateRead(id, read) => {
                     list.borrow_mut().update_read(id.clone(), read);
-                },
+                }
             }
         }
     }
 
     fn switch_lists(&mut self) {
-        
         match self.current_list {
             CurrentList::List1 => self.stack.set_visible_child_name("list_1"),
             CurrentList::List2 => self.stack.set_visible_child_name("list_2"),
@@ -190,26 +176,30 @@ impl ArticleList {
             CurrentList::List2 => (&self.list_2, &self.list_1),
         };
         GtkUtil::disconnect_signal(self.list_select_signal, &old_list.borrow().list());
-        let select_signal_id = new_list.borrow().list().connect_row_selected(move |list, row| {
-            if let Some(selected_row) = row {
-                let selected_index = selected_row.get_index();
-                if let Some(selected_article) = list_model_clone.borrow_mut().calculate_selection(selected_index) {
-                    let selected_article_id = selected_article.id.clone();
-                    if let Ok(main_window) = GtkUtil::get_main_window(list) {
-                        if let Some(action) = main_window.lookup_action("show-article") {
-                            let selected_article_id = Variant::from(&selected_article_id.to_str());
-                            action.activate(Some(&selected_article_id));
+        let select_signal_id = new_list
+            .borrow()
+            .list()
+            .connect_row_selected(move |list, row| {
+                if let Some(selected_row) = row {
+                    let selected_index = selected_row.get_index();
+                    if let Some(selected_article) = list_model_clone.borrow_mut().calculate_selection(selected_index) {
+                        let selected_article_id = selected_article.id.clone();
+                        if let Ok(main_window) = GtkUtil::get_main_window(list) {
+                            if let Some(action) = main_window.lookup_action("show-article") {
+                                let selected_article_id = Variant::from(&selected_article_id.to_str());
+                                action.activate(Some(&selected_article_id));
+                            }
                         }
                     }
                 }
-            }
-        }).to_glib();
+            })
+            .to_glib();
         self.list_select_signal = Some(select_signal_id);
     }
 
     fn require_new_list(&self, new_state: &MainWindowState) -> bool {
         if &self.window_state == new_state {
-            return false
+            return false;
         }
         true
     }
@@ -217,26 +207,18 @@ impl ArticleList {
     fn calc_transition_type(&self, new_state: &MainWindowState) -> StackTransitionType {
         if self.require_new_list(new_state) {
             match self.window_state.get_header_selection() {
-                HeaderSelection::All => {
-                    match new_state.get_header_selection() {
-                        HeaderSelection::All => {},
-                        HeaderSelection::Unread |
-                        HeaderSelection::Marked => return StackTransitionType::SlideLeft,
-                    }
+                HeaderSelection::All => match new_state.get_header_selection() {
+                    HeaderSelection::All => {}
+                    HeaderSelection::Unread | HeaderSelection::Marked => return StackTransitionType::SlideLeft,
                 },
-                HeaderSelection::Unread => {
-                    match new_state.get_header_selection() {
-                        HeaderSelection::All  => return StackTransitionType::SlideRight,
-                        HeaderSelection::Unread => {},
-                        HeaderSelection::Marked => return StackTransitionType::SlideLeft,
-                    }
+                HeaderSelection::Unread => match new_state.get_header_selection() {
+                    HeaderSelection::All => return StackTransitionType::SlideRight,
+                    HeaderSelection::Unread => {}
+                    HeaderSelection::Marked => return StackTransitionType::SlideLeft,
                 },
-                HeaderSelection::Marked => {
-                    match new_state.get_header_selection() {
-                        HeaderSelection::All |
-                        HeaderSelection::Unread => return StackTransitionType::SlideRight,
-                        HeaderSelection::Marked => {},
-                    }
+                HeaderSelection::Marked => match new_state.get_header_selection() {
+                    HeaderSelection::All | HeaderSelection::Unread => return StackTransitionType::SlideRight,
+                    HeaderSelection::Marked => {}
                 },
             }
         }

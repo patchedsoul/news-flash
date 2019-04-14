@@ -1,17 +1,12 @@
-mod change_set;
 mod article;
+mod change_set;
 
 pub use article::ArticleListArticleModel;
-use std::collections::HashSet;
-use failure::Error;
-use failure::format_err;
 pub use change_set::ArticleListChangeSet;
-use news_flash::models::{
-    Article,
-    ArticleID,
-    ArticleOrder,
-    FavIcon
-};
+use failure::format_err;
+use failure::Error;
+use news_flash::models::{Article, ArticleID, ArticleOrder, FavIcon};
+use std::collections::HashSet;
 
 #[derive(Debug)]
 pub struct ArticleListModel {
@@ -31,7 +26,7 @@ impl ArticleListModel {
 
     pub fn add(&mut self, article: Article, feed_name: String, icon: Option<FavIcon>) -> Result<(), Error> {
         if self.contains(&article.article_id) {
-            return Err(format_err!("some err"))
+            return Err(format_err!("some err"));
         }
         self.ids.insert(article.article_id.clone());
         self.models.push(ArticleListArticleModel::new(article, feed_name, icon));
@@ -40,7 +35,7 @@ impl ArticleListModel {
 
     pub fn add_model(&mut self, model: ArticleListArticleModel) -> Result<(), Error> {
         if self.contains(&model.id) {
-            return Err(format_err!("some err"))
+            return Err(format_err!("some err"));
         }
         self.ids.insert(model.id.clone());
         self.models.push(model);
@@ -56,7 +51,7 @@ impl ArticleListModel {
     }
 
     pub fn generate_diff<'a>(&'a mut self, new_list: &'a mut ArticleListModel) -> Vec<ArticleListChangeSet> {
-        let mut diff : Vec<ArticleListChangeSet> = Vec::new();
+        let mut diff: Vec<ArticleListChangeSet> = Vec::new();
         let mut list_pos = 0;
         let mut old_index = 0;
         let mut new_index = 0;
@@ -65,14 +60,14 @@ impl ArticleListModel {
         let old_items = &mut self.models;
         let new_items = &mut new_list.models;
         let new_articles = &mut new_list.ids;
-        
+
         loop {
             let old_item = old_items.get(old_index);
             let new_item = new_items.get(new_index);
 
             // iterated through both lists -> done
             if old_item.is_none() && new_item.is_none() {
-                break
+                break;
             }
 
             // add all items after old_items ran out of items to compare
@@ -81,7 +76,7 @@ impl ArticleListModel {
                     new_index += 1;
                     diff.push(ArticleListChangeSet::Add(&new_model, list_pos));
                     list_pos += 1;
-                    continue
+                    continue;
                 }
             }
 
@@ -90,7 +85,7 @@ impl ArticleListModel {
                 if new_item.is_none() {
                     diff.push(ArticleListChangeSet::Remove(old_model.id.clone()));
                     old_index += 1;
-                    continue
+                    continue;
                 }
             }
 
@@ -107,24 +102,24 @@ impl ArticleListModel {
                         list_pos += 1;
                         old_index += 1;
                         new_index += 1;
-                        continue
+                        continue;
                     }
 
                     if new_articles.contains(&old_model.id) {
                         diff.push(ArticleListChangeSet::Add(&new_model, list_pos));
                         list_pos += 1;
                         new_index += 1;
-                        continue
+                        continue;
                     }
 
                     // items differ -> remove old item and move on
                     diff.push(ArticleListChangeSet::Remove(old_model.id.clone()));
                     old_index += 1;
-                    continue
+                    continue;
                 }
             }
         }
-        
+
         diff
     }
 
@@ -132,17 +127,17 @@ impl ArticleListModel {
         match self.sort {
             ArticleOrder::OldestFirst => {
                 self.models.sort_by(|a, b| a.date.cmp(&b.date));
-            },
+            }
             ArticleOrder::NewestFirst => {
                 self.models.sort_by(|a, b| a.date.cmp(&b.date).reverse());
-            },
+            }
         }
     }
 
     pub fn calculate_selection(&mut self, selected_index: i32) -> Option<&ArticleListArticleModel> {
         self.sort();
         if let Some((_index, article)) = self.models.iter().enumerate().find(|(index, _)| index == &(selected_index as usize)) {
-            return Some(article)
+            return Some(article);
         }
         None
     }

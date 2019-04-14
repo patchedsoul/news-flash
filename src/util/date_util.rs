@@ -1,8 +1,4 @@
-use chrono::{
-    NaiveDateTime,
-    Datelike,
-    Utc,
-};
+use chrono::{Datelike, NaiveDateTime, Utc};
 
 pub struct DateUtil;
 
@@ -14,8 +10,7 @@ impl DateUtil {
             if now.month() == chrono_date.month() {
                 if now.day() == chrono_date.day() {
                     date = "Today".to_owned();
-                }
-                else if now.day()-1 == chrono_date.day() {
+                } else if now.day() - 1 == chrono_date.day() {
                     date = "Yesterday".to_owned();
                 }
             }

@@ -1,4 +1,3 @@
-
 #[derive(Clone, Debug)]
 pub enum InternalState {
     Empty,
@@ -26,7 +25,6 @@ impl InternalState {
         }
     }
 }
-
 
 #[derive(Clone, Debug)]
 pub enum ArticleTheme {

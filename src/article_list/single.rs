@@ -1,35 +1,21 @@
-use gtk::{
-    Builder,
-    ContainerExt,
-    ListBoxExt,
-    WidgetExt,
-    ScrolledWindowExt,
-    AdjustmentExt,
-    Continue,
-};
-use gio::{
-    ActionExt,
-    ActionMapExt,
-};
-use news_flash::models::{
-    ArticleID,
-    article::{
-        Read,
-        Marked,
-    },
-};
-use super::models::ArticleListArticleModel;
 use super::article_row::ArticleRow;
-use std::collections::HashMap;
-use std::str;
-use failure::Error;
-use failure::format_err;
-use std::rc::Rc;
-use std::cell::RefCell;
-use crate::Resources;
-use crate::util::GtkUtil;
-use crate::util::GtkHandle;
+use super::models::ArticleListArticleModel;
 use crate::gtk_handle;
+use crate::util::GtkHandle;
+use crate::util::GtkUtil;
+use crate::Resources;
+use failure::format_err;
+use failure::Error;
+use gio::{ActionExt, ActionMapExt};
+use gtk::{AdjustmentExt, Builder, ContainerExt, Continue, ListBoxExt, ScrolledWindowExt, WidgetExt};
+use news_flash::models::{
+    article::{Marked, Read},
+    ArticleID,
+};
+use std::cell::RefCell;
+use std::collections::HashMap;
+use std::rc::Rc;
+use std::str;
 
 const LIST_BOTTOM_THREASHOLD: f64 = 200.0;
 
@@ -44,9 +30,8 @@ impl SingleArticleList {
         let ui_data = Resources::get("ui/article_list_single.ui").ok_or(format_err!("some err"))?;
         let ui_string = str::from_utf8(ui_data.as_ref())?;
         let builder = Builder::new_from_string(ui_string);
-        let scroll : gtk::ScrolledWindow = builder.get_object("article_list_scroll").ok_or(format_err!("some err"))?;
-        let list : gtk::ListBox = builder.get_object("article_list_box").ok_or(format_err!("some err"))?;
-
+        let scroll: gtk::ScrolledWindow = builder.get_object("article_list_scroll").ok_or(format_err!("some err"))?;
+        let list: gtk::ListBox = builder.get_object("article_list_box").ok_or(format_err!("some err"))?;
 
         let vadj_scroll = scroll.clone();
         let cooldown = gtk_handle!(false);
@@ -70,7 +55,6 @@ impl SingleArticleList {
                     }
                 }
             });
-            
         }
 
         Ok(SingleArticleList {

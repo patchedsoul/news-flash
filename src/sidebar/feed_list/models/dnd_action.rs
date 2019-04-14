@@ -1,7 +1,4 @@
-use news_flash::models::{
-    FeedID,
-    CategoryID,
-};
+use news_flash::models::{CategoryID, FeedID};
 
 #[derive(Clone, Debug)]
 pub enum FeedListDndAction {

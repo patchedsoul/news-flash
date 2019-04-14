@@ -1,48 +1,15 @@
-use gtk::{
-    EntryExt,
-    Cast,
-    WidgetExt,
-    ListBoxRow,
-    BinExt,
-    Revealer,
-    StyleContext,
-};
-use gdk_pixbuf::{
-    Pixbuf,
-};
-use gio::{
-    MemoryInputStream,
-    Cancellable,
-};
-use glib::{
-    object::ObjectExt,
-    signal::SignalHandlerId,
-    source::SourceId,
-    Bytes,
-    object::IsA,
-    translate::{
-        FromGlib,
-    },
-};
-use cairo::{
-    Context,
-};
-use news_flash::models::{
-    PixelIcon,
-};
-use cairo::{
-    Surface,
-};
-use gdk::{
-    ContextExt,
-};
-use failure::{
-    Error,
-    format_err,
-};
+use cairo::Context;
+use cairo::Surface;
+use failure::{format_err, Error};
+use gdk::ContextExt;
+use gdk_pixbuf::Pixbuf;
+use gio::{Cancellable, MemoryInputStream};
+use glib::{object::IsA, object::ObjectExt, signal::SignalHandlerId, source::SourceId, translate::FromGlib, Bytes};
+use gtk::{BinExt, Cast, EntryExt, ListBoxRow, Revealer, StyleContext, WidgetExt};
+use news_flash::models::PixelIcon;
+use std::cell::RefCell;
 use std::collections::HashMap;
 use std::rc::Rc;
-use std::cell::RefCell;
 
 pub type GtkHandle<T> = Rc<RefCell<T>>;
 pub type GtkHandleMap<T, K> = GtkHandle<HashMap<T, K>>;
@@ -51,7 +18,7 @@ pub type GtkHandleMap<T, K> = GtkHandle<HashMap<T, K>>;
 macro_rules! gtk_handle {
     ($x:expr) => {
         Rc::new(RefCell::new($x))
-    }
+    };
 }
 
 pub struct GtkUtil;
@@ -61,19 +28,12 @@ impl GtkUtil {
         Self::create_surface_from_bytes(&icon.data, icon.width, icon.height, scale_factor)
     }
 
-    pub fn create_surface_from_bytes(data: &[u8], width: i32, height: i32, scale_factor: i32)-> Result<Surface, Error> {
+    pub fn create_surface_from_bytes(data: &[u8], width: i32, height: i32, scale_factor: i32) -> Result<Surface, Error> {
         let bytes = Bytes::from(data);
         let stream = MemoryInputStream::new_from_bytes(&bytes);
-        let cancellable : Option<&Cancellable> = None;
-        let pixbuf = Pixbuf::new_from_stream_at_scale(
-            &stream,
-            width * scale_factor,
-            height * scale_factor,
-            true,
-            cancellable,
-        )?;
-        Context::cairo_surface_create_from_pixbuf(&pixbuf, scale_factor, None)
-            .ok_or(format_err!("some err"))
+        let cancellable: Option<&Cancellable> = None;
+        let pixbuf = Pixbuf::new_from_stream_at_scale(&stream, width * scale_factor, height * scale_factor, true, cancellable)?;
+        Context::cairo_surface_create_from_pixbuf(&pixbuf, scale_factor, None).ok_or(format_err!("some err"))
     }
 
     pub fn is_entry_emty(entry: &gtk::Entry) -> bool {
@@ -91,16 +51,16 @@ impl GtkUtil {
         if let Some(toplevel) = widget.get_toplevel() {
             if Self::is_main_window(&toplevel) {
                 let main_window = toplevel.downcast::<gtk::ApplicationWindow>().unwrap();
-                return Ok(main_window)
+                return Ok(main_window);
             }
         }
-        
+
         Err(format_err!("some err"))
     }
 
     pub fn get_dnd_style_context_widget(row: &gtk::Widget) -> Option<StyleContext> {
         if let Ok(row) = row.clone().downcast::<ListBoxRow>() {
-            return Self::get_dnd_style_context_listboxrow(&row)
+            return Self::get_dnd_style_context_listboxrow(&row);
         }
 
         None
@@ -110,7 +70,7 @@ impl GtkUtil {
         if let Some(row) = row.get_child() {
             if let Ok(row) = row.downcast::<Revealer>() {
                 if let Some(row) = row.get_child() {
-                    return Some(row.get_style_context())
+                    return Some(row.get_style_context());
                 }
             }
         }

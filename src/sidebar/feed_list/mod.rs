@@ -1,61 +1,28 @@
 pub mod category_row;
+pub mod error;
 pub mod feed_row;
 pub mod models;
-pub mod error;
 
-
-use crate::Resources;
-use crate::util::GtkUtil;
-use std::str;
-use std::collections::HashMap;
-use failure::ResultExt;
-use log::{
-    debug,
-};
-use news_flash::models::{
-    CategoryID,
-    FeedID,
-};
+use crate::gtk_handle;
+use crate::sidebar::feed_list::error::{FeedListError, FeedListErrorKind};
 use crate::sidebar::feed_list::{
     category_row::CategoryRow,
     feed_row::FeedRow,
-    models::{
-        FeedListTree,
-        FeedListCategoryModel,
-        FeedListFeedModel,
-        FeedListChangeSet,
-        FeedListDndAction,
-        FeedListSelection,
-    },
+    models::{FeedListCategoryModel, FeedListChangeSet, FeedListDndAction, FeedListFeedModel, FeedListSelection, FeedListTree},
 };
-use gtk::{
-    self,
-    ListBoxExt,
-    ListBoxRowExt,
-    StyleContextExt,
-    ContainerExt,
-    WidgetExt,
-    WidgetExtManual,
-    DestDefaults,
-    TargetFlags,
-    TargetEntry,
-    Inhibit,
-    SelectionMode,
-};
-use gdk::{
-    EventType,
-    DragAction,
-};
-use crate::sidebar::feed_list::error::{
-    FeedListError,
-    FeedListErrorKind,
-};
-use std::rc::Rc;
-use std::cell::RefCell;
 use crate::util::GtkHandle;
 use crate::util::GtkHandleMap;
-use crate::gtk_handle;
-
+use crate::util::GtkUtil;
+use crate::Resources;
+use failure::ResultExt;
+use gdk::{DragAction, EventType};
+use gtk::{self, ContainerExt, DestDefaults, Inhibit, ListBoxExt, ListBoxRowExt, SelectionMode, StyleContextExt, TargetEntry, TargetFlags, WidgetExt, WidgetExtManual};
+use log::debug;
+use news_flash::models::{CategoryID, FeedID};
+use std::cell::RefCell;
+use std::collections::HashMap;
+use std::rc::Rc;
+use std::str;
 
 #[derive(Clone, Debug)]
 pub struct FeedList {
@@ -70,7 +37,7 @@ impl FeedList {
         let ui_data = Resources::get("ui/sidebar_list.ui").ok_or(FeedListErrorKind::UIFile)?;
         let ui_string = str::from_utf8(ui_data.as_ref()).context(FeedListErrorKind::EmbedFile)?;
         let builder = gtk::Builder::new_from_string(ui_string);
-        let list_box : gtk::ListBox = builder.get_object("sidebar_list").ok_or(FeedListErrorKind::UIFile)?;
+        let list_box: gtk::ListBox = builder.get_object("sidebar_list").ok_or(FeedListErrorKind::UIFile)?;
 
         // set selection mode from NONE -> SINGLE after a delay after it's been shown
         // this ensures selection mode is in SINGLE without having a selected row in the list
@@ -121,30 +88,28 @@ impl FeedList {
                             if let Some(ctx) = GtkUtil::get_dnd_style_context_listboxrow(&row) {
                                 ctx.add_class("drag-below");
                             }
-                        }
-                        else {
+                        } else {
                             // row before doesn't exist -> insert at first pos
                             if let Some(ctx) = GtkUtil::get_dnd_style_context_listboxrow(&row) {
                                 ctx.add_class("drag-below");
                             }
                         }
-                    },
+                    }
                     false => {
                         if let Some(row_below) = widget.get_row_at_index(index + 1) {
                             if let Some(ctx) = GtkUtil::get_dnd_style_context_listboxrow(&row_below) {
                                 ctx.add_class("drag-below");
                             }
-                        }
-                        else {
+                        } else {
                             // row after doesn't exist -> insert at last pos
                             if let Some(ctx) = GtkUtil::get_dnd_style_context_listboxrow(&row) {
                                 ctx.add_class("drag-above");
                             }
                         }
-                    },
+                    }
                 };
             }
-            
+
             Inhibit(true)
         });
         self.list.connect_drag_leave(|widget, _drag_context, _time| {
@@ -170,17 +135,13 @@ impl FeedList {
                 let index = row.get_index();
 
                 let index = match y < alloc.y + (alloc.height / 2) {
-                    true => {
-                        match index - 1 >= 0 {
-                            true => index - 1,
-                            false => index,
-                        }
+                    true => match index - 1 >= 0 {
+                        true => index - 1,
+                        false => index,
                     },
-                    false => {
-                        match index + 1 >= 0 {
-                            true => index + 1,
-                            false => index,
-                        }
+                    false => match index + 1 >= 0 {
+                        true => index + 1,
+                        false => index,
                     },
                 };
 
@@ -214,39 +175,39 @@ impl FeedList {
                         self.list.remove(&feed_handle.borrow().row());
                     }
                     self.feeds.borrow_mut().remove(&feed_id);
-                },
+                }
                 FeedListChangeSet::RemoveCategory(category_id) => {
                     if let Some(category_handle) = self.categories.borrow().get(&category_id) {
                         self.list.remove(&category_handle.borrow().row());
                     }
                     self.categories.borrow_mut().remove(&category_id);
-                },
+                }
                 FeedListChangeSet::AddFeed(model, pos, visible) => {
                     self.add_feed(&model, pos, visible);
-                },
+                }
                 FeedListChangeSet::AddCategory(model, pos, visible) => {
                     self.add_category(&model, pos, visible);
-                },
+                }
                 FeedListChangeSet::FeedUpdateItemCount(id, count) => {
                     if let Some(feed_handle) = self.feeds.borrow().get(&id) {
                         feed_handle.borrow().update_item_count(count);
                     }
-                },
+                }
                 FeedListChangeSet::CategoryUpdateItemCount(id, count) => {
                     if let Some(category_handle) = self.categories.borrow().get(&id) {
                         category_handle.borrow().update_item_count(count);
                     }
-                },
+                }
                 FeedListChangeSet::FeedUpdateLabel(id, label) => {
                     if let Some(feed_handle) = self.feeds.borrow().get(&id) {
                         feed_handle.borrow().update_title(&label);
                     }
-                },
+                }
                 FeedListChangeSet::CategoryUpdateLabel(id, label) => {
                     if let Some(category_handle) = self.categories.borrow().get(&id) {
                         category_handle.borrow().update_title(&label);
                     }
-                },
+                }
             }
         }
     }
@@ -262,7 +223,7 @@ impl FeedList {
 
         category_widget.borrow().expander_event().connect_button_press_event(move |_widget, event| {
             if event.get_button() != 1 {
-                return gtk::Inhibit(true)
+                return gtk::Inhibit(true);
             }
             match event.get_event_type() {
                 EventType::ButtonPress => (),
@@ -273,8 +234,7 @@ impl FeedList {
                     if let Some(feed_handle) = feeds.borrow().get(&feed_id) {
                         if expaneded {
                             feed_handle.borrow_mut().expand();
-                        }
-                        else {
+                        } else {
                             feed_handle.borrow_mut().collapse();
                         }
                     }
@@ -283,8 +243,7 @@ impl FeedList {
                     if let Some(category_handle) = categories.borrow().get(&category_id) {
                         if expaneded {
                             category_handle.borrow_mut().expand();
-                        }
-                        else {
+                        } else {
                             category_handle.borrow_mut().collapse();
                         }
                     }
@@ -307,7 +266,7 @@ impl FeedList {
     pub fn get_selection(&self) -> Option<FeedListSelection> {
         if let Some(row) = self.list.get_selected_row() {
             let index = row.get_index();
-            return self.tree.borrow().calculate_selection(index)
+            return self.tree.borrow().calculate_selection(index);
         }
         None
     }

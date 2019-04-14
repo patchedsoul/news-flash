@@ -1,47 +1,16 @@
-use gtk::{
-    self,
-    LabelExt,
-    ContainerExt,
-    WidgetExt,
-    WidgetExtManual,
-    StyleContextExt,
-    ListBoxRowExt,
-    RevealerExt,
-    TargetEntry,
-    TargetFlags,
-    DragContextExtManual,
-    ImageExt,
-    Continue,
-};
-use gdk::{
-    DragAction,
-    ModifierType,
-};
-use glib::{
-    Source,
-    source::SourceId,
-    translate::ToGlib,
-    translate::FromGlib,
-};
-use cairo::{
-    self,
-    ImageSurface,
-    Format,
-};
-use news_flash::models::{
-    FeedID,
-    FavIcon,
-};
-use crate::sidebar::feed_list::models::{
-    FeedListFeedModel,
-};
-use std::str;
-use std::rc::Rc;
-use std::cell::RefCell;
-use crate::Resources;
-use crate::util::GtkUtil;
-use crate::util::GtkHandle;
 use crate::gtk_handle;
+use crate::sidebar::feed_list::models::FeedListFeedModel;
+use crate::util::GtkHandle;
+use crate::util::GtkUtil;
+use crate::Resources;
+use cairo::{self, Format, ImageSurface};
+use gdk::{DragAction, ModifierType};
+use glib::{source::SourceId, translate::FromGlib, translate::ToGlib, Source};
+use gtk::{self, ContainerExt, Continue, DragContextExtManual, ImageExt, LabelExt, ListBoxRowExt, RevealerExt, StyleContextExt, TargetEntry, TargetFlags, WidgetExt, WidgetExtManual};
+use news_flash::models::{FavIcon, FeedID};
+use std::cell::RefCell;
+use std::rc::Rc;
+use std::str;
 
 #[derive(Clone, Debug)]
 pub struct FeedRow {
@@ -60,14 +29,14 @@ impl FeedRow {
         let ui_data = Resources::get("ui/feed.ui").unwrap();
         let ui_string = str::from_utf8(ui_data.as_ref()).unwrap();
         let builder = gtk::Builder::new_from_string(ui_string);
-        let revealer : gtk::Revealer = builder.get_object("feed_row").unwrap();
-        let level_margin : gtk::Box = builder.get_object("level_margin").unwrap();
-        level_margin.set_margin_start(model.level*24);
-        
-        let title_label : gtk::Label = builder.get_object("feed_title").unwrap();
-        let item_count_label : gtk::Label = builder.get_object("item_count").unwrap();
-        let item_count_event : gtk::EventBox = builder.get_object("item_count_event").unwrap();
-        let favicon : gtk::Image = builder.get_object("favicon").unwrap();
+        let revealer: gtk::Revealer = builder.get_object("feed_row").unwrap();
+        let level_margin: gtk::Box = builder.get_object("level_margin").unwrap();
+        level_margin.set_margin_start(model.level * 24);
+
+        let title_label: gtk::Label = builder.get_object("feed_title").unwrap();
+        let item_count_label: gtk::Label = builder.get_object("item_count").unwrap();
+        let item_count_event: gtk::EventBox = builder.get_object("item_count_event").unwrap();
+        let favicon: gtk::Image = builder.get_object("favicon").unwrap();
 
         let mut feed = FeedRow {
             id: model.id.clone(),
@@ -103,7 +72,7 @@ impl FeedRow {
         widget.drag_source_add_text_targets();
         widget.connect_drag_data_get(move |_widget, _ctx, selection_data, _info, _time| {
             if let Ok(json) = serde_json::to_string(&id.clone()) {
-                let mut data =  String::from("FeedID ");
+                let mut data = String::from("FeedID ");
                 data.push_str(&json);
                 selection_data.set_text(&data);
             }
@@ -118,10 +87,10 @@ impl FeedRow {
             style_context.remove_class("drag-icon");
             drag_context.drag_set_icon_surface(&surface);
         });
-        
+
         row_2nd_handle
     }
-    
+
     pub fn row(&self) -> gtk::ListBoxRow {
         self.widget.clone()
     }
@@ -130,8 +99,7 @@ impl FeedRow {
         if count > 0 {
             self.item_count.set_label(&count.to_string());
             self.item_count_event.set_visible(true);
-        }
-        else {
+        } else {
             self.item_count_event.set_visible(false);
         }
     }
@@ -170,7 +138,6 @@ impl FeedRow {
     }
 
     pub fn expand(&self) {
-
         // clear out timeout to fully hide row
         {
             if let Some(source_id) = *self.hide_timeout.borrow() {

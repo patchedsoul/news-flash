@@ -1,32 +1,15 @@
-use gtk::{
-    self,
-    LabelExt,
-    ContainerExt,
-    WidgetExt,
-    ImageExt,
-    StyleContextExt,
-    ListBoxRowExt,
-};
-use gdk::{
-    WindowExt,
-};
-use cairo::{
-    Context,
-    FillRule,
-};
-use news_flash::models::{
-    TagID,
-};
-use crate::sidebar::tag_list::models::{
-    TagListTagModel,
-};
-use std::rc::Rc;
-use std::cell::RefCell;
-use std::str;
-use crate::Resources;
-use crate::util::GtkHandle;
-use crate::gtk_handle;
 use crate::color::ColorRGBA;
+use crate::gtk_handle;
+use crate::sidebar::tag_list::models::TagListTagModel;
+use crate::util::GtkHandle;
+use crate::Resources;
+use cairo::{Context, FillRule};
+use gdk::WindowExt;
+use gtk::{self, ContainerExt, ImageExt, LabelExt, ListBoxRowExt, StyleContextExt, WidgetExt};
+use news_flash::models::TagID;
+use std::cell::RefCell;
+use std::rc::Rc;
+use std::str;
 
 #[derive(Clone, Debug)]
 pub struct TagRow {
@@ -43,12 +26,12 @@ impl TagRow {
         let ui_data = Resources::get("ui/tag.ui").unwrap();
         let ui_string = str::from_utf8(ui_data.as_ref()).unwrap();
         let builder = gtk::Builder::new_from_string(ui_string);
-        let tag_box : gtk::Box = builder.get_object("tag_row").unwrap();
-        let title_label : gtk::Label = builder.get_object("tag_title").unwrap();
-        let item_count_label : gtk::Label = builder.get_object("item_count").unwrap();
-        let item_count_event : gtk::EventBox = builder.get_object("item_count_event").unwrap();
-        let tag_color_circle : gtk::Image = builder.get_object("tag_color").unwrap();
-        
+        let tag_box: gtk::Box = builder.get_object("tag_row").unwrap();
+        let title_label: gtk::Label = builder.get_object("tag_title").unwrap();
+        let item_count_label: gtk::Label = builder.get_object("item_count").unwrap();
+        let item_count_event: gtk::EventBox = builder.get_object("item_count_event").unwrap();
+        let tag_color_circle: gtk::Image = builder.get_object("tag_color").unwrap();
+
         let tag_image_update = tag_color_circle.clone();
         let tag_color_update = model.color.clone();
         tag_color_circle.connect_realize(move |_widget| {
@@ -79,7 +62,7 @@ impl TagRow {
 
         row
     }
-    
+
     pub fn row(&self) -> gtk::ListBoxRow {
         self.widget.clone()
     }
@@ -88,8 +71,7 @@ impl TagRow {
         if count > 0 {
             self.item_count.set_label(&count.to_string());
             self.item_count_event.set_visible(true);
-        }
-        else {
+        } else {
             self.item_count_event.set_visible(false);
         }
     }
@@ -112,22 +94,12 @@ impl TagRow {
                 let mut rgba_inner = ColorRGBA::parse_string(color).unwrap();
                 rgba_inner.adjust_lightness(0.05).unwrap();
 
-                cairo_ctx.set_source_rgba(
-                    rgba_inner.red_normalized(),
-                    rgba_inner.green_normalized(),
-                    rgba_inner.blue_normalized(),
-                    rgba_inner.alpha_normalized()
-                );
+                cairo_ctx.set_source_rgba(rgba_inner.red_normalized(), rgba_inner.green_normalized(), rgba_inner.blue_normalized(), rgba_inner.alpha_normalized());
                 cairo_ctx.arc(half_size, half_size, half_size, 0.0, 2.0 * std::f64::consts::PI);
                 cairo_ctx.fill_preserve();
 
                 cairo_ctx.arc(half_size, half_size, half_size - (half_size / 4.0), 0.0, 2.0 * std::f64::consts::PI);
-                cairo_ctx.set_source_rgba(
-                    rgba_outer.red_normalized(),
-                    rgba_outer.green_normalized(),
-                    rgba_outer.blue_normalized(),
-                    rgba_outer.alpha_normalized()
-                );
+                cairo_ctx.set_source_rgba(rgba_outer.red_normalized(), rgba_outer.green_normalized(), rgba_outer.blue_normalized(), rgba_outer.alpha_normalized());
                 cairo_ctx.fill_preserve();
 
                 tag_color_circle.set_from_surface(&surface);

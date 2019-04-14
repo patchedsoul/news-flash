@@ -1,11 +1,8 @@
-use failure::Error;
-use failure::format_err;
 use crate::Resources;
+use failure::format_err;
+use failure::Error;
+use gtk::{LabelExt, WidgetExt};
 use std::str;
-use gtk::{
-    LabelExt,
-    WidgetExt,
-};
 
 #[derive(Clone, Debug)]
 pub struct ProgressOverlay {
@@ -18,13 +15,10 @@ impl ProgressOverlay {
         let ui_data = Resources::get("ui/article_view_progress.ui").ok_or(format_err!("some err"))?;
         let ui_string = str::from_utf8(ui_data.as_ref())?;
         let builder = gtk::Builder::new_from_string(ui_string);
-        let label : gtk::Label = builder.get_object("label").ok_or(format_err!("some err"))?;
-        let parent : gtk::Box = builder.get_object("box").ok_or(format_err!("some err"))?;
+        let label: gtk::Label = builder.get_object("label").ok_or(format_err!("some err"))?;
+        let parent: gtk::Box = builder.get_object("box").ok_or(format_err!("some err"))?;
 
-        Ok(ProgressOverlay {
-            parent: parent,
-            label: label,
-        })
+        Ok(ProgressOverlay { parent: parent, label: label })
     }
 
     pub fn set_percentage(&self, percentage: f64) {
@@ -42,10 +36,10 @@ impl ProgressOverlay {
         match show {
             true => {
                 self.parent.show();
-            },
+            }
             false => {
                 self.parent.hide();
-            },
+            }
         }
     }
 

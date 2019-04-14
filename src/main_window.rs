@@ -1,49 +1,19 @@
-use gtk::{
-    self,
-    Application,
-    ApplicationWindow,
-    GtkWindowExt,
-    WidgetExt,
-    Inhibit,
-    CssProvider,
-    CssProviderExt,
-    GtkWindowExtManual,
-    StyleContext,
-    Builder,
-    Stack,
-    StackExt,
-};
-use crate::welcome_screen::{
-    WelcomePage,
-    WelcomeHeaderbar,
-};
-use crate::login_screen::{
-    PasswordLogin,
-    WebLogin,
-    LoginHeaderbar,
-};
-use log::{
-    info,
-    warn,
-};
-use news_flash::NewsFlash;
-use news_flash::models::{
-    Tag,
-    TagID,
-};
-use std::rc::Rc;
-use std::cell::RefCell;
-use crate::Resources;
-use failure::Error;
-use failure::format_err;
-use std::str;
+use crate::content_page::{ContentHeader, ContentPage};
 use crate::gtk_handle;
-use crate::content_page::{
-    ContentPage,
-    ContentHeader,
-};
+use crate::login_screen::{LoginHeaderbar, PasswordLogin, WebLogin};
 use crate::main_window_actions::MainWindowActions;
 use crate::main_window_state::MainWindowState;
+use crate::welcome_screen::{WelcomeHeaderbar, WelcomePage};
+use crate::Resources;
+use failure::format_err;
+use failure::Error;
+use gtk::{self, Application, ApplicationWindow, Builder, CssProvider, CssProviderExt, GtkWindowExt, GtkWindowExtManual, Inhibit, Stack, StackExt, StyleContext, WidgetExt};
+use log::{info, warn};
+use news_flash::models::{Tag, TagID};
+use news_flash::NewsFlash;
+use std::cell::RefCell;
+use std::rc::Rc;
+use std::str;
 
 pub static DATA_DIR: &'static str = ".news-flash";
 const PANED_DEFAULT_POS: i32 = 600;
@@ -54,22 +24,17 @@ pub struct MainWindow {
 
 impl MainWindow {
     pub fn new(app: &Application) -> Result<Self, Error> {
-
         // setup CSS for window
         let provider = CssProvider::new();
         let css_data = Resources::get("css/app.css").ok_or(format_err!("some err"))?;
         CssProvider::load_from_data(&provider, css_data.as_ref()).unwrap();
-        StyleContext::add_provider_for_screen(
-            &gdk::Screen::get_default().unwrap(),
-            &provider,
-            600,
-        );
+        StyleContext::add_provider_for_screen(&gdk::Screen::get_default().unwrap(), &provider, 600);
 
         let ui_data = Resources::get("ui/main_window.ui").ok_or(format_err!("some err"))?;
         let ui_string = str::from_utf8(ui_data.as_ref())?;
         let builder = Builder::new_from_string(ui_string);
-        let window : ApplicationWindow = builder.get_object("main_window").ok_or(format_err!("some err"))?;
-        let stack : Stack = builder.get_object("main_stack").ok_or(format_err!("some err"))?;
+        let window: ApplicationWindow = builder.get_object("main_window").ok_or(format_err!("some err"))?;
+        let stack: Stack = builder.get_object("main_stack").ok_or(format_err!("some err"))?;
 
         let login_header = LoginHeaderbar::new(&window)?;
         let welcome_header = WelcomeHeaderbar::new()?;
@@ -93,7 +58,7 @@ impl MainWindow {
 
         let content = ContentPage::new()?;
         stack.add_named(&content.widget(), "content");
-        
+
         let pw_login_handle = gtk_handle!(pw_login);
         let oauht_login_handle = gtk_handle!(oauth_login);
         let content_page_handle = gtk_handle!(content);
@@ -101,7 +66,7 @@ impl MainWindow {
         let news_flash_handle = gtk_handle!(None);
 
         let state = gtk_handle!(MainWindowState::new());
-        
+
         MainWindowActions::setup_show_password_page_action(&window, &pw_login_handle, &stack, login_header.widget());
         MainWindowActions::setup_show_oauth_page_action(&window, &oauht_login_handle, &stack, login_header.widget());
         MainWindowActions::setup_show_welcome_page_action(&window, &oauht_login_handle, &pw_login_handle, &stack, welcome_header.widget());
@@ -131,8 +96,7 @@ impl MainWindow {
             content_page_handle.borrow_mut().update_article_list(&news_flash_handle, &state);
 
             window.set_titlebar(&content_header_handle.borrow().widget());
-        }
-        else {
+        } else {
             warn!("No account configured");
             stack.set_visible_child_name("welcome");
             window.set_titlebar(&welcome_header.widget());
@@ -142,9 +106,7 @@ impl MainWindow {
         content_page_handle.borrow().set_paned(PANED_DEFAULT_POS);
         window.show_all();
 
-        let main_window = MainWindow {
-            widget: window,
-        };
+        let main_window = MainWindow { widget: window };
 
         Ok(main_window)
     }

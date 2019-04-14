@@ -1,8 +1,5 @@
+use failure::{format_err, Error};
 use std::str::Chars;
-use failure::{
-    Error,
-    format_err,
-};
 
 #[derive(Copy, Clone, Debug)]
 pub struct ColorRGBA {
@@ -15,11 +12,11 @@ pub struct ColorRGBA {
 impl ColorRGBA {
     pub fn parse_string(color_string: &str) -> Result<Self, Error> {
         if color_string.len() != 7 {
-            return Err(format_err!("Expected lenght of color string is 7, string lenght is {}", color_string.len()))
+            return Err(format_err!("Expected lenght of color string is 7, string lenght is {}", color_string.len()));
         }
 
         if !color_string.starts_with("#") {
-            return Err(format_err!("Expected color string to start with '#'"))
+            return Err(format_err!("Expected color string to start with '#'"));
         }
 
         let mut chars = color_string.chars();
@@ -88,32 +85,26 @@ impl ColorRGBA {
         let c_min = Self::min_3(red_normalized, green_normalized, blue_normalized);
         let delta = c_max - c_min;
 
-
         let hue;
         if delta == 0.0 {
             hue = 0.0;
-        }
-        else {
+        } else {
             if c_max == red_normalized {
                 hue = 60.0 * (((green_normalized - blue_normalized) / delta) % 6.0);
-            }
-            else if c_max == green_normalized {
+            } else if c_max == green_normalized {
                 hue = 60.0 * (((blue_normalized - red_normalized) / delta) + 2.0);
-            }
-            else if c_max == blue_normalized {
+            } else if c_max == blue_normalized {
                 hue = 60.0 * (((red_normalized - green_normalized) / delta) + 4.0);
-            }
-            else {
-                return Err(format_err!("c_max matches neither R, G or B"))
+            } else {
+                return Err(format_err!("c_max matches neither R, G or B"));
             }
         }
-        
+
         let lightness = (c_max + c_min) / 2.0;
         let mut saturation = 0.0;
         if delta != 0.0 {
             saturation = delta / (1.0 - ((2.0 * lightness) - 1.0).abs());
         }
-        
 
         Ok(ColorHSLA {
             hue: hue,
@@ -129,7 +120,7 @@ impl ColorRGBA {
 
     fn min_2(f_1: f64, f_2: f64) -> f64 {
         if f_1 <= f_2 {
-            return f_1
+            return f_1;
         }
         f_2
     }
@@ -140,7 +131,7 @@ impl ColorRGBA {
 
     fn max_2(f_1: f64, f_2: f64) -> f64 {
         if f_1 >= f_2 {
-            return f_1
+            return f_1;
         }
         f_2
     }
@@ -196,8 +187,7 @@ impl ColorHSLA {
         let mut new_lightness = self.lightness * (1.0 + percentage);
         if new_lightness > 1.0 {
             new_lightness = 1.0;
-        }
-        else if new_lightness < 0.0 {
+        } else if new_lightness < 0.0 {
             new_lightness = 0.0;
         }
         self.lightness = new_lightness;
@@ -214,34 +204,28 @@ impl ColorHSLA {
             r_n = c;
             g_n = x;
             b_n = 0.0;
-        }
-        else if self.hue >= 60.0 && self.hue < 120.0 {
+        } else if self.hue >= 60.0 && self.hue < 120.0 {
             r_n = x;
             g_n = c;
             b_n = 0.0;
-        }
-        else if self.hue >= 120.0 && self.hue < 180.0 {
+        } else if self.hue >= 120.0 && self.hue < 180.0 {
             r_n = 0.0;
             g_n = c;
             b_n = x;
-        }
-        else if self.hue >= 180.0 && self.hue < 240.0 {
+        } else if self.hue >= 180.0 && self.hue < 240.0 {
             r_n = 0.0;
             g_n = x;
             b_n = c;
-        }
-        else if self.hue >= 240.0 && self.hue < 300.0 {
+        } else if self.hue >= 240.0 && self.hue < 300.0 {
             r_n = x;
             g_n = 0.0;
             b_n = c;
-        }
-        else if self.hue >= 300.0 && self.hue <= 360.0 {
+        } else if self.hue >= 300.0 && self.hue <= 360.0 {
             r_n = c;
             g_n = 0.0;
             b_n = x;
-        }
-        else if self.hue > 360.0 {
-            return Err(format_err!("hue exceeds 360°"))
+        } else if self.hue > 360.0 {
+            return Err(format_err!("hue exceeds 360°"));
         }
 
         let red = ((r_n + m) * 255.0) as u8;
@@ -260,8 +244,8 @@ impl ColorHSLA {
 
 #[cfg(test)]
 mod tests {
-    use super::ColorRGBA;
     use super::ColorHSLA;
+    use super::ColorRGBA;
 
     #[test]
     fn parse_color_string() {

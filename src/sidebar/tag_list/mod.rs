@@ -1,33 +1,17 @@
 pub mod models;
 mod tag_row;
 
-use news_flash::models::{
-    TagID,
-};
-use failure::{
-    Error,
-    ResultExt,
-    format_err,
-};
-use gtk::{
-    ListBoxExt,
-    ListBoxRowExt,
-    ContainerExt,
-    SelectionMode,
-    WidgetExt,
-};
-use std::rc::Rc;
+use crate::gtk_handle;
+use crate::util::GtkHandle;
+use crate::Resources;
+use failure::{format_err, Error, ResultExt};
+use gtk::{ContainerExt, ListBoxExt, ListBoxRowExt, SelectionMode, WidgetExt};
+use models::{TagListChangeSet, TagListModel, TagListTagModel};
+use news_flash::models::TagID;
 use std::cell::RefCell;
 use std::collections::HashMap;
+use std::rc::Rc;
 use std::str;
-use crate::Resources;
-use crate::util::GtkHandle;
-use crate::gtk_handle;
-use models::{
-    TagListModel,
-    TagListChangeSet,
-    TagListTagModel,
-};
 use tag_row::TagRow;
 
 #[derive(Clone, Debug)]
@@ -42,7 +26,7 @@ impl TagList {
         let ui_data = Resources::get("ui/sidebar_list.ui").ok_or(format_err!("some err"))?;
         let ui_string = str::from_utf8(ui_data.as_ref()).context(format_err!("some err"))?;
         let builder = gtk::Builder::new_from_string(ui_string);
-        let list_box : gtk::ListBox = builder.get_object("sidebar_list").ok_or(format_err!("some err"))?;
+        let list_box: gtk::ListBox = builder.get_object("sidebar_list").ok_or(format_err!("some err"))?;
 
         // set selection mode from NONE -> SINGLE after a delay after it's been shown
         // this ensures selection mode is in SINGLE without having a selected row in the list
@@ -77,20 +61,20 @@ impl TagList {
                         self.list.remove(&tag_handle.borrow().row());
                     }
                     self.tags.remove(&id);
-                },
+                }
                 TagListChangeSet::Add(model, pos) => {
                     self.add_tag(&model, pos);
-                },
+                }
                 TagListChangeSet::UpdateItemCount(id, count) => {
                     if let Some(tag_handle) = self.tags.get(&id) {
                         tag_handle.borrow().update_item_count(count);
                     }
-                },
+                }
                 TagListChangeSet::UpdateLabel(id, label) => {
                     if let Some(tag_handle) = self.tags.get(&id) {
                         tag_handle.borrow().update_title(&label);
                     }
-                },
+                }
             }
         }
     }
@@ -109,7 +93,7 @@ impl TagList {
         if let Some(row) = self.list.get_selected_row() {
             let index = row.get_index();
             if let Some((_, model)) = self.list_model.borrow().calculate_selection(index) {
-                return Some(model.id.clone())
+                return Some(model.id.clone());
             }
         }
         None

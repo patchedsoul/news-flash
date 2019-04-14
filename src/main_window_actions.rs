@@ -1,43 +1,17 @@
-use gtk::{
-    self,
-    ApplicationWindow,
-    GtkWindowExt,
-    Stack,
-    StackExt,
-    StackTransitionType,
-    HeaderBar,
-};
-use crate::login_screen::{
-    PasswordLogin,
-    WebLogin,
-};
-use gio::{
-    SimpleAction,
-    ActionMapExt,
-    ActionExt,
-};
-use news_flash::models::{
-    ArticleID,
-    PluginID,
-    LoginData,
-};
-use log::{
-    error,
-};
-use news_flash::NewsFlash;
-use crate::util::GtkHandle;
-use crate::sidebar::models::SidebarSelection;
 use crate::content_page::HeaderSelection;
-use crate::main_window_state::MainWindowState;
+use crate::content_page::{ContentHeader, ContentPage};
 use crate::error_dialog::ErrorDialog;
+use crate::login_screen::{PasswordLogin, WebLogin};
+use crate::main_window::DATA_DIR;
+use crate::main_window_state::MainWindowState;
+use crate::sidebar::models::SidebarSelection;
+use crate::util::GtkHandle;
+use gio::{ActionExt, ActionMapExt, SimpleAction};
+use gtk::{self, ApplicationWindow, GtkWindowExt, HeaderBar, Stack, StackExt, StackTransitionType};
+use log::error;
+use news_flash::models::{ArticleID, LoginData, PluginID};
+use news_flash::NewsFlash;
 use std::path::PathBuf;
-use crate::content_page::{
-    ContentPage,
-    ContentHeader,
-};
-use crate::main_window::{
-    DATA_DIR,
-};
 
 pub struct MainWindowActions;
 
@@ -88,13 +62,7 @@ impl MainWindowActions {
         window.add_action(&show_pw_page);
     }
 
-    pub fn setup_show_welcome_page_action(
-        window: &ApplicationWindow,
-        oauth_page: &GtkHandle<WebLogin>,
-        pw_page: &GtkHandle<PasswordLogin>,
-        stack: &Stack,
-        headerbar: HeaderBar
-    ) {
+    pub fn setup_show_welcome_page_action(window: &ApplicationWindow, oauth_page: &GtkHandle<WebLogin>, pw_page: &GtkHandle<PasswordLogin>, stack: &Stack, headerbar: HeaderBar) {
         let application_window = window.clone();
         let stack = stack.clone();
         let show_welcome_page = SimpleAction::new("show-welcome-page", None);
@@ -111,13 +79,7 @@ impl MainWindowActions {
         window.add_action(&show_welcome_page);
     }
 
-    pub fn setup_show_content_page_action(
-        window: &ApplicationWindow,
-        news_flash: &GtkHandle<Option<NewsFlash>>,
-        stack: &Stack,
-        content_page: &GtkHandle<ContentPage>,
-        headerbar: gtk::Paned
-    ) {
+    pub fn setup_show_content_page_action(window: &ApplicationWindow, news_flash: &GtkHandle<Option<NewsFlash>>, stack: &Stack, content_page: &GtkHandle<ContentPage>, headerbar: gtk::Paned) {
         let news_flash = news_flash.clone();
         let application_window = window.clone();
         let stack = stack.clone();
@@ -127,7 +89,7 @@ impl MainWindowActions {
             if let Some(data) = data {
                 if let Some(id_string) = data.get_str() {
                     let id = PluginID::new(id_string);
-                    let mut user_name : Option<String> = None;
+                    let mut user_name: Option<String> = None;
                     if let Some(api) = &*news_flash.borrow() {
                         user_name = api.user_name();
                     }
@@ -142,12 +104,7 @@ impl MainWindowActions {
         window.add_action(&show_content_page);
     }
 
-    pub fn setup_login_action(
-        window: &ApplicationWindow,
-        news_flash: &GtkHandle<Option<NewsFlash>>,
-        oauth_page: &GtkHandle<WebLogin>,
-        pw_page: &GtkHandle<PasswordLogin>,
-    ) {
+    pub fn setup_login_action(window: &ApplicationWindow, news_flash: &GtkHandle<Option<NewsFlash>>, oauth_page: &GtkHandle<WebLogin>, pw_page: &GtkHandle<PasswordLogin>) {
         let news_flash = news_flash.clone();
         let main_window = window.clone();
         let pw_page = pw_page.clone();
@@ -172,18 +129,18 @@ impl MainWindowActions {
                                 let id = glib::Variant::from(id.to_str());
                                 action.activate(Some(&id));
                             }
-                        },
+                        }
                         Err(error) => {
                             error!("Login failed! Plguin: {}, Error: {}", id, error);
                             match info {
                                 LoginData::OAuth(_) => {
                                     oauth_page.borrow_mut().show_error(error);
-                                },
+                                }
                                 LoginData::Password(_) => {
                                     pw_page.borrow_mut().show_error(error);
-                                },
+                                }
                             }
-                        },
+                        }
                     }
                 }
             }
@@ -192,11 +149,7 @@ impl MainWindowActions {
         window.add_action(&login_action);
     }
 
-    pub fn setup_sync_paned_action(
-        window: &ApplicationWindow,
-        content_page: &GtkHandle<ContentPage>,
-        content_header: &GtkHandle<ContentHeader>,
-    ) {
+    pub fn setup_sync_paned_action(window: &ApplicationWindow, content_page: &GtkHandle<ContentPage>, content_header: &GtkHandle<ContentHeader>) {
         let content_page = content_page.clone();
         let content_header = content_header.clone();
         let sync_paned = SimpleAction::new("sync-paned", glib::VariantTy::new("i").ok());
@@ -232,10 +185,10 @@ impl MainWindowActions {
                         content_header.borrow().finish_sync();
                         content_page.borrow_mut().update_sidebar_from_ref(news_flash);
                         content_page.borrow_mut().update_article_list_from_ref(news_flash, &state);
-                    },
+                    }
                     Err(error) => {
                         let _dialog = ErrorDialog::new(&error, &parent).unwrap();
-                    },
+                    }
                 }
             }
         });
@@ -299,12 +252,7 @@ impl MainWindowActions {
         window.add_action(&search_action);
     }
 
-    pub fn setup_update_article_list_action(
-        window: &ApplicationWindow,
-        state: &GtkHandle<MainWindowState>,
-        content_page: &GtkHandle<ContentPage>,
-        news_flash: &GtkHandle<Option<NewsFlash>>
-    ) {
+    pub fn setup_update_article_list_action(window: &ApplicationWindow, state: &GtkHandle<MainWindowState>, content_page: &GtkHandle<ContentPage>, news_flash: &GtkHandle<Option<NewsFlash>>) {
         let state = state.clone();
         let content_page = content_page.clone();
         let news_flash = news_flash.clone();
@@ -316,12 +264,7 @@ impl MainWindowActions {
         window.add_action(&update_article_list_action);
     }
 
-    pub fn setup_show_more_articles_action(
-        window: &ApplicationWindow,
-        state: &GtkHandle<MainWindowState>,
-        content_page: &GtkHandle<ContentPage>,
-        news_flash: &GtkHandle<Option<NewsFlash>>
-    ) {
+    pub fn setup_show_more_articles_action(window: &ApplicationWindow, state: &GtkHandle<MainWindowState>, content_page: &GtkHandle<ContentPage>, news_flash: &GtkHandle<Option<NewsFlash>>) {
         let state = state.clone();
         let content_page = content_page.clone();
         let news_flash = news_flash.clone();
@@ -335,11 +278,7 @@ impl MainWindowActions {
         window.add_action(&show_more_articles_action);
     }
 
-    pub fn setup_show_article_action(
-        window: &ApplicationWindow,
-        content_page: &GtkHandle<ContentPage>,
-        news_flash: &GtkHandle<Option<NewsFlash>>
-    ) {
+    pub fn setup_show_article_action(window: &ApplicationWindow, content_page: &GtkHandle<ContentPage>, news_flash: &GtkHandle<Option<NewsFlash>>) {
         let content_page = content_page.clone();
         let news_flash = news_flash.clone();
         let show_article_action = SimpleAction::new("show-article", glib::VariantTy::new("s").ok());

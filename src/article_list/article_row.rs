@@ -1,37 +1,16 @@
-use gtk::{
-    Builder,
-    ListBoxRowExt,
-    WidgetExt,
-    ContainerExt,
-    StyleContextExt,
-    StackExt,
-    LabelExt,
-    ImageExt,
-    Inhibit,
-};
-use gdk::{
-    NotifyType,
-    EventType,
-};
-use news_flash::models::{
-    Read,
-    Marked,
-};
-use super::models::{
-    ArticleListArticleModel,
-};
-use crate::util::{
-    DateUtil,
-    GtkUtil,
-};
-use failure::Error;
-use failure::format_err;
-use std::str;
-use std::rc::Rc;
-use std::cell::RefCell;
-use crate::Resources;
-use crate::util::GtkHandle;
+use super::models::ArticleListArticleModel;
 use crate::gtk_handle;
+use crate::util::GtkHandle;
+use crate::util::{DateUtil, GtkUtil};
+use crate::Resources;
+use failure::format_err;
+use failure::Error;
+use gdk::{EventType, NotifyType};
+use gtk::{Builder, ContainerExt, ImageExt, Inhibit, LabelExt, ListBoxRowExt, StackExt, StyleContextExt, WidgetExt};
+use news_flash::models::{Marked, Read};
+use std::cell::RefCell;
+use std::rc::Rc;
+use std::str;
 
 pub struct ArticleRow {
     widget: gtk::ListBoxRow,
@@ -48,36 +27,36 @@ impl ArticleRow {
         let ui_string = str::from_utf8(ui_data.as_ref())?;
         let builder = Builder::new_from_string(ui_string);
 
-        let favicon : gtk::Image = builder.get_object("favicon").ok_or(format_err!("some err"))?;
-        let article_eventbox : gtk::EventBox = builder.get_object("article_eventbox").ok_or(format_err!("some err"))?;
-        let unread_eventbox : gtk::EventBox = builder.get_object("unread_eventbox").ok_or(format_err!("some err"))?;
-        let marked_eventbox : gtk::EventBox = builder.get_object("marked_eventbox").ok_or(format_err!("some err"))?;
-        let unread_stack : gtk::Stack = builder.get_object("unread_stack").ok_or(format_err!("some err"))?;
-        let marked_stack : gtk::Stack = builder.get_object("marked_stack").ok_or(format_err!("some err"))?;
-        let title_label : gtk::Label = builder.get_object("title_label").ok_or(format_err!("some err"))?;
-        let summary_label : gtk::Label = builder.get_object("summary_label").ok_or(format_err!("some err"))?;
-        let feed_label : gtk::Label = builder.get_object("feed_label").ok_or(format_err!("some err"))?;
-        let date_label : gtk::Label = builder.get_object("date_label").ok_or(format_err!("some err"))?;
+        let favicon: gtk::Image = builder.get_object("favicon").ok_or(format_err!("some err"))?;
+        let article_eventbox: gtk::EventBox = builder.get_object("article_eventbox").ok_or(format_err!("some err"))?;
+        let unread_eventbox: gtk::EventBox = builder.get_object("unread_eventbox").ok_or(format_err!("some err"))?;
+        let marked_eventbox: gtk::EventBox = builder.get_object("marked_eventbox").ok_or(format_err!("some err"))?;
+        let unread_stack: gtk::Stack = builder.get_object("unread_stack").ok_or(format_err!("some err"))?;
+        let marked_stack: gtk::Stack = builder.get_object("marked_stack").ok_or(format_err!("some err"))?;
+        let title_label: gtk::Label = builder.get_object("title_label").ok_or(format_err!("some err"))?;
+        let summary_label: gtk::Label = builder.get_object("summary_label").ok_or(format_err!("some err"))?;
+        let feed_label: gtk::Label = builder.get_object("feed_label").ok_or(format_err!("some err"))?;
+        let date_label: gtk::Label = builder.get_object("date_label").ok_or(format_err!("some err"))?;
         let row = Self::create_row(&article_eventbox);
 
         let scale = favicon.get_style_context().get_scale();
 
-        let marked : gtk::Image = builder.get_object("marked").ok_or(format_err!("some err"))?;
+        let marked: gtk::Image = builder.get_object("marked").ok_or(format_err!("some err"))?;
         let marked_icon = Resources::get("icons/marked.svg").ok_or(format_err!("some err"))?;
         let surface = GtkUtil::create_surface_from_bytes(&marked_icon, 16, 16, scale)?;
         marked.set_from_surface(&surface);
 
-        let unmarked : gtk::Image = builder.get_object("unmarked").ok_or(format_err!("some err"))?;
+        let unmarked: gtk::Image = builder.get_object("unmarked").ok_or(format_err!("some err"))?;
         let unmarked_icon = Resources::get("icons/unmarked.svg").ok_or(format_err!("some err"))?;
         let surface = GtkUtil::create_surface_from_bytes(&unmarked_icon, 16, 16, scale)?;
         unmarked.set_from_surface(&surface);
 
-        let read : gtk::Image = builder.get_object("read").ok_or(format_err!("some err"))?;
+        let read: gtk::Image = builder.get_object("read").ok_or(format_err!("some err"))?;
         let read_icon = Resources::get("icons/read.svg").ok_or(format_err!("some err"))?;
         let surface = GtkUtil::create_surface_from_bytes(&read_icon, 16, 16, scale)?;
         read.set_from_surface(&surface);
 
-        let unread : gtk::Image = builder.get_object("unread").ok_or(format_err!("some err"))?;
+        let unread: gtk::Image = builder.get_object("unread").ok_or(format_err!("some err"))?;
         let unread_icon = Resources::get("icons/unread.svg").ok_or(format_err!("some err"))?;
         let surface = GtkUtil::create_surface_from_bytes(&unread_icon, 16, 16, scale)?;
         unread.set_from_surface(&surface);
@@ -137,11 +116,7 @@ impl ArticleRow {
         row
     }
 
-    fn setup_unread_eventbox(
-        eventbox: &gtk::EventBox,
-        read: &GtkHandle<Read>,
-        unread_stack: &gtk::Stack,
-    ) {
+    fn setup_unread_eventbox(eventbox: &gtk::EventBox, read: &GtkHandle<Read>, unread_stack: &gtk::Stack) {
         let read_1 = read.clone();
         let stack_1 = unread_stack.clone();
         eventbox.connect_enter_notify_event(move |_widget, _event| {
@@ -163,13 +138,11 @@ impl ArticleRow {
         let read_3 = read.clone();
         eventbox.connect_button_press_event(move |_widget, event| {
             if event.get_button() != 1 {
-                return Inhibit(false)
+                return Inhibit(false);
             }
             match event.get_event_type() {
-                EventType::ButtonRelease |
-                EventType::DoubleButtonPress |
-                EventType::TripleButtonPress => return Inhibit(false),
-                _ => {},
+                EventType::ButtonRelease | EventType::DoubleButtonPress | EventType::TripleButtonPress => return Inhibit(false),
+                _ => {}
             }
             let read = *read_3.borrow();
             match read {
@@ -180,11 +153,7 @@ impl ArticleRow {
         });
     }
 
-    fn setup_marked_eventbox(
-        eventbox: &gtk::EventBox,
-        marked: &GtkHandle<Marked>,
-        marked_stack: &gtk::Stack,
-    ) {
+    fn setup_marked_eventbox(eventbox: &gtk::EventBox, marked: &GtkHandle<Marked>, marked_stack: &gtk::Stack) {
         let marked_1 = marked.clone();
         let stack_1 = marked_stack.clone();
         eventbox.connect_enter_notify_event(move |_widget, _event| {
@@ -206,13 +175,11 @@ impl ArticleRow {
         let marked_3 = marked.clone();
         eventbox.connect_button_press_event(move |_widget, event| {
             if event.get_button() != 1 {
-                return Inhibit(false)
+                return Inhibit(false);
             }
             match event.get_event_type() {
-                EventType::ButtonRelease |
-                EventType::DoubleButtonPress |
-                EventType::TripleButtonPress => return Inhibit(false),
-                _ => {},
+                EventType::ButtonRelease | EventType::DoubleButtonPress | EventType::TripleButtonPress => return Inhibit(false),
+                _ => {}
             }
             let read = *marked_3.borrow();
             match read {
@@ -223,14 +190,7 @@ impl ArticleRow {
         });
     }
 
-    fn setup_row_eventbox(
-        eventbox: &gtk::EventBox,
-        read: &GtkHandle<Read>,
-        marked: &GtkHandle<Marked>,
-        unread_stack: &gtk::Stack,
-        marked_stack: &gtk::Stack,
-        title_label: &gtk::Label,
-    ) {
+    fn setup_row_eventbox(eventbox: &gtk::EventBox, read: &GtkHandle<Read>, marked: &GtkHandle<Marked>, unread_stack: &gtk::Stack, marked_stack: &gtk::Stack, title_label: &gtk::Label) {
         Self::update_title_label(&title_label, &*read.borrow());
         Self::update_unread_stack(&unread_stack, &*read.borrow());
         Self::update_marked_stack(&marked_stack, &*marked.borrow());
@@ -241,7 +201,7 @@ impl ArticleRow {
         let marked_stack_1 = marked_stack.clone();
         eventbox.connect_enter_notify_event(move |_widget, event| {
             if event.get_detail() == NotifyType::Inferior {
-                return Inhibit(true)
+                return Inhibit(true);
             }
             match *read_1.borrow() {
                 Read::Read => unread_stack_1.set_visible_child_name("read"),
@@ -254,14 +214,13 @@ impl ArticleRow {
             Inhibit(true)
         });
 
-
         let read_2 = read.clone();
         let marked_2 = marked.clone();
         let unread_stack_2 = unread_stack.clone();
         let marked_stack_2 = marked_stack.clone();
         eventbox.connect_leave_notify_event(move |_widget, event| {
             if event.get_detail() == NotifyType::Inferior {
-                return Inhibit(true)
+                return Inhibit(true);
             }
             match *read_2.borrow() {
                 Read::Read => unread_stack_2.set_visible_child_name("empty"),

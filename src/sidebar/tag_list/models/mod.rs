@@ -1,17 +1,12 @@
-mod tag;
 mod change_set;
+mod tag;
 
-use failure::Error;
-use failure::format_err;
-use std::collections::{
-    HashSet,
-};
-pub use tag::TagListTagModel;
 pub use change_set::TagListChangeSet;
-use news_flash::models::{
-    Tag,
-    TagID,
-};
+use failure::format_err;
+use failure::Error;
+use news_flash::models::{Tag, TagID};
+use std::collections::HashSet;
+pub use tag::TagListTagModel;
 
 #[derive(Clone, Debug)]
 pub struct TagListModel {
@@ -29,7 +24,7 @@ impl TagListModel {
 
     pub fn add(&mut self, tag: &Tag, item_count: i32) -> Result<(), Error> {
         if self.tags.contains(&tag.tag_id) {
-            return Err(format_err!("some err"))
+            return Err(format_err!("some err"));
         }
         let model = TagListTagModel::new(tag, item_count);
         self.tags.insert(model.id.clone());
@@ -38,7 +33,7 @@ impl TagListModel {
     }
 
     pub fn generate_diff(&mut self, other: &mut TagListModel) -> Vec<TagListChangeSet> {
-        let mut diff : Vec<TagListChangeSet> = Vec::new();
+        let mut diff: Vec<TagListChangeSet> = Vec::new();
         let mut list_pos = 0;
         let mut old_index = 0;
         let mut new_index = 0;
@@ -52,7 +47,7 @@ impl TagListModel {
 
             // iterated through both lists -> done
             if old_item.is_none() && new_item.is_none() {
-                break
+                break;
             }
 
             // add all items after old_items ran out of items to compare
@@ -61,7 +56,7 @@ impl TagListModel {
                     new_index += 1;
                     diff.push(TagListChangeSet::Add(new_item.clone(), list_pos));
                     list_pos += 1;
-                    continue
+                    continue;
                 }
             }
 
@@ -70,7 +65,7 @@ impl TagListModel {
                 if new_item.is_none() {
                     diff.push(TagListChangeSet::Remove(old_item.id.clone()));
                     old_index += 1;
-                    continue
+                    continue;
                 }
             }
 
@@ -87,13 +82,13 @@ impl TagListModel {
                         list_pos += 1;
                         old_index += 1;
                         new_index += 1;
-                        continue
+                        continue;
                     }
 
                     // items differ -> remove old item and move on
                     diff.push(TagListChangeSet::Remove(old_item.id.clone()));
                     old_index += 1;
-                    continue
+                    continue;
                 }
             }
         }
@@ -111,16 +106,12 @@ impl TagListModel {
 
 #[cfg(test)]
 mod tests {
-    use super::TagListModel;
     use super::TagListChangeSet;
-    use news_flash::models::{
-        Tag,
-        TagID,
-    };
+    use super::TagListModel;
+    use news_flash::models::{Tag, TagID};
 
     #[test]
-    fn taglist_diff_1()
-    {
+    fn taglist_diff_1() {
         let mut tag_1 = Tag {
             tag_id: TagID::new("Tag_1"),
             label: "label_1".to_owned(),

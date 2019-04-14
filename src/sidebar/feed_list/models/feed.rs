@@ -1,12 +1,6 @@
+use news_flash::models::{CategoryID, FavIcon, Feed, FeedID, FeedMapping};
 use std;
 use std::cmp::Ordering;
-use news_flash::models::{
-    CategoryID,
-    FeedID,
-    Feed,
-    FeedMapping,
-    FavIcon,
-};
 
 #[derive(Eq, Clone, Debug)]
 pub struct FeedListFeedModel {

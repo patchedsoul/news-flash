@@ -1,9 +1,6 @@
+use news_flash::models::{Tag, TagID};
 use std;
 use std::cmp::Ordering;
-use news_flash::models::{
-    TagID,
-    Tag,
-};
 
 pub static DEFAULT_COLOUR: &'static str = "#FF00FF";
 

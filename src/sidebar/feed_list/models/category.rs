@@ -1,10 +1,7 @@
+use super::item::FeedListItem;
+use news_flash::models::{Category, CategoryID};
 use std;
 use std::cmp::Ordering;
-use super::item::FeedListItem;
-use news_flash::models::{
-    CategoryID,
-    Category,
-};
 
 #[derive(Eq, Clone, Debug)]
 pub struct FeedListCategoryModel {
@@ -36,27 +33,20 @@ impl FeedListCategoryModel {
     }
 
     pub fn add_child(&mut self, item: FeedListItem) {
-        let contains_item = self.children.iter().any(|i| {
-            match &item {
-                FeedListItem::Feed(item) => {
-                    match i {
-                        FeedListItem::Feed(i) => i.id == item.id,
-                        FeedListItem::Category(_) => false,
-                    }
-                },
-                FeedListItem::Category(item) => {
-                    match i {
-                        FeedListItem::Feed(_) => false,
-                        FeedListItem::Category(i) => i.id == item.id,
-                    }
-                },
-            }
+        let contains_item = self.children.iter().any(|i| match &item {
+            FeedListItem::Feed(item) => match i {
+                FeedListItem::Feed(i) => i.id == item.id,
+                FeedListItem::Category(_) => false,
+            },
+            FeedListItem::Category(item) => match i {
+                FeedListItem::Feed(_) => false,
+                FeedListItem::Category(i) => i.id == item.id,
+            },
         });
         if !contains_item {
             self.children.push(item);
             self.children.sort();
-        }
-        else {
+        } else {
             // FIXME: warn/error
         }
     }

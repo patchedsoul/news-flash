@@ -1,5 +1,5 @@
-use crate::sidebar::models::SidebarSelection;
 use crate::content_page::HeaderSelection;
+use crate::sidebar::models::SidebarSelection;
 use news_flash::models::ArticleOrder;
 
 #[derive(Clone, Debug)]
@@ -78,31 +78,27 @@ impl MainWindowState {
 impl PartialEq for MainWindowState {
     fn eq(&self, other: &MainWindowState) -> bool {
         if self.sidebar != other.sidebar {
-            return false
+            return false;
         }
         if self.header != other.header {
-            return false
+            return false;
         }
         match &self.search_term {
-            Some(self_search_term) => {
-                match &other.search_term {
-                    Some(other_search_term) => {
-                        if self_search_term != other_search_term {
-                            return false
-                        }
-                    },
-                    None => return false,
+            Some(self_search_term) => match &other.search_term {
+                Some(other_search_term) => {
+                    if self_search_term != other_search_term {
+                        return false;
+                    }
                 }
+                None => return false,
             },
-            None => {
-                match &other.search_term {
-                    Some(_) => return false,
-                    None => {},
-                }
+            None => match &other.search_term {
+                Some(_) => return false,
+                None => {}
             },
         }
         if self.article_list_order != other.article_list_order {
-            return false
+            return false;
         }
         true
     }

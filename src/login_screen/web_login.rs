@@ -1,53 +1,23 @@
-use gio::{
-    ActionMapExt,
-    ActionExt,
-};
-use glib::{
-    Variant,
-    signal::SignalHandlerId,
-    translate::{
-        ToGlib,
-        FromGlib,
-    },
-};
-use webkit2gtk::{
-    WebContext,
-    WebView,
-    WebViewExt,
-    WebViewExtManual,
-    UserContentManager,
-    LoadEvent,
-};
-use gtk::{
-    ObjectExt,
-    BoxExt,
-    InfoBarExt,
-    WidgetExt,
-    ResponseType,
-    LabelExt,
-    ButtonExt,
-};
-use failure::Error;
-use failure::format_err;
-use news_flash::models::{
-    PluginInfo,
-    LoginGUI,
-    LoginData,
-    OAuthData,
-};
-use crate::util::GtkUtil;
-use crate::util::GtkHandle;
-use crate::gtk_handle;
 use crate::error_dialog::ErrorDialog;
-use std::rc::Rc;
-use std::cell::RefCell;
+use crate::gtk_handle;
+use crate::util::GtkHandle;
+use crate::util::GtkUtil;
 use crate::Resources;
-use std::str;
-use news_flash::{
-    NewsFlashError,
-    NewsFlashErrorKind,
+use failure::format_err;
+use failure::Error;
+use gio::{ActionExt, ActionMapExt};
+use glib::{
+    signal::SignalHandlerId,
+    translate::{FromGlib, ToGlib},
+    Variant,
 };
-
+use gtk::{BoxExt, ButtonExt, InfoBarExt, LabelExt, ObjectExt, ResponseType, WidgetExt};
+use news_flash::models::{LoginData, LoginGUI, OAuthData, PluginInfo};
+use news_flash::{NewsFlashError, NewsFlashErrorKind};
+use std::cell::RefCell;
+use std::rc::Rc;
+use std::str;
+use webkit2gtk::{LoadEvent, UserContentManager, WebContext, WebView, WebViewExt, WebViewExtManual};
 
 #[derive(Clone, Debug)]
 pub struct WebLogin {
@@ -67,10 +37,10 @@ impl WebLogin {
         let ui_data = Resources::get("ui/oauth_login.ui").ok_or(format_err!("some err"))?;
         let ui_string = str::from_utf8(ui_data.as_ref())?;
         let builder = gtk::Builder::new_from_string(ui_string);
-        let page : gtk::Box = builder.get_object("oauth_box").ok_or(format_err!("some err"))?;
-        let info_bar : gtk::InfoBar = builder.get_object("info_bar").ok_or(format_err!("some err"))?;
-        let error_details_button : gtk::Button = builder.get_object("details_button").ok_or(format_err!("some err"))?;
-        let info_bar_label : gtk::Label = builder.get_object("info_bar_label").ok_or(format_err!("some err"))?;
+        let page: gtk::Box = builder.get_object("oauth_box").ok_or(format_err!("some err"))?;
+        let info_bar: gtk::InfoBar = builder.get_object("info_bar").ok_or(format_err!("some err"))?;
+        let error_details_button: gtk::Button = builder.get_object("details_button").ok_or(format_err!("some err"))?;
+        let info_bar_label: gtk::Label = builder.get_object("info_bar_label").ok_or(format_err!("some err"))?;
 
         let context = WebContext::get_default().ok_or(format_err!("some err"))?;
         let content_manager = UserContentManager::new();
@@ -115,28 +85,39 @@ impl WebLogin {
             _ => self.info_bar_label.set_text("Unknown error."),
         }
 
-        self.error_details_signal = Some(self.error_details_button.connect_clicked(move |button| {
-            let parent = GtkUtil::get_main_window(button).unwrap();
-            let _dialog = ErrorDialog::new(&error, &parent).unwrap();
-        }).to_glib());
+        self.error_details_signal = Some(
+            self.error_details_button
+                .connect_clicked(move |button| {
+                    let parent = GtkUtil::get_main_window(button).unwrap();
+                    let _dialog = ErrorDialog::new(&error, &parent).unwrap();
+                })
+                .to_glib(),
+        );
 
         self.info_bar.set_visible(true);
         self.info_bar.set_revealed(true);
     }
 
     pub fn set_service(&mut self, info: PluginInfo) -> Result<(), Error> {
-
         // setup infobar
-        self.info_bar_close_signal = Some(self.info_bar.connect_close(|bar| {
-            WebLogin::hide_info_bar(bar);
-        }).to_glib());
-        self.info_bar_response_signal = Some(self.info_bar.connect_response(|bar, response| {
-            let response = ResponseType::from(response);
-            match response {
-                ResponseType::Close => WebLogin::hide_info_bar(bar),
-                _ => {},
-            }
-        }).to_glib());
+        self.info_bar_close_signal = Some(
+            self.info_bar
+                .connect_close(|bar| {
+                    WebLogin::hide_info_bar(bar);
+                })
+                .to_glib(),
+        );
+        self.info_bar_response_signal = Some(
+            self.info_bar
+                .connect_response(|bar, response| {
+                    let response = ResponseType::from(response);
+                    match response {
+                        ResponseType::Close => WebLogin::hide_info_bar(bar),
+                        _ => {}
+                    }
+                })
+                .to_glib(),
+        );
 
         if let LoginGUI::OAuth(web_login_desc) = info.login_gui.clone() {
             if let Some(url) = web_login_desc.clone().login_website {
@@ -144,12 +125,10 @@ impl WebLogin {
                 let redirect_signal_id = self.redirect_signal_id.clone();
                 let signal_id = self.webview.connect_load_changed(move |webview, event| {
                     match event {
-                        LoadEvent::Started |
-                        LoadEvent::Redirected => {
+                        LoadEvent::Started | LoadEvent::Redirected => {
                             if let Some(redirect_url) = &web_login_desc.catch_redirect {
                                 if let Some(uri) = webview.get_uri() {
-                                    if uri.len() > redirect_url.len()
-                                    && &uri[..redirect_url.len()] == redirect_url {
+                                    if uri.len() > redirect_url.len() && &uri[..redirect_url.len()] == redirect_url {
                                         let oauth_data = OAuthData {
                                             id: info.id.clone(),
                                             url: uri.as_str().to_owned(),
@@ -170,10 +149,10 @@ impl WebLogin {
                                     }
                                 }
                             }
-                        },
+                        }
                         _ => {
                             // do nothing
-                        },
+                        }
                     }
                 });
 

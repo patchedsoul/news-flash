@@ -1,30 +1,12 @@
-use gtk::{
-    self,
-    Cast,
-    LabelExt,
-    WidgetExt,
-    WidgetExtManual,
-    StyleContextExt,
-    BinExt,
-    ListBoxRowExt,
-    ContainerExt,
-    RevealerExt,
-};
-use gdk::{
-    EventMask,
-    EventType,
-};
-use news_flash::models::{
-    CategoryID,
-};
-use crate::sidebar::feed_list::models::{
-    FeedListCategoryModel,
-};
-use std::str;
-use std::rc::Rc;
-use std::cell::RefCell;
-use crate::Resources;
 use crate::gtk_handle;
+use crate::sidebar::feed_list::models::FeedListCategoryModel;
+use crate::Resources;
+use gdk::{EventMask, EventType};
+use gtk::{self, BinExt, Cast, ContainerExt, LabelExt, ListBoxRowExt, RevealerExt, StyleContextExt, WidgetExt, WidgetExtManual};
+use news_flash::models::CategoryID;
+use std::cell::RefCell;
+use std::rc::Rc;
+use std::str;
 
 #[derive(Clone, Debug)]
 pub struct CategoryRow {
@@ -43,16 +25,16 @@ impl CategoryRow {
         let ui_data = Resources::get("ui/category.ui").unwrap();
         let ui_string = str::from_utf8(ui_data.as_ref()).unwrap();
         let builder = gtk::Builder::new_from_string(ui_string);
-        let revealer : gtk::Revealer = builder.get_object("category_row").unwrap();
-        let level_margin : gtk::Box = builder.get_object("level_margin").unwrap();
-        level_margin.set_margin_start(model.level*24);
-        
-        let title_label : gtk::Label = builder.get_object("category_title").unwrap();
-        let item_count_label : gtk::Label = builder.get_object("item_count").unwrap();
-        let item_count_event : gtk::EventBox = builder.get_object("item_count_event").unwrap();
-        let arrow_image : gtk::Image = builder.get_object("arrow_image").unwrap();
+        let revealer: gtk::Revealer = builder.get_object("category_row").unwrap();
+        let level_margin: gtk::Box = builder.get_object("level_margin").unwrap();
+        level_margin.set_margin_start(model.level * 24);
 
-        let arrow_event : gtk::EventBox = builder.get_object("arrow_event").unwrap();
+        let title_label: gtk::Label = builder.get_object("category_title").unwrap();
+        let item_count_label: gtk::Label = builder.get_object("item_count").unwrap();
+        let item_count_event: gtk::EventBox = builder.get_object("item_count_event").unwrap();
+        let arrow_image: gtk::Image = builder.get_object("arrow_image").unwrap();
+
+        let arrow_event: gtk::EventBox = builder.get_object("arrow_event").unwrap();
         let category = CategoryRow {
             id: model.id.clone(),
             widget: Self::create_row(&revealer),
@@ -86,7 +68,7 @@ impl CategoryRow {
 
         arrow_event.connect_button_press_event(move |widget, event| {
             if event.get_button() != 1 {
-                return gtk::Inhibit(false)
+                return gtk::Inhibit(false);
             }
             match event.get_event_type() {
                 EventType::ButtonPress => (),
@@ -108,8 +90,7 @@ impl CategoryRow {
         if expanded {
             context.remove_class("forward-arrow-collapsed");
             context.add_class("forward-arrow-expanded");
-        }
-        else {
+        } else {
             context.remove_class("forward-arrow-expanded");
             context.add_class("forward-arrow-collapsed");
         }
@@ -121,7 +102,7 @@ impl CategoryRow {
         row.set_can_focus(false);
         let context = row.get_style_context();
         context.remove_class("activatable");
-        
+
         row.add(widget);
         row
     }
@@ -134,8 +115,7 @@ impl CategoryRow {
         if count > 0 {
             self.item_count.set_label(&count.to_string());
             self.item_count_event.set_visible(true);
-        }
-        else {
+        } else {
             self.item_count_event.set_visible(false);
         }
     }

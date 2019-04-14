@@ -1,4 +1,4 @@
-use failure::{Context, Fail, Backtrace, Error};
+use failure::{Backtrace, Context, Error, Fail};
 use std::fmt;
 
 #[derive(Debug)]
@@ -52,6 +52,8 @@ impl From<Context<FeedListModelErrorKind>> for FeedListModelError {
 
 impl From<Error> for FeedListModelError {
     fn from(_: Error) -> FeedListModelError {
-        FeedListModelError { inner: Context::new(FeedListModelErrorKind::Unknown) }
+        FeedListModelError {
+            inner: Context::new(FeedListModelErrorKind::Unknown),
+        }
     }
 }

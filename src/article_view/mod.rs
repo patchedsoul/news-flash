@@ -1,82 +1,31 @@
 mod models;
-mod url_overlay;
 mod progress_overlay;
+mod url_overlay;
 
-use log::{
-    error,
-};
-use self::url_overlay::UrlOverlay;
+use self::models::{ArticleTheme, InternalState};
 use self::progress_overlay::ProgressOverlay;
-use failure::{
-    Error,
-    format_err,
-};
-use webkit2gtk::{
-    WebView,
-    WebViewExt,
-    LoadEvent,
-    Settings,
-    SettingsExt,
-    HitTestResultExt,
-    URIRequestExt,
-    PolicyDecisionType,
-    NavigationPolicyDecision,
-    NavigationPolicyDecisionExt,
-    ContextMenuExt,
-    ContextMenuItemExt,
-    ContextMenuAction,
-};
-use gtk::{
-    StackExt,
-    WidgetExt,
-    WidgetExtManual,
-    ButtonExt,
-    ContainerExt,
-    Continue,
-    OverlayExt,
-    Inhibit,
-};
-use gdk::{
-    EventMask,
-    ScrollDirection,
-    ModifierType,
-    Display,
-    Cursor,
-    CursorType,
-    enums::key::KP_0,
-    enums::key::KP_Add as KP_ADD,
-    enums::key::KP_Subtract as KP_SUBTRACT,
-};
-use glib::{
-    translate::{
-        ToGlib,
-    },
-    object::Cast,
-    MainLoop,
-};
-use gio::{
-    Cancellable,
-};
-use news_flash::models::{
-    FatArticle,
-};
-use self::models::{
-    InternalState,
-    ArticleTheme,
-};
+use self::url_overlay::UrlOverlay;
+use crate::gtk_handle;
+use crate::util::FileUtil;
+use crate::util::GtkHandle;
+use crate::util::{DateUtil, GtkUtil};
+use crate::Resources;
+use failure::{format_err, Error};
+use gdk::{enums::key::KP_Add as KP_ADD, enums::key::KP_Subtract as KP_SUBTRACT, enums::key::KP_0, Cursor, CursorType, Display, EventMask, ModifierType, ScrollDirection};
+use gio::Cancellable;
+use glib::{object::Cast, translate::ToGlib, MainLoop};
+use gtk::{ButtonExt, ContainerExt, Continue, Inhibit, OverlayExt, StackExt, WidgetExt, WidgetExtManual};
+use log::error;
+use news_flash::models::FatArticle;
+use std::cell::RefCell;
 use std::rc::Rc;
+use std::str;
 use std::sync::Arc;
 use std::sync::Mutex;
-use std::cell::RefCell;
-use crate::Resources;
-use crate::util::GtkHandle;
-use crate::util::FileUtil;
-use crate::gtk_handle;
-use crate::util::{
-    DateUtil,
-    GtkUtil,
+use webkit2gtk::{
+    ContextMenuAction, ContextMenuExt, ContextMenuItemExt, HitTestResultExt, LoadEvent, NavigationPolicyDecision, NavigationPolicyDecisionExt, PolicyDecisionType, Settings, SettingsExt,
+    URIRequestExt, WebView, WebViewExt,
 };
-use std::str;
 
 const MIDDLE_MOUSE_BUTTON: u32 = 2;
 
@@ -115,17 +64,17 @@ impl ArticleView {
         let ui_string = str::from_utf8(ui_data.as_ref())?;
         let builder = gtk::Builder::new_from_string(ui_string);
 
-        let url_overlay : gtk::Overlay = builder.get_object("url_overlay").ok_or(format_err!("some err"))?;
+        let url_overlay: gtk::Overlay = builder.get_object("url_overlay").ok_or(format_err!("some err"))?;
         let url_overlay_label = UrlOverlay::new()?;
         url_overlay.add_overlay(&url_overlay_label.widget());
 
-        let progress_overlay : gtk::Overlay = builder.get_object("progress_overlay").ok_or(format_err!("some err"))?;
+        let progress_overlay: gtk::Overlay = builder.get_object("progress_overlay").ok_or(format_err!("some err"))?;
         let progress_overlay_label = ProgressOverlay::new()?;
         progress_overlay.add_overlay(&progress_overlay_label.widget());
 
-        let visible_article : GtkHandle<Option<FatArticle>> = gtk_handle!(None);
+        let visible_article: GtkHandle<Option<FatArticle>> = gtk_handle!(None);
         let visible_article_crash_view = visible_article.clone();
-        let view_html_button : gtk::Button = builder.get_object("view_html_button").ok_or(format_err!("some err"))?;
+        let view_html_button: gtk::Button = builder.get_object("view_html_button").ok_or(format_err!("some err"))?;
         view_html_button.connect_clicked(move |_button| {
             if let Some(article) = visible_article_crash_view.borrow().as_ref() {
                 if let Some(html) = &article.html {
@@ -143,7 +92,7 @@ impl ArticleView {
             }
         });
 
-        let stack : gtk::Stack = builder.get_object("article_view_stack").ok_or(format_err!("some err"))?;
+        let stack: gtk::Stack = builder.get_object("article_view_stack").ok_or(format_err!("some err"))?;
         stack.set_visible_child_name("empty");
 
         let internal_state = InternalState::Empty;
@@ -296,54 +245,62 @@ impl ArticleView {
         settings.set_enable_html5_local_storage(false);
         settings.set_enable_java(false);
         settings.set_enable_media_stream(false);
-		settings.set_enable_page_cache(false);
-		settings.set_enable_plugins(false);
-		settings.set_enable_smooth_scrolling(false);
-		settings.set_enable_javascript(true);
-		settings.set_javascript_can_access_clipboard(false);
-		settings.set_javascript_can_open_windows_automatically(false);
-		settings.set_media_playback_requires_user_gesture(true);
+        settings.set_enable_page_cache(false);
+        settings.set_enable_plugins(false);
+        settings.set_enable_smooth_scrolling(false);
+        settings.set_enable_javascript(true);
+        settings.set_javascript_can_access_clipboard(false);
+        settings.set_javascript_can_open_windows_automatically(false);
+        settings.set_media_playback_requires_user_gesture(true);
         settings.set_user_agent_with_application_details(Some("NewsFlash"), None);
 
         let webview = WebView::new_with_settings(&settings);
-		webview.set_events(EventMask::POINTER_MOTION_MASK);
-		webview.set_events(EventMask::SCROLL_MASK);
-		webview.set_events(EventMask::BUTTON_PRESS_MASK);
-		webview.set_events(EventMask::BUTTON_RELEASE_MASK);
-		webview.set_events(EventMask::KEY_PRESS_MASK);
+        webview.set_events(EventMask::POINTER_MOTION_MASK);
+        webview.set_events(EventMask::SCROLL_MASK);
+        webview.set_events(EventMask::BUTTON_PRESS_MASK);
+        webview.set_events(EventMask::BUTTON_RELEASE_MASK);
+        webview.set_events(EventMask::KEY_PRESS_MASK);
 
         //----------------------------------
         // open link in external browser
         //----------------------------------
-		*self.load_changed_signal.borrow_mut() = Some(webview.connect_load_changed(|closure_webivew, event| {
-            match event {
-                LoadEvent::Started => {
-                    if let Some(uri) = closure_webivew.get_uri() {
-                        if let Some(default_screen) = gdk::Screen::get_default() {
-                            if let Err(_) = gtk::show_uri(&default_screen, &uri, glib::get_current_time().tv_sec as u32) {
-                                // log smth
+        *self.load_changed_signal.borrow_mut() = Some(
+            webview
+                .connect_load_changed(|closure_webivew, event| {
+                    match event {
+                        LoadEvent::Started => {
+                            if let Some(uri) = closure_webivew.get_uri() {
+                                if let Some(default_screen) = gdk::Screen::get_default() {
+                                    if let Err(_) = gtk::show_uri(&default_screen, &uri, glib::get_current_time().tv_sec as u32) {
+                                        // log smth
+                                    }
+                                }
                             }
                         }
+                        LoadEvent::Redirected => {}
+                        LoadEvent::Committed => {}
+                        LoadEvent::Finished => {}
+                        _ => {}
                     }
-                },
-                LoadEvent::Redirected => {},
-                LoadEvent::Committed => {},
-                LoadEvent::Finished => {},
-                _ => {},
-            }
-        }).to_glib());
+                })
+                .to_glib(),
+        );
 
-        *self.decide_policy_signal.borrow_mut() = Some(webview.connect_decide_policy(|_closure_webivew, decision, decision_type| {
-            if decision_type == PolicyDecisionType::NewWindowAction {
-                if let Ok(navigation_decision) = decision.clone().downcast::<NavigationPolicyDecision>() {
-                    if let Some(frame_name) = navigation_decision.get_frame_name() {
-                        if &frame_name == "_blank" {
-                            if let Some(action) = navigation_decision.get_navigation_action() {
-                                if let Some(uri_req) = action.get_request() {
-                                    if let Some(uri) = uri_req.get_uri() {
-                                        if let Some(default_screen) = gdk::Screen::get_default() {
-                                            if let Err(_) = gtk::show_uri(&default_screen, &uri, glib::get_current_time().tv_sec as u32) {
-                                                return true;
+        *self.decide_policy_signal.borrow_mut() = Some(
+            webview
+                .connect_decide_policy(|_closure_webivew, decision, decision_type| {
+                    if decision_type == PolicyDecisionType::NewWindowAction {
+                        if let Ok(navigation_decision) = decision.clone().downcast::<NavigationPolicyDecision>() {
+                            if let Some(frame_name) = navigation_decision.get_frame_name() {
+                                if &frame_name == "_blank" {
+                                    if let Some(action) = navigation_decision.get_navigation_action() {
+                                        if let Some(uri_req) = action.get_request() {
+                                            if let Some(uri) = uri_req.get_uri() {
+                                                if let Some(default_screen) = gdk::Screen::get_default() {
+                                                    if let Err(_) = gtk::show_uri(&default_screen, &uri, glib::get_current_time().tv_sec as u32) {
+                                                        return true;
+                                                    }
+                                                }
                                             }
                                         }
                                     }
@@ -351,102 +308,113 @@ impl ArticleView {
                             }
                         }
                     }
-                }
-            }
-            false
-        }).to_glib());
+                    false
+                })
+                .to_glib(),
+        );
 
         //----------------------------------
         // show url overlay
         //----------------------------------
         let url_overlay_handle = self.url_overlay_label.clone();
-		*self.mouse_over_signal.borrow_mut() = Some(webview.connect_mouse_target_changed(move |_closure_webivew, hit_test, _modifiers| {
-            if hit_test.context_is_link() {
-                if let Some(uri) = hit_test.get_link_uri() {
-                    let mut align = gtk::Align::Start;
-                    let rel_x = 0.0; // FIXME
-                    let rel_y = 0.0; // FIXME
+        *self.mouse_over_signal.borrow_mut() = Some(
+            webview
+                .connect_mouse_target_changed(move |_closure_webivew, hit_test, _modifiers| {
+                    if hit_test.context_is_link() {
+                        if let Some(uri) = hit_test.get_link_uri() {
+                            let mut align = gtk::Align::Start;
+                            let rel_x = 0.0; // FIXME
+                            let rel_y = 0.0; // FIXME
 
-                    if rel_x <= 0.5 && rel_y >= 0.85 {
-                        align = gtk::Align::End;
+                            if rel_x <= 0.5 && rel_y >= 0.85 {
+                                align = gtk::Align::End;
+                            }
+
+                            url_overlay_handle.borrow().set_url(uri.as_str().to_owned(), align);
+                            url_overlay_handle.borrow().reveal(true);
+                        }
+                    } else {
+                        url_overlay_handle.borrow().reveal(false);
                     }
-
-                    url_overlay_handle.borrow().set_url(uri.as_str().to_owned(), align);
-                    url_overlay_handle.borrow().reveal(true);
-                }
-            }
-            else {
-                url_overlay_handle.borrow().reveal(false);
-            }
-        }).to_glib());
+                })
+                .to_glib(),
+        );
 
         //----------------------------------
         // zoom with ctrl+scroll
         //----------------------------------
-        *self.scroll_signal.borrow_mut() = Some(webview.connect_scroll_event(|closure_webivew, event| {
-            if event.get_state().contains(ModifierType::CONTROL_MASK) {
-                let zoom = closure_webivew.get_zoom_level();
-                match event.get_direction() {
-                    ScrollDirection::Up => closure_webivew.set_zoom_level(zoom - 0.25),
-                    ScrollDirection::Down => closure_webivew.set_zoom_level(zoom + 0.25),
-                    ScrollDirection::Smooth => {
-                        let (_, y_delta) = event.get_delta();
-                        let (_, y_root) = event.get_root();
-                        let diff = 10.0 * (y_delta / y_root);
-                        closure_webivew.set_zoom_level(zoom - diff);
-                    },
-                    _ => {},
-                }
-                return Inhibit(true)
-            }
-            Inhibit(false)
-        }).to_glib());
+        *self.scroll_signal.borrow_mut() = Some(
+            webview
+                .connect_scroll_event(|closure_webivew, event| {
+                    if event.get_state().contains(ModifierType::CONTROL_MASK) {
+                        let zoom = closure_webivew.get_zoom_level();
+                        match event.get_direction() {
+                            ScrollDirection::Up => closure_webivew.set_zoom_level(zoom - 0.25),
+                            ScrollDirection::Down => closure_webivew.set_zoom_level(zoom + 0.25),
+                            ScrollDirection::Smooth => {
+                                let (_, y_delta) = event.get_delta();
+                                let (_, y_root) = event.get_root();
+                                let diff = 10.0 * (y_delta / y_root);
+                                closure_webivew.set_zoom_level(zoom - diff);
+                            }
+                            _ => {}
+                        }
+                        return Inhibit(true);
+                    }
+                    Inhibit(false)
+                })
+                .to_glib(),
+        );
 
         //------------------------------------------------
         // zoom with ctrl+PLUS/MINUS & reset with ctrl+0
         //------------------------------------------------
-        *self.key_press_signal.borrow_mut() = Some(webview.connect_key_press_event(|closure_webivew, event| {
-            if event.get_state().contains(ModifierType::CONTROL_MASK) {
-                let zoom = closure_webivew.get_zoom_level();
-                match event.get_keyval() {
-                    KP_0 => closure_webivew.set_zoom_level(1.0),
-                    KP_ADD => closure_webivew.set_zoom_level(zoom + 0.25),
-                    KP_SUBTRACT => closure_webivew.set_zoom_level(zoom - 0.25),
-                    _ => {},
-                }
-                return Inhibit(true)
-            }
-            Inhibit(false)
-        }).to_glib());
-
+        *self.key_press_signal.borrow_mut() = Some(
+            webview
+                .connect_key_press_event(|closure_webivew, event| {
+                    if event.get_state().contains(ModifierType::CONTROL_MASK) {
+                        let zoom = closure_webivew.get_zoom_level();
+                        match event.get_keyval() {
+                            KP_0 => closure_webivew.set_zoom_level(1.0),
+                            KP_ADD => closure_webivew.set_zoom_level(zoom + 0.25),
+                            KP_SUBTRACT => closure_webivew.set_zoom_level(zoom - 0.25),
+                            _ => {}
+                        }
+                        return Inhibit(true);
+                    }
+                    Inhibit(false)
+                })
+                .to_glib(),
+        );
 
         //----------------------------------
         // clean up context menu
         //----------------------------------
-        *self.ctx_menu_signal.borrow_mut() = Some(webview.connect_context_menu(|_closure_webivew, ctx_menu, _event, _hit_test| {
-            let menu_items = ctx_menu.get_items();
+        *self.ctx_menu_signal.borrow_mut() = Some(
+            webview
+                .connect_context_menu(|_closure_webivew, ctx_menu, _event, _hit_test| {
+                    let menu_items = ctx_menu.get_items();
 
-            for item in menu_items {
-                if item.is_separator() {
-                    ctx_menu.remove(&item);
-                    continue
-                }
+                    for item in menu_items {
+                        if item.is_separator() {
+                            ctx_menu.remove(&item);
+                            continue;
+                        }
 
-                match item.get_stock_action() {
-                    ContextMenuAction::CopyLinkToClipboard |
-                    ContextMenuAction::Copy |
-                    ContextMenuAction::CopyImageToClipboard |
-                    ContextMenuAction::CopyImageUrlToClipboard => {},
-                    _ => ctx_menu.remove(&item),
-                }
-            }
+                        match item.get_stock_action() {
+                            ContextMenuAction::CopyLinkToClipboard | ContextMenuAction::Copy | ContextMenuAction::CopyImageToClipboard | ContextMenuAction::CopyImageUrlToClipboard => {}
+                            _ => ctx_menu.remove(&item),
+                        }
+                    }
 
-            if ctx_menu.first().is_none() {
-                return true
-            }
+                    if ctx_menu.first().is_none() {
+                        return true;
+                    }
 
-            false
-        }).to_glib());
+                    false
+                })
+                .to_glib(),
+        );
 
         //----------------------------------
         // display load progress
@@ -455,24 +423,31 @@ impl ArticleView {
         let progress_overlay_delay_signal = self.progress_overlay_delay_signal.clone();
         let load_signal = self.load_signal.clone();
         let progress_webview = webview.clone();
-        *self.progress_overlay_delay_signal.borrow_mut() = Some(gtk::timeout_add(1500, move || {
-            *progress_overlay_delay_signal.borrow_mut() = None;
-            if progress_webview.get_estimated_load_progress() == 1.0 {
-                return Continue(false)
-            }
-
-            let progress_handle = progress_handle.clone();
-            *load_signal.borrow_mut() = Some(progress_webview.connect_property_estimated_load_progress_notify(move |closure_webivew| {
-                let progress = closure_webivew.get_estimated_load_progress();
-                if progress >= 1.0 {
-                    progress_handle.borrow().reveal(false);
-                    return;
+        *self.progress_overlay_delay_signal.borrow_mut() = Some(
+            gtk::timeout_add(1500, move || {
+                *progress_overlay_delay_signal.borrow_mut() = None;
+                if progress_webview.get_estimated_load_progress() == 1.0 {
+                    return Continue(false);
                 }
-                progress_handle.borrow().reveal(true);
-                progress_handle.borrow().set_percentage(progress);
-            }).to_glib());
-            Continue(false)
-        }).to_glib());
+
+                let progress_handle = progress_handle.clone();
+                *load_signal.borrow_mut() = Some(
+                    progress_webview
+                        .connect_property_estimated_load_progress_notify(move |closure_webivew| {
+                            let progress = closure_webivew.get_estimated_load_progress();
+                            if progress >= 1.0 {
+                                progress_handle.borrow().reveal(false);
+                                return;
+                            }
+                            progress_handle.borrow().reveal(true);
+                            progress_handle.borrow().set_percentage(progress);
+                        })
+                        .to_glib(),
+                );
+                Continue(false)
+            })
+            .to_glib(),
+        );
 
         //----------------------------------
         // drag page
@@ -484,120 +459,130 @@ impl ArticleView {
         let drag_momentum = self.drag_momentum.clone();
         let drag_motion_notify_signal = self.drag_motion_notify_signal.clone();
         let drag_buffer_update_signal = self.drag_buffer_update_signal.clone();
-		*self.click_signal.borrow_mut() = Some(webview.connect_button_press_event(move |closure_webivew, event| {
-            if event.get_button() == MIDDLE_MOUSE_BUTTON {
-                let (_, y) = event.get_position();
-                *drag_y_pos.borrow_mut() = y;
-                *drag_buffer.borrow_mut() = [y; 10];
-                *drag_ongoing.borrow_mut() = true;
+        *self.click_signal.borrow_mut() = Some(
+            webview
+                .connect_button_press_event(move |closure_webivew, event| {
+                    if event.get_button() == MIDDLE_MOUSE_BUTTON {
+                        let (_, y) = event.get_position();
+                        *drag_y_pos.borrow_mut() = y;
+                        *drag_buffer.borrow_mut() = [y; 10];
+                        *drag_ongoing.borrow_mut() = true;
 
-                if let Some(display) = Display::get_default() {
-                    if let Some(seat) = display.get_default_seat() {
-                        if let Some(pointer) = seat.get_pointer() {
-                            if let Some(window) = closure_webivew.get_window() {
+                        if let Some(display) = Display::get_default() {
+                            if let Some(seat) = display.get_default_seat() {
+                                if let Some(pointer) = seat.get_pointer() {
+                                    if let Some(window) = closure_webivew.get_window() {
+                                        let cursor = Cursor::new_for_display(&display, CursorType::Fleur);
+                                        // FIXME
+                                        let _grab_status = seat.grab(&window, gdk::SeatCapabilities::POINTER, false, Some(&cursor), None, Some(&mut |_, _| {}));
 
-                                let cursor = Cursor::new_for_display(&display, CursorType::Fleur);
-                                // FIXME
-                                let _grab_status = seat.grab(
-                                    &window,
-                                    gdk::SeatCapabilities::POINTER,
-                                    false,
-                                    Some(&cursor),
-                                    None,
-                                    Some(&mut |_, _| {}),
-                                );
+                                        gtk::device_grab_add(&widget, &pointer, false);
+                                        let drag_buffer_update = drag_buffer.clone();
+                                        let drag_momentum_update = drag_momentum.clone();
+                                        let drag_ongoing_update = drag_ongoing.clone();
+                                        let drag_y_pos_update = drag_y_pos.clone();
+                                        let drag_buffer_update_signal_clone = drag_buffer_update_signal.clone();
+                                        *drag_buffer_update_signal.borrow_mut() = Some(
+                                            gtk::timeout_add(10, move || {
+                                                if !*drag_ongoing_update.borrow() {
+                                                    *drag_buffer_update_signal_clone.borrow_mut() = None;
+                                                    return Continue(false);
+                                                }
 
-                                gtk::device_grab_add(&widget, &pointer, false);
-                                let drag_buffer_update = drag_buffer.clone();
-                                let drag_momentum_update = drag_momentum.clone();
-                                let drag_ongoing_update = drag_ongoing.clone();
-                                let drag_y_pos_update = drag_y_pos.clone();
-                                let drag_buffer_update_signal_clone = drag_buffer_update_signal.clone();
-                                *drag_buffer_update_signal.borrow_mut() = Some(gtk::timeout_add(10, move || {
-                                    if !*drag_ongoing_update.borrow() {
-                                        *drag_buffer_update_signal_clone.borrow_mut() = None;
-                                        return Continue(false)
+                                                for i in (1..10).rev() {
+                                                    let value = (*drag_buffer_update.borrow())[i - 1];
+                                                    (*drag_buffer_update.borrow_mut())[i] = value;
+                                                }
+
+                                                (*drag_buffer_update.borrow_mut())[0] = *drag_y_pos_update.borrow();
+                                                *drag_momentum_update.borrow_mut() = (*drag_buffer_update.borrow())[9] - (*drag_buffer_update.borrow())[0];
+                                                Continue(true)
+                                            })
+                                            .to_glib(),
+                                        );
+
+                                        let drag_y_pos_motion_update = drag_y_pos.clone();
+                                        *drag_motion_notify_signal.borrow_mut() = Some(
+                                            closure_webivew
+                                                .connect_motion_notify_event(move |view, event| {
+                                                    let (_, y) = event.get_position();
+                                                    let scroll = *drag_y_pos_motion_update.borrow() - y;
+                                                    *drag_y_pos_motion_update.borrow_mut() = y;
+                                                    if let Ok(scroll_pos) = Self::get_scroll_pos(view) {
+                                                        Self::set_scroll_pos(view, scroll_pos + scroll as i32).unwrap();
+                                                    }
+                                                    Inhibit(false)
+                                                })
+                                                .to_glib(),
+                                        );
                                     }
-
-                                    for i in (1..10).rev() {
-                                        let value = (*drag_buffer_update.borrow())[i-1];
-                                        (*drag_buffer_update.borrow_mut())[i] = value;
-                                    }
-
-                                    (*drag_buffer_update.borrow_mut())[0] = *drag_y_pos_update.borrow();
-                                    *drag_momentum_update.borrow_mut() = (*drag_buffer_update.borrow())[9] - (*drag_buffer_update.borrow())[0];
-                                    Continue(true)
-                                }).to_glib());
-
-                                let drag_y_pos_motion_update = drag_y_pos.clone();
-                                *drag_motion_notify_signal.borrow_mut() = Some(closure_webivew.connect_motion_notify_event(move |view, event| {
-                                    let (_, y) = event.get_position();
-                                    let scroll = *drag_y_pos_motion_update.borrow() - y;
-                                    *drag_y_pos_motion_update.borrow_mut() = y;
-                                    if let Ok(scroll_pos) = Self::get_scroll_pos(view) {
-                                        Self::set_scroll_pos(view, scroll_pos + scroll as i32).unwrap();
-                                    }
-                                    Inhibit(false)
-                                }).to_glib());
+                                }
                             }
                         }
+                        return Inhibit(true);
                     }
-                }
-                return Inhibit(true)
-            }
-            Inhibit(false)
-        }).to_glib());
+                    Inhibit(false)
+                })
+                .to_glib(),
+        );
 
         let drag_motion_notify_signal = self.drag_motion_notify_signal.clone();
         let drag_released_motion_signal = self.drag_released_motion_signal.clone();
         let drag_ongoing = self.drag_ongoing.clone();
         let drag_momentum = self.drag_momentum.clone();
         let widget = self.top_overlay.clone();
-		*self.click_release_signal.borrow_mut() = Some(webview.connect_button_release_event(move |closure_webivew, event| {
-            if event.get_button() == MIDDLE_MOUSE_BUTTON {
-                GtkUtil::disconnect_signal(*drag_motion_notify_signal.borrow(), closure_webivew);
-                *drag_ongoing.borrow_mut() = false;
+        *self.click_release_signal.borrow_mut() = Some(
+            webview
+                .connect_button_release_event(move |closure_webivew, event| {
+                    if event.get_button() == MIDDLE_MOUSE_BUTTON {
+                        GtkUtil::disconnect_signal(*drag_motion_notify_signal.borrow(), closure_webivew);
+                        *drag_ongoing.borrow_mut() = false;
 
-                let drag_momentum = drag_momentum.clone();
-                let drag_released_motion_signal_clone = drag_released_motion_signal.clone();
-                let view = closure_webivew.clone();
-                *drag_released_motion_signal.borrow_mut() = Some(gtk::timeout_add(20, move || {
-                    *drag_momentum.borrow_mut() /= 1.2;
-                    let allocation = view.get_allocation();
+                        let drag_momentum = drag_momentum.clone();
+                        let drag_released_motion_signal_clone = drag_released_motion_signal.clone();
+                        let view = closure_webivew.clone();
+                        *drag_released_motion_signal.borrow_mut() = Some(
+                            gtk::timeout_add(20, move || {
+                                *drag_momentum.borrow_mut() /= 1.2;
+                                let allocation = view.get_allocation();
 
-                    let page_size = view.get_allocated_height() as f64;
-                    let adjust_value = page_size * *drag_momentum.borrow() / allocation.height as f64;
-                    let old_adjust = Self::get_scroll_pos(&view).unwrap() as f64;
-                    let upper = Self::get_scroll_upper(&view).unwrap() as f64 * view.get_zoom_level();
+                                let page_size = view.get_allocated_height() as f64;
+                                let adjust_value = page_size * *drag_momentum.borrow() / allocation.height as f64;
+                                let old_adjust = Self::get_scroll_pos(&view).unwrap() as f64;
+                                let upper = Self::get_scroll_upper(&view).unwrap() as f64 * view.get_zoom_level();
 
-                    if (old_adjust + adjust_value) > (upper - page_size) || (old_adjust + adjust_value) < 0.0 {
-                        *drag_momentum.borrow_mut() = 0.0;
-                    }
+                                if (old_adjust + adjust_value) > (upper - page_size) || (old_adjust + adjust_value) < 0.0 {
+                                    *drag_momentum.borrow_mut() = 0.0;
+                                }
 
-                    let new_scroll_pos = f64::min(old_adjust + adjust_value, upper - page_size);
-                    Self::set_scroll_pos(&view, new_scroll_pos as i32).unwrap();
+                                let new_scroll_pos = f64::min(old_adjust + adjust_value, upper - page_size);
+                                Self::set_scroll_pos(&view, new_scroll_pos as i32).unwrap();
 
-                    if drag_momentum.borrow().abs() < 1.0 {
-                        *drag_released_motion_signal_clone.borrow_mut() = None;
-                        return Continue(false)
-                    }
+                                if drag_momentum.borrow().abs() < 1.0 {
+                                    *drag_released_motion_signal_clone.borrow_mut() = None;
+                                    return Continue(false);
+                                }
 
-                    Continue(true)
-                }).to_glib());
+                                Continue(true)
+                            })
+                            .to_glib(),
+                        );
 
-                if let Some(display) = Display::get_default() {
-                    if let Some(seat) = display.get_default_seat() {
-                        if let Some(pointer) = seat.get_pointer() {
-                            gtk::device_grab_remove(&widget, &pointer);
-                            seat.ungrab();
+                        if let Some(display) = Display::get_default() {
+                            if let Some(seat) = display.get_default_seat() {
+                                if let Some(pointer) = seat.get_pointer() {
+                                    gtk::device_grab_remove(&widget, &pointer);
+                                    seat.ungrab();
+                                }
+                            }
                         }
-                    }
-                }
 
-                return Inhibit(true)
-            }
-            Inhibit(false)
-        }).to_glib());
+                        return Inhibit(true);
+                    }
+                    Inhibit(false)
+                })
+                .to_glib(),
+        );
 
         //----------------------------------
         // crash view
@@ -641,15 +626,15 @@ impl ArticleView {
             false
         });
 
-		// webview.motion_notify_event.connect(onMouseMotion);
-		// webview.enter_fullscreen.connect(enterFullscreenVideo);
-		// webview.leave_fullscreen.connect(leaveFullscreenVideo);
-		// webview.set_background_color(m_color);
+        // webview.motion_notify_event.connect(onMouseMotion);
+        // webview.enter_fullscreen.connect(enterFullscreenVideo);
+        // webview.leave_fullscreen.connect(leaveFullscreenVideo);
+        // webview.set_background_color(m_color);
 
         Ok(webview)
     }
 
-    fn build_article(&self, article: &FatArticle, feed_name: String) -> Result<String, Error>  {
+    fn build_article(&self, article: &FatArticle, feed_name: String) -> Result<String, Error> {
         let template_data = Resources::get("article_view/article.html").ok_or(format_err!("some err"))?;
         let template_str = str::from_utf8(template_data.as_ref())?;
         let mut template_string = template_str.to_owned();
@@ -667,8 +652,7 @@ impl ArticleView {
         let date = DateUtil::format(&article.date);
         if let Some(author) = &article.author {
             author_date.push_str(&format!("posted by: {}, {}", author, date));
-        }
-        else {
+        } else {
             author_date.push_str(&format!("{}", date));
         }
 
@@ -680,11 +664,10 @@ impl ArticleView {
         // $UNSELECTABLE
         if unselectable {
             template_string = template_string.replacen("$UNSELECTABLE", "unselectable", 1);
-        }
-        else {
+        } else {
             template_string = template_string.replacen("$UNSELECTABLE", "", 1);
         }
-        
+
         // $AUTHOR / $DATE
         template_string = template_string.replacen("$AUTHOR", &author_date, 1);
 
@@ -725,17 +708,11 @@ impl ArticleView {
     }
 
     fn set_scroll_pos(view: &WebView, pos: i32) -> Result<(), Error> {
-        let cancellable : Option<&Cancellable> = None;
-        view.run_javascript(
-            &format!("window.scrollTo(0,{});", pos),
-            cancellable,
-            |res| {
-                match res {
-                    Ok(_) => {},
-                    Err(_) => error!("Setting scroll pos failed"),
-                }
-            }
-        );
+        let cancellable: Option<&Cancellable> = None;
+        view.run_javascript(&format!("window.scrollTo(0,{});", pos), cancellable, |res| match res {
+            Ok(_) => {}
+            Err(_) => error!("Setting scroll pos failed"),
+        });
         Ok(())
     }
 
@@ -744,38 +721,40 @@ impl ArticleView {
     }
 
     fn get_scroll_upper(view: &WebView) -> Result<i32, Error> {
-        Self::webview_js_get_i32(view, "Math.max (
+        Self::webview_js_get_i32(
+            view,
+            "Math.max (
             document.body.scrollHeight,
             document.body.offsetHeight,
             document.documentElement.clientHeight,
             document.documentElement.scrollHeight,
             document.documentElement.offsetHeight
-        )")
+        )",
+        )
     }
 
     fn webview_js_get_i32(view: &WebView, java_script: &str) -> Result<i32, Error> {
         let wait_loop = Arc::new(MainLoop::new(None, false));
         let callback_wait_loop = wait_loop.clone();
-        let value : Arc<Mutex<Option<f64>>> = Arc::new(Mutex::new(None));
+        let value: Arc<Mutex<Option<f64>>> = Arc::new(Mutex::new(None));
         let callback_value = value.clone();
-        let cancellable : Option<&Cancellable> = None;
+        let cancellable: Option<&Cancellable> = None;
         view.run_javascript(java_script, cancellable, move |res| {
-                match res {
-                    Ok(result) => {
-                        let context = result.get_global_context().unwrap();
-                        let value = result.get_value().unwrap();
-                        *callback_value.lock().unwrap() = value.to_number(&context);
-                    },
-                    Err(_) => error!("Getting scroll pos failed"),
+            match res {
+                Ok(result) => {
+                    let context = result.get_global_context().unwrap();
+                    let value = result.get_value().unwrap();
+                    *callback_value.lock().unwrap() = value.to_number(&context);
                 }
-                callback_wait_loop.quit();
+                Err(_) => error!("Getting scroll pos failed"),
             }
-        );
+            callback_wait_loop.quit();
+        });
 
         wait_loop.run();
         if let Ok(pos) = value.lock() {
             if let Some(pos) = *pos {
-                return Ok(pos as i32)
+                return Ok(pos as i32);
             }
         }
         Err(format_err!("some err"))

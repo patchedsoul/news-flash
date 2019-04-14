@@ -1,49 +1,27 @@
 mod feed_list;
-mod tag_list;
 pub mod models;
+mod tag_list;
 
-use std::rc::Rc;
-use std::cell::RefCell;
-use failure::Error;
-use failure::format_err;
-use crate::Resources;
-use std::str;
-use gtk::{
-    Builder,
-    BoxExt,
-    ImageExt,
-    StyleContextExt,
-    ListBoxExt,
-    WidgetExt,
-    WidgetExtManual,
-    LabelExt,
-    RevealerExt,
-};
-use gdk::{
-    EventMask,
-    EventType,
-};
-use glib::Variant;
-use gio::{
-    ActionMapExt,
-    ActionExt,
-};
-use crate::util::GtkUtil;
-use news_flash::models::{
-    PluginIcon,
-    PluginID,
-};
-use news_flash::NewsFlash;
-use models::SidebarSelection;
-use crate::util::GtkHandle;
 use crate::gtk_handle;
+use crate::util::GtkHandle;
+use crate::util::GtkUtil;
+use crate::Resources;
+use failure::format_err;
+use failure::Error;
+pub use feed_list::models::{FeedListSelection, FeedListTree};
 use feed_list::FeedList;
-use tag_list::TagList;
-pub use feed_list::models::{
-    FeedListTree,
-    FeedListSelection,
-};
+use gdk::{EventMask, EventType};
+use gio::{ActionExt, ActionMapExt};
+use glib::Variant;
+use gtk::{BoxExt, Builder, ImageExt, LabelExt, ListBoxExt, RevealerExt, StyleContextExt, WidgetExt, WidgetExtManual};
+use models::SidebarSelection;
+use news_flash::models::{PluginID, PluginIcon};
+use news_flash::NewsFlash;
+use std::cell::RefCell;
+use std::rc::Rc;
+use std::str;
 pub use tag_list::models::TagListModel;
+use tag_list::TagList;
 
 #[derive(Clone, Debug)]
 pub struct SideBar {
@@ -61,23 +39,23 @@ impl SideBar {
         let ui_data = Resources::get("ui/sidebar.ui").ok_or(format_err!("some err"))?;
         let ui_string = str::from_utf8(ui_data.as_ref())?;
         let builder = Builder::new_from_string(ui_string);
-        let sidebar : gtk::Box = builder.get_object("toplevel").ok_or(format_err!("some err"))?;
-        let logo : gtk::Image = builder.get_object("logo").ok_or(format_err!("some err"))?;
-        let unread_label : gtk::Label = builder.get_object("unread_count_all").ok_or(format_err!("some err"))?;
-        let service_label : gtk::Label = builder.get_object("service_label").ok_or(format_err!("some err"))?;
-        let categories_event_box : gtk::EventBox = builder.get_object("categories_event_box").ok_or(format_err!("some err"))?;
-        let categories_expander : gtk::Image = builder.get_object("categories_expander").ok_or(format_err!("some err"))?;
-        let tags_event_box : gtk::EventBox = builder.get_object("tags_event_box").ok_or(format_err!("some err"))?;
-        let tags_expander : gtk::Image = builder.get_object("tags_expander").ok_or(format_err!("some err"))?;
-        let categories_revealer : gtk::Revealer = builder.get_object("categories_revealer").ok_or(format_err!("some err"))?;
-        let tags_revealer : gtk::Revealer = builder.get_object("tags_revealer").ok_or(format_err!("some err"))?;
-        let all_event_box : gtk::EventBox = builder.get_object("all_event_box").ok_or(format_err!("some err"))?;
-        let feed_list_box : gtk::Box = builder.get_object("feed_list_box").ok_or(format_err!("some err"))?;
-        let tag_list_box : gtk::Box = builder.get_object("tags_list_box").ok_or(format_err!("some err"))?;
+        let sidebar: gtk::Box = builder.get_object("toplevel").ok_or(format_err!("some err"))?;
+        let logo: gtk::Image = builder.get_object("logo").ok_or(format_err!("some err"))?;
+        let unread_label: gtk::Label = builder.get_object("unread_count_all").ok_or(format_err!("some err"))?;
+        let service_label: gtk::Label = builder.get_object("service_label").ok_or(format_err!("some err"))?;
+        let categories_event_box: gtk::EventBox = builder.get_object("categories_event_box").ok_or(format_err!("some err"))?;
+        let categories_expander: gtk::Image = builder.get_object("categories_expander").ok_or(format_err!("some err"))?;
+        let tags_event_box: gtk::EventBox = builder.get_object("tags_event_box").ok_or(format_err!("some err"))?;
+        let tags_expander: gtk::Image = builder.get_object("tags_expander").ok_or(format_err!("some err"))?;
+        let categories_revealer: gtk::Revealer = builder.get_object("categories_revealer").ok_or(format_err!("some err"))?;
+        let tags_revealer: gtk::Revealer = builder.get_object("tags_revealer").ok_or(format_err!("some err"))?;
+        let all_event_box: gtk::EventBox = builder.get_object("all_event_box").ok_or(format_err!("some err"))?;
+        let feed_list_box: gtk::Box = builder.get_object("feed_list_box").ok_or(format_err!("some err"))?;
+        let tag_list_box: gtk::Box = builder.get_object("tags_list_box").ok_or(format_err!("some err"))?;
 
         let feed_list = FeedList::new()?;
         let tag_list = TagList::new()?;
-        
+
         let feed_list_handle = gtk_handle!(feed_list);
         let tag_list_handle = gtk_handle!(tag_list);
 
@@ -90,7 +68,7 @@ impl SideBar {
         feed_list_handle.borrow().widget().connect_row_selected(move |list, row| {
             // do nothing if selection was cleared
             if row.is_none() {
-                return
+                return;
             }
             // deselect 'all' & tag_list
             let context = feed_list_all_event_box.get_style_context();
@@ -116,7 +94,7 @@ impl SideBar {
         tag_list_handle.borrow().widget().connect_row_selected(move |list, row| {
             // do nothing if selection was cleared
             if row.is_none() {
-                return
+                return;
             }
             // deselect 'all' & tag_list
             let context = tag_list_all_event_box.get_style_context();
@@ -136,12 +114,10 @@ impl SideBar {
             }
         });
 
-        let scale = sidebar
-            .get_style_context()
-            .get_scale();
+        let scale = sidebar.get_style_context().get_scale();
 
         let expanded_categories = gtk_handle!(true);
-        let expanded_tags =  gtk_handle!(false);
+        let expanded_tags = gtk_handle!(false);
 
         Self::setup_expander(&categories_event_box, &categories_expander, &categories_revealer, &expanded_categories);
         Self::setup_expander(&tags_event_box, &tags_expander, &tags_revealer, &expanded_tags);
@@ -181,16 +157,11 @@ impl SideBar {
         let info = list.get(id).ok_or(format_err!("some err"))?;
         if let Some(icon) = &info.icon_symbolic {
             let surface = match icon {
-                PluginIcon::Vector(icon) => {
-                    GtkUtil::create_surface_from_bytes(&icon.data, icon.width, icon.height, self.scale_factor)?
-                },
-                PluginIcon::Pixel(icon) => {
-                    GtkUtil::create_surface_from_pixelicon(icon, self.scale_factor)?
-                },
+                PluginIcon::Vector(icon) => GtkUtil::create_surface_from_bytes(&icon.data, icon.width, icon.height, self.scale_factor)?,
+                PluginIcon::Pixel(icon) => GtkUtil::create_surface_from_pixelicon(icon, self.scale_factor)?,
             };
             self.logo.set_from_surface(&surface);
-        }
-        else {
+        } else {
             let generic_logo_data = Resources::get("icons/feed_service_generic.svg").ok_or(format_err!("some err"))?;
             let surface = GtkUtil::create_surface_from_bytes(&generic_logo_data, 64, 64, self.scale_factor)?;
             self.logo.set_from_surface(&surface);
@@ -198,20 +169,14 @@ impl SideBar {
 
         if let Some(user_name) = user_name {
             self.service_label.set_text(&user_name);
-        }
-        else {
+        } else {
             self.service_label.set_text(&info.name);
         }
 
         Ok(())
     }
 
-    fn setup_expander(
-        event_box: &gtk::EventBox,
-        expander: &gtk::Image,
-        revealer: &gtk::Revealer,
-        expanded: &GtkHandle<bool>
-    ) {
+    fn setup_expander(event_box: &gtk::EventBox, expander: &gtk::Image, revealer: &gtk::Revealer, expanded: &GtkHandle<bool>) {
         let expander = expander.clone();
         let expanded = expanded.clone();
         let revealer = revealer.clone();
@@ -232,7 +197,7 @@ impl SideBar {
         event_box.connect_button_press_event(move |_widget, event| {
             if event.get_event_type() == EventType::ButtonPress {
                 if event.get_button() != 1 {
-                    return gtk::Inhibit(false)
+                    return gtk::Inhibit(false);
                 }
                 match event.get_event_type() {
                     EventType::ButtonPress => (),
@@ -245,8 +210,7 @@ impl SideBar {
                     context.add_class("backward-arrow-collapsed");
                     context.remove_class("backward-arrow-expanded");
                     revealer.set_reveal_child(false);
-                }
-                else {
+                } else {
                     context.remove_class("backward-arrow-collapsed");
                     context.add_class("backward-arrow-expanded");
                     revealer.set_reveal_child(true);
@@ -258,11 +222,7 @@ impl SideBar {
         });
     }
 
-    fn setup_all_button(
-        event_box: &gtk::EventBox,
-        feed_list_handle: GtkHandle<FeedList>,
-        tag_list_handle: GtkHandle<TagList>
-    ) {
+    fn setup_all_button(event_box: &gtk::EventBox, feed_list_handle: GtkHandle<FeedList>, tag_list_handle: GtkHandle<TagList>) {
         let context = event_box.get_style_context();
         context.add_class("selected");
         event_box.set_events(EventMask::BUTTON_PRESS_MASK);
@@ -281,7 +241,7 @@ impl SideBar {
 
         event_box.connect_button_press_event(move |widget, event| {
             if event.get_button() != 1 {
-                return gtk::Inhibit(false)
+                return gtk::Inhibit(false);
             }
             match event.get_event_type() {
                 EventType::ButtonPress => (),
