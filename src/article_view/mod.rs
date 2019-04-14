@@ -495,50 +495,51 @@ impl ArticleView {
                 if let Some(display) = Display::get_default() {
                     if let Some(seat) = display.get_default_seat() {
                         if let Some(pointer) = seat.get_pointer() {
-                            let cursor = Cursor::new_for_display(&display, CursorType::Fleur);
-                            let window = closure_webivew.get_window().unwrap();
-                            
-                            // seat.grab(
-                            //     &window,
-                            //     SeatCapabilities::POINTER,
-                            //     false,
-                            //     Some(&cursor),
-                            //     None,
-                            //     None,
-                            // );
+                            if let Some(window) = closure_webivew.get_window() {
 
-                            gtk::device_grab_add(&widget, &pointer, false);
-                            let drag_buffer_update = drag_buffer.clone();
-                            let drag_momentum_update = drag_momentum.clone();
-                            let drag_ongoing_update = drag_ongoing.clone();
-                            let drag_y_pos_update = drag_y_pos.clone();
-                            let drag_buffer_update_signal_clone = drag_buffer_update_signal.clone();
-                            *drag_buffer_update_signal.borrow_mut() = Some(gtk::timeout_add(10, move || {
-                                if !*drag_ongoing_update.borrow() {
-                                    *drag_buffer_update_signal_clone.borrow_mut() = None;
-                                    return Continue(false)
-                                }
+                                let cursor = Cursor::new_for_display(&display, CursorType::Fleur);
+                                // let _grab_status = seat.grab(
+                                //     &window,
+                                //     SeatCapabilities::POINTER,
+                                //     false,
+                                //     Some(&cursor),
+                                //     None,
+                                //     None,
+                                // );
 
-                                for i in (1..10).rev() {
-                                    let value = (*drag_buffer_update.borrow())[i-1];
-                                    (*drag_buffer_update.borrow_mut())[i] = value;
-                                }
+                                gtk::device_grab_add(&widget, &pointer, false);
+                                let drag_buffer_update = drag_buffer.clone();
+                                let drag_momentum_update = drag_momentum.clone();
+                                let drag_ongoing_update = drag_ongoing.clone();
+                                let drag_y_pos_update = drag_y_pos.clone();
+                                let drag_buffer_update_signal_clone = drag_buffer_update_signal.clone();
+                                *drag_buffer_update_signal.borrow_mut() = Some(gtk::timeout_add(10, move || {
+                                    if !*drag_ongoing_update.borrow() {
+                                        *drag_buffer_update_signal_clone.borrow_mut() = None;
+                                        return Continue(false)
+                                    }
 
-                                (*drag_buffer_update.borrow_mut())[0] = *drag_y_pos_update.borrow();
-                                *drag_momentum_update.borrow_mut() = (*drag_buffer_update.borrow())[9] - (*drag_buffer_update.borrow())[0];
-                                Continue(true)
-                            }).to_glib());
+                                    for i in (1..10).rev() {
+                                        let value = (*drag_buffer_update.borrow())[i-1];
+                                        (*drag_buffer_update.borrow_mut())[i] = value;
+                                    }
 
-                            let drag_y_pos_motion_update = drag_y_pos.clone();
-                            *drag_motion_notify_signal.borrow_mut() = Some(closure_webivew.connect_motion_notify_event(move |view, event| {
-                                let (_, y) = event.get_position();
-                                let scroll = *drag_y_pos_motion_update.borrow() - y;
-                                *drag_y_pos_motion_update.borrow_mut() = y;
-                                if let Ok(scroll_pos) = Self::get_scroll_pos(view) {
-                                    Self::set_scroll_pos(view, scroll_pos + scroll as i32).unwrap();
-                                }
-                                Inhibit(false)
-                            }).to_glib());
+                                    (*drag_buffer_update.borrow_mut())[0] = *drag_y_pos_update.borrow();
+                                    *drag_momentum_update.borrow_mut() = (*drag_buffer_update.borrow())[9] - (*drag_buffer_update.borrow())[0];
+                                    Continue(true)
+                                }).to_glib());
+
+                                let drag_y_pos_motion_update = drag_y_pos.clone();
+                                *drag_motion_notify_signal.borrow_mut() = Some(closure_webivew.connect_motion_notify_event(move |view, event| {
+                                    let (_, y) = event.get_position();
+                                    let scroll = *drag_y_pos_motion_update.borrow() - y;
+                                    *drag_y_pos_motion_update.borrow_mut() = y;
+                                    if let Ok(scroll_pos) = Self::get_scroll_pos(view) {
+                                        Self::set_scroll_pos(view, scroll_pos + scroll as i32).unwrap();
+                                    }
+                                    Inhibit(false)
+                                }).to_glib());
+                            }
                         }
                     }
                 }
