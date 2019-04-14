@@ -49,7 +49,7 @@ impl ContentHeader {
             if let Ok(main_window) = GtkUtil::get_main_window(search_entry) {
                 if let Some(action) = main_window.lookup_action("search-term") {
                     if let Some(text) = search_entry.get_text() {
-                        let search_term = Variant::from(&text);
+                        let search_term = Variant::from(text.as_str());
                         action.activate(Some(&search_term));
                     }
                 }

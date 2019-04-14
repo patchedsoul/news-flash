@@ -74,7 +74,7 @@ impl TagRow {
         row.set_activatable(false);
         row.set_can_focus(false);
         row.add(widget);
-        let context = row.get_style_context().unwrap();
+        let context = row.get_style_context();
         context.remove_class("activatable");
 
         row
@@ -101,38 +101,36 @@ impl TagRow {
     fn update_color_cirlce_internal(tag_color_circle: &gtk::Image, color: &str) {
         let size = 16;
         let half_size = (size / 2) as f64;
-        if let Some(ctx) = tag_color_circle.get_style_context() {
-            if let Some(window) = tag_color_circle.get_window() {
-                let scale = ctx.get_scale();
-                if let Some(surface) = window.create_similar_image_surface(0, size, size, scale) {
-                    let cairo_ctx = Context::new(&surface);
-                    cairo_ctx.set_fill_rule(FillRule::EvenOdd);
-                    cairo_ctx.set_line_width(2.0);
+        let scale = tag_color_circle.get_style_context().get_scale();
+        if let Some(window) = tag_color_circle.get_window() {
+            if let Some(surface) = window.create_similar_image_surface(0, size, size, scale) {
+                let cairo_ctx = Context::new(&surface);
+                cairo_ctx.set_fill_rule(FillRule::EvenOdd);
+                cairo_ctx.set_line_width(2.0);
 
-                    let rgba_outer = ColorRGBA::parse_string(color).unwrap();
-                    let mut rgba_inner = ColorRGBA::parse_string(color).unwrap();
-                    rgba_inner.adjust_lightness(0.05).unwrap();
+                let rgba_outer = ColorRGBA::parse_string(color).unwrap();
+                let mut rgba_inner = ColorRGBA::parse_string(color).unwrap();
+                rgba_inner.adjust_lightness(0.05).unwrap();
 
-                    cairo_ctx.set_source_rgba(
-                        rgba_inner.red_normalized(),
-                        rgba_inner.green_normalized(),
-                        rgba_inner.blue_normalized(),
-                        rgba_inner.alpha_normalized()
-                    );
-                    cairo_ctx.arc(half_size, half_size, half_size, 0.0, 2.0 * std::f64::consts::PI);
-                    cairo_ctx.fill_preserve();
+                cairo_ctx.set_source_rgba(
+                    rgba_inner.red_normalized(),
+                    rgba_inner.green_normalized(),
+                    rgba_inner.blue_normalized(),
+                    rgba_inner.alpha_normalized()
+                );
+                cairo_ctx.arc(half_size, half_size, half_size, 0.0, 2.0 * std::f64::consts::PI);
+                cairo_ctx.fill_preserve();
 
-                    cairo_ctx.arc(half_size, half_size, half_size - (half_size / 4.0), 0.0, 2.0 * std::f64::consts::PI);
-                    cairo_ctx.set_source_rgba(
-                        rgba_outer.red_normalized(),
-                        rgba_outer.green_normalized(),
-                        rgba_outer.blue_normalized(),
-                        rgba_outer.alpha_normalized()
-                    );
-                    cairo_ctx.fill_preserve();
+                cairo_ctx.arc(half_size, half_size, half_size - (half_size / 4.0), 0.0, 2.0 * std::f64::consts::PI);
+                cairo_ctx.set_source_rgba(
+                    rgba_outer.red_normalized(),
+                    rgba_outer.green_normalized(),
+                    rgba_outer.blue_normalized(),
+                    rgba_outer.alpha_normalized()
+                );
+                cairo_ctx.fill_preserve();
 
-                    tag_color_circle.set_from_surface(&surface);
-                }
+                tag_color_circle.set_from_surface(&surface);
             }
         }
     }

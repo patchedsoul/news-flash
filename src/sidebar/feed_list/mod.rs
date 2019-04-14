@@ -187,14 +187,14 @@ impl FeedList {
                 if let Ok((parent_category, sort_index)) = tree.borrow().calculate_dnd(index).map_err(|_| {
                     debug!("Failed to calculate Drag&Drop action");
                 }) {
-                    if let Some(mut dnd_data_string) = selection_data.get_text() {
+                    if let Some(dnd_data_string) = selection_data.get_text() {
                         if dnd_data_string.contains("FeedID") {
-                            let feed: FeedID = serde_json::from_str(&dnd_data_string.split_off(6)).unwrap();
+                            let feed: FeedID = serde_json::from_str(&dnd_data_string.as_str().to_owned().split_off(6)).unwrap();
                             let _fixme = FeedListDndAction::MoveFeed(feed, parent_category.clone(), sort_index);
                         }
 
                         if dnd_data_string.contains("CategoryID") {
-                            let category: CategoryID = serde_json::from_str(&dnd_data_string.split_off(10)).unwrap();
+                            let category: CategoryID = serde_json::from_str(&dnd_data_string.as_str().to_owned().split_off(10)).unwrap();
                             let _fixme = FeedListDndAction::MoveCategory(category, parent_category.clone(), sort_index);
                         }
                     }

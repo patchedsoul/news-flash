@@ -13,7 +13,6 @@ use crate::login_screen::{
 };
 use gio::{
     SimpleAction,
-    SimpleActionExt,
     ActionMapExt,
     ActionExt,
 };

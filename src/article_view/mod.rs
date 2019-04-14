@@ -29,6 +29,7 @@ use webkit2gtk::{
 use gtk::{
     StackExt,
     WidgetExt,
+    WidgetExtManual,
     ButtonExt,
     ContainerExt,
     Continue,
@@ -40,8 +41,6 @@ use gdk::{
     ScrollDirection,
     ModifierType,
     Display,
-    DisplayExt,
-    SeatExt,
     SeatCapabilities,
     Cursor,
     CursorType,
@@ -55,6 +54,9 @@ use glib::{
     },
     object::Cast,
     MainLoop,
+};
+use gio::{
+    Cancellable,
 };
 use news_flash::models::{
     FatArticle,
@@ -302,14 +304,14 @@ impl ArticleView {
 		settings.set_javascript_can_access_clipboard(false);
 		settings.set_javascript_can_open_windows_automatically(false);
 		settings.set_media_playback_requires_user_gesture(true);
-        settings.set_user_agent_with_application_details("NewsFlash", None);
+        settings.set_user_agent_with_application_details(Some("NewsFlash"), None);
 
         let webview = WebView::new_with_settings(&settings);
-		webview.set_events(EventMask::POINTER_MOTION_MASK.bits() as i32);
-		webview.set_events(EventMask::SCROLL_MASK.bits() as i32);
-		webview.set_events(EventMask::BUTTON_PRESS_MASK.bits() as i32);
-		webview.set_events(EventMask::BUTTON_RELEASE_MASK.bits() as i32);
-		webview.set_events(EventMask::KEY_PRESS_MASK.bits() as i32);
+		webview.set_events(EventMask::POINTER_MOTION_MASK);
+		webview.set_events(EventMask::SCROLL_MASK);
+		webview.set_events(EventMask::BUTTON_PRESS_MASK);
+		webview.set_events(EventMask::BUTTON_RELEASE_MASK);
+		webview.set_events(EventMask::KEY_PRESS_MASK);
 
         //----------------------------------
         // open link in external browser
@@ -370,7 +372,7 @@ impl ArticleView {
                         align = gtk::Align::End;
                     }
 
-                    url_overlay_handle.borrow().set_url(uri, align);
+                    url_overlay_handle.borrow().set_url(uri.as_str().to_owned(), align);
                     url_overlay_handle.borrow().reveal(true);
                 }
             }
@@ -494,12 +496,13 @@ impl ArticleView {
                     if let Some(seat) = display.get_default_seat() {
                         if let Some(pointer) = seat.get_pointer() {
                             let cursor = Cursor::new_for_display(&display, CursorType::Fleur);
+                            let window = closure_webivew.get_window().unwrap();
                             
                             // seat.grab(
-                            //     closure_webivew.get_window(),
+                            //     &window,
                             //     SeatCapabilities::POINTER,
                             //     false,
-                            //     cursor,
+                            //     Some(&cursor),
                             //     None,
                             //     None,
                             // );
@@ -721,9 +724,10 @@ impl ArticleView {
     }
 
     fn set_scroll_pos(view: &WebView, pos: i32) -> Result<(), Error> {
+        let cancellable : Option<&Cancellable> = None;
         view.run_javascript(
             &format!("window.scrollTo(0,{});", pos),
-            None,
+            cancellable,
             |res| {
                 match res {
                     Ok(_) => {},
@@ -753,7 +757,8 @@ impl ArticleView {
         let callback_wait_loop = wait_loop.clone();
         let value : Arc<Mutex<Option<f64>>> = Arc::new(Mutex::new(None));
         let callback_value = value.clone();
-        view.run_javascript(java_script, None, move |res| {
+        let cancellable : Option<&Cancellable> = None;
+        view.run_javascript(java_script, cancellable, move |res| {
                 match res {
                     Ok(result) => {
                         let context = result.get_global_context().unwrap();

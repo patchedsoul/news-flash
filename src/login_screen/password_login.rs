@@ -95,8 +95,7 @@ impl PasswordLogin {
         let ignore_tls_button : gtk::Button = builder.get_object("ignore_button").ok_or(format_err!("some err"))?;
         let error_details_button : gtk::Button = builder.get_object("details_button").ok_or(format_err!("some err"))?;
 
-        let ctx = page.get_style_context().ok_or(format_err!("some err"))?;
-        let scale = ctx.get_scale();
+        let scale = page.get_style_context().get_scale();
 
         let generic_logo_data = Resources::get("icons/feed_service_generic.svg").ok_or(format_err!("some err"))?;
         let surface = GtkUtil::create_surface_from_bytes(&generic_logo_data, 64, 64, scale)?;
@@ -198,17 +197,28 @@ impl PasswordLogin {
             self.login_button_signal = Some(
                 self.login_button.connect_clicked(move |_button| {
                     let url : Option<String> = match pw_gui_desc.url {
-                        true => url_entry.get_text(),
+                        true => match url_entry.get_text() {
+                            Some(url) => Some(url.as_str().to_owned()),
+                            None => None,
+                        },
                         false => None,
                     };
-                    let user = user_entry.get_text().unwrap();
-                    let pass = pass_entry.get_text().unwrap();
+                    let user = user_entry.get_text().unwrap().as_str().to_owned();
+                    let pass = pass_entry.get_text().unwrap().as_str().to_owned();
                     let http_user : Option<String> = match pw_gui_desc.http_auth {
-                        true => http_user_entry.get_text(),
+                        true => match http_user_entry.get_text() {
+                            Some(user) => Some(user.as_str().to_owned()),
+                            None => None,
+                        },
                         false => None,
                     };
                     let http_pass : Option<String> = match pw_gui_desc.http_auth {
-                        true => http_pass_entry.get_text(),
+                        true => {
+                            match http_pass_entry.get_text() {
+                                Some(pass) => Some(pass.as_str().to_owned()),
+                                None => None,
+                            }
+                        },
                         false => None,
                     };
                     

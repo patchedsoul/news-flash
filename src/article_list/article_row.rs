@@ -60,10 +60,7 @@ impl ArticleRow {
         let date_label : gtk::Label = builder.get_object("date_label").ok_or(format_err!("some err"))?;
         let row = Self::create_row(&article_eventbox);
 
-        let scale = match favicon.get_style_context() {
-            Some(ctx) => ctx.get_scale(),
-            None => 1,
-        };
+        let scale = favicon.get_style_context().get_scale();
 
         let marked : gtk::Image = builder.get_object("marked").ok_or(format_err!("some err"))?;
         let marked_icon = Resources::get("icons/marked.svg").ok_or(format_err!("some err"))?;
@@ -134,7 +131,7 @@ impl ArticleRow {
         row.set_activatable(false);
         row.set_can_focus(false);
         row.add(widget);
-        let context = row.get_style_context().unwrap();
+        let context = row.get_style_context();
         context.remove_class("activatable");
 
         row
@@ -279,7 +276,7 @@ impl ArticleRow {
     }
 
     fn update_title_label(title_label: &gtk::Label, read: &Read) {
-        let context = title_label.get_style_context().unwrap();
+        let context = title_label.get_style_context();
         match read {
             Read::Read => context.remove_class("bold"),
             Read::Unread => context.add_class("bold"),

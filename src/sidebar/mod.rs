@@ -15,6 +15,7 @@ use gtk::{
     StyleContextExt,
     ListBoxExt,
     WidgetExt,
+    WidgetExtManual,
     LabelExt,
     RevealerExt,
 };
@@ -92,7 +93,7 @@ impl SideBar {
                 return
             }
             // deselect 'all' & tag_list
-            let context = feed_list_all_event_box.get_style_context().unwrap();
+            let context = feed_list_all_event_box.get_style_context();
             context.remove_class("selected");
             feed_list_tag_list_handle.borrow().deselect();
 
@@ -118,7 +119,7 @@ impl SideBar {
                 return
             }
             // deselect 'all' & tag_list
-            let context = tag_list_all_event_box.get_style_context().unwrap();
+            let context = tag_list_all_event_box.get_style_context();
             context.remove_class("selected");
             tag_list_feed_list_handle.borrow().deselect();
 
@@ -137,7 +138,6 @@ impl SideBar {
 
         let scale = sidebar
             .get_style_context()
-            .ok_or(format_err!("some err"))?
             .get_scale();
 
         let expanded_categories = gtk_handle!(true);
@@ -215,16 +215,16 @@ impl SideBar {
         let expander = expander.clone();
         let expanded = expanded.clone();
         let revealer = revealer.clone();
-        event_box.set_events(EventMask::BUTTON_PRESS_MASK.bits() as i32);
-        event_box.set_events(EventMask::ENTER_NOTIFY_MASK.bits() as i32);
-        event_box.set_events(EventMask::LEAVE_NOTIFY_MASK.bits() as i32);
+        event_box.set_events(EventMask::BUTTON_PRESS_MASK);
+        event_box.set_events(EventMask::ENTER_NOTIFY_MASK);
+        event_box.set_events(EventMask::LEAVE_NOTIFY_MASK);
         event_box.connect_enter_notify_event(|widget, _event| {
-            let context = widget.get_style_context().unwrap();
+            let context = widget.get_style_context();
             context.add_class("highlight");
             gtk::Inhibit(false)
         });
         event_box.connect_leave_notify_event(|widget, _event| {
-            let context = widget.get_style_context().unwrap();
+            let context = widget.get_style_context();
             context.remove_class("highlight");
             gtk::Inhibit(false)
         });
@@ -238,7 +238,7 @@ impl SideBar {
                     EventType::ButtonPress => (),
                     _ => return gtk::Inhibit(false),
                 }
-                let context = expander.get_style_context().unwrap();
+                let context = expander.get_style_context();
                 let expanded_bool = *expanded.borrow();
 
                 if expanded_bool {
@@ -263,18 +263,18 @@ impl SideBar {
         feed_list_handle: GtkHandle<FeedList>,
         tag_list_handle: GtkHandle<TagList>
     ) {
-        let context = event_box.get_style_context().unwrap();
+        let context = event_box.get_style_context();
         context.add_class("selected");
-        event_box.set_events(EventMask::BUTTON_PRESS_MASK.bits() as i32);
-        event_box.set_events(EventMask::ENTER_NOTIFY_MASK.bits() as i32);
-        event_box.set_events(EventMask::LEAVE_NOTIFY_MASK.bits() as i32);
+        event_box.set_events(EventMask::BUTTON_PRESS_MASK);
+        event_box.set_events(EventMask::ENTER_NOTIFY_MASK);
+        event_box.set_events(EventMask::LEAVE_NOTIFY_MASK);
         event_box.connect_enter_notify_event(|widget, _event| {
-            let context = widget.get_style_context().unwrap();
+            let context = widget.get_style_context();
             context.add_class("highlight");
             gtk::Inhibit(false)
         });
         event_box.connect_leave_notify_event(|widget, _event| {
-            let context = widget.get_style_context().unwrap();
+            let context = widget.get_style_context();
             context.remove_class("highlight");
             gtk::Inhibit(false)
         });
@@ -287,7 +287,7 @@ impl SideBar {
                 EventType::ButtonPress => (),
                 _ => return gtk::Inhibit(false),
             }
-            let context = widget.get_style_context().unwrap();
+            let context = widget.get_style_context();
             context.add_class("selected");
             feed_list_handle.borrow().deselect();
             tag_list_handle.borrow().deselect();

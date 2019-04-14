@@ -152,7 +152,7 @@ impl WebLogin {
                                     && &uri[..redirect_url.len()] == redirect_url {
                                         let oauth_data = OAuthData {
                                             id: info.id.clone(),
-                                            url: uri,
+                                            url: uri.as_str().to_owned(),
                                         };
                                         let oauth_data = LoginData::OAuth(oauth_data);
                                         let oauth_data_json = serde_json::to_string(&oauth_data).unwrap();

@@ -104,9 +104,7 @@ impl ServiceRow {
         });
 
         let arrow_image : gtk::Image = builder.get_object("arrow_image").ok_or(format_err!("some err"))?;
-
-        let ctx = row.get_style_context().ok_or(format_err!("some err"))?;
-        let scale = ctx.get_scale();
+        let scale = row.get_style_context().get_scale();
 
         let image : gtk::Image = builder.get_object("icon").ok_or(format_err!("get icon widget"))?;
         if let Some(icon) = info.icon {
@@ -163,7 +161,7 @@ impl ServiceRow {
                 _ => return gtk::Inhibit(false),
             }
             let arrow_image = widget.get_child().unwrap();
-            let context = arrow_image.get_style_context().unwrap();
+            let context = arrow_image.get_style_context();
             let expanded = handle.borrow().show_info;
             if !expanded {
                 context.add_class("backward-arrow-expanded");

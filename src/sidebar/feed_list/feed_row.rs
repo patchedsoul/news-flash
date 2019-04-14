@@ -19,7 +19,9 @@ use gdk::{
 };
 use glib::{
     Source,
+    source::SourceId,
     translate::ToGlib,
+    translate::FromGlib,
 };
 use cairo::{
     self,
@@ -91,7 +93,7 @@ impl FeedRow {
         row.set_activatable(false);
         row.set_can_focus(false);
         row.add(widget);
-        let context = row.get_style_context().unwrap();
+        let context = row.get_style_context();
         context.remove_class("activatable");
         let row_2nd_handle = row.clone();
         let id = id.clone();
@@ -110,7 +112,7 @@ impl FeedRow {
             let alloc = row.get_allocation();
             let surface = ImageSurface::create(Format::ARgb32, alloc.width, alloc.height).unwrap();
             let cairo_context = cairo::Context::new(&surface);
-            let style_context = row.get_style_context().unwrap();
+            let style_context = row.get_style_context();
             style_context.add_class("drag-icon");
             row.draw(&cairo_context);
             style_context.remove_class("drag-icon");
@@ -137,10 +139,7 @@ impl FeedRow {
     pub fn update_favicon(&self, icon: &Option<FavIcon>) {
         if let Some(icon) = icon {
             if let Some(data) = &icon.data {
-                let scale = match self.widget.get_style_context() {
-                    Some(ctx) => ctx.get_scale(),
-                    None => 1,
-                };
+                let scale = self.widget.get_style_context().get_scale();
                 let surface = GtkUtil::create_surface_from_bytes(data, 16, 16, scale).unwrap();
                 self.favicon.set_from_surface(&surface);
             }
@@ -153,7 +152,7 @@ impl FeedRow {
 
     pub fn collapse(&mut self) {
         self.revealer.set_reveal_child(false);
-        self.revealer.get_style_context().unwrap().add_class("hidden");
+        self.revealer.get_style_context().add_class("hidden");
         self.widget.set_selectable(false);
 
         // hide row after animation finished
@@ -175,14 +174,17 @@ impl FeedRow {
         // clear out timeout to fully hide row
         {
             if let Some(source_id) = *self.hide_timeout.borrow() {
-                Source::remove(source_id);
+                if let Ok(_) = Source::remove(SourceId::from_glib(source_id)) {
+                    // log something
+                };
+                // log something
             }
             *self.hide_timeout.borrow_mut() = None;
         }
 
         self.widget.set_visible(true);
         self.revealer.set_reveal_child(true);
-        self.revealer.get_style_context().unwrap().remove_class("hidden");
+        self.revealer.get_style_context().remove_class("hidden");
         self.widget.set_selectable(true);
     }
 }

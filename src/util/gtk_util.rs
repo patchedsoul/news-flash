@@ -9,10 +9,10 @@ use gtk::{
 };
 use gdk_pixbuf::{
     Pixbuf,
-    Colorspace,
 };
 use gio::{
     MemoryInputStream,
+    Cancellable,
 };
 use glib::{
     object::ObjectExt,
@@ -58,28 +58,19 @@ pub struct GtkUtil;
 
 impl GtkUtil {
     pub fn create_surface_from_pixelicon(icon: &PixelIcon, scale_factor: i32) -> Result<Surface, Error> {
-        let pixbuf = Pixbuf::new_from_vec(
-            icon.data.clone(),
-            Colorspace::Rgb,
-            icon.has_alpha,
-            icon.bits_per_sample,
-            icon.width,
-            icon.height,
-            icon.row_stride,
-        );
-        Context::cairo_surface_create_from_pixbuf(&pixbuf, scale_factor, None)
-            .ok_or(format_err!("some err"))
+        Self::create_surface_from_bytes(&icon.data, icon.width, icon.height, scale_factor)
     }
 
     pub fn create_surface_from_bytes(data: &[u8], width: i32, height: i32, scale_factor: i32)-> Result<Surface, Error> {
         let bytes = Bytes::from(data);
         let stream = MemoryInputStream::new_from_bytes(&bytes);
+        let cancellable : Option<&Cancellable> = None;
         let pixbuf = Pixbuf::new_from_stream_at_scale(
             &stream,
             width * scale_factor,
             height * scale_factor,
             true,
-            None
+            cancellable,
         )?;
         Context::cairo_surface_create_from_pixbuf(&pixbuf, scale_factor, None)
             .ok_or(format_err!("some err"))
@@ -119,9 +110,7 @@ impl GtkUtil {
         if let Some(row) = row.get_child() {
             if let Ok(row) = row.downcast::<Revealer>() {
                 if let Some(row) = row.get_child() {
-                    if let Some(style_context) = row.get_style_context() {
-                        return Some(style_context)
-                    }
+                    return Some(row.get_style_context())
                 }
             }
         }

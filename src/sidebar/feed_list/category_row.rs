@@ -3,6 +3,7 @@ use gtk::{
     Cast,
     LabelExt,
     WidgetExt,
+    WidgetExtManual,
     StyleContextExt,
     BinExt,
     ListBoxRowExt,
@@ -71,9 +72,9 @@ impl CategoryRow {
         let handle = gtk_handle!(category);
         let handle1 = handle.clone();
 
-        arrow_event.set_events(EventMask::BUTTON_PRESS_MASK.bits() as i32);
-        arrow_event.set_events(EventMask::ENTER_NOTIFY_MASK.bits() as i32);
-        arrow_event.set_events(EventMask::LEAVE_NOTIFY_MASK.bits() as i32);
+        arrow_event.set_events(EventMask::BUTTON_PRESS_MASK);
+        arrow_event.set_events(EventMask::ENTER_NOTIFY_MASK);
+        arrow_event.set_events(EventMask::LEAVE_NOTIFY_MASK);
         arrow_event.connect_enter_notify_event(|widget, _| {
             widget.get_child().unwrap().set_opacity(1.0);
             gtk::Inhibit(false)
@@ -102,7 +103,7 @@ impl CategoryRow {
     }
 
     fn rotate_arrow(arrow_image: &gtk::Widget, expanded: bool) {
-        let context = arrow_image.get_style_context().unwrap();
+        let context = arrow_image.get_style_context();
 
         if expanded {
             context.remove_class("forward-arrow-collapsed");
@@ -118,7 +119,7 @@ impl CategoryRow {
         let row = gtk::ListBoxRow::new();
         row.set_activatable(false);
         row.set_can_focus(false);
-        let context = row.get_style_context().unwrap();
+        let context = row.get_style_context();
         context.remove_class("activatable");
         
         row.add(widget);
@@ -149,13 +150,13 @@ impl CategoryRow {
 
     pub fn collapse(&self) {
         self.revealer.set_reveal_child(false);
-        self.revealer.get_style_context().unwrap().add_class("hidden");
+        self.revealer.get_style_context().add_class("hidden");
         self.widget.set_selectable(false);
     }
 
     pub fn expand(&self) {
         self.revealer.set_reveal_child(true);
-        self.revealer.get_style_context().unwrap().remove_class("hidden");
+        self.revealer.get_style_context().remove_class("hidden");
         self.widget.set_selectable(true);
     }
 }
