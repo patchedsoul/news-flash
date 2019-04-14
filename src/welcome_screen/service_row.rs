@@ -57,11 +57,7 @@ impl ServiceRow {
         let type_string = match info.service_type {
             ServiceType::Local => "Local data only",
             ServiceType::Remote { self_hosted } => {
-                let mut string = "Synced";
-                if self_hosted {
-                    string = "Synced & self hosted";
-                }
-                string
+                if self_hosted { "Synced & self hosted" } else { "Synced" }
             }
         };
         type_label.set_text(type_string);
@@ -123,10 +119,9 @@ impl ServiceRow {
             Inhibit(false)
         });
         self.row.connect_leave_notify_event(move |_widget, crossing| {
-            if crossing.get_detail() != NotifyType::Inferior {
-                if !handle_1.borrow().show_info {
-                    arrow_revealer_2.borrow().set_reveal_child(false);
-                }
+            if crossing.get_detail() != NotifyType::Inferior
+            && !handle_1.borrow().show_info {
+                arrow_revealer_2.borrow().set_reveal_child(false);
             }
             Inhibit(false)
         });

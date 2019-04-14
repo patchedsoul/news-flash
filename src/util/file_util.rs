@@ -12,7 +12,7 @@ impl FileUtil {
         let temp_file = temp_directory.join(file_name);
 
         let mut file = File::create(temp_file.clone())?;
-        file.write(content.as_bytes())?;
+        file.write_all(content.as_bytes())?;
 
         Ok(temp_file)
     }

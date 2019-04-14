@@ -114,18 +114,16 @@ impl PasswordLogin {
         // setup infobar
         self.info_bar_close_signal = Some(
             self.info_bar
-                .connect_close(|bar| {
-                    PasswordLogin::hide_info_bar(bar);
+                .connect_close(|info_bar| {
+                    PasswordLogin::hide_info_bar(info_bar);
                 })
                 .to_glib(),
         );
         self.info_bar_response_signal = Some(
             self.info_bar
-                .connect_response(|bar, response| {
-                    let response = ResponseType::from(response);
-                    match response {
-                        ResponseType::Close => PasswordLogin::hide_info_bar(bar),
-                        _ => {}
+                .connect_response(|info_bar, response| {
+                    if let ResponseType::Close = response {
+                        PasswordLogin::hide_info_bar(info_bar);
                     }
                 })
                 .to_glib(),
@@ -162,28 +160,31 @@ impl PasswordLogin {
             self.login_button_signal = Some(
                 self.login_button
                     .connect_clicked(move |_button| {
-                        let url: Option<String> = match pw_gui_desc.url {
-                            true => match url_entry.get_text() {
+                        let url: Option<String> = if pw_gui_desc.url {
+                            match url_entry.get_text() {
                                 Some(url) => Some(url.as_str().to_owned()),
                                 None => None,
-                            },
-                            false => None,
+                            }
+                        } else {
+                            None
                         };
                         let user = user_entry.get_text().unwrap().as_str().to_owned();
                         let pass = pass_entry.get_text().unwrap().as_str().to_owned();
-                        let http_user: Option<String> = match pw_gui_desc.http_auth {
-                            true => match http_user_entry.get_text() {
+                        let http_user: Option<String> = if pw_gui_desc.http_auth {
+                            match http_user_entry.get_text() {
                                 Some(user) => Some(user.as_str().to_owned()),
                                 None => None,
-                            },
-                            false => None,
+                            }
+                        } else {
+                            None
                         };
-                        let http_pass: Option<String> = match pw_gui_desc.http_auth {
-                            true => match http_pass_entry.get_text() {
+                        let http_pass: Option<String> = if pw_gui_desc.http_auth {
+                            match http_pass_entry.get_text() {
                                 Some(pass) => Some(pass.as_str().to_owned()),
                                 None => None,
-                            },
-                            false => None,
+                            }
+                        } else {
+                            None
                         };
 
                         let login_data = PasswordLoginData {

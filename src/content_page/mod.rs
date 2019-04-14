@@ -159,7 +159,7 @@ impl ContentPage {
             None => Some(limit),
         };
 
-        let articles = news_flash
+        news_flash
             .get_articles(
                 limit,
                 offset,
@@ -173,9 +173,7 @@ impl ContentPage {
                 None,
                 None,
             )
-            .unwrap();
-
-        articles
+            .unwrap()
     }
 
     pub fn update_sidebar(&mut self, news_flash_handle: &GtkHandle<Option<NewsFlash>>) {

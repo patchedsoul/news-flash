@@ -1,6 +1,8 @@
 use failure::{format_err, Error};
 use std::str::Chars;
 
+const MAX_COLOR_DIFF: f64 = 0.01;
+
 #[derive(Copy, Clone, Debug)]
 pub struct ColorRGBA {
     red: u8,
@@ -15,7 +17,7 @@ impl ColorRGBA {
             return Err(format_err!("Expected lenght of color string is 7, string lenght is {}", color_string.len()));
         }
 
-        if !color_string.starts_with("#") {
+        if !color_string.starts_with('#') {
             return Err(format_err!("Expected color string to start with '#'"));
         }
 
@@ -34,36 +36,36 @@ impl ColorRGBA {
         })
     }
 
-    pub fn red(&self) -> u8 {
+    pub fn red(self) -> u8 {
         self.red
     }
 
-    pub fn red_normalized(&self) -> f64 {
-        (self.red as f64) / 255.0
+    pub fn red_normalized(self) -> f64 {
+        f64::from(self.red) / 255.0
     }
 
-    pub fn green(&self) -> u8 {
+    pub fn green(self) -> u8 {
         self.green
     }
 
-    pub fn green_normalized(&self) -> f64 {
-        (self.green as f64) / 255.0
+    pub fn green_normalized(self) -> f64 {
+        f64::from(self.green) / 255.0
     }
 
-    pub fn blue(&self) -> u8 {
+    pub fn blue(self) -> u8 {
         self.blue
     }
 
-    pub fn blue_normalized(&self) -> f64 {
-        (self.blue as f64) / 255.0
+    pub fn blue_normalized(self) -> f64 {
+        f64::from(self.blue) / 255.0
     }
 
-    pub fn alpha(&self) -> u8 {
+    pub fn alpha(self) -> u8 {
         self.alpha
     }
 
-    pub fn alpha_normalized(&self) -> f64 {
-        (self.alpha as f64) / 255.0
+    pub fn alpha_normalized(self) -> f64 {
+        f64::from(self.alpha) / 255.0
     }
 
     pub fn adjust_lightness(&mut self, percentage: f64) -> Result<(), Error> {
@@ -77,7 +79,7 @@ impl ColorRGBA {
         Ok(())
     }
 
-    pub fn to_hsla(&self) -> Result<ColorHSLA, Error> {
+    pub fn to_hsla(self) -> Result<ColorHSLA, Error> {
         let red_normalized = self.red_normalized();
         let green_normalized = self.green_normalized();
         let blue_normalized = self.blue_normalized();
@@ -86,14 +88,14 @@ impl ColorRGBA {
         let delta = c_max - c_min;
 
         let hue;
-        if delta == 0.0 {
+        if delta.abs() < MAX_COLOR_DIFF {
             hue = 0.0;
         } else {
-            if c_max == red_normalized {
+            if (c_max - red_normalized).abs() < MAX_COLOR_DIFF {
                 hue = 60.0 * (((green_normalized - blue_normalized) / delta) % 6.0);
-            } else if c_max == green_normalized {
+            } else if (c_max - green_normalized).abs() < MAX_COLOR_DIFF {
                 hue = 60.0 * (((blue_normalized - red_normalized) / delta) + 2.0);
-            } else if c_max == blue_normalized {
+            } else if (c_max - blue_normalized).abs() < MAX_COLOR_DIFF {
                 hue = 60.0 * (((red_normalized - green_normalized) / delta) + 4.0);
             } else {
                 return Err(format_err!("c_max matches neither R, G or B"));
@@ -101,10 +103,7 @@ impl ColorRGBA {
         }
 
         let lightness = (c_max + c_min) / 2.0;
-        let mut saturation = 0.0;
-        if delta != 0.0 {
-            saturation = delta / (1.0 - ((2.0 * lightness) - 1.0).abs());
-        }
+        let saturation = if delta != 0.0 { delta / (1.0 - ((2.0 * lightness) - 1.0).abs()) } else { 0.0 };
 
         Ok(ColorHSLA {
             hue: hue,

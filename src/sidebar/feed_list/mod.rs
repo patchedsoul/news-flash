@@ -82,32 +82,22 @@ impl FeedList {
                 let alloc = row.get_allocation();
                 let index = row.get_index();
 
-                match y < alloc.y + (alloc.height / 2) {
-                    true => {
-                        if let Some(_) = widget.get_row_at_index(index - 1) {
-                            if let Some(ctx) = GtkUtil::get_dnd_style_context_listboxrow(&row) {
-                                ctx.add_class("drag-below");
-                            }
-                        } else {
-                            // row before doesn't exist -> insert at first pos
-                            if let Some(ctx) = GtkUtil::get_dnd_style_context_listboxrow(&row) {
-                                ctx.add_class("drag-below");
-                            }
+                if y < alloc.y + (alloc.height / 2) {
+                    if let Some(ctx) = GtkUtil::get_dnd_style_context_listboxrow(&row) {
+                        ctx.add_class("drag-below");
+                    }
+                } else {
+                    if let Some(row_below) = widget.get_row_at_index(index + 1) {
+                        if let Some(ctx) = GtkUtil::get_dnd_style_context_listboxrow(&row_below) {
+                            ctx.add_class("drag-below");
+                        }
+                    } else {
+                        // row after doesn't exist -> insert at last pos
+                        if let Some(ctx) = GtkUtil::get_dnd_style_context_listboxrow(&row) {
+                            ctx.add_class("drag-above");
                         }
                     }
-                    false => {
-                        if let Some(row_below) = widget.get_row_at_index(index + 1) {
-                            if let Some(ctx) = GtkUtil::get_dnd_style_context_listboxrow(&row_below) {
-                                ctx.add_class("drag-below");
-                            }
-                        } else {
-                            // row after doesn't exist -> insert at last pos
-                            if let Some(ctx) = GtkUtil::get_dnd_style_context_listboxrow(&row) {
-                                ctx.add_class("drag-above");
-                            }
-                        }
-                    }
-                };
+                }
             }
 
             Inhibit(true)
@@ -134,15 +124,10 @@ impl FeedList {
                 let alloc = row.get_allocation();
                 let index = row.get_index();
 
-                let index = match y < alloc.y + (alloc.height / 2) {
-                    true => match index - 1 >= 0 {
-                        true => index - 1,
-                        false => index,
-                    },
-                    false => match index + 1 >= 0 {
-                        true => index + 1,
-                        false => index,
-                    },
+                let index = if y < alloc.y + (alloc.height / 2) {
+                    if index > 0 { index - 1 } else { index }
+                } else {
+                    if index + 1 >= 0 { index + 1 } else { index }
                 };
 
                 if let Ok((parent_category, sort_index)) = tree.borrow().calculate_dnd(index).map_err(|_| {

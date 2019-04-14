@@ -45,7 +45,7 @@ impl FeedListTree {
             return Ok(());
         }
 
-        return Err(FeedListModelErrorKind::AddFeedNoParent)?;
+        Err(FeedListModelErrorKind::AddFeedNoParent)?
     }
 
     pub fn add_category(&mut self, category: &Category, item_count: i32) -> Result<(), FeedListModelError> {
@@ -74,7 +74,7 @@ impl FeedListTree {
             return Ok(());
         }
 
-        return Err(FeedListModelErrorKind::AddCategoryNoParent)?;
+        Err(FeedListModelErrorKind::AddCategoryNoParent)?
     }
 
     fn find_category(&mut self, id: &CategoryID) -> Option<(&mut FeedListCategoryModel, i32)> {
@@ -89,11 +89,9 @@ impl FeedListTree {
                 let category_id = category.id.clone();
                 if &category_id == id {
                     return Some((category, *level));
-                } else {
-                    if category.children.len() > 0 {
-                        if let Some((category, level)) = Self::search_subcategories(id, &mut category.children, level) {
-                            return Some((category, level));
-                        }
+                } else if category.children.len() > 0 {
+                    if let Some((category, level)) = Self::search_subcategories(id, &mut category.children, level) {
+                        return Some((category, level));
                     }
                 }
             }
@@ -135,7 +133,7 @@ impl FeedListTree {
         Self::diff_level(&self.top_level, &other.top_level, &mut list_pos, true)
     }
 
-    fn diff_level(old_items: &Vec<FeedListItem>, new_items: &Vec<FeedListItem>, list_pos: &mut i32, visible: bool) -> Vec<FeedListChangeSet> {
+    fn diff_level(old_items: &[FeedListItem], new_items: &[FeedListItem], list_pos: &mut i32, visible: bool) -> Vec<FeedListChangeSet> {
         let mut diff = Vec::new();
         let mut old_index = 0;
         let mut new_index = 0;
@@ -223,19 +221,19 @@ impl FeedListTree {
                         match new_item {
                             FeedListItem::Category(new_category) => match old_item {
                                 FeedListItem::Category(old_category) => {
-                                    if old_category.children.len() > 0 || new_category.children.len() > 0 {
+                                    if !old_category.children.is_empty() || !new_category.children.is_empty() {
                                         diff.append(&mut Self::diff_level(&old_category.children, &new_category.children, list_pos, new_category.expanded));
                                     }
                                 }
                                 FeedListItem::Feed(_) => {
-                                    if new_category.children.len() > 0 {
+                                    if !new_category.children.is_empty() {
                                         diff.append(&mut Self::diff_level(&Vec::new(), &new_category.children, list_pos, new_category.expanded));
                                     }
                                 }
                             },
                             FeedListItem::Feed(_) => match old_item {
                                 FeedListItem::Category(old_category) => {
-                                    if old_category.children.len() > 0 {
+                                    if !old_category.children.is_empty() {
                                         diff.append(&mut Self::diff_level(&old_category.children, &Vec::new(), list_pos, false));
                                     }
                                 }
@@ -250,7 +248,7 @@ impl FeedListTree {
                         FeedListItem::Feed(old_feed) => diff.push(FeedListChangeSet::RemoveFeed(old_feed.id.clone())),
                         FeedListItem::Category(old_category) => {
                             diff.push(FeedListChangeSet::RemoveCategory(old_category.id.clone()));
-                            if old_category.children.len() > 0 {
+                            if !old_category.children.is_empty() {
                                 diff.append(&mut Self::diff_level(&old_category.children, &Vec::new(), list_pos, false));
                             }
                         }
@@ -268,7 +266,7 @@ impl FeedListTree {
         self.calc_dnd_subcategory(&self.top_level, &self.top_level_id, pos, &mut pos_iter)
     }
 
-    fn calc_dnd_subcategory(&self, category: &Vec<FeedListItem>, parent_id: &CategoryID, list_pos: i32, global_pos_iter: &mut i32) -> Result<(CategoryID, i32), FeedListModelError> {
+    fn calc_dnd_subcategory(&self, category: &[FeedListItem], parent_id: &CategoryID, list_pos: i32, global_pos_iter: &mut i32) -> Result<(CategoryID, i32), FeedListModelError> {
         let mut local_pos_iter = 0;
 
         if global_pos_iter == &list_pos {
@@ -293,15 +291,15 @@ impl FeedListTree {
                 return Ok((parent, local_pos_iter));
             }
         }
-        return Err(FeedListModelErrorKind::DnD)?;
+        Err(FeedListModelErrorKind::DnD)?
     }
 
     pub fn calculate_selection(&self, selected_index: i32) -> Option<FeedListSelection> {
         let mut index = 0;
-        return Self::calculate_selection_internal(selected_index + 1, &self.top_level, &mut index);
+        Self::calculate_selection_internal(selected_index + 1, &self.top_level, &mut index)
     }
 
-    fn calculate_selection_internal(selected_index: i32, items: &Vec<FeedListItem>, index: &mut i32) -> Option<FeedListSelection> {
+    fn calculate_selection_internal(selected_index: i32, items: &[FeedListItem], index: &mut i32) -> Option<FeedListSelection> {
         for item in items {
             *index += 1;
             match item {
@@ -328,7 +326,7 @@ impl FeedListTree {
         self.print_internal(&self.top_level, &mut 0);
     }
 
-    fn print_internal(&self, category: &Vec<FeedListItem>, level: &mut i32) {
+    fn print_internal(&self, category: &[FeedListItem], level: &mut i32) {
         let mut new_level = *level + 1;
         for item in category {
             for _ in 0..new_level {

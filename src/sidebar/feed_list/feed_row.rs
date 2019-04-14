@@ -141,7 +141,7 @@ impl FeedRow {
         // clear out timeout to fully hide row
         {
             if let Some(source_id) = *self.hide_timeout.borrow() {
-                if let Ok(_) = Source::remove(SourceId::from_glib(source_id)) {
+                if Source::remove(SourceId::from_glib(source_id)).is_ok() {
                     // log something
                 };
                 // log something

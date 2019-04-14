@@ -82,7 +82,7 @@ impl TagRow {
 
     fn update_color_cirlce_internal(tag_color_circle: &gtk::Image, color: &str) {
         let size = 16;
-        let half_size = (size / 2) as f64;
+        let half_size = f64::from(size / 2);
         let scale = tag_color_circle.get_style_context().get_scale();
         if let Some(window) = tag_color_circle.get_window() {
             if let Some(surface) = window.create_similar_image_surface(0, size, size, scale) {

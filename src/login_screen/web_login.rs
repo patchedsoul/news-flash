@@ -109,10 +109,9 @@ impl WebLogin {
         );
         self.info_bar_response_signal = Some(
             self.info_bar
-                .connect_response(|bar, response| {
-                    let response = ResponseType::from(response);
+                .connect_response(|info_bar, response| {
                     match response {
-                        ResponseType::Close => WebLogin::hide_info_bar(bar),
+                        ResponseType::Close => WebLogin::hide_info_bar(info_bar),
                         _ => {}
                     }
                 })

@@ -82,7 +82,7 @@ impl ArticleView {
                         if let Some(default_screen) = gdk::Screen::get_default() {
                             if let Some(path) = path.to_str() {
                                 let uri = format!("file://{}", path);
-                                if let Err(_) = gtk::show_uri(&default_screen, &uri, glib::get_current_time().tv_sec as u32) {
+                                if gtk::show_uri(&default_screen, &uri, glib::get_current_time().tv_sec as u32).is_err() {
                                     // log smth
                                 }
                             }
@@ -426,7 +426,7 @@ impl ArticleView {
         *self.progress_overlay_delay_signal.borrow_mut() = Some(
             gtk::timeout_add(1500, move || {
                 *progress_overlay_delay_signal.borrow_mut() = None;
-                if progress_webview.get_estimated_load_progress() == 1.0 {
+                if (progress_webview.get_estimated_load_progress() - 1.0).abs() < 0.01 {
                     return Continue(false);
                 }
 
@@ -653,7 +653,7 @@ impl ArticleView {
         if let Some(author) = &article.author {
             author_date.push_str(&format!("posted by: {}, {}", author, date));
         } else {
-            author_date.push_str(&format!("{}", date));
+            author_date.push_str(&date.to_string());
         }
 
         // $HTML
