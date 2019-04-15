@@ -33,13 +33,10 @@ impl UrlOverlay {
     }
 
     pub fn reveal(&self, show: bool) {
-        match show {
-            true => {
-                self.label.show();
-            }
-            false => {
-                self.label.hide();
-            }
+        if show {
+            self.label.show();
+        } else {
+            self.label.hide();
         }
     }
 

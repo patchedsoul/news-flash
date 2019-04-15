@@ -33,13 +33,10 @@ impl ProgressOverlay {
     }
 
     pub fn reveal(&self, show: bool) {
-        match show {
-            true => {
-                self.parent.show();
-            }
-            false => {
-                self.parent.hide();
-            }
+        if show {
+            self.parent.show();
+        } else {
+            self.parent.hide();
         }
     }
 

@@ -67,9 +67,9 @@ impl WebLogin {
         self.page.clone()
     }
 
-    fn hide_info_bar(bar: &gtk::InfoBar) {
-        bar.set_revealed(false);
-        let clone = bar.clone();
+    fn hide_info_bar(info_bar: &gtk::InfoBar) {
+        info_bar.set_revealed(false);
+        let clone = info_bar.clone();
         gtk::timeout_add(200, move || {
             clone.set_visible(false);
             gtk::Continue(false)
@@ -102,17 +102,16 @@ impl WebLogin {
         // setup infobar
         self.info_bar_close_signal = Some(
             self.info_bar
-                .connect_close(|bar| {
-                    WebLogin::hide_info_bar(bar);
+                .connect_close(|info_bar| {
+                    WebLogin::hide_info_bar(info_bar);
                 })
                 .to_glib(),
         );
         self.info_bar_response_signal = Some(
             self.info_bar
                 .connect_response(|info_bar, response| {
-                    match response {
-                        ResponseType::Close => WebLogin::hide_info_bar(info_bar),
-                        _ => {}
+                    if let ResponseType::Close = response {
+                        WebLogin::hide_info_bar(info_bar);
                     }
                 })
                 .to_glib(),

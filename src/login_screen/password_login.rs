@@ -246,9 +246,9 @@ impl PasswordLogin {
         self.error_details_signal = None;
     }
 
-    fn hide_info_bar(bar: &gtk::InfoBar) {
-        bar.set_revealed(false);
-        let clone = bar.clone();
+    fn hide_info_bar(info_bar: &gtk::InfoBar) {
+        info_bar.set_revealed(false);
+        let clone = info_bar.clone();
         gtk::timeout_add(200, move || {
             clone.set_visible(false);
             gtk::Continue(false)

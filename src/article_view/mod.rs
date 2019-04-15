@@ -271,7 +271,7 @@ impl ArticleView {
                         LoadEvent::Started => {
                             if let Some(uri) = closure_webivew.get_uri() {
                                 if let Some(default_screen) = gdk::Screen::get_default() {
-                                    if let Err(_) = gtk::show_uri(&default_screen, &uri, glib::get_current_time().tv_sec as u32) {
+                                    if gtk::show_uri(&default_screen, &uri, glib::get_current_time().tv_sec as u32).is_err() {
                                         // log smth
                                     }
                                 }
@@ -297,7 +297,7 @@ impl ArticleView {
                                         if let Some(uri_req) = action.get_request() {
                                             if let Some(uri) = uri_req.get_uri() {
                                                 if let Some(default_screen) = gdk::Screen::get_default() {
-                                                    if let Err(_) = gtk::show_uri(&default_screen, &uri, glib::get_current_time().tv_sec as u32) {
+                                                    if gtk::show_uri(&default_screen, &uri, glib::get_current_time().tv_sec as u32).is_err() {
                                                         return true;
                                                     }
                                                 }
@@ -546,10 +546,10 @@ impl ArticleView {
                                 *drag_momentum.borrow_mut() /= 1.2;
                                 let allocation = view.get_allocation();
 
-                                let page_size = view.get_allocated_height() as f64;
-                                let adjust_value = page_size * *drag_momentum.borrow() / allocation.height as f64;
-                                let old_adjust = Self::get_scroll_pos(&view).unwrap() as f64;
-                                let upper = Self::get_scroll_upper(&view).unwrap() as f64 * view.get_zoom_level();
+                                let page_size = f64::from(view.get_allocated_height());
+                                let adjust_value = page_size * *drag_momentum.borrow() / f64::from(allocation.height);
+                                let old_adjust = f64::from(Self::get_scroll_pos(&view).unwrap());
+                                let upper = f64::from(Self::get_scroll_upper(&view).unwrap()) * view.get_zoom_level();
 
                                 if (old_adjust + adjust_value) > (upper - page_size) || (old_adjust + adjust_value) < 0.0 {
                                     *drag_momentum.borrow_mut() = 0.0;

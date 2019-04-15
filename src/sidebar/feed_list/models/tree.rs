@@ -89,7 +89,7 @@ impl FeedListTree {
                 let category_id = category.id.clone();
                 if &category_id == id {
                     return Some((category, *level));
-                } else if category.children.len() > 0 {
+                } else if !category.children.is_empty() {
                     if let Some((category, level)) = Self::search_subcategories(id, &mut category.children, level) {
                         return Some((category, level));
                     }
@@ -158,7 +158,7 @@ impl FeedListTree {
                         FeedListItem::Category(new_category) => {
                             diff.push(FeedListChangeSet::AddCategory(new_category.clone(), *list_pos, visible));
                             *list_pos += 1;
-                            if new_category.children.len() > 0 {
+                            if !new_category.children.is_empty() {
                                 diff.append(&mut Self::diff_level(&Vec::new(), &new_category.children, list_pos, new_category.expanded));
                             }
                         }
@@ -175,7 +175,7 @@ impl FeedListTree {
                         FeedListItem::Feed(old_feed) => diff.push(FeedListChangeSet::RemoveFeed(old_feed.id.clone())),
                         FeedListItem::Category(old_category) => {
                             diff.push(FeedListChangeSet::RemoveCategory(old_category.id.clone()));
-                            if old_category.children.len() > 0 {
+                            if !old_category.children.is_empty() {
                                 diff.append(&mut Self::diff_level(&old_category.children, &Vec::new(), list_pos, false));
                             }
                         }
@@ -190,27 +190,21 @@ impl FeedListTree {
                     // still the same item -> check for
                     if new_item == old_item {
                         match new_item {
-                            FeedListItem::Feed(new_feed) => match old_item {
-                                FeedListItem::Feed(old_feed) => {
-                                    if new_feed.item_count != old_feed.item_count {
-                                        diff.push(FeedListChangeSet::FeedUpdateItemCount(new_feed.id.clone(), new_feed.item_count));
-                                    }
-                                    if new_feed.label != old_feed.label {
-                                        diff.push(FeedListChangeSet::FeedUpdateLabel(new_feed.id.clone(), new_feed.label.clone()));
-                                    }
+                            FeedListItem::Feed(new_feed) => if let FeedListItem::Feed(old_feed) = old_item {
+                                if new_feed.item_count != old_feed.item_count {
+                                    diff.push(FeedListChangeSet::FeedUpdateItemCount(new_feed.id.clone(), new_feed.item_count));
                                 }
-                                _ => {}
+                                if new_feed.label != old_feed.label {
+                                    diff.push(FeedListChangeSet::FeedUpdateLabel(new_feed.id.clone(), new_feed.label.clone()));
+                                }
                             },
-                            FeedListItem::Category(new_category) => match old_item {
-                                FeedListItem::Category(old_category) => {
-                                    if new_category.item_count != old_category.item_count {
-                                        diff.push(FeedListChangeSet::CategoryUpdateItemCount(new_category.id.clone(), new_category.item_count));
-                                    }
-                                    if new_category.label != old_category.label {
-                                        diff.push(FeedListChangeSet::CategoryUpdateLabel(new_category.id.clone(), new_category.label.clone()));
-                                    }
+                            FeedListItem::Category(new_category) => if let FeedListItem::Category(old_category) = old_item {
+                                if new_category.item_count != old_category.item_count {
+                                    diff.push(FeedListChangeSet::CategoryUpdateItemCount(new_category.id.clone(), new_category.item_count));
                                 }
-                                _ => {}
+                                if new_category.label != old_category.label {
+                                    diff.push(FeedListChangeSet::CategoryUpdateLabel(new_category.id.clone(), new_category.label.clone()));
+                                }
                             },
                         }
 
