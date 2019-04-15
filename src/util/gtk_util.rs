@@ -29,11 +29,16 @@ impl GtkUtil {
     }
 
     pub fn create_surface_from_bytes(data: &[u8], width: i32, height: i32, scale_factor: i32) -> Result<Surface, Error> {
+        let pixbuf = Self::create_pixbuf_from_bytes(data, width, height, scale_factor)?;
+        Context::cairo_surface_create_from_pixbuf(&pixbuf, scale_factor, None).ok_or_else(|| format_err!("some err"))
+    }
+
+    pub fn create_pixbuf_from_bytes(data: &[u8], width: i32, height: i32, scale_factor: i32) -> Result<Pixbuf, Error> {
         let bytes = Bytes::from(data);
         let stream = MemoryInputStream::new_from_bytes(&bytes);
         let cancellable: Option<&Cancellable> = None;
         let pixbuf = Pixbuf::new_from_stream_at_scale(&stream, width * scale_factor, height * scale_factor, true, cancellable)?;
-        Context::cairo_surface_create_from_pixbuf(&pixbuf, scale_factor, None).ok_or_else(|| format_err!("some err"))
+        Ok(pixbuf)
     }
 
     pub fn is_entry_emty(entry: &gtk::Entry) -> bool {

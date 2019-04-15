@@ -162,7 +162,7 @@ impl SideBar {
             };
             self.logo.set_from_surface(&surface);
         } else {
-            let generic_logo_data = Resources::get("icons/feed_service_generic.svg").ok_or_else(|| format_err!("some err"))?;
+            let generic_logo_data = Resources::get("icons/feed-service-generic.svg").ok_or_else(|| format_err!("some err"))?;
             let surface = GtkUtil::create_surface_from_bytes(&generic_logo_data, 64, 64, self.scale_factor)?;
             self.logo.set_from_surface(&surface);
         }

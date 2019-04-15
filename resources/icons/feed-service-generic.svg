@@ -11,8 +11,8 @@
    id="svg7384"
    version="1.1"
    width="64"
-   inkscape:version="0.92.4 (unknown)"
-   sodipodi:docname="feed_service_generic_symbolic.svg">
+   inkscape:version="0.92.3 (2405546, 2018-03-11)"
+   sodipodi:docname="feed-service-generic.svg">
   <sodipodi:namedview
      pagecolor="#ffffff"
      bordercolor="#666666"
@@ -23,11 +23,11 @@
      inkscape:pageopacity="0"
      inkscape:pageshadow="2"
      inkscape:window-width="1920"
-     inkscape:window-height="919"
+     inkscape:window-height="1136"
      id="namedview17"
      showgrid="false"
      inkscape:zoom="10.429825"
-     inkscape:cx="-8.283127"
+     inkscape:cx="10.988529"
      inkscape:cy="28.260132"
      inkscape:window-x="0"
      inkscape:window-y="27"
@@ -67,17 +67,17 @@
   <g
      id="layer14"
      transform="matrix(5.333331,0,0,5.3333333,-4346.6669,2538.6667)"
-     style="fill:#bebebe;fill-opacity:1;stroke:none;stroke-opacity:1">
+     style="fill:#000000;fill-opacity:1;stroke:none;stroke-opacity:1">
     <path
        d="m 325.0625,97.1875 a 2,3.236068 0 1 1 -4,0 2,3.236068 0 1 1 4,0 z"
        id="path4983"
-       style="color:#000000;display:inline;overflow:visible;visibility:visible;fill:#bebebe;fill-opacity:1;fill-rule:nonzero;stroke:none;stroke-width:1.69602728;stroke-opacity:1;marker:none;enable-background:new"
+       style="color:#000000;display:inline;overflow:visible;visibility:visible;fill:#000000;fill-opacity:1;fill-rule:nonzero;stroke:none;stroke-width:1.69602728;stroke-opacity:1;marker:none;enable-background:new"
        transform="matrix(1.0000007,0,0,0.61803426,493.93767,-526.06521)"
        inkscape:connector-curvature="0" />
     <path
        d="m 815.0004,-476 v 1 c 0,0.55016 0.45347,1 1,1 4.97056,0 9,4.02944 9,9 0,0.55016 0.45347,1 1,1 h 1 v -1 c 0,-6.07513 -4.92487,-11 -11,-11 z m 0,4 v 1 c 0,0.55016 0.45347,1 1,1 2.76143,0 5,2.23857 5,5 0,0.55016 0.45347,1 1,1 h 1 v -1 c 0,-3.866 -3.134,-7 -7,-7 z"
        id="path5814"
-       style="color:#000000;display:inline;overflow:visible;visibility:visible;fill:#bebebe;fill-opacity:1;fill-rule:nonzero;stroke:none;stroke-width:1.33333492;stroke-opacity:1;marker:none;enable-background:new"
+       style="color:#000000;display:inline;overflow:visible;visibility:visible;fill:#000000;fill-opacity:1;fill-rule:nonzero;stroke:none;stroke-width:1.33333492;stroke-opacity:1;marker:none;enable-background:new"
        inkscape:connector-curvature="0" />
   </g>
   <g

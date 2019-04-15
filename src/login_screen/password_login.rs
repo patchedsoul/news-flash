@@ -62,7 +62,7 @@ impl PasswordLogin {
 
         let scale_factor = page.get_style_context().get_scale();
 
-        let generic_logo_data = Resources::get("icons/feed_service_generic.svg").ok_or_else(|| format_err!("some err"))?;
+        let generic_logo_data = Resources::get("icons/feed-service-generic.svg").ok_or_else(|| format_err!("some err"))?;
         let surface = GtkUtil::create_surface_from_bytes(&generic_logo_data, 64, 64, scale_factor)?;
         logo.set_from_surface(&surface);
 

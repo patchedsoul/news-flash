@@ -4,6 +4,7 @@ use crate::login_screen::{LoginHeaderbar, PasswordLogin, WebLogin};
 use crate::main_window_actions::MainWindowActions;
 use crate::main_window_state::MainWindowState;
 use crate::welcome_screen::{WelcomeHeaderbar, WelcomePage};
+use crate::util::GtkUtil;
 use crate::Resources;
 use failure::format_err;
 use failure::Error;
@@ -40,7 +41,12 @@ impl MainWindow {
         let welcome_header = WelcomeHeaderbar::new()?;
         let content_header = ContentHeader::new()?;
 
+        let app_icon = Resources::get("icons/com.gitlab.newsflash.svg").ok_or_else(|| format_err!("some err"))?;
+        let app_icon = GtkUtil::create_pixbuf_from_bytes(&app_icon, 64, 64, 1)?;
+
         window.set_application(app);
+        window.set_icon(&app_icon);
+        window.set_title("NewsFlash");
         window.connect_delete_event(move |win, _| {
             win.destroy();
             Inhibit(false)
