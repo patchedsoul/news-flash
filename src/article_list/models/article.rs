@@ -15,7 +15,7 @@ pub struct ArticleListArticleModel {
 }
 
 impl ArticleListArticleModel {
-    pub fn new(article: Article, feed_name: String, favicon: Option<FavIcon>) -> Self {
+    pub fn new(article: Article, feed_title: String, favicon: Option<FavIcon>) -> Self {
         let (article_id, title, _author, feed_id, _url, date, summary, _direction, unread, marked) = article.decompose();
 
         ArticleListArticleModel {
@@ -24,16 +24,16 @@ impl ArticleListArticleModel {
                 Some(title) => title,
                 None => "No Title".to_owned(),
             },
-            feed_id: feed_id,
-            feed_title: feed_name,
-            favicon: favicon,
-            date: date,
+            feed_id,
+            feed_title,
+            favicon,
+            date,
             summary: match summary {
                 Some(summary) => summary,
                 None => "No Summary".to_owned(),
             },
-            unread: unread,
-            marked: marked,
+            unread,
+            marked,
         }
     }
 }

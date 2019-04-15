@@ -33,7 +33,7 @@ impl GtkUtil {
         let stream = MemoryInputStream::new_from_bytes(&bytes);
         let cancellable: Option<&Cancellable> = None;
         let pixbuf = Pixbuf::new_from_stream_at_scale(&stream, width * scale_factor, height * scale_factor, true, cancellable)?;
-        Context::cairo_surface_create_from_pixbuf(&pixbuf, scale_factor, None).ok_or(format_err!("some err"))
+        Context::cairo_surface_create_from_pixbuf(&pixbuf, scale_factor, None).ok_or_else(|| format_err!("some err"))
     }
 
     pub fn is_entry_emty(entry: &gtk::Entry) -> bool {

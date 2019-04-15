@@ -66,7 +66,7 @@ impl FeedList {
     fn setup_dnd(&self) {
         let entry = TargetEntry::new("FeedRow", TargetFlags::SAME_APP, 0);
         let tree = self.tree.clone();
-        self.list.drag_dest_set(DestDefaults::DROP | DestDefaults::MOTION, &vec![entry], DragAction::MOVE);
+        self.list.drag_dest_set(DestDefaults::DROP | DestDefaults::MOTION, &[entry], DragAction::MOVE);
         self.list.drag_dest_add_text_targets();
         self.list.connect_drag_motion(|widget, _drag_context, _x, y, _time| {
             // maybe we should keep track of the previous highlighted rows instead of iterating over all of them
@@ -86,16 +86,14 @@ impl FeedList {
                     if let Some(ctx) = GtkUtil::get_dnd_style_context_listboxrow(&row) {
                         ctx.add_class("drag-below");
                     }
+                } else if let Some(row_below) = widget.get_row_at_index(index + 1) {
+                    if let Some(ctx) = GtkUtil::get_dnd_style_context_listboxrow(&row_below) {
+                        ctx.add_class("drag-below");
+                    }
                 } else {
-                    if let Some(row_below) = widget.get_row_at_index(index + 1) {
-                        if let Some(ctx) = GtkUtil::get_dnd_style_context_listboxrow(&row_below) {
-                            ctx.add_class("drag-below");
-                        }
-                    } else {
-                        // row after doesn't exist -> insert at last pos
-                        if let Some(ctx) = GtkUtil::get_dnd_style_context_listboxrow(&row) {
-                            ctx.add_class("drag-above");
-                        }
+                    // row after doesn't exist -> insert at last pos
+                    if let Some(ctx) = GtkUtil::get_dnd_style_context_listboxrow(&row) {
+                        ctx.add_class("drag-above");
                     }
                 }
             }
@@ -126,8 +124,11 @@ impl FeedList {
 
                 let index = if y < alloc.y + (alloc.height / 2) {
                     if index > 0 { index - 1 } else { index }
-                } else {
-                    if index + 1 >= 0 { index + 1 } else { index }
+                } else if index + 1 >= 0 { 
+                    index + 1
+                }
+                else {
+                    index
                 };
 
                 if let Ok((parent_category, sort_index)) = tree.borrow().calculate_dnd(index).map_err(|_| {

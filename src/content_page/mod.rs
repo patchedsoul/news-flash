@@ -33,15 +33,15 @@ pub struct ContentPage {
 
 impl ContentPage {
     pub fn new() -> Result<Self, Error> {
-        let ui_data = Resources::get("ui/content_page.ui").ok_or(format_err!("some err"))?;
+        let ui_data = Resources::get("ui/content_page.ui").ok_or_else(|| format_err!("some err"))?;
         let ui_string = str::from_utf8(ui_data.as_ref())?;
         let builder = Builder::new_from_string(ui_string);
-        let page: gtk::Box = builder.get_object("page").ok_or(format_err!("some err"))?;
-        let feed_list_box: gtk::Box = builder.get_object("feedlist_box").ok_or(format_err!("some err"))?;
-        let article_list_box: gtk::Box = builder.get_object("articlelist_box").ok_or(format_err!("some err"))?;
-        let articleview_box: gtk::Box = builder.get_object("articleview_box").ok_or(format_err!("some err"))?;
-        let paned: gtk::Paned = builder.get_object("paned_lists_article_view").ok_or(format_err!("some err"))?;
-        let sidebar_paned: gtk::Paned = builder.get_object("paned_lists").ok_or(format_err!("some err"))?;
+        let page: gtk::Box = builder.get_object("page").ok_or_else(|| format_err!("some err"))?;
+        let feed_list_box: gtk::Box = builder.get_object("feedlist_box").ok_or_else(|| format_err!("some err"))?;
+        let article_list_box: gtk::Box = builder.get_object("articlelist_box").ok_or_else(|| format_err!("some err"))?;
+        let articleview_box: gtk::Box = builder.get_object("articleview_box").ok_or_else(|| format_err!("some err"))?;
+        let paned: gtk::Paned = builder.get_object("paned_lists_article_view").ok_or_else(|| format_err!("some err"))?;
+        let sidebar_paned: gtk::Paned = builder.get_object("paned_lists").ok_or_else(|| format_err!("some err"))?;
         sidebar_paned.set_position(SIDEBAR_PANED_DEFAULT_POS);
 
         paned.connect_property_position_notify(|paned| {
@@ -62,11 +62,11 @@ impl ContentPage {
         articleview_box.pack_start(&article_view.widget(), false, true, 0);
 
         Ok(ContentPage {
-            page: page,
-            paned: paned,
-            sidebar: sidebar,
-            article_list: article_list,
-            article_view: article_view,
+            page,
+            paned,
+            sidebar,
+            article_list,
+            article_view,
         })
     }
 

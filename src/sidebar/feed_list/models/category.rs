@@ -21,13 +21,13 @@ impl FeedListCategoryModel {
             id: category.category_id.clone(),
             parent_id: category.parent_id.clone(),
             label: category.label.clone(),
-            item_count: item_count,
+            item_count,
             sort_index: match category.sort_index {
                 Some(index) => index,
                 None => std::i32::MAX,
             },
             children: Vec::new(),
-            level: level,
+            level,
             expanded: false,
         }
     }

@@ -12,11 +12,11 @@ pub struct ErrorDialog {
 
 impl ErrorDialog {
     pub fn new(error: &NewsFlashError, parent: &gtk::ApplicationWindow) -> Result<Self, Error> {
-        let ui_data = Resources::get("ui/error_detail_dialog.ui").ok_or(format_err!("some err1"))?;
+        let ui_data = Resources::get("ui/error_detail_dialog.ui").ok_or_else(|| format_err!("some err"))?;
         let ui_string = str::from_utf8(ui_data.as_ref())?;
         let builder = gtk::Builder::new_from_string(ui_string);
-        let list_box: gtk::Box = builder.get_object("list_box").ok_or(format_err!("some err2"))?;
-        let error_dialog: gtk::Window = builder.get_object("error_dialog").ok_or(format_err!("some err3"))?;
+        let list_box: gtk::Box = builder.get_object("list_box").ok_or_else(|| format_err!("some err"))?;
+        let error_dialog: gtk::Window = builder.get_object("error_dialog").ok_or_else(|| format_err!("some err"))?;
 
         for (i, cause) in Fail::iter_chain(error).enumerate() {
             let mut string = format!("{}", cause);
@@ -53,8 +53,8 @@ impl ErrorDialog {
         error_dialog.show_all();
 
         Ok(ErrorDialog {
-            error_dialog: error_dialog,
-            list_box: list_box,
+            error_dialog,
+            list_box,
         })
     }
 }

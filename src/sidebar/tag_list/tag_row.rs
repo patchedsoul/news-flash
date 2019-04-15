@@ -42,9 +42,9 @@ impl TagRow {
             id: model.id.clone(),
             widget: Self::create_row(&tag_box, &model.id),
             item_count: item_count_label,
-            item_count_event: item_count_event,
+            item_count_event,
             title: title_label,
-            tag_color_circle: tag_color_circle,
+            tag_color_circle,
         };
         tag.update_item_count(model.item_count);
         tag.update_title(&model.label);

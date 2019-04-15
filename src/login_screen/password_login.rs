@@ -41,48 +41,48 @@ pub struct PasswordLogin {
 
 impl PasswordLogin {
     pub fn new() -> Result<Self, Error> {
-        let ui_data = Resources::get("ui/password_login.ui").ok_or(format_err!("some err"))?;
+        let ui_data = Resources::get("ui/password_login.ui").ok_or_else(|| format_err!("some err"))?;
         let ui_string = str::from_utf8(ui_data.as_ref())?;
         let builder = gtk::Builder::new_from_string(ui_string);
-        let page: gtk::Box = builder.get_object("password_login").ok_or(format_err!("some err"))?;
-        let logo: gtk::Image = builder.get_object("logo").ok_or(format_err!("some err"))?;
-        let headline: gtk::Label = builder.get_object("headline").ok_or(format_err!("some err"))?;
-        let url_label: gtk::Label = builder.get_object("url_label").ok_or(format_err!("some err"))?;
-        let url_entry: gtk::Entry = builder.get_object("url_entry").ok_or(format_err!("some err"))?;
-        let user_entry: gtk::Entry = builder.get_object("user_entry").ok_or(format_err!("some err"))?;
-        let pass_entry: gtk::Entry = builder.get_object("pass_entry").ok_or(format_err!("some err"))?;
-        let http_user_entry: gtk::Entry = builder.get_object("http_user_entry").ok_or(format_err!("some err"))?;
-        let http_pass_entry: gtk::Entry = builder.get_object("http_pass_entry").ok_or(format_err!("some err"))?;
-        let http_revealer: gtk::Revealer = builder.get_object("http_auth_revealer").ok_or(format_err!("some err"))?;
-        let login_button: gtk::Button = builder.get_object("login_button").ok_or(format_err!("some err"))?;
-        let info_bar: gtk::InfoBar = builder.get_object("info_bar").ok_or(format_err!("some err"))?;
-        let info_bar_label: gtk::Label = builder.get_object("info_bar_label").ok_or(format_err!("some err"))?;
-        let ignore_tls_button: gtk::Button = builder.get_object("ignore_button").ok_or(format_err!("some err"))?;
-        let error_details_button: gtk::Button = builder.get_object("details_button").ok_or(format_err!("some err"))?;
+        let page: gtk::Box = builder.get_object("password_login").ok_or_else(|| format_err!("some err"))?;
+        let logo: gtk::Image = builder.get_object("logo").ok_or_else(|| format_err!("some err"))?;
+        let headline: gtk::Label = builder.get_object("headline").ok_or_else(|| format_err!("some err"))?;
+        let url_label: gtk::Label = builder.get_object("url_label").ok_or_else(|| format_err!("some err"))?;
+        let url_entry: gtk::Entry = builder.get_object("url_entry").ok_or_else(|| format_err!("some err"))?;
+        let user_entry: gtk::Entry = builder.get_object("user_entry").ok_or_else(|| format_err!("some err"))?;
+        let pass_entry: gtk::Entry = builder.get_object("pass_entry").ok_or_else(|| format_err!("some err"))?;
+        let http_user_entry: gtk::Entry = builder.get_object("http_user_entry").ok_or_else(|| format_err!("some err"))?;
+        let http_pass_entry: gtk::Entry = builder.get_object("http_pass_entry").ok_or_else(|| format_err!("some err"))?;
+        let http_revealer: gtk::Revealer = builder.get_object("http_auth_revealer").ok_or_else(|| format_err!("some err"))?;
+        let login_button: gtk::Button = builder.get_object("login_button").ok_or_else(|| format_err!("some err"))?;
+        let info_bar: gtk::InfoBar = builder.get_object("info_bar").ok_or_else(|| format_err!("some err"))?;
+        let info_bar_label: gtk::Label = builder.get_object("info_bar_label").ok_or_else(|| format_err!("some err"))?;
+        let ignore_tls_button: gtk::Button = builder.get_object("ignore_button").ok_or_else(|| format_err!("some err"))?;
+        let error_details_button: gtk::Button = builder.get_object("details_button").ok_or_else(|| format_err!("some err"))?;
 
-        let scale = page.get_style_context().get_scale();
+        let scale_factor = page.get_style_context().get_scale();
 
-        let generic_logo_data = Resources::get("icons/feed_service_generic.svg").ok_or(format_err!("some err"))?;
-        let surface = GtkUtil::create_surface_from_bytes(&generic_logo_data, 64, 64, scale)?;
+        let generic_logo_data = Resources::get("icons/feed_service_generic.svg").ok_or_else(|| format_err!("some err"))?;
+        let surface = GtkUtil::create_surface_from_bytes(&generic_logo_data, 64, 64, scale_factor)?;
         logo.set_from_surface(&surface);
 
         let page = PasswordLogin {
-            page: page,
-            logo: logo,
-            headline: headline,
-            scale_factor: scale,
-            url_label: url_label,
-            url_entry: url_entry,
-            user_entry: user_entry,
-            pass_entry: pass_entry,
-            http_user_entry: http_user_entry,
-            http_pass_entry: http_pass_entry,
-            http_revealer: http_revealer,
-            info_bar: info_bar,
-            info_bar_label: info_bar_label,
-            login_button: login_button,
-            ignore_tls_button: ignore_tls_button,
-            error_details_button: error_details_button,
+            page,
+            logo,
+            headline,
+            scale_factor,
+            url_label,
+            url_entry,
+            user_entry,
+            pass_entry,
+            http_user_entry,
+            http_pass_entry,
+            http_revealer,
+            info_bar,
+            info_bar_label,
+            login_button,
+            ignore_tls_button,
+            error_details_button,
             info_bar_close_signal: None,
             info_bar_response_signal: None,
             url_entry_signal: None,
@@ -169,7 +169,7 @@ impl PasswordLogin {
                             None
                         };
                         let user = user_entry.get_text().unwrap().as_str().to_owned();
-                        let pass = pass_entry.get_text().unwrap().as_str().to_owned();
+                        let password = pass_entry.get_text().unwrap().as_str().to_owned();
                         let http_user: Option<String> = if pw_gui_desc.http_auth {
                             match http_user_entry.get_text() {
                                 Some(user) => Some(user.as_str().to_owned()),
@@ -178,7 +178,7 @@ impl PasswordLogin {
                         } else {
                             None
                         };
-                        let http_pass: Option<String> = if pw_gui_desc.http_auth {
+                        let http_password: Option<String> = if pw_gui_desc.http_auth {
                             match http_pass_entry.get_text() {
                                 Some(pass) => Some(pass.as_str().to_owned()),
                                 None => None,
@@ -189,11 +189,11 @@ impl PasswordLogin {
 
                         let login_data = PasswordLoginData {
                             id: plugin_id.clone(),
-                            url: url,
-                            user: user,
-                            password: pass,
-                            http_user: http_user,
-                            http_password: http_pass,
+                            url,
+                            user,
+                            password,
+                            http_user,
+                            http_password,
                         };
                         let login_data = LoginData::Password(login_data);
                         let login_data_json = serde_json::to_string(&login_data).unwrap();

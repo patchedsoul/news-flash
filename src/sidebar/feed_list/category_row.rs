@@ -38,10 +38,10 @@ impl CategoryRow {
         let category = CategoryRow {
             id: model.id.clone(),
             widget: Self::create_row(&revealer),
-            revealer: revealer,
+            revealer,
             arrow_event: arrow_event.clone(),
             item_count: item_count_label,
-            item_count_event: item_count_event,
+            item_count_event,
             title: title_label,
             expanded: model.expanded,
         };

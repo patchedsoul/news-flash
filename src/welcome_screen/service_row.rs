@@ -23,17 +23,17 @@ pub struct ServiceRow {
 
 impl ServiceRow {
     pub fn new(info: PluginInfo) -> Result<Self, Error> {
-        let ui_data = Resources::get("ui/service_row.ui").ok_or(format_err!("some err"))?;
+        let ui_data = Resources::get("ui/service_row.ui").ok_or_else(|| format_err!("some err"))?;
         let ui_string = str::from_utf8(ui_data.as_ref())?;
         let builder = gtk::Builder::new_from_string(ui_string);
-        let row: gtk::EventBox = builder.get_object("service_row").ok_or(format_err!("some err"))?;
-        let label: gtk::Label = builder.get_object("label").ok_or(format_err!("some err"))?;
+        let row: gtk::EventBox = builder.get_object("service_row").ok_or_else(|| format_err!("some err"))?;
+        let label: gtk::Label = builder.get_object("label").ok_or_else(|| format_err!("some err"))?;
         label.set_label(&info.name);
-        let arrow_revealer: gtk::Revealer = builder.get_object("arrow_revealer").ok_or(format_err!("some err"))?;
-        let info_revealer: gtk::Revealer = builder.get_object("info_revealer").ok_or(format_err!("some err"))?;
+        let arrow_revealer: gtk::Revealer = builder.get_object("arrow_revealer").ok_or_else(|| format_err!("some err"))?;
+        let info_revealer: gtk::Revealer = builder.get_object("info_revealer").ok_or_else(|| format_err!("some err"))?;
 
         // Website
-        let website_label: gtk::Label = builder.get_object("website_label").ok_or(format_err!("some err"))?;
+        let website_label: gtk::Label = builder.get_object("website_label").ok_or_else(|| format_err!("some err"))?;
         if let Some(website) = info.website {
             let website_string = website.get().to_string();
             website_label.set_markup(&format!("<a href=\"{}\">{}</a>", website_string, website_string));
@@ -41,7 +41,7 @@ impl ServiceRow {
             website_label.set_text("No Website");
         }
 
-        let license_label: gtk::Label = builder.get_object("license_label").ok_or(format_err!("some err"))?;
+        let license_label: gtk::Label = builder.get_object("license_label").ok_or_else(|| format_err!("some err"))?;
         let license_string = match info.license_type {
             ServiceLicense::ApacheV2 => "<a href=\"http://www.apache.org/licenses/LICENSE-2.0\">Apache v2</a>",
             ServiceLicense::GPLv2 => "<a href=\"http://www.gnu.de/documents/gpl-2.0.en.html\">GPLv2</a>",
@@ -53,7 +53,7 @@ impl ServiceRow {
         };
         license_label.set_markup(license_string);
 
-        let type_label: gtk::Label = builder.get_object("type_label").ok_or(format_err!("some err"))?;
+        let type_label: gtk::Label = builder.get_object("type_label").ok_or_else(|| format_err!("some err"))?;
         let type_string = match info.service_type {
             ServiceType::Local => "Local data only",
             ServiceType::Remote { self_hosted } => {
@@ -62,7 +62,7 @@ impl ServiceRow {
         };
         type_label.set_text(type_string);
 
-        let price_label: gtk::Label = builder.get_object("price_label").ok_or(format_err!("some err"))?;
+        let price_label: gtk::Label = builder.get_object("price_label").ok_or_else(|| format_err!("some err"))?;
         let price_string = match info.service_price {
             ServicePrice::Free => "Free",
             ServicePrice::Paid => "Paid",
@@ -70,7 +70,7 @@ impl ServiceRow {
         };
         price_label.set_text(price_string);
 
-        let arrow_event: gtk::EventBox = builder.get_object("arrow_event").ok_or(format_err!("some err"))?;
+        let arrow_event: gtk::EventBox = builder.get_object("arrow_event").ok_or_else(|| format_err!("some err"))?;
         arrow_event.connect_leave_notify_event(|widget, _| {
             widget.get_child().unwrap().set_opacity(0.8);
             gtk::Inhibit(false)
@@ -80,10 +80,10 @@ impl ServiceRow {
             gtk::Inhibit(false)
         });
 
-        let arrow_image: gtk::Image = builder.get_object("arrow_image").ok_or(format_err!("some err"))?;
+        let arrow_image: gtk::Image = builder.get_object("arrow_image").ok_or_else(|| format_err!("some err"))?;
         let scale = row.get_style_context().get_scale();
 
-        let image: gtk::Image = builder.get_object("icon").ok_or(format_err!("get icon widget"))?;
+        let image: gtk::Image = builder.get_object("icon").ok_or_else(|| format_err!("some err"))?;
         if let Some(icon) = info.icon {
             let surface = match icon {
                 PluginIcon::Vector(icon) => GtkUtil::create_surface_from_bytes(&icon.data, 64, 64, scale)?,
@@ -95,7 +95,7 @@ impl ServiceRow {
         }
 
         let service_row = ServiceRow {
-            row: row,
+            row,
             arrow_revealer: gtk_handle!(arrow_revealer),
             arrow_event: gtk_handle!(arrow_event),
             arrow_image: gtk_handle!(arrow_image),

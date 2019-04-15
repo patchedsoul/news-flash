@@ -34,26 +34,26 @@ pub struct WebLogin {
 
 impl WebLogin {
     pub fn new() -> Result<Self, Error> {
-        let ui_data = Resources::get("ui/oauth_login.ui").ok_or(format_err!("some err"))?;
+        let ui_data = Resources::get("ui/oauth_login.ui").ok_or_else(|| format_err!("some err"))?;
         let ui_string = str::from_utf8(ui_data.as_ref())?;
         let builder = gtk::Builder::new_from_string(ui_string);
-        let page: gtk::Box = builder.get_object("oauth_box").ok_or(format_err!("some err"))?;
-        let info_bar: gtk::InfoBar = builder.get_object("info_bar").ok_or(format_err!("some err"))?;
-        let error_details_button: gtk::Button = builder.get_object("details_button").ok_or(format_err!("some err"))?;
-        let info_bar_label: gtk::Label = builder.get_object("info_bar_label").ok_or(format_err!("some err"))?;
+        let page: gtk::Box = builder.get_object("oauth_box").ok_or_else(|| format_err!("some err"))?;
+        let info_bar: gtk::InfoBar = builder.get_object("info_bar").ok_or_else(|| format_err!("some err"))?;
+        let error_details_button: gtk::Button = builder.get_object("details_button").ok_or_else(|| format_err!("some err"))?;
+        let info_bar_label: gtk::Label = builder.get_object("info_bar_label").ok_or_else(|| format_err!("some err"))?;
 
-        let context = WebContext::get_default().ok_or(format_err!("some err"))?;
+        let context = WebContext::get_default().ok_or_else(|| format_err!("some err"))?;
         let content_manager = UserContentManager::new();
         let webview = WebView::new_with_context_and_user_content_manager(&context, &content_manager);
 
         page.pack_start(&webview, true, true, 0);
 
         let page = WebLogin {
-            webview: webview,
-            page: page,
-            info_bar: info_bar,
-            info_bar_label: info_bar_label,
-            error_details_button: error_details_button,
+            webview,
+            page,
+            info_bar,
+            info_bar_label,
+            error_details_button,
             redirect_signal_id: gtk_handle!(None),
             info_bar_close_signal: None,
             info_bar_response_signal: None,

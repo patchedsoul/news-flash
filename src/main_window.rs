@@ -26,15 +26,15 @@ impl MainWindow {
     pub fn new(app: &Application) -> Result<Self, Error> {
         // setup CSS for window
         let provider = CssProvider::new();
-        let css_data = Resources::get("css/app.css").ok_or(format_err!("some err"))?;
+        let css_data = Resources::get("css/app.css").ok_or_else(|| format_err!("some err"))?;
         CssProvider::load_from_data(&provider, css_data.as_ref()).unwrap();
         StyleContext::add_provider_for_screen(&gdk::Screen::get_default().unwrap(), &provider, 600);
 
-        let ui_data = Resources::get("ui/main_window.ui").ok_or(format_err!("some err"))?;
+        let ui_data = Resources::get("ui/main_window.ui").ok_or_else(|| format_err!("some err"))?;
         let ui_string = str::from_utf8(ui_data.as_ref())?;
         let builder = Builder::new_from_string(ui_string);
-        let window: ApplicationWindow = builder.get_object("main_window").ok_or(format_err!("some err"))?;
-        let stack: Stack = builder.get_object("main_stack").ok_or(format_err!("some err"))?;
+        let window: ApplicationWindow = builder.get_object("main_window").ok_or_else(|| format_err!("some err"))?;
+        let stack: Stack = builder.get_object("main_stack").ok_or_else(|| format_err!("some err"))?;
 
         let login_header = LoginHeaderbar::new(&window)?;
         let welcome_header = WelcomeHeaderbar::new()?;
@@ -87,7 +87,7 @@ impl MainWindow {
             info!("Successful load from config");
 
             stack.set_visible_child_name("content");
-            let id = news_flash_lib.id().ok_or(format_err!("some err"))?;
+            let id = news_flash_lib.id().ok_or_else(|| format_err!("some err"))?;
             content_page_handle.borrow().set_service(&id, news_flash_lib.user_name())?;
             *news_flash_handle.borrow_mut() = Some(news_flash_lib);
 

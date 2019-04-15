@@ -261,15 +261,13 @@ impl FeedListTree {
     }
 
     fn calc_dnd_subcategory(&self, category: &[FeedListItem], parent_id: &CategoryID, list_pos: i32, global_pos_iter: &mut i32) -> Result<(CategoryID, i32), FeedListModelError> {
-        let mut local_pos_iter = 0;
 
         if global_pos_iter == &list_pos {
-            return Ok((parent_id.clone(), local_pos_iter));
+            return Ok((parent_id.clone(), 0));
         }
 
-        for item in category {
+        for (local_pos, item) in category.iter().enumerate() {
             *global_pos_iter += 1;
-            local_pos_iter += 1;
 
             if let FeedListItem::Category(model) = item {
                 if let Ok((parent, pos)) = self.calc_dnd_subcategory(&model.children, &model.id, list_pos, global_pos_iter) {
@@ -282,7 +280,7 @@ impl FeedListTree {
                     FeedListItem::Category(model) => model.parent_id.clone(),
                     FeedListItem::Feed(model) => model.parent_id.clone(),
                 };
-                return Ok((parent, local_pos_iter));
+                return Ok((parent, local_pos as i32));
             }
         }
         Err(FeedListModelErrorKind::DnD)?

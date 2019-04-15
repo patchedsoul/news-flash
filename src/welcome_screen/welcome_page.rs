@@ -23,15 +23,15 @@ pub struct WelcomePage {
 
 impl WelcomePage {
     pub fn new(window: &ApplicationWindow) -> Result<Self, Error> {
-        let ui_data = Resources::get("ui/welcome_page.ui").ok_or(format_err!("some err"))?;
+        let ui_data = Resources::get("ui/welcome_page.ui").ok_or_else(|| format_err!("some err"))?;
         let ui_string = str::from_utf8(ui_data.as_ref())?;
         let builder = gtk::Builder::new_from_string(ui_string);
-        let page: gtk::Box = builder.get_object("welcome_page").ok_or(format_err!("some err"))?;
-        let list: gtk::ListBox = builder.get_object("list").ok_or(format_err!("some err"))?;
+        let page: gtk::Box = builder.get_object("welcome_page").ok_or_else(|| format_err!("some err"))?;
+        let list: gtk::ListBox = builder.get_object("list").ok_or_else(|| format_err!("some err"))?;
 
         let mut page = WelcomePage {
-            page: page,
-            list: list,
+            page,
+            list,
             services: gtk_handle!(HashMap::new()),
         };
 

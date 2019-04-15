@@ -11,22 +11,22 @@ use std::str;
 
 pub struct ContentHeader {
     header: gtk::Paned,
-    stack: gtk::Stack,
+    update_stack: gtk::Stack,
     update_button: gtk::Button,
 }
 
 impl ContentHeader {
     pub fn new() -> Result<Self, Error> {
-        let ui_data = Resources::get("ui/content_page_header.ui").ok_or(format_err!("some err"))?;
+        let ui_data = Resources::get("ui/content_page_header.ui").ok_or_else(|| format_err!("some err"))?;
         let ui_string = str::from_utf8(ui_data.as_ref())?;
         let builder = Builder::new_from_string(ui_string);
-        let header: gtk::Paned = builder.get_object("content_header").ok_or(format_err!("some err"))?;
-        let all_button: ToggleButton = builder.get_object("all_button").ok_or(format_err!("some err"))?;
-        let unread_button: ToggleButton = builder.get_object("unread_button").ok_or(format_err!("some err"))?;
-        let marked_button: ToggleButton = builder.get_object("marked_button").ok_or(format_err!("some err"))?;
-        let update_button: gtk::Button = builder.get_object("update_button").ok_or(format_err!("some err"))?;
-        let update_stack: gtk::Stack = builder.get_object("update_stack").ok_or(format_err!("some err"))?;
-        let search_entry: gtk::SearchEntry = builder.get_object("search_entry").ok_or(format_err!("some err"))?;
+        let header: gtk::Paned = builder.get_object("content_header").ok_or_else(|| format_err!("some err"))?;
+        let all_button: ToggleButton = builder.get_object("all_button").ok_or_else(|| format_err!("some err"))?;
+        let unread_button: ToggleButton = builder.get_object("unread_button").ok_or_else(|| format_err!("some err"))?;
+        let marked_button: ToggleButton = builder.get_object("marked_button").ok_or_else(|| format_err!("some err"))?;
+        let update_button: gtk::Button = builder.get_object("update_button").ok_or_else(|| format_err!("some err"))?;
+        let update_stack: gtk::Stack = builder.get_object("update_stack").ok_or_else(|| format_err!("some err"))?;
+        let search_entry: gtk::SearchEntry = builder.get_object("search_entry").ok_or_else(|| format_err!("some err"))?;
         search_entry.connect_search_changed(|search_entry| {
             if let Ok(main_window) = GtkUtil::get_main_window(search_entry) {
                 if let Some(action) = main_window.lookup_action("search-term") {
@@ -53,9 +53,9 @@ impl ContentHeader {
         });
 
         Ok(ContentHeader {
-            header: header,
-            stack: update_stack,
-            update_button: update_button,
+            header,
+            update_stack,
+            update_button,
         })
     }
 
@@ -69,7 +69,7 @@ impl ContentHeader {
 
     pub fn finish_sync(&self) {
         self.update_button.set_sensitive(true);
-        self.stack.set_visible_child_name("icon");
+        self.update_stack.set_visible_child_name("icon");
     }
 
     fn setup_linked_button(button: &ToggleButton, other_button_1: &ToggleButton, other_button_2: &ToggleButton, mode: HeaderSelection) {

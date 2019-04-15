@@ -46,7 +46,7 @@ impl From<FeedListModelErrorKind> for FeedListModelError {
 
 impl From<Context<FeedListModelErrorKind>> for FeedListModelError {
     fn from(inner: Context<FeedListModelErrorKind>) -> FeedListModelError {
-        FeedListModelError { inner: inner }
+        FeedListModelError { inner }
     }
 }
 

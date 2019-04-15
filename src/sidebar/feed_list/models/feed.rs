@@ -19,13 +19,13 @@ impl FeedListFeedModel {
             id: feed.feed_id.clone(),
             parent_id: mapping.category_id.clone(),
             label: feed.label.clone(),
-            item_count: item_count,
+            item_count,
             sort_index: match feed.sort_index {
                 Some(index) => index,
                 None => std::i32::MAX,
             },
-            icon: icon,
-            level: level,
+            icon,
+            level,
         }
     }
 }

@@ -22,7 +22,7 @@ impl TagListTagModel {
                 Some(colour) => colour.clone(),
                 None => DEFAULT_COLOUR.to_owned(),
             },
-            item_count: item_count,
+            item_count,
             sort_index: match tag.sort_index {
                 Some(index) => index,
                 None => std::i32::MAX,

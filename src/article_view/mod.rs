@@ -60,21 +60,21 @@ pub struct ArticleView {
 
 impl ArticleView {
     pub fn new() -> Result<Self, Error> {
-        let ui_data = Resources::get("ui/article_view.ui").ok_or(format_err!("some err"))?;
+        let ui_data = Resources::get("ui/article_view.ui").ok_or_else(|| format_err!("some err"))?;
         let ui_string = str::from_utf8(ui_data.as_ref())?;
         let builder = gtk::Builder::new_from_string(ui_string);
 
-        let url_overlay: gtk::Overlay = builder.get_object("url_overlay").ok_or(format_err!("some err"))?;
+        let url_overlay: gtk::Overlay = builder.get_object("url_overlay").ok_or_else(|| format_err!("some err"))?;
         let url_overlay_label = UrlOverlay::new()?;
         url_overlay.add_overlay(&url_overlay_label.widget());
 
-        let progress_overlay: gtk::Overlay = builder.get_object("progress_overlay").ok_or(format_err!("some err"))?;
+        let progress_overlay: gtk::Overlay = builder.get_object("progress_overlay").ok_or_else(|| format_err!("some err"))?;
         let progress_overlay_label = ProgressOverlay::new()?;
         progress_overlay.add_overlay(&progress_overlay_label.widget());
 
         let visible_article: GtkHandle<Option<FatArticle>> = gtk_handle!(None);
         let visible_article_crash_view = visible_article.clone();
-        let view_html_button: gtk::Button = builder.get_object("view_html_button").ok_or(format_err!("some err"))?;
+        let view_html_button: gtk::Button = builder.get_object("view_html_button").ok_or_else(|| format_err!("some err"))?;
         view_html_button.connect_clicked(move |_button| {
             if let Some(article) = visible_article_crash_view.borrow().as_ref() {
                 if let Some(html) = &article.html {
@@ -92,16 +92,16 @@ impl ArticleView {
             }
         });
 
-        let stack: gtk::Stack = builder.get_object("article_view_stack").ok_or(format_err!("some err"))?;
+        let stack: gtk::Stack = builder.get_object("article_view_stack").ok_or_else(|| format_err!("some err"))?;
         stack.set_visible_child_name("empty");
 
         let internal_state = InternalState::Empty;
 
         let article_view = ArticleView {
-            stack: stack,
+            stack,
             top_overlay: progress_overlay,
-            view_html_button: view_html_button,
-            visible_article: visible_article,
+            view_html_button,
+            visible_article,
             internal_state: gtk_handle!(internal_state),
             theme: ArticleTheme::Default,
             load_changed_signal: gtk_handle!(None),
@@ -177,6 +177,7 @@ impl ArticleView {
         );
     }
 
+    #[allow(clippy::too_many_arguments)]
     fn remove_old_view_static(
         timeout: u32,
         progress_overlay_label: &GtkHandle<ProgressOverlay>,
@@ -635,12 +636,12 @@ impl ArticleView {
     }
 
     fn build_article(&self, article: &FatArticle, feed_name: String) -> Result<String, Error> {
-        let template_data = Resources::get("article_view/article.html").ok_or(format_err!("some err"))?;
+        let template_data = Resources::get("article_view/article.html").ok_or_else(|| format_err!("some err"))?;
         let template_str = str::from_utf8(template_data.as_ref())?;
         let mut template_string = template_str.to_owned();
         //template_string.push_str(template_str);
 
-        let css_data = Resources::get("article_view/style.css").ok_or(format_err!("some err"))?;
+        let css_data = Resources::get("article_view/style.css").ok_or_else(|| format_err!("some err"))?;
         let css_string = str::from_utf8(css_data.as_ref())?;
 
         // FIXME

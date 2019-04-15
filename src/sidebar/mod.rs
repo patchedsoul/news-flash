@@ -36,22 +36,22 @@ pub struct SideBar {
 
 impl SideBar {
     pub fn new() -> Result<Self, Error> {
-        let ui_data = Resources::get("ui/sidebar.ui").ok_or(format_err!("some err"))?;
+        let ui_data = Resources::get("ui/sidebar.ui").ok_or_else(|| format_err!("some err"))?;
         let ui_string = str::from_utf8(ui_data.as_ref())?;
         let builder = Builder::new_from_string(ui_string);
-        let sidebar: gtk::Box = builder.get_object("toplevel").ok_or(format_err!("some err"))?;
-        let logo: gtk::Image = builder.get_object("logo").ok_or(format_err!("some err"))?;
-        let unread_label: gtk::Label = builder.get_object("unread_count_all").ok_or(format_err!("some err"))?;
-        let service_label: gtk::Label = builder.get_object("service_label").ok_or(format_err!("some err"))?;
-        let categories_event_box: gtk::EventBox = builder.get_object("categories_event_box").ok_or(format_err!("some err"))?;
-        let categories_expander: gtk::Image = builder.get_object("categories_expander").ok_or(format_err!("some err"))?;
-        let tags_event_box: gtk::EventBox = builder.get_object("tags_event_box").ok_or(format_err!("some err"))?;
-        let tags_expander: gtk::Image = builder.get_object("tags_expander").ok_or(format_err!("some err"))?;
-        let categories_revealer: gtk::Revealer = builder.get_object("categories_revealer").ok_or(format_err!("some err"))?;
-        let tags_revealer: gtk::Revealer = builder.get_object("tags_revealer").ok_or(format_err!("some err"))?;
-        let all_event_box: gtk::EventBox = builder.get_object("all_event_box").ok_or(format_err!("some err"))?;
-        let feed_list_box: gtk::Box = builder.get_object("feed_list_box").ok_or(format_err!("some err"))?;
-        let tag_list_box: gtk::Box = builder.get_object("tags_list_box").ok_or(format_err!("some err"))?;
+        let sidebar: gtk::Box = builder.get_object("toplevel").ok_or_else(|| format_err!("some err"))?;
+        let logo: gtk::Image = builder.get_object("logo").ok_or_else(|| format_err!("some err"))?;
+        let unread_label: gtk::Label = builder.get_object("unread_count_all").ok_or_else(|| format_err!("some err"))?;
+        let service_label: gtk::Label = builder.get_object("service_label").ok_or_else(|| format_err!("some err"))?;
+        let categories_event_box: gtk::EventBox = builder.get_object("categories_event_box").ok_or_else(|| format_err!("some err"))?;
+        let categories_expander: gtk::Image = builder.get_object("categories_expander").ok_or_else(|| format_err!("some err"))?;
+        let tags_event_box: gtk::EventBox = builder.get_object("tags_event_box").ok_or_else(|| format_err!("some err"))?;
+        let tags_expander: gtk::Image = builder.get_object("tags_expander").ok_or_else(|| format_err!("some err"))?;
+        let categories_revealer: gtk::Revealer = builder.get_object("categories_revealer").ok_or_else(|| format_err!("some err"))?;
+        let tags_revealer: gtk::Revealer = builder.get_object("tags_revealer").ok_or_else(|| format_err!("some err"))?;
+        let all_event_box: gtk::EventBox = builder.get_object("all_event_box").ok_or_else(|| format_err!("some err"))?;
+        let feed_list_box: gtk::Box = builder.get_object("feed_list_box").ok_or_else(|| format_err!("some err"))?;
+        let tag_list_box: gtk::Box = builder.get_object("tags_list_box").ok_or_else(|| format_err!("some err"))?;
 
         let feed_list = FeedList::new()?;
         let tag_list = TagList::new()?;
@@ -124,10 +124,10 @@ impl SideBar {
         Self::setup_all_button(&all_event_box, feed_list_handle.clone(), tag_list_handle.clone());
 
         Ok(SideBar {
-            sidebar: sidebar,
-            logo: logo,
-            unread_label: unread_label,
-            service_label: service_label,
+            sidebar,
+            logo,
+            unread_label,
+            service_label,
             scale_factor: scale,
             feed_list: feed_list_handle,
             tag_list: tag_list_handle,
@@ -154,7 +154,7 @@ impl SideBar {
 
     pub fn set_service(&self, id: &PluginID, user_name: Option<String>) -> Result<(), Error> {
         let list = NewsFlash::list_backends();
-        let info = list.get(id).ok_or(format_err!("some err"))?;
+        let info = list.get(id).ok_or_else(|| format_err!("some err"))?;
         if let Some(icon) = &info.icon_symbolic {
             let surface = match icon {
                 PluginIcon::Vector(icon) => GtkUtil::create_surface_from_bytes(&icon.data, icon.width, icon.height, self.scale_factor)?,
@@ -162,7 +162,7 @@ impl SideBar {
             };
             self.logo.set_from_surface(&surface);
         } else {
-            let generic_logo_data = Resources::get("icons/feed_service_generic.svg").ok_or(format_err!("some err"))?;
+            let generic_logo_data = Resources::get("icons/feed_service_generic.svg").ok_or_else(|| format_err!("some err"))?;
             let surface = GtkUtil::create_surface_from_bytes(&generic_logo_data, 64, 64, self.scale_factor)?;
             self.logo.set_from_surface(&surface);
         }

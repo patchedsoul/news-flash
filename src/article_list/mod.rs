@@ -37,10 +37,10 @@ pub struct ArticleList {
 
 impl ArticleList {
     pub fn new() -> Result<Self, Error> {
-        let ui_data = Resources::get("ui/article_list.ui").ok_or(format_err!("some err"))?;
+        let ui_data = Resources::get("ui/article_list.ui").ok_or_else(|| format_err!("some err"))?;
         let ui_string = str::from_utf8(ui_data.as_ref())?;
         let builder = Builder::new_from_string(ui_string);
-        let stack: gtk::Stack = builder.get_object("article_list_stack").ok_or(format_err!("some err"))?;
+        let stack: gtk::Stack = builder.get_object("article_list_stack").ok_or_else(|| format_err!("some err"))?;
 
         let list_1 = SingleArticleList::new()?;
         let list_2 = SingleArticleList::new()?;
@@ -52,12 +52,12 @@ impl ArticleList {
         stack.add_named(&list_2.widget(), "list_2");
 
         let mut article_list = ArticleList {
-            stack: stack,
+            stack,
             list_1: gtk_handle!(list_1),
             list_2: gtk_handle!(list_2),
             list_model: gtk_handle!(model),
             list_select_signal: None,
-            window_state: window_state,
+            window_state,
             current_list: CurrentList::List1,
         };
 

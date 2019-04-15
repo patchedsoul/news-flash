@@ -43,10 +43,10 @@ impl FeedRow {
             widget: Self::create_row(&revealer, &model.id),
             item_count: item_count_label,
             title: title_label,
-            revealer: revealer,
+            revealer,
             hide_timeout: gtk_handle!(None),
-            item_count_event: item_count_event,
-            favicon: favicon,
+            item_count_event,
+            favicon,
         };
         feed.update_item_count(model.item_count);
         feed.update_title(&model.label);
@@ -68,7 +68,7 @@ impl FeedRow {
         let id = id.clone();
 
         let entry = TargetEntry::new("FeedRow", TargetFlags::SAME_APP, 0);
-        widget.drag_source_set(ModifierType::BUTTON1_MASK, &vec![entry], DragAction::MOVE);
+        widget.drag_source_set(ModifierType::BUTTON1_MASK, &[entry], DragAction::MOVE);
         widget.drag_source_add_text_targets();
         widget.connect_drag_data_get(move |_widget, _ctx, selection_data, _info, _time| {
             if let Ok(json) = serde_json::to_string(&id.clone()) {

@@ -27,11 +27,11 @@ pub struct SingleArticleList {
 
 impl SingleArticleList {
     pub fn new() -> Result<Self, Error> {
-        let ui_data = Resources::get("ui/article_list_single.ui").ok_or(format_err!("some err"))?;
+        let ui_data = Resources::get("ui/article_list_single.ui").ok_or_else(|| format_err!("some err"))?;
         let ui_string = str::from_utf8(ui_data.as_ref())?;
         let builder = Builder::new_from_string(ui_string);
-        let scroll: gtk::ScrolledWindow = builder.get_object("article_list_scroll").ok_or(format_err!("some err"))?;
-        let list: gtk::ListBox = builder.get_object("article_list_box").ok_or(format_err!("some err"))?;
+        let scroll: gtk::ScrolledWindow = builder.get_object("article_list_scroll").ok_or_else(|| format_err!("some err"))?;
+        let list: gtk::ListBox = builder.get_object("article_list_box").ok_or_else(|| format_err!("some err"))?;
 
         let vadj_scroll = scroll.clone();
         let cooldown = gtk_handle!(false);
@@ -58,9 +58,9 @@ impl SingleArticleList {
         }
 
         Ok(SingleArticleList {
-            scroll: scroll,
+            scroll,
             articles: HashMap::new(),
-            list: list,
+            list,
         })
     }
 

@@ -29,9 +29,9 @@ impl ColorRGBA {
         let blue = Self::decode_hex_color(&mut chars)?;
 
         Ok(ColorRGBA {
-            red: red,
-            green: green,
-            blue: blue,
+            red,
+            green,
+            blue,
             alpha: 255,
         })
     }
@@ -90,25 +90,23 @@ impl ColorRGBA {
         let hue;
         if delta.abs() < MAX_COLOR_DIFF {
             hue = 0.0;
+        } else if (c_max - red_normalized).abs() < MAX_COLOR_DIFF {
+            hue = 60.0 * (((green_normalized - blue_normalized) / delta) % 6.0);
+        } else if (c_max - green_normalized).abs() < MAX_COLOR_DIFF {
+            hue = 60.0 * (((blue_normalized - red_normalized) / delta) + 2.0);
+        } else if (c_max - blue_normalized).abs() < MAX_COLOR_DIFF {
+            hue = 60.0 * (((red_normalized - green_normalized) / delta) + 4.0);
         } else {
-            if (c_max - red_normalized).abs() < MAX_COLOR_DIFF {
-                hue = 60.0 * (((green_normalized - blue_normalized) / delta) % 6.0);
-            } else if (c_max - green_normalized).abs() < MAX_COLOR_DIFF {
-                hue = 60.0 * (((blue_normalized - red_normalized) / delta) + 2.0);
-            } else if (c_max - blue_normalized).abs() < MAX_COLOR_DIFF {
-                hue = 60.0 * (((red_normalized - green_normalized) / delta) + 4.0);
-            } else {
-                return Err(format_err!("c_max matches neither R, G or B"));
-            }
+            return Err(format_err!("c_max matches neither R, G or B"));
         }
 
         let lightness = (c_max + c_min) / 2.0;
         let saturation = if delta != 0.0 { delta / (1.0 - ((2.0 * lightness) - 1.0).abs()) } else { 0.0 };
 
         Ok(ColorHSLA {
-            hue: hue,
-            saturation: saturation,
-            lightness: lightness,
+            hue,
+            saturation,
+            lightness,
             alpha: 1.0,
         })
     }
@@ -136,8 +134,8 @@ impl ColorRGBA {
     }
 
     fn decode_hex_color(chars: &mut Chars) -> Result<u8, Error> {
-        let c_1 = chars.next().ok_or(format_err!("some err"))?;
-        let c_2 = chars.next().ok_or(format_err!("some err"))?;
+        let c_1 = chars.next().ok_or_else(|| format_err!("some err"))?;
+        let c_2 = chars.next().ok_or_else(|| format_err!("some err"))?;
         let c_1 = Self::decode_char(c_1)?;
         let c_2 = Self::decode_char(c_2)?;
         let color = c_1 * 16 + c_2;
@@ -233,10 +231,10 @@ impl ColorHSLA {
         let alpha = (self.alpha * 255.0) as u8;
 
         Ok(ColorRGBA {
-            red: red,
-            green: green,
-            blue: blue,
-            alpha: alpha,
+            red,
+            green,
+            blue,
+            alpha,
         })
     }
 }
