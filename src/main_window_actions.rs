@@ -9,7 +9,7 @@ use crate::util::GtkHandle;
 use gio::{ActionExt, ActionMapExt, SimpleAction};
 use gtk::{self, ApplicationWindow, GtkWindowExt, HeaderBar, Stack, StackExt, StackTransitionType};
 use log::error;
-use news_flash::models::{ArticleID, LoginData, PluginID};
+use news_flash::models::{ArticleID, LoginData, PluginID, Read};
 use news_flash::NewsFlash;
 use std::path::PathBuf;
 
@@ -287,6 +287,24 @@ impl MainWindowActions {
                 if let Some(data) = data.get_str() {
                     let article_id = ArticleID::new(data);
                     content_page.borrow_mut().show_article(&article_id, &news_flash).unwrap();
+                }
+            }
+        });
+        show_article_action.set_enabled(true);
+        window.add_action(&show_article_action);
+    }
+
+    pub fn setup_mark_article_read_action(window: &ApplicationWindow, news_flash: &GtkHandle<Option<NewsFlash>>) {
+        let news_flash = news_flash.clone();
+        let show_article_action = SimpleAction::new("mark-article-read", glib::VariantTy::new("s").ok());
+        show_article_action.connect_activate(move |_action, data| {
+            if let Some(data) = data {
+                if let Some(data) = data.get_str() {
+                    let article_id = ArticleID::new(data);
+
+                    if let Some(news_flash) = news_flash.borrow_mut().as_mut() {
+                        news_flash.set_article_read(&[article_id], Read::Read).unwrap();
+                    }
                 }
             }
         });

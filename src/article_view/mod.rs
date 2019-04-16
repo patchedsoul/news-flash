@@ -56,6 +56,7 @@ pub struct ArticleView {
     drag_ongoing: GtkHandle<bool>,
     drag_y_pos: GtkHandle<f64>,
     drag_momentum: GtkHandle<f64>,
+    pointer_pos: GtkHandle<(f64, f64)>,
 }
 
 impl ArticleView {
@@ -123,6 +124,7 @@ impl ArticleView {
             drag_ongoing: gtk_handle!(false),
             drag_y_pos: gtk_handle!(0.0),
             drag_momentum: gtk_handle!(0.0),
+            pointer_pos: gtk_handle!((0.0, 0.0)),
         };
 
         article_view.stack.show_all();
@@ -318,18 +320,18 @@ impl ArticleView {
         // show url overlay
         //----------------------------------
         let url_overlay_handle = self.url_overlay_label.clone();
+        let stack = self.stack.clone();
+        let pointer_pos = self.pointer_pos.clone();
         *self.mouse_over_signal.borrow_mut() = Some(
             webview
                 .connect_mouse_target_changed(move |_closure_webivew, hit_test, _modifiers| {
                     if hit_test.context_is_link() {
                         if let Some(uri) = hit_test.get_link_uri() {
-                            let mut align = gtk::Align::Start;
-                            let rel_x = 0.0; // FIXME
-                            let rel_y = 0.0; // FIXME
+                            let allocation = stack.get_allocation();
+                            let rel_x = pointer_pos.borrow().0 / f64::from(allocation.width);
+                            let rel_y = pointer_pos.borrow().1 / f64::from(allocation.height);
 
-                            if rel_x <= 0.5 && rel_y >= 0.85 {
-                                align = gtk::Align::End;
-                            }
+                            let align = if rel_x <= 0.5 && rel_y >= 0.85 { gtk::Align::End } else { gtk::Align::Start };
 
                             url_overlay_handle.borrow().set_url(uri.as_str().to_owned(), align);
                             url_overlay_handle.borrow().reveal(true);
@@ -627,10 +629,14 @@ impl ArticleView {
             false
         });
 
-        // webview.motion_notify_event.connect(onMouseMotion);
+        let pointer_pos = self.pointer_pos.clone();
+        webview.connect_motion_notify_event(move |_closure_webivew, event| {
+            *pointer_pos.borrow_mut() = event.get_position();
+            Inhibit(false)
+        });
+
         // webview.enter_fullscreen.connect(enterFullscreenVideo);
         // webview.leave_fullscreen.connect(leaveFullscreenVideo);
-        // webview.set_background_color(m_color);
 
         Ok(webview)
     }

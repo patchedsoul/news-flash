@@ -100,14 +100,14 @@ impl SingleArticleList {
         }
     }
 
-    pub fn update_marked(&mut self, id: ArticleID, marked: Marked) {
-        if let Some(article_handle) = self.articles.get(&id) {
+    pub fn update_marked(&mut self, id: &ArticleID, marked: Marked) {
+        if let Some(article_handle) = self.articles.get(id) {
             article_handle.borrow_mut().update_marked(marked);
         }
     }
 
-    pub fn update_read(&mut self, id: ArticleID, read: Read) {
-        if let Some(article_handle) = self.articles.get(&id) {
+    pub fn update_read(&mut self, id: &ArticleID, read: Read) {
+        if let Some(article_handle) = self.articles.get(id) {
             article_handle.borrow_mut().update_unread(read);
         }
     }

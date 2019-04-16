@@ -16,6 +16,7 @@ use gtk::{Builder, Continue, ListBoxExt, ListBoxRowExt, StackExt, StackTransitio
 use models::ArticleListChangeSet;
 pub use models::ArticleListModel;
 use single::SingleArticleList;
+use news_flash::models::Read;
 use std::cell::RefCell;
 use std::rc::Rc;
 use std::str;
@@ -32,7 +33,7 @@ pub struct ArticleList {
     list_model: GtkHandle<ArticleListModel>,
     list_select_signal: Option<u64>,
     window_state: MainWindowState,
-    current_list: CurrentList,
+    current_list: GtkHandle<CurrentList>,
 }
 
 impl ArticleList {
@@ -58,7 +59,7 @@ impl ArticleList {
             list_model: gtk_handle!(model),
             list_select_signal: None,
             window_state,
-            current_list: CurrentList::List1,
+            current_list: gtk_handle!(CurrentList::List1),
         };
 
         article_list.setup_list_selected_singal();
@@ -71,11 +72,11 @@ impl ArticleList {
     }
 
     pub fn new_list(&mut self, mut new_list: ArticleListModel) {
-        let current_list = match self.current_list {
+        let current_list = match *self.current_list.borrow() {
             CurrentList::List1 => CurrentList::List2,
             CurrentList::List2 => CurrentList::List1,
         };
-        self.current_list = current_list;
+        *self.current_list.borrow_mut() = current_list;
         let mut empty_model = ArticleListModel::new(self.window_state.get_article_list_order());
         let diff = empty_model.generate_diff(&mut new_list);
 
@@ -108,7 +109,7 @@ impl ArticleList {
     }
 
     pub fn add_more_articles(&mut self, new_list: ArticleListModel) -> Result<(), Error> {
-        let list = match self.current_list {
+        let list = match *self.current_list.borrow() {
             CurrentList::List1 => &mut self.list_1,
             CurrentList::List2 => &mut self.list_2,
         };
@@ -127,7 +128,7 @@ impl ArticleList {
     }
 
     fn execute_diff(&mut self, diff: Vec<ArticleListChangeSet>) {
-        let list = match self.current_list {
+        let list = match *self.current_list.borrow() {
             CurrentList::List1 => &mut self.list_1,
             CurrentList::List2 => &mut self.list_2,
         };
@@ -141,24 +142,24 @@ impl ArticleList {
                     list.borrow_mut().remove(id.clone());
                 }
                 ArticleListChangeSet::UpdateMarked(id, marked) => {
-                    list.borrow_mut().update_marked(id.clone(), marked);
+                    list.borrow_mut().update_marked(&id, marked);
                 }
                 ArticleListChangeSet::UpdateRead(id, read) => {
-                    list.borrow_mut().update_read(id.clone(), read);
+                    list.borrow_mut().update_read(&id, read);
                 }
             }
         }
     }
 
     fn switch_lists(&mut self) {
-        match self.current_list {
+        match *self.current_list.borrow() {
             CurrentList::List1 => self.stack.set_visible_child_name("list_1"),
             CurrentList::List2 => self.stack.set_visible_child_name("list_2"),
         }
 
         self.setup_list_selected_singal();
 
-        let old_list = match self.current_list {
+        let old_list = match *self.current_list.borrow() {
             CurrentList::List1 => self.list_2.clone(),
             CurrentList::List2 => self.list_1.clone(),
         };
@@ -170,25 +171,40 @@ impl ArticleList {
     }
 
     fn setup_list_selected_singal(&mut self) {
-        let list_model_clone = self.list_model.clone();
-        let (new_list, old_list) = match self.current_list {
+        let list_model = self.list_model.clone();
+        let (new_list, old_list) = match *self.current_list.borrow() {
             CurrentList::List1 => (&self.list_1, &self.list_2),
             CurrentList::List2 => (&self.list_2, &self.list_1),
         };
         GtkUtil::disconnect_signal(self.list_select_signal, &old_list.borrow().list());
+        let current_list = self.current_list.clone();
+        let list_1 = self.list_1.clone();
+        let list_2 = self.list_2.clone();
         let select_signal_id = new_list
             .borrow()
             .list()
             .connect_row_selected(move |list, row| {
                 if let Some(selected_row) = row {
                     let selected_index = selected_row.get_index();
-                    if let Some(selected_article) = list_model_clone.borrow_mut().calculate_selection(selected_index) {
+                    let selected_article = list_model.borrow_mut().calculate_selection(selected_index).cloned();
+                    if let Some(selected_article) = selected_article {
                         let selected_article_id = selected_article.id.clone();
                         if let Ok(main_window) = GtkUtil::get_main_window(list) {
+                            let selected_article_id = Variant::from(&selected_article_id.to_str());
                             if let Some(action) = main_window.lookup_action("show-article") {
-                                let selected_article_id = Variant::from(&selected_article_id.to_str());
                                 action.activate(Some(&selected_article_id));
                             }
+                            if selected_article.unread == Read::Unread {
+                                list_model.borrow_mut().set_read(&selected_article.id, Read::Read);
+                                match *current_list.borrow() {
+                                    CurrentList::List1 => list_1.borrow_mut().update_read(&selected_article.id, Read::Read),
+                                    CurrentList::List2 => list_2.borrow_mut().update_read(&selected_article.id, Read::Read),
+                                }
+                                if let Some(action) = main_window.lookup_action("mark-article-read") {
+                                    action.activate(Some(&selected_article_id));
+                                }
+                            }
+                            
                         }
                     }
                 }

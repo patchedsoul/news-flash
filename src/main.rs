@@ -27,7 +27,9 @@ use std::str;
 struct Resources;
 
 fn main() {
-    let application = Application::new("com.gitlab.newsflash", gio::ApplicationFlags::empty()).expect("Initialization failed...");
+    gtk::init().expect("Error initializing gtk.");
+
+    let application = Application::new("com.gitlab.newsflash", gio::ApplicationFlags::empty()).expect("Initialization gtk-app failed");
 
     let encoder = PatternEncoder::new("{d(%H:%M:%S)} - {h({({l}):5.5})} - {m:<35.} (({M}:{L}))\n");
 
@@ -46,6 +48,9 @@ fn main() {
         let mainwindow = MainWindow::new(&app).unwrap();
         mainwindow.present();
     });
+
+    glib::set_application_name("NewsFlash");
+    glib::set_prgname(Some("NewsFlashGTK"));
 
     application.run(&args().collect::<Vec<_>>());
 }

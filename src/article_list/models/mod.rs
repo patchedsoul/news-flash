@@ -5,7 +5,7 @@ pub use article::ArticleListArticleModel;
 pub use change_set::ArticleListChangeSet;
 use failure::format_err;
 use failure::Error;
-use news_flash::models::{Article, ArticleID, ArticleOrder, FavIcon};
+use news_flash::models::{Article, ArticleID, ArticleOrder, FavIcon, Read};
 use std::collections::HashSet;
 
 #[derive(Debug)]
@@ -49,6 +49,14 @@ impl ArticleListModel {
     pub fn models(&self) -> &Vec<ArticleListArticleModel> {
         &self.models
     }
+
+    pub fn set_read(&mut self, _id: &ArticleID, _read: Read) {
+        // FIXME
+    }
+
+    // pub fn set_marked(&mut self, id: &ArticleID, marked: Marked) {
+    //     // FIXME
+    // }
 
     pub fn generate_diff<'a>(&'a mut self, new_list: &'a mut ArticleListModel) -> Vec<ArticleListChangeSet> {
         let mut diff: Vec<ArticleListChangeSet> = Vec::new();
