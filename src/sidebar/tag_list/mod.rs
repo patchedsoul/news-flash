@@ -4,7 +4,6 @@ mod tag_row;
 use crate::gtk_handle;
 use crate::util::GtkHandle;
 use crate::Resources;
-use failure::{format_err, Error, ResultExt};
 use gtk::{ContainerExt, ListBoxExt, ListBoxRowExt, SelectionMode, WidgetExt};
 use models::{TagListChangeSet, TagListModel, TagListTagModel};
 use news_flash::models::TagID;
@@ -13,6 +12,7 @@ use std::collections::HashMap;
 use std::rc::Rc;
 use std::str;
 use tag_row::TagRow;
+use crate::util::{GTK_RESOURCE_FILE_ERROR, GTK_BUILDER_ERROR};
 
 #[derive(Clone, Debug)]
 pub struct TagList {
@@ -22,11 +22,12 @@ pub struct TagList {
 }
 
 impl TagList {
-    pub fn new() -> Result<Self, Error> {
-        let ui_data = Resources::get("ui/sidebar_list.ui").ok_or_else(|| format_err!("some err"))?;
-        let ui_string = str::from_utf8(ui_data.as_ref()).context(format_err!("some err"))?;
+    pub fn new() -> Self {
+        let ui_data = Resources::get("ui/sidebar_list.ui").expect(GTK_RESOURCE_FILE_ERROR);
+        let ui_string = str::from_utf8(ui_data.as_ref()).expect(GTK_RESOURCE_FILE_ERROR);
+
         let builder = gtk::Builder::new_from_string(ui_string);
-        let list_box: gtk::ListBox = builder.get_object("sidebar_list").ok_or_else(|| format_err!("some err"))?;
+        let list_box: gtk::ListBox = builder.get_object("sidebar_list").expect(GTK_BUILDER_ERROR);
 
         // set selection mode from NONE -> SINGLE after a delay after it's been shown
         // this ensures selection mode is in SINGLE without having a selected row in the list
@@ -38,12 +39,11 @@ impl TagList {
             });
         });
 
-        let tag_list = TagList {
+        TagList {
             list: list_box,
             tags: HashMap::new(),
             list_model: gtk_handle!(TagListModel::new()),
-        };
-        Ok(tag_list)
+        }
     }
 
     pub fn widget(&self) -> gtk::ListBox {

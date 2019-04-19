@@ -3,7 +3,6 @@ use crate::gtk_handle;
 use crate::util::GtkHandle;
 use crate::util::{DateUtil, GtkUtil};
 use crate::Resources;
-use failure::format_err;
 use failure::Error;
 use gdk::{EventType, NotifyType};
 use gtk::{Builder, ContainerExt, ImageExt, Inhibit, LabelExt, ListBoxRowExt, StackExt, StyleContextExt, WidgetExt};
@@ -11,6 +10,7 @@ use news_flash::models::{Marked, Read};
 use std::cell::RefCell;
 use std::rc::Rc;
 use std::str;
+use crate::util::{GTK_RESOURCE_FILE_ERROR, GTK_BUILDER_ERROR};
 
 pub struct ArticleRow {
     widget: gtk::ListBoxRow,
@@ -23,41 +23,41 @@ pub struct ArticleRow {
 
 impl ArticleRow {
     pub fn new(article: &ArticleListArticleModel) -> Result<Self, Error> {
-        let ui_data = Resources::get("ui/article.ui").ok_or_else(|| format_err!("some err"))?;
-        let ui_string = str::from_utf8(ui_data.as_ref())?;
+        let ui_data = Resources::get("ui/article.ui").expect(GTK_RESOURCE_FILE_ERROR);
+        let ui_string = str::from_utf8(ui_data.as_ref()).expect(GTK_RESOURCE_FILE_ERROR);
         let builder = Builder::new_from_string(ui_string);
 
-        let favicon: gtk::Image = builder.get_object("favicon").ok_or_else(|| format_err!("some err"))?;
-        let article_eventbox: gtk::EventBox = builder.get_object("article_eventbox").ok_or_else(|| format_err!("some err"))?;
-        let unread_eventbox: gtk::EventBox = builder.get_object("unread_eventbox").ok_or_else(|| format_err!("some err"))?;
-        let marked_eventbox: gtk::EventBox = builder.get_object("marked_eventbox").ok_or_else(|| format_err!("some err"))?;
-        let unread_stack: gtk::Stack = builder.get_object("unread_stack").ok_or_else(|| format_err!("some err"))?;
-        let marked_stack: gtk::Stack = builder.get_object("marked_stack").ok_or_else(|| format_err!("some err"))?;
-        let title_label: gtk::Label = builder.get_object("title_label").ok_or_else(|| format_err!("some err"))?;
-        let summary_label: gtk::Label = builder.get_object("summary_label").ok_or_else(|| format_err!("some err"))?;
-        let feed_label: gtk::Label = builder.get_object("feed_label").ok_or_else(|| format_err!("some err"))?;
-        let date_label: gtk::Label = builder.get_object("date_label").ok_or_else(|| format_err!("some err"))?;
+        let favicon: gtk::Image = builder.get_object("favicon").expect(GTK_BUILDER_ERROR);
+        let article_eventbox: gtk::EventBox = builder.get_object("article_eventbox").expect(GTK_BUILDER_ERROR);
+        let unread_eventbox: gtk::EventBox = builder.get_object("unread_eventbox").expect(GTK_BUILDER_ERROR);
+        let marked_eventbox: gtk::EventBox = builder.get_object("marked_eventbox").expect(GTK_BUILDER_ERROR);
+        let unread_stack: gtk::Stack = builder.get_object("unread_stack").expect(GTK_BUILDER_ERROR);
+        let marked_stack: gtk::Stack = builder.get_object("marked_stack").expect(GTK_BUILDER_ERROR);
+        let title_label: gtk::Label = builder.get_object("title_label").expect(GTK_BUILDER_ERROR);
+        let summary_label: gtk::Label = builder.get_object("summary_label").expect(GTK_BUILDER_ERROR);
+        let feed_label: gtk::Label = builder.get_object("feed_label").expect(GTK_BUILDER_ERROR);
+        let date_label: gtk::Label = builder.get_object("date_label").expect(GTK_BUILDER_ERROR);
         let row = Self::create_row(&article_eventbox);
 
         let scale = favicon.get_style_context().get_scale();
 
-        let marked: gtk::Image = builder.get_object("marked").ok_or_else(|| format_err!("some err"))?;
-        let marked_icon = Resources::get("icons/marked.svg").ok_or_else(|| format_err!("some err"))?;
+        let marked: gtk::Image = builder.get_object("marked").expect(GTK_BUILDER_ERROR);
+        let marked_icon = Resources::get("icons/marked.svg").expect(GTK_BUILDER_ERROR);
         let surface = GtkUtil::create_surface_from_bytes(&marked_icon, 16, 16, scale)?;
         marked.set_from_surface(&surface);
 
-        let unmarked: gtk::Image = builder.get_object("unmarked").ok_or_else(|| format_err!("some err"))?;
-        let unmarked_icon = Resources::get("icons/unmarked.svg").ok_or_else(|| format_err!("some err"))?;
+        let unmarked: gtk::Image = builder.get_object("unmarked").expect(GTK_BUILDER_ERROR);
+        let unmarked_icon = Resources::get("icons/unmarked.svg").expect(GTK_BUILDER_ERROR);
         let surface = GtkUtil::create_surface_from_bytes(&unmarked_icon, 16, 16, scale)?;
         unmarked.set_from_surface(&surface);
 
-        let read: gtk::Image = builder.get_object("read").ok_or_else(|| format_err!("some err"))?;
-        let read_icon = Resources::get("icons/read.svg").ok_or_else(|| format_err!("some err"))?;
+        let read: gtk::Image = builder.get_object("read").expect(GTK_BUILDER_ERROR);
+        let read_icon = Resources::get("icons/read.svg").expect(GTK_BUILDER_ERROR);
         let surface = GtkUtil::create_surface_from_bytes(&read_icon, 16, 16, scale)?;
         read.set_from_surface(&surface);
 
-        let unread: gtk::Image = builder.get_object("unread").ok_or_else(|| format_err!("some err"))?;
-        let unread_icon = Resources::get("icons/unread.svg").ok_or_else(|| format_err!("some err"))?;
+        let unread: gtk::Image = builder.get_object("unread").expect(GTK_BUILDER_ERROR);
+        let unread_icon = Resources::get("icons/unread.svg").expect(GTK_BUILDER_ERROR);
         let surface = GtkUtil::create_surface_from_bytes(&unread_icon, 16, 16, scale)?;
         unread.set_from_surface(&surface);
 

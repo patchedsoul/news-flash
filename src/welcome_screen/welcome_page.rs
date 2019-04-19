@@ -1,8 +1,8 @@
+use crate::util::{GTK_BUILDER_ERROR, GTK_RESOURCE_FILE_ERROR};
 use super::service_row::ServiceRow;
 use crate::gtk_handle;
 use crate::util::GtkHandleMap;
 use crate::Resources;
-use failure::format_err;
 use failure::Error;
 use gio::{ActionExt, ActionMapExt};
 use glib::Variant;
@@ -23,11 +23,12 @@ pub struct WelcomePage {
 
 impl WelcomePage {
     pub fn new(window: &ApplicationWindow) -> Result<Self, Error> {
-        let ui_data = Resources::get("ui/welcome_page.ui").ok_or_else(|| format_err!("some err"))?;
-        let ui_string = str::from_utf8(ui_data.as_ref())?;
+        let ui_data = Resources::get("ui/welcome_page.ui").expect(GTK_RESOURCE_FILE_ERROR);
+        let ui_string = str::from_utf8(ui_data.as_ref()).expect(GTK_RESOURCE_FILE_ERROR);
+
         let builder = gtk::Builder::new_from_string(ui_string);
-        let page: gtk::Box = builder.get_object("welcome_page").ok_or_else(|| format_err!("some err"))?;
-        let list: gtk::ListBox = builder.get_object("list").ok_or_else(|| format_err!("some err"))?;
+        let page: gtk::Box = builder.get_object("welcome_page").expect(GTK_BUILDER_ERROR);
+        let list: gtk::ListBox = builder.get_object("list").expect(GTK_BUILDER_ERROR);
 
         let mut page = WelcomePage {
             page,

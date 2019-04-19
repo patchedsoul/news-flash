@@ -19,6 +19,7 @@ use glib::Variant;
 use gtk::{BoxExt, Builder, PanedExt};
 use news_flash::models::{Article, ArticleID, Marked, PluginID, Read};
 use news_flash::NewsFlash;
+use crate::util::{GTK_RESOURCE_FILE_ERROR, GTK_BUILDER_ERROR};
 use std::str;
 
 const SIDEBAR_PANED_DEFAULT_POS: i32 = 220;
@@ -33,15 +34,16 @@ pub struct ContentPage {
 
 impl ContentPage {
     pub fn new() -> Result<Self, Error> {
-        let ui_data = Resources::get("ui/content_page.ui").ok_or_else(|| format_err!("some err"))?;
-        let ui_string = str::from_utf8(ui_data.as_ref())?;
+        let ui_data = Resources::get("ui/content_page.ui").expect(GTK_RESOURCE_FILE_ERROR);
+        let ui_string = str::from_utf8(ui_data.as_ref()).expect(GTK_RESOURCE_FILE_ERROR);
+
         let builder = Builder::new_from_string(ui_string);
-        let page: gtk::Box = builder.get_object("page").ok_or_else(|| format_err!("some err"))?;
-        let feed_list_box: gtk::Box = builder.get_object("feedlist_box").ok_or_else(|| format_err!("some err"))?;
-        let article_list_box: gtk::Box = builder.get_object("articlelist_box").ok_or_else(|| format_err!("some err"))?;
-        let articleview_box: gtk::Box = builder.get_object("articleview_box").ok_or_else(|| format_err!("some err"))?;
-        let paned: gtk::Paned = builder.get_object("paned_lists_article_view").ok_or_else(|| format_err!("some err"))?;
-        let sidebar_paned: gtk::Paned = builder.get_object("paned_lists").ok_or_else(|| format_err!("some err"))?;
+        let page: gtk::Box = builder.get_object("page").expect(GTK_BUILDER_ERROR);
+        let feed_list_box: gtk::Box = builder.get_object("feedlist_box").expect(GTK_BUILDER_ERROR);
+        let article_list_box: gtk::Box = builder.get_object("articlelist_box").expect(GTK_BUILDER_ERROR);
+        let articleview_box: gtk::Box = builder.get_object("articleview_box").expect(GTK_BUILDER_ERROR);
+        let paned: gtk::Paned = builder.get_object("paned_lists_article_view").expect(GTK_BUILDER_ERROR);
+        let sidebar_paned: gtk::Paned = builder.get_object("paned_lists").expect(GTK_BUILDER_ERROR);
         sidebar_paned.set_position(SIDEBAR_PANED_DEFAULT_POS);
 
         paned.connect_property_position_notify(|paned| {

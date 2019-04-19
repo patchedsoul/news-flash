@@ -26,6 +26,7 @@ use webkit2gtk::{
     ContextMenuAction, ContextMenuExt, ContextMenuItemExt, HitTestResultExt, LoadEvent, NavigationPolicyDecision, NavigationPolicyDecisionExt, PolicyDecisionType, Settings, SettingsExt,
     URIRequestExt, WebView, WebViewExt,
 };
+use crate::util::{GTK_RESOURCE_FILE_ERROR, GTK_BUILDER_ERROR};
 
 const MIDDLE_MOUSE_BUTTON: u32 = 2;
 
@@ -61,21 +62,22 @@ pub struct ArticleView {
 
 impl ArticleView {
     pub fn new() -> Result<Self, Error> {
-        let ui_data = Resources::get("ui/article_view.ui").ok_or_else(|| format_err!("some err"))?;
-        let ui_string = str::from_utf8(ui_data.as_ref())?;
+        let ui_data = Resources::get("ui/article_view.ui").expect(GTK_RESOURCE_FILE_ERROR);
+        let ui_string = str::from_utf8(ui_data.as_ref()).expect(GTK_RESOURCE_FILE_ERROR);
+
         let builder = gtk::Builder::new_from_string(ui_string);
 
-        let url_overlay: gtk::Overlay = builder.get_object("url_overlay").ok_or_else(|| format_err!("some err"))?;
-        let url_overlay_label = UrlOverlay::new()?;
+        let url_overlay: gtk::Overlay = builder.get_object("url_overlay").expect(GTK_BUILDER_ERROR);
+        let url_overlay_label = UrlOverlay::new();
         url_overlay.add_overlay(&url_overlay_label.widget());
 
-        let progress_overlay: gtk::Overlay = builder.get_object("progress_overlay").ok_or_else(|| format_err!("some err"))?;
-        let progress_overlay_label = ProgressOverlay::new()?;
+        let progress_overlay: gtk::Overlay = builder.get_object("progress_overlay").expect(GTK_BUILDER_ERROR);
+        let progress_overlay_label = ProgressOverlay::new();
         progress_overlay.add_overlay(&progress_overlay_label.widget());
 
         let visible_article: GtkHandle<Option<FatArticle>> = gtk_handle!(None);
         let visible_article_crash_view = visible_article.clone();
-        let view_html_button: gtk::Button = builder.get_object("view_html_button").ok_or_else(|| format_err!("some err"))?;
+        let view_html_button: gtk::Button = builder.get_object("view_html_button").expect(GTK_BUILDER_ERROR);
         view_html_button.connect_clicked(move |_button| {
             if let Some(article) = visible_article_crash_view.borrow().as_ref() {
                 if let Some(html) = &article.html {
@@ -93,7 +95,7 @@ impl ArticleView {
             }
         });
 
-        let stack: gtk::Stack = builder.get_object("article_view_stack").ok_or_else(|| format_err!("some err"))?;
+        let stack: gtk::Stack = builder.get_object("article_view_stack").expect(GTK_BUILDER_ERROR);
         stack.set_visible_child_name("empty");
 
         let internal_state = InternalState::Empty;
@@ -642,12 +644,12 @@ impl ArticleView {
     }
 
     fn build_article(&self, article: &FatArticle, feed_name: String) -> Result<String, Error> {
-        let template_data = Resources::get("article_view/article.html").ok_or_else(|| format_err!("some err"))?;
-        let template_str = str::from_utf8(template_data.as_ref())?;
+        let template_data = Resources::get("article_view/article.html").expect(GTK_RESOURCE_FILE_ERROR);
+        let template_str = str::from_utf8(template_data.as_ref()).expect(GTK_RESOURCE_FILE_ERROR);
         let mut template_string = template_str.to_owned();
         //template_string.push_str(template_str);
 
-        let css_data = Resources::get("article_view/style.css").ok_or_else(|| format_err!("some err"))?;
+        let css_data = Resources::get("article_view/style.css").expect(GTK_RESOURCE_FILE_ERROR);
         let css_string = str::from_utf8(css_data.as_ref())?;
 
         // FIXME

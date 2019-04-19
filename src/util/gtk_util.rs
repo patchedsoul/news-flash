@@ -14,6 +14,10 @@ use std::rc::Rc;
 pub type GtkHandle<T> = Rc<RefCell<T>>;
 pub type GtkHandleMap<T, K> = GtkHandle<HashMap<T, K>>;
 
+pub const GTK_RESOURCE_FILE_ERROR: &str = "Could not load file from resources. This should never happen!";
+pub const GTK_BUILDER_ERROR: &str = "Could not build GTK widget from UI file. This should never happen!";
+pub const GTK_CSS_ERROR: &str = "Could not load CSS. This should never happen!";
+
 #[macro_export]
 macro_rules! gtk_handle {
     ($x:expr) => {

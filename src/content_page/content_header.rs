@@ -1,12 +1,12 @@
 use super::header_selection::HeaderSelection;
 use crate::util::GtkUtil;
 use crate::Resources;
-use failure::format_err;
 use failure::Error;
 use gdk::EventType;
 use gio::{ActionExt, ActionMapExt};
 use glib::{signal::Inhibit, Variant};
 use gtk::{Builder, ButtonExt, EntryExt, PanedExt, SearchEntryExt, StackExt, ToggleButton, ToggleButtonExt, WidgetExt};
+use crate::util::{GTK_RESOURCE_FILE_ERROR, GTK_BUILDER_ERROR};
 use std::str;
 
 pub struct ContentHeader {
@@ -17,16 +17,17 @@ pub struct ContentHeader {
 
 impl ContentHeader {
     pub fn new() -> Result<Self, Error> {
-        let ui_data = Resources::get("ui/content_page_header.ui").ok_or_else(|| format_err!("some err"))?;
-        let ui_string = str::from_utf8(ui_data.as_ref())?;
+        let ui_data = Resources::get("ui/content_page_header.ui").expect(GTK_RESOURCE_FILE_ERROR);
+        let ui_string = str::from_utf8(ui_data.as_ref()).expect(GTK_RESOURCE_FILE_ERROR);
+
         let builder = Builder::new_from_string(ui_string);
-        let header: gtk::Paned = builder.get_object("content_header").ok_or_else(|| format_err!("some err"))?;
-        let all_button: ToggleButton = builder.get_object("all_button").ok_or_else(|| format_err!("some err"))?;
-        let unread_button: ToggleButton = builder.get_object("unread_button").ok_or_else(|| format_err!("some err"))?;
-        let marked_button: ToggleButton = builder.get_object("marked_button").ok_or_else(|| format_err!("some err"))?;
-        let update_button: gtk::Button = builder.get_object("update_button").ok_or_else(|| format_err!("some err"))?;
-        let update_stack: gtk::Stack = builder.get_object("update_stack").ok_or_else(|| format_err!("some err"))?;
-        let search_entry: gtk::SearchEntry = builder.get_object("search_entry").ok_or_else(|| format_err!("some err"))?;
+        let header: gtk::Paned = builder.get_object("content_header").expect(GTK_BUILDER_ERROR);
+        let all_button: ToggleButton = builder.get_object("all_button").expect(GTK_BUILDER_ERROR);
+        let unread_button: ToggleButton = builder.get_object("unread_button").expect(GTK_BUILDER_ERROR);
+        let marked_button: ToggleButton = builder.get_object("marked_button").expect(GTK_BUILDER_ERROR);
+        let update_button: gtk::Button = builder.get_object("update_button").expect(GTK_BUILDER_ERROR);
+        let update_stack: gtk::Stack = builder.get_object("update_stack").expect(GTK_BUILDER_ERROR);
+        let search_entry: gtk::SearchEntry = builder.get_object("search_entry").expect(GTK_BUILDER_ERROR);
         search_entry.connect_search_changed(|search_entry| {
             if let Ok(main_window) = GtkUtil::get_main_window(search_entry) {
                 if let Some(action) = main_window.lookup_action("search-term") {

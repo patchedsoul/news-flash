@@ -1,5 +1,10 @@
-use failure::{format_err, Error};
+mod error;
+
+use self::error::{ColorError, ColorErrorKind};
 use std::str::Chars;
+use log::error;
+
+
 
 const MAX_COLOR_DIFF: f64 = 0.01;
 
@@ -12,13 +17,15 @@ pub struct ColorRGBA {
 }
 
 impl ColorRGBA {
-    pub fn parse_string(color_string: &str) -> Result<Self, Error> {
+    pub fn parse_string(color_string: &str) -> Result<Self, ColorError> {
         if color_string.len() != 7 {
-            return Err(format_err!("Expected lenght of color string is 7, string lenght is {}", color_string.len()));
+            error!("Expected lenght of color string is 7, string lenght is {}", color_string.len());
+            return Err(ColorErrorKind::Parse)?
         }
 
         if !color_string.starts_with('#') {
-            return Err(format_err!("Expected color string to start with '#'"));
+            error!("Expected color string to start with '#' - string: {}", color_string);
+            return Err(ColorErrorKind::Parse)?
         }
 
         let mut chars = color_string.chars();
@@ -68,7 +75,7 @@ impl ColorRGBA {
         f64::from(self.alpha) / 255.0
     }
 
-    pub fn adjust_lightness(&mut self, percentage: f64) -> Result<(), Error> {
+    pub fn adjust_lightness(&mut self, percentage: f64) -> Result<(), ColorError> {
         let mut hsla = self.to_hsla()?;
         hsla.lightness_percentage(percentage);
         let rgba = hsla.to_rgba()?;
@@ -79,7 +86,7 @@ impl ColorRGBA {
         Ok(())
     }
 
-    pub fn to_hsla(self) -> Result<ColorHSLA, Error> {
+    pub fn to_hsla(self) -> Result<ColorHSLA, ColorError> {
         let red_normalized = self.red_normalized();
         let green_normalized = self.green_normalized();
         let blue_normalized = self.blue_normalized();
@@ -97,7 +104,8 @@ impl ColorRGBA {
         } else if (c_max - blue_normalized).abs() < MAX_COLOR_DIFF {
             hue = 60.0 * (((red_normalized - green_normalized) / delta) + 4.0);
         } else {
-            return Err(format_err!("c_max matches neither R, G or B"));
+            error!("c_max matches neither R, G or B");
+            return Err(ColorErrorKind::RgbToHsla)?
         }
 
         let lightness = (c_max + c_min) / 2.0;
@@ -133,16 +141,16 @@ impl ColorRGBA {
         f_2
     }
 
-    fn decode_hex_color(chars: &mut Chars) -> Result<u8, Error> {
-        let c_1 = chars.next().ok_or_else(|| format_err!("some err"))?;
-        let c_2 = chars.next().ok_or_else(|| format_err!("some err"))?;
+    fn decode_hex_color(chars: &mut Chars) -> Result<u8, ColorError> {
+        let c_1 = chars.next().ok_or(ColorErrorKind::Parse)?;
+        let c_2 = chars.next().ok_or(ColorErrorKind::Parse)?;
         let c_1 = Self::decode_char(c_1)?;
         let c_2 = Self::decode_char(c_2)?;
         let color = c_1 * 16 + c_2;
         Ok(color)
     }
 
-    fn decode_char(c: char) -> Result<u8, Error> {
+    fn decode_char(c: char) -> Result<u8, ColorError> {
         match c {
             '0' => Ok(0),
             '1' => Ok(1),
@@ -166,7 +174,10 @@ impl ColorRGBA {
             'E' => Ok(14),
             'f' => Ok(15),
             'F' => Ok(15),
-            _ => Err(format_err!("illegal character {}", c)),
+            _ => {
+                error!("illegal character {}", c);
+                Err(ColorErrorKind::IllegalCharacter)?
+            },
         }
     }
 }
@@ -190,7 +201,7 @@ impl ColorHSLA {
         self.lightness = new_lightness;
     }
 
-    pub fn to_rgba(&self) -> Result<ColorRGBA, Error> {
+    pub fn to_rgba(&self) -> Result<ColorRGBA, ColorError> {
         let c = (1.0 - ((2.0 * self.lightness) - 1.0).abs()) * self.saturation;
         let x = c * (1.0 - (((self.hue / 60.0) % 2.0) - 1.0).abs());
         let m = self.lightness - (c / 2.0);
@@ -222,7 +233,8 @@ impl ColorHSLA {
             g_n = 0.0;
             b_n = x;
         } else if self.hue > 360.0 {
-            return Err(format_err!("hue exceeds 360°"));
+            error!("hue exceeds 360°: {}", self.hue);
+            return Err(ColorErrorKind::HslaToRgb)?
         }
 
         let red = ((r_n + m) * 255.0) as u8;

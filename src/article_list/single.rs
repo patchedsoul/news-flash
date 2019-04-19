@@ -4,7 +4,6 @@ use crate::gtk_handle;
 use crate::util::GtkHandle;
 use crate::util::GtkUtil;
 use crate::Resources;
-use failure::format_err;
 use failure::Error;
 use gio::{ActionExt, ActionMapExt};
 use gtk::{AdjustmentExt, Builder, ContainerExt, Continue, ListBoxExt, ScrolledWindowExt, WidgetExt};
@@ -16,6 +15,7 @@ use std::cell::RefCell;
 use std::collections::HashMap;
 use std::rc::Rc;
 use std::str;
+use crate::util::{GTK_RESOURCE_FILE_ERROR, GTK_BUILDER_ERROR};
 
 const LIST_BOTTOM_THREASHOLD: f64 = 200.0;
 
@@ -27,11 +27,12 @@ pub struct SingleArticleList {
 
 impl SingleArticleList {
     pub fn new() -> Result<Self, Error> {
-        let ui_data = Resources::get("ui/article_list_single.ui").ok_or_else(|| format_err!("some err"))?;
-        let ui_string = str::from_utf8(ui_data.as_ref())?;
+        let ui_data = Resources::get("ui/article_list_single.ui").expect(GTK_RESOURCE_FILE_ERROR);
+        let ui_string = str::from_utf8(ui_data.as_ref()).expect(GTK_RESOURCE_FILE_ERROR);
+
         let builder = Builder::new_from_string(ui_string);
-        let scroll: gtk::ScrolledWindow = builder.get_object("article_list_scroll").ok_or_else(|| format_err!("some err"))?;
-        let list: gtk::ListBox = builder.get_object("article_list_box").ok_or_else(|| format_err!("some err"))?;
+        let scroll: gtk::ScrolledWindow = builder.get_object("article_list_scroll").expect(GTK_BUILDER_ERROR);
+        let list: gtk::ListBox = builder.get_object("article_list_box").expect(GTK_BUILDER_ERROR);
 
         let vadj_scroll = scroll.clone();
         let cooldown = gtk_handle!(false);

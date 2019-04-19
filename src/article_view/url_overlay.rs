@@ -1,7 +1,6 @@
 use crate::Resources;
-use failure::format_err;
-use failure::Error;
 use gtk::{LabelExt, WidgetExt};
+use crate::util::{GTK_RESOURCE_FILE_ERROR, GTK_BUILDER_ERROR};
 use std::str;
 
 #[derive(Clone, Debug)]
@@ -10,13 +9,14 @@ pub struct UrlOverlay {
 }
 
 impl UrlOverlay {
-    pub fn new() -> Result<Self, Error> {
-        let ui_data = Resources::get("ui/article_view_url.ui").ok_or_else(|| format_err!("some err"))?;
-        let ui_string = str::from_utf8(ui_data.as_ref())?;
-        let builder = gtk::Builder::new_from_string(ui_string);
-        let label: gtk::Label = builder.get_object("label").ok_or_else(|| format_err!("some err"))?;
+    pub fn new() -> Self {
+        let ui_data = Resources::get("ui/article_view_url.ui").expect(GTK_RESOURCE_FILE_ERROR);
+        let ui_string = str::from_utf8(ui_data.as_ref()).expect(GTK_RESOURCE_FILE_ERROR);
 
-        Ok(UrlOverlay { label })
+        let builder = gtk::Builder::new_from_string(ui_string);
+        let label: gtk::Label = builder.get_object("label").expect(GTK_BUILDER_ERROR);
+
+        UrlOverlay { label }
     }
 
     pub fn set_url(&self, uri: String, align: gtk::Align) {

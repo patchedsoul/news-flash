@@ -5,7 +5,6 @@ use crate::main_window_actions::MainWindowActions;
 use crate::main_window_state::MainWindowState;
 use crate::welcome_screen::{WelcomeHeaderbar, WelcomePage};
 use crate::Resources;
-use failure::format_err;
 use failure::Error;
 use gtk::{self, Application, ApplicationWindow, Builder, CssProvider, CssProviderExt, GtkWindowExt, GtkWindowExtManual, Inhibit, Stack, StackExt, StyleContext, WidgetExt};
 use log::{info, warn};
@@ -14,6 +13,7 @@ use news_flash::NewsFlash;
 use std::cell::RefCell;
 use std::rc::Rc;
 use std::str;
+use crate::util::{GTK_CSS_ERROR, GTK_RESOURCE_FILE_ERROR, GTK_BUILDER_ERROR};
 
 pub static DATA_DIR: &'static str = ".news-flash";
 const PANED_DEFAULT_POS: i32 = 600;
@@ -25,18 +25,20 @@ pub struct MainWindow {
 impl MainWindow {
     pub fn new(app: &Application) -> Result<Self, Error> {
         // setup CSS for window
+        let css_data = Resources::get("css/app.css").expect(GTK_RESOURCE_FILE_ERROR);
+        let screen = gdk::Screen::get_default().expect(GTK_CSS_ERROR);
         let provider = CssProvider::new();
-        let css_data = Resources::get("css/app.css").ok_or_else(|| format_err!("some err"))?;
-        CssProvider::load_from_data(&provider, css_data.as_ref()).unwrap();
-        StyleContext::add_provider_for_screen(&gdk::Screen::get_default().unwrap(), &provider, 600);
+        CssProvider::load_from_data(&provider, css_data.as_ref()).expect(GTK_CSS_ERROR);
+        StyleContext::add_provider_for_screen(&screen, &provider, 600);
 
-        let ui_data = Resources::get("ui/main_window.ui").ok_or_else(|| format_err!("some err"))?;
-        let ui_string = str::from_utf8(ui_data.as_ref())?;
+        let ui_data = Resources::get("ui/main_window.ui").expect(GTK_RESOURCE_FILE_ERROR);
+        let ui_string = str::from_utf8(ui_data.as_ref()).expect(GTK_RESOURCE_FILE_ERROR);
+
         let builder = Builder::new_from_string(ui_string);
-        let window: ApplicationWindow = builder.get_object("main_window").ok_or_else(|| format_err!("some err"))?;
-        let stack: Stack = builder.get_object("main_stack").ok_or_else(|| format_err!("some err"))?;
+        let window: ApplicationWindow = builder.get_object("main_window").expect(GTK_BUILDER_ERROR);
+        let stack: Stack = builder.get_object("main_stack").expect(GTK_BUILDER_ERROR);
 
-        let login_header = LoginHeaderbar::new(&window)?;
+        let login_header = LoginHeaderbar::new(&window);
         let welcome_header = WelcomeHeaderbar::new()?;
         let content_header = ContentHeader::new()?;
 
@@ -55,7 +57,7 @@ impl MainWindow {
         let pw_login = PasswordLogin::new()?;
         stack.add_named(&pw_login.widget(), "password_login");
 
-        let oauth_login = WebLogin::new()?;
+        let oauth_login = WebLogin::new();
         stack.add_named(&oauth_login.widget(), "oauth_login");
 
         let content = ContentPage::new()?;
@@ -90,7 +92,7 @@ impl MainWindow {
             info!("Successful load from config");
 
             stack.set_visible_child_name("content");
-            let id = news_flash_lib.id().ok_or_else(|| format_err!("some err"))?;
+            let id = news_flash_lib.id().unwrap();
             content_page_handle.borrow().set_service(&id, news_flash_lib.user_name())?;
             *news_flash_handle.borrow_mut() = Some(news_flash_lib);
 

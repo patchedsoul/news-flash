@@ -1,8 +1,10 @@
 use crate::Resources;
-use failure::{format_err, Error, Fail};
+use failure::Fail;
 use gtk::{BoxExt, GtkWindowExt, LabelExt, WidgetExt};
 use news_flash::{NewsFlash, NewsFlashError};
 use std::str;
+use crate::util::{GTK_RESOURCE_FILE_ERROR, GTK_BUILDER_ERROR};
+
 
 #[derive(Clone, Debug)]
 pub struct ErrorDialog {
@@ -11,12 +13,12 @@ pub struct ErrorDialog {
 }
 
 impl ErrorDialog {
-    pub fn new(error: &NewsFlashError, parent: &gtk::ApplicationWindow) -> Result<Self, Error> {
-        let ui_data = Resources::get("ui/error_detail_dialog.ui").ok_or_else(|| format_err!("some err"))?;
-        let ui_string = str::from_utf8(ui_data.as_ref())?;
+    pub fn new(error: &NewsFlashError, parent: &gtk::ApplicationWindow) -> Self {
+        let ui_data = Resources::get("ui/error_detail_dialog.ui").expect(GTK_RESOURCE_FILE_ERROR);
+        let ui_string = str::from_utf8(ui_data.as_ref()).expect(GTK_RESOURCE_FILE_ERROR);
         let builder = gtk::Builder::new_from_string(ui_string);
-        let list_box: gtk::Box = builder.get_object("list_box").ok_or_else(|| format_err!("some err"))?;
-        let error_dialog: gtk::Window = builder.get_object("error_dialog").ok_or_else(|| format_err!("some err"))?;
+        let list_box: gtk::Box = builder.get_object("list_box").expect(GTK_BUILDER_ERROR);
+        let error_dialog: gtk::Window = builder.get_object("error_dialog").expect(GTK_BUILDER_ERROR);
 
         for (i, cause) in Fail::iter_chain(error).enumerate() {
             let mut string = format!("{}", cause);
@@ -52,9 +54,9 @@ impl ErrorDialog {
         error_dialog.set_transient_for(parent);
         error_dialog.show_all();
 
-        Ok(ErrorDialog {
+        ErrorDialog {
             error_dialog,
             list_box,
-        })
+        }
     }
 }

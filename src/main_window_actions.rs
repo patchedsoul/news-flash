@@ -187,7 +187,7 @@ impl MainWindowActions {
                         content_page.borrow_mut().update_article_list_from_ref(news_flash, &state);
                     }
                     Err(error) => {
-                        let _dialog = ErrorDialog::new(&error, &parent).unwrap();
+                        let _dialog = ErrorDialog::new(&error, &parent);
                     }
                 }
             }

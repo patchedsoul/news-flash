@@ -3,7 +3,6 @@ use crate::gtk_handle;
 use crate::util::GtkHandle;
 use crate::util::GtkUtil;
 use crate::Resources;
-use failure::format_err;
 use failure::Error;
 use gio::{ActionExt, ActionMapExt};
 use glib::{
@@ -18,6 +17,7 @@ use std::cell::RefCell;
 use std::rc::Rc;
 use std::str;
 use webkit2gtk::{LoadEvent, UserContentManager, WebContext, WebView, WebViewExt, WebViewExtManual};
+use crate::util::{GTK_RESOURCE_FILE_ERROR, GTK_BUILDER_ERROR};
 
 #[derive(Clone, Debug)]
 pub struct WebLogin {
@@ -33,22 +33,23 @@ pub struct WebLogin {
 }
 
 impl WebLogin {
-    pub fn new() -> Result<Self, Error> {
-        let ui_data = Resources::get("ui/oauth_login.ui").ok_or_else(|| format_err!("some err"))?;
-        let ui_string = str::from_utf8(ui_data.as_ref())?;
-        let builder = gtk::Builder::new_from_string(ui_string);
-        let page: gtk::Box = builder.get_object("oauth_box").ok_or_else(|| format_err!("some err"))?;
-        let info_bar: gtk::InfoBar = builder.get_object("info_bar").ok_or_else(|| format_err!("some err"))?;
-        let error_details_button: gtk::Button = builder.get_object("details_button").ok_or_else(|| format_err!("some err"))?;
-        let info_bar_label: gtk::Label = builder.get_object("info_bar_label").ok_or_else(|| format_err!("some err"))?;
+    pub fn new() -> Self {
+        let ui_data = Resources::get("ui/oauth_login.ui").expect(GTK_RESOURCE_FILE_ERROR);
+        let ui_string = str::from_utf8(ui_data.as_ref()).expect(GTK_RESOURCE_FILE_ERROR);
 
-        let context = WebContext::get_default().ok_or_else(|| format_err!("some err"))?;
+        let builder = gtk::Builder::new_from_string(ui_string);
+        let page: gtk::Box = builder.get_object("oauth_box").expect(GTK_BUILDER_ERROR);
+        let info_bar: gtk::InfoBar = builder.get_object("info_bar").expect(GTK_BUILDER_ERROR);
+        let error_details_button: gtk::Button = builder.get_object("details_button").expect(GTK_BUILDER_ERROR);
+        let info_bar_label: gtk::Label = builder.get_object("info_bar_label").expect(GTK_BUILDER_ERROR);
+
+        let context = WebContext::get_default().expect(GTK_BUILDER_ERROR);
         let content_manager = UserContentManager::new();
         let webview = WebView::new_with_context_and_user_content_manager(&context, &content_manager);
 
         page.pack_start(&webview, true, true, 0);
 
-        let page = WebLogin {
+        WebLogin {
             webview,
             page,
             info_bar,
@@ -58,9 +59,7 @@ impl WebLogin {
             info_bar_close_signal: None,
             info_bar_response_signal: None,
             error_details_signal: None,
-        };
-
-        Ok(page)
+        }
     }
 
     pub fn widget(&self) -> gtk::Box {
@@ -89,7 +88,7 @@ impl WebLogin {
             self.error_details_button
                 .connect_clicked(move |button| {
                     let parent = GtkUtil::get_main_window(button).unwrap();
-                    let _dialog = ErrorDialog::new(&error, &parent).unwrap();
+                    let _dialog = ErrorDialog::new(&error, &parent);
                 })
                 .to_glib(),
         );

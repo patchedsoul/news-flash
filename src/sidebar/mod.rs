@@ -21,6 +21,7 @@ use std::cell::RefCell;
 use std::rc::Rc;
 use std::str;
 pub use tag_list::models::TagListModel;
+use crate::util::{GTK_RESOURCE_FILE_ERROR, GTK_BUILDER_ERROR};
 use tag_list::TagList;
 
 #[derive(Clone, Debug)]
@@ -36,25 +37,26 @@ pub struct SideBar {
 
 impl SideBar {
     pub fn new() -> Result<Self, Error> {
-        let ui_data = Resources::get("ui/sidebar.ui").ok_or_else(|| format_err!("some err"))?;
-        let ui_string = str::from_utf8(ui_data.as_ref())?;
+        let ui_data = Resources::get("ui/sidebar.ui").expect(GTK_RESOURCE_FILE_ERROR);
+        let ui_string = str::from_utf8(ui_data.as_ref()).expect(GTK_RESOURCE_FILE_ERROR);
+
         let builder = Builder::new_from_string(ui_string);
-        let sidebar: gtk::Box = builder.get_object("toplevel").ok_or_else(|| format_err!("some err"))?;
-        let logo: gtk::Image = builder.get_object("logo").ok_or_else(|| format_err!("some err"))?;
-        let unread_label: gtk::Label = builder.get_object("unread_count_all").ok_or_else(|| format_err!("some err"))?;
-        let service_label: gtk::Label = builder.get_object("service_label").ok_or_else(|| format_err!("some err"))?;
-        let categories_event_box: gtk::EventBox = builder.get_object("categories_event_box").ok_or_else(|| format_err!("some err"))?;
-        let categories_expander: gtk::Image = builder.get_object("categories_expander").ok_or_else(|| format_err!("some err"))?;
-        let tags_event_box: gtk::EventBox = builder.get_object("tags_event_box").ok_or_else(|| format_err!("some err"))?;
-        let tags_expander: gtk::Image = builder.get_object("tags_expander").ok_or_else(|| format_err!("some err"))?;
-        let categories_revealer: gtk::Revealer = builder.get_object("categories_revealer").ok_or_else(|| format_err!("some err"))?;
-        let tags_revealer: gtk::Revealer = builder.get_object("tags_revealer").ok_or_else(|| format_err!("some err"))?;
-        let all_event_box: gtk::EventBox = builder.get_object("all_event_box").ok_or_else(|| format_err!("some err"))?;
-        let feed_list_box: gtk::Box = builder.get_object("feed_list_box").ok_or_else(|| format_err!("some err"))?;
-        let tag_list_box: gtk::Box = builder.get_object("tags_list_box").ok_or_else(|| format_err!("some err"))?;
+        let sidebar: gtk::Box = builder.get_object("toplevel").expect(GTK_BUILDER_ERROR);
+        let logo: gtk::Image = builder.get_object("logo").expect(GTK_BUILDER_ERROR);
+        let unread_label: gtk::Label = builder.get_object("unread_count_all").expect(GTK_BUILDER_ERROR);
+        let service_label: gtk::Label = builder.get_object("service_label").expect(GTK_BUILDER_ERROR);
+        let categories_event_box: gtk::EventBox = builder.get_object("categories_event_box").expect(GTK_BUILDER_ERROR);
+        let categories_expander: gtk::Image = builder.get_object("categories_expander").expect(GTK_BUILDER_ERROR);
+        let tags_event_box: gtk::EventBox = builder.get_object("tags_event_box").expect(GTK_BUILDER_ERROR);
+        let tags_expander: gtk::Image = builder.get_object("tags_expander").expect(GTK_BUILDER_ERROR);
+        let categories_revealer: gtk::Revealer = builder.get_object("categories_revealer").expect(GTK_BUILDER_ERROR);
+        let tags_revealer: gtk::Revealer = builder.get_object("tags_revealer").expect(GTK_BUILDER_ERROR);
+        let all_event_box: gtk::EventBox = builder.get_object("all_event_box").expect(GTK_BUILDER_ERROR);
+        let feed_list_box: gtk::Box = builder.get_object("feed_list_box").expect(GTK_BUILDER_ERROR);
+        let tag_list_box: gtk::Box = builder.get_object("tags_list_box").expect(GTK_BUILDER_ERROR);
 
         let feed_list = FeedList::new()?;
-        let tag_list = TagList::new()?;
+        let tag_list = TagList::new();
 
         let feed_list_handle = gtk_handle!(feed_list);
         let tag_list_handle = gtk_handle!(tag_list);
@@ -162,7 +164,7 @@ impl SideBar {
             };
             self.logo.set_from_surface(&surface);
         } else {
-            let generic_logo_data = Resources::get("icons/feed-service-generic.svg").ok_or_else(|| format_err!("some err"))?;
+            let generic_logo_data = Resources::get("icons/feed-service-generic.svg").expect(GTK_RESOURCE_FILE_ERROR);
             let surface = GtkUtil::create_surface_from_bytes(&generic_logo_data, 64, 64, self.scale_factor)?;
             self.logo.set_from_surface(&surface);
         }
