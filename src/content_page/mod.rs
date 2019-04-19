@@ -9,18 +9,14 @@ use crate::article_view::ArticleView;
 use crate::main_window_state::MainWindowState;
 use crate::sidebar::models::SidebarSelection;
 use crate::sidebar::{FeedListTree, SideBar, TagListModel};
-use crate::util::GtkHandle;
-use crate::util::GtkUtil;
-use crate::Resources;
+use crate::util::{GtkHandle, GtkUtil, BuilderHelper};
 use failure::format_err;
 use failure::Error;
 use gio::{ActionExt, ActionMapExt};
 use glib::Variant;
-use gtk::{BoxExt, Builder, PanedExt};
+use gtk::{Box, BoxExt, Paned, PanedExt};
 use news_flash::models::{Article, ArticleID, Marked, PluginID, Read};
 use news_flash::NewsFlash;
-use crate::util::{GTK_RESOURCE_FILE_ERROR, GTK_BUILDER_ERROR};
-use std::str;
 
 const SIDEBAR_PANED_DEFAULT_POS: i32 = 220;
 
@@ -34,16 +30,13 @@ pub struct ContentPage {
 
 impl ContentPage {
     pub fn new() -> Result<Self, Error> {
-        let ui_data = Resources::get("ui/content_page.ui").expect(GTK_RESOURCE_FILE_ERROR);
-        let ui_string = str::from_utf8(ui_data.as_ref()).expect(GTK_RESOURCE_FILE_ERROR);
-
-        let builder = Builder::new_from_string(ui_string);
-        let page: gtk::Box = builder.get_object("page").expect(GTK_BUILDER_ERROR);
-        let feed_list_box: gtk::Box = builder.get_object("feedlist_box").expect(GTK_BUILDER_ERROR);
-        let article_list_box: gtk::Box = builder.get_object("articlelist_box").expect(GTK_BUILDER_ERROR);
-        let articleview_box: gtk::Box = builder.get_object("articleview_box").expect(GTK_BUILDER_ERROR);
-        let paned: gtk::Paned = builder.get_object("paned_lists_article_view").expect(GTK_BUILDER_ERROR);
-        let sidebar_paned: gtk::Paned = builder.get_object("paned_lists").expect(GTK_BUILDER_ERROR);
+        let builder = BuilderHelper::new("content_page");
+        let page = builder.get::<Box>("page");
+        let feed_list_box = builder.get::<Box>("feedlist_box");
+        let article_list_box = builder.get::<Box>("articlelist_box");
+        let articleview_box = builder.get::<Box>("articleview_box");
+        let paned = builder.get::<Paned>("paned_lists_article_view");
+        let sidebar_paned = builder.get::<Paned>("paned_lists");
         sidebar_paned.set_position(SIDEBAR_PANED_DEFAULT_POS);
 
         paned.connect_property_position_notify(|paned| {

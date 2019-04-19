@@ -1,7 +1,5 @@
-use crate::Resources;
-use gtk::{LabelExt, WidgetExt};
-use crate::util::{GTK_RESOURCE_FILE_ERROR, GTK_BUILDER_ERROR};
-use std::str;
+use gtk::{Box, Label, LabelExt, WidgetExt};
+use crate::util::BuilderHelper;
 
 #[derive(Clone, Debug)]
 pub struct ProgressOverlay {
@@ -11,12 +9,9 @@ pub struct ProgressOverlay {
 
 impl ProgressOverlay {
     pub fn new() -> Self {
-        let ui_data = Resources::get("ui/article_view_progress.ui").expect(GTK_RESOURCE_FILE_ERROR);
-        let ui_string = str::from_utf8(ui_data.as_ref()).expect(GTK_RESOURCE_FILE_ERROR);
-
-        let builder = gtk::Builder::new_from_string(ui_string);
-        let label: gtk::Label = builder.get_object("label").expect(GTK_BUILDER_ERROR);
-        let parent: gtk::Box = builder.get_object("box").expect(GTK_BUILDER_ERROR);
+        let builder = BuilderHelper::new("article_view_progress");
+        let label = builder.get::<Label>("label");
+        let parent = builder.get::<Box>("box");
 
         ProgressOverlay { parent, label }
     }

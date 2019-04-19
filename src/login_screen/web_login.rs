@@ -1,8 +1,6 @@
 use crate::error_dialog::ErrorDialog;
 use crate::gtk_handle;
-use crate::util::GtkHandle;
-use crate::util::GtkUtil;
-use crate::Resources;
+use crate::util::{GtkHandle, GtkUtil, BuilderHelper, GTK_BUILDER_ERROR};
 use failure::Error;
 use gio::{ActionExt, ActionMapExt};
 use glib::{
@@ -10,14 +8,12 @@ use glib::{
     translate::{FromGlib, ToGlib},
     Variant,
 };
-use gtk::{BoxExt, ButtonExt, InfoBarExt, LabelExt, ObjectExt, ResponseType, WidgetExt};
+use gtk::{Box, BoxExt, Button, ButtonExt, InfoBar, InfoBarExt, Label, LabelExt, ObjectExt, ResponseType, WidgetExt};
 use news_flash::models::{LoginData, LoginGUI, OAuthData, PluginInfo};
 use news_flash::{NewsFlashError, NewsFlashErrorKind};
 use std::cell::RefCell;
 use std::rc::Rc;
-use std::str;
 use webkit2gtk::{LoadEvent, UserContentManager, WebContext, WebView, WebViewExt, WebViewExtManual};
-use crate::util::{GTK_RESOURCE_FILE_ERROR, GTK_BUILDER_ERROR};
 
 #[derive(Clone, Debug)]
 pub struct WebLogin {
@@ -34,14 +30,11 @@ pub struct WebLogin {
 
 impl WebLogin {
     pub fn new() -> Self {
-        let ui_data = Resources::get("ui/oauth_login.ui").expect(GTK_RESOURCE_FILE_ERROR);
-        let ui_string = str::from_utf8(ui_data.as_ref()).expect(GTK_RESOURCE_FILE_ERROR);
-
-        let builder = gtk::Builder::new_from_string(ui_string);
-        let page: gtk::Box = builder.get_object("oauth_box").expect(GTK_BUILDER_ERROR);
-        let info_bar: gtk::InfoBar = builder.get_object("info_bar").expect(GTK_BUILDER_ERROR);
-        let error_details_button: gtk::Button = builder.get_object("details_button").expect(GTK_BUILDER_ERROR);
-        let info_bar_label: gtk::Label = builder.get_object("info_bar_label").expect(GTK_BUILDER_ERROR);
+        let builder = BuilderHelper::new("oauth_login");
+        let page = builder.get::<Box>("oauth_box");
+        let info_bar = builder.get::<InfoBar>("info_bar");
+        let error_details_button = builder.get::<Button>("details_button");
+        let info_bar_label = builder.get::<Label>("info_bar_label");
 
         let context = WebContext::get_default().expect(GTK_BUILDER_ERROR);
         let content_manager = UserContentManager::new();

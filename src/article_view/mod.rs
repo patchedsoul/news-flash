@@ -6,15 +6,13 @@ use self::models::{ArticleTheme, InternalState};
 use self::progress_overlay::ProgressOverlay;
 use self::url_overlay::UrlOverlay;
 use crate::gtk_handle;
-use crate::util::FileUtil;
-use crate::util::GtkHandle;
-use crate::util::{DateUtil, GtkUtil};
+use crate::util::{GtkHandle, FileUtil, DateUtil, GtkUtil, BuilderHelper};
 use crate::Resources;
 use failure::{format_err, Error};
 use gdk::{enums::key::KP_Add as KP_ADD, enums::key::KP_Subtract as KP_SUBTRACT, enums::key::KP_0, Cursor, CursorType, Display, EventMask, ModifierType, ScrollDirection};
 use gio::Cancellable;
 use glib::{object::Cast, translate::ToGlib, MainLoop};
-use gtk::{ButtonExt, ContainerExt, Continue, Inhibit, OverlayExt, StackExt, WidgetExt, WidgetExtManual};
+use gtk::{Button, ButtonExt, ContainerExt, Continue, Inhibit, Overlay, OverlayExt, Stack, StackExt, WidgetExt, WidgetExtManual};
 use log::error;
 use news_flash::models::FatArticle;
 use std::cell::RefCell;
@@ -26,7 +24,7 @@ use webkit2gtk::{
     ContextMenuAction, ContextMenuExt, ContextMenuItemExt, HitTestResultExt, LoadEvent, NavigationPolicyDecision, NavigationPolicyDecisionExt, PolicyDecisionType, Settings, SettingsExt,
     URIRequestExt, WebView, WebViewExt,
 };
-use crate::util::{GTK_RESOURCE_FILE_ERROR, GTK_BUILDER_ERROR};
+use crate::util::{GTK_RESOURCE_FILE_ERROR};
 
 const MIDDLE_MOUSE_BUTTON: u32 = 2;
 
@@ -62,22 +60,19 @@ pub struct ArticleView {
 
 impl ArticleView {
     pub fn new() -> Result<Self, Error> {
-        let ui_data = Resources::get("ui/article_view.ui").expect(GTK_RESOURCE_FILE_ERROR);
-        let ui_string = str::from_utf8(ui_data.as_ref()).expect(GTK_RESOURCE_FILE_ERROR);
+        let builder = BuilderHelper::new("article_view");
 
-        let builder = gtk::Builder::new_from_string(ui_string);
-
-        let url_overlay: gtk::Overlay = builder.get_object("url_overlay").expect(GTK_BUILDER_ERROR);
+        let url_overlay = builder.get::<Overlay>("url_overlay");
         let url_overlay_label = UrlOverlay::new();
         url_overlay.add_overlay(&url_overlay_label.widget());
 
-        let progress_overlay: gtk::Overlay = builder.get_object("progress_overlay").expect(GTK_BUILDER_ERROR);
+        let progress_overlay = builder.get::<Overlay>("progress_overlay");
         let progress_overlay_label = ProgressOverlay::new();
         progress_overlay.add_overlay(&progress_overlay_label.widget());
 
         let visible_article: GtkHandle<Option<FatArticle>> = gtk_handle!(None);
         let visible_article_crash_view = visible_article.clone();
-        let view_html_button: gtk::Button = builder.get_object("view_html_button").expect(GTK_BUILDER_ERROR);
+        let view_html_button = builder.get::<Button>("view_html_button");
         view_html_button.connect_clicked(move |_button| {
             if let Some(article) = visible_article_crash_view.borrow().as_ref() {
                 if let Some(html) = &article.html {
@@ -95,7 +90,7 @@ impl ArticleView {
             }
         });
 
-        let stack: gtk::Stack = builder.get_object("article_view_stack").expect(GTK_BUILDER_ERROR);
+        let stack = builder.get::<Stack>("article_view_stack");
         stack.set_visible_child_name("empty");
 
         let internal_state = InternalState::Empty;

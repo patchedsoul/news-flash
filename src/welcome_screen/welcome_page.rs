@@ -1,18 +1,15 @@
-use crate::util::{GTK_BUILDER_ERROR, GTK_RESOURCE_FILE_ERROR};
 use super::service_row::ServiceRow;
 use crate::gtk_handle;
-use crate::util::GtkHandleMap;
-use crate::Resources;
+use crate::util::{GtkHandleMap, BuilderHelper};
 use failure::Error;
 use gio::{ActionExt, ActionMapExt};
 use glib::Variant;
-use gtk::{self, ApplicationWindow, ListBoxExt, ListBoxRowExt};
+use gtk::{ApplicationWindow, Box, ListBox, ListBoxExt, ListBoxRowExt};
 use news_flash::models::{LoginGUI, PluginID};
 use news_flash::NewsFlash;
 use std::cell::RefCell;
 use std::collections::HashMap;
 use std::rc::Rc;
-use std::str;
 
 #[derive(Clone, Debug)]
 pub struct WelcomePage {
@@ -23,12 +20,9 @@ pub struct WelcomePage {
 
 impl WelcomePage {
     pub fn new(window: &ApplicationWindow) -> Result<Self, Error> {
-        let ui_data = Resources::get("ui/welcome_page.ui").expect(GTK_RESOURCE_FILE_ERROR);
-        let ui_string = str::from_utf8(ui_data.as_ref()).expect(GTK_RESOURCE_FILE_ERROR);
-
-        let builder = gtk::Builder::new_from_string(ui_string);
-        let page: gtk::Box = builder.get_object("welcome_page").expect(GTK_BUILDER_ERROR);
-        let list: gtk::ListBox = builder.get_object("list").expect(GTK_BUILDER_ERROR);
+        let builder = BuilderHelper::new("welcome_page");
+        let page = builder.get::<Box>("welcome_page");
+        let list = builder.get::<ListBox>("list");
 
         let mut page = WelcomePage {
             page,

@@ -1,12 +1,10 @@
 use super::article_row::ArticleRow;
 use super::models::ArticleListArticleModel;
 use crate::gtk_handle;
-use crate::util::GtkHandle;
-use crate::util::GtkUtil;
-use crate::Resources;
+use crate::util::{GtkHandle, GtkUtil, BuilderHelper};
 use failure::Error;
 use gio::{ActionExt, ActionMapExt};
-use gtk::{AdjustmentExt, Builder, ContainerExt, Continue, ListBoxExt, ScrolledWindowExt, WidgetExt};
+use gtk::{AdjustmentExt, ContainerExt, Continue, ListBox, ListBoxExt, ScrolledWindow, ScrolledWindowExt, WidgetExt};
 use news_flash::models::{
     article::{Marked, Read},
     ArticleID,
@@ -14,8 +12,6 @@ use news_flash::models::{
 use std::cell::RefCell;
 use std::collections::HashMap;
 use std::rc::Rc;
-use std::str;
-use crate::util::{GTK_RESOURCE_FILE_ERROR, GTK_BUILDER_ERROR};
 
 const LIST_BOTTOM_THREASHOLD: f64 = 200.0;
 
@@ -27,12 +23,9 @@ pub struct SingleArticleList {
 
 impl SingleArticleList {
     pub fn new() -> Result<Self, Error> {
-        let ui_data = Resources::get("ui/article_list_single.ui").expect(GTK_RESOURCE_FILE_ERROR);
-        let ui_string = str::from_utf8(ui_data.as_ref()).expect(GTK_RESOURCE_FILE_ERROR);
-
-        let builder = Builder::new_from_string(ui_string);
-        let scroll: gtk::ScrolledWindow = builder.get_object("article_list_scroll").expect(GTK_BUILDER_ERROR);
-        let list: gtk::ListBox = builder.get_object("article_list_box").expect(GTK_BUILDER_ERROR);
+        let builder = BuilderHelper::new("article_list_single");
+        let scroll = builder.get::<ScrolledWindow>("article_list_scroll");
+        let list = builder.get::<ListBox>("article_list_box");
 
         let vadj_scroll = scroll.clone();
         let cooldown = gtk_handle!(false);

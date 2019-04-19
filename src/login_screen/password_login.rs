@@ -1,14 +1,13 @@
 use crate::error_dialog::ErrorDialog;
-use crate::util::GtkUtil;
 use crate::Resources;
 use failure::{Error, Fail};
 use gio::{ActionExt, ActionMapExt};
 use glib::{signal::SignalHandlerId, translate::ToGlib, Variant};
-use gtk::{self, ButtonExt, EntryExt, ImageExt, InfoBarExt, LabelExt, ResponseType, RevealerExt, StyleContextExt, WidgetExt};
+use gtk::{self, Box, Button, ButtonExt, Entry, EntryExt, Image, ImageExt, InfoBar, InfoBarExt, Label, LabelExt, ResponseType, Revealer,
+    RevealerExt, StyleContextExt, WidgetExt};
 use news_flash::models::{LoginData, LoginGUI, PasswordLogin as PasswordLoginData, PasswordLoginGUI, PluginIcon, PluginInfo};
 use news_flash::{FeedApiError, FeedApiErrorKind, NewsFlashError, NewsFlashErrorKind};
-use crate::util::{GTK_RESOURCE_FILE_ERROR, GTK_BUILDER_ERROR};
-use std::str;
+use crate::util::{GtkUtil, BuilderHelper, GTK_RESOURCE_FILE_ERROR};
 
 #[derive(Clone, Debug)]
 pub struct PasswordLogin {
@@ -42,25 +41,22 @@ pub struct PasswordLogin {
 
 impl PasswordLogin {
     pub fn new() -> Result<Self, Error> {
-        let ui_data = Resources::get("ui/password_login.ui").expect(GTK_RESOURCE_FILE_ERROR);
-        let ui_string = str::from_utf8(ui_data.as_ref()).expect(GTK_RESOURCE_FILE_ERROR);
-
-        let builder = gtk::Builder::new_from_string(ui_string);
-        let page: gtk::Box = builder.get_object("password_login").expect(GTK_BUILDER_ERROR);
-        let logo: gtk::Image = builder.get_object("logo").expect(GTK_BUILDER_ERROR);
-        let headline: gtk::Label = builder.get_object("headline").expect(GTK_BUILDER_ERROR);
-        let url_label: gtk::Label = builder.get_object("url_label").expect(GTK_BUILDER_ERROR);
-        let url_entry: gtk::Entry = builder.get_object("url_entry").expect(GTK_BUILDER_ERROR);
-        let user_entry: gtk::Entry = builder.get_object("user_entry").expect(GTK_BUILDER_ERROR);
-        let pass_entry: gtk::Entry = builder.get_object("pass_entry").expect(GTK_BUILDER_ERROR);
-        let http_user_entry: gtk::Entry = builder.get_object("http_user_entry").expect(GTK_BUILDER_ERROR);
-        let http_pass_entry: gtk::Entry = builder.get_object("http_pass_entry").expect(GTK_BUILDER_ERROR);
-        let http_revealer: gtk::Revealer = builder.get_object("http_auth_revealer").expect(GTK_BUILDER_ERROR);
-        let login_button: gtk::Button = builder.get_object("login_button").expect(GTK_BUILDER_ERROR);
-        let info_bar: gtk::InfoBar = builder.get_object("info_bar").expect(GTK_BUILDER_ERROR);
-        let info_bar_label: gtk::Label = builder.get_object("info_bar_label").expect(GTK_BUILDER_ERROR);
-        let ignore_tls_button: gtk::Button = builder.get_object("ignore_button").expect(GTK_BUILDER_ERROR);
-        let error_details_button: gtk::Button = builder.get_object("details_button").expect(GTK_BUILDER_ERROR);
+        let builder = BuilderHelper::new("password_login");
+        let page = builder.get::<Box>("password_login");
+        let logo = builder.get::<Image>("logo");
+        let headline = builder.get::<Label>("headline");
+        let url_label = builder.get::<Label>("url_label");
+        let url_entry = builder.get::<Entry>("url_entry");
+        let user_entry = builder.get::<Entry>("user_entry");
+        let pass_entry = builder.get::<Entry>("pass_entry");
+        let http_user_entry = builder.get::<Entry>("http_user_entry");
+        let http_pass_entry = builder.get::<Entry>("http_pass_entry");
+        let http_revealer = builder.get::<Revealer>("http_auth_revealer");
+        let login_button = builder.get::<Button>("login_button");
+        let info_bar = builder.get::<InfoBar>("info_bar");
+        let info_bar_label = builder.get::<Label>("info_bar_label");
+        let ignore_tls_button = builder.get::<Button>("ignore_button");
+        let error_details_button = builder.get::<Button>("details_button");
 
         let scale_factor = page.get_style_context().get_scale();
 

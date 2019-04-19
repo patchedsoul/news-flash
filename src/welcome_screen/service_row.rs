@@ -1,40 +1,33 @@
 use crate::gtk_handle;
-use crate::util::GtkHandle;
-use crate::util::GtkUtil;
-use crate::Resources;
+use crate::util::{GtkHandle, GtkUtil, BuilderHelper};
 use failure::Error;
 use gdk::{EventType, NotifyType};
-use gtk::{self, BinExt, ImageExt, Inhibit, LabelExt, RevealerExt, StyleContextExt, WidgetExt};
+use gtk::{self, BinExt, EventBox, Image, ImageExt, Inhibit, Label, LabelExt, Revealer, RevealerExt, StyleContextExt, WidgetExt};
 use news_flash::models::{PluginIcon, PluginInfo, ServiceLicense, ServicePrice, ServiceType};
 use std::cell::RefCell;
 use std::rc::Rc;
-use std::str;
-use crate::util::{GTK_BUILDER_ERROR, GTK_RESOURCE_FILE_ERROR};
 
 #[derive(Clone, Debug)]
 pub struct ServiceRow {
-    row: gtk::EventBox,
-    arrow_revealer: GtkHandle<gtk::Revealer>,
-    arrow_event: GtkHandle<gtk::EventBox>,
-    arrow_image: GtkHandle<gtk::Image>,
-    info_revealer: GtkHandle<gtk::Revealer>,
+    row: EventBox,
+    arrow_revealer: GtkHandle<Revealer>,
+    arrow_event: GtkHandle<EventBox>,
+    arrow_image: GtkHandle<Image>,
+    info_revealer: GtkHandle<Revealer>,
     show_info: bool,
 }
 
 impl ServiceRow {
     pub fn new(info: PluginInfo) -> Result<Self, Error> {
-        let ui_data = Resources::get("ui/service_row.ui").expect(GTK_RESOURCE_FILE_ERROR);
-        let ui_string = str::from_utf8(ui_data.as_ref()).expect(GTK_RESOURCE_FILE_ERROR);
-
-        let builder = gtk::Builder::new_from_string(ui_string);
-        let row: gtk::EventBox = builder.get_object("service_row").expect(GTK_BUILDER_ERROR);
-        let label: gtk::Label = builder.get_object("label").expect(GTK_BUILDER_ERROR);
+        let builder = BuilderHelper::new("service_row");
+        let row = builder.get::<EventBox>("service_row");
+        let label = builder.get::<Label>("label");
         label.set_label(&info.name);
-        let arrow_revealer: gtk::Revealer = builder.get_object("arrow_revealer").expect(GTK_BUILDER_ERROR);
-        let info_revealer: gtk::Revealer = builder.get_object("info_revealer").expect(GTK_BUILDER_ERROR);
+        let arrow_revealer = builder.get::<Revealer>("arrow_revealer");
+        let info_revealer = builder.get::<Revealer>("info_revealer");
 
         // Website
-        let website_label: gtk::Label = builder.get_object("website_label").expect(GTK_BUILDER_ERROR);
+        let website_label = builder.get::<Label>("website_label");
         if let Some(website) = info.website {
             let website_string = website.get().to_string();
             website_label.set_markup(&format!("<a href=\"{}\">{}</a>", website_string, website_string));
@@ -42,7 +35,7 @@ impl ServiceRow {
             website_label.set_text("No Website");
         }
 
-        let license_label: gtk::Label = builder.get_object("license_label").expect(GTK_BUILDER_ERROR);
+        let license_label = builder.get::<Label>("license_label");
         let license_string = match info.license_type {
             ServiceLicense::ApacheV2 => "<a href=\"http://www.apache.org/licenses/LICENSE-2.0\">Apache v2</a>",
             ServiceLicense::GPLv2 => "<a href=\"http://www.gnu.de/documents/gpl-2.0.en.html\">GPLv2</a>",
@@ -54,7 +47,7 @@ impl ServiceRow {
         };
         license_label.set_markup(license_string);
 
-        let type_label: gtk::Label = builder.get_object("type_label").expect(GTK_BUILDER_ERROR);
+        let type_label = builder.get::<Label>("type_label");
         let type_string = match info.service_type {
             ServiceType::Local => "Local data only",
             ServiceType::Remote { self_hosted } => {
@@ -63,7 +56,7 @@ impl ServiceRow {
         };
         type_label.set_text(type_string);
 
-        let price_label: gtk::Label = builder.get_object("price_label").expect(GTK_BUILDER_ERROR);
+        let price_label = builder.get::<Label>("price_label");
         let price_string = match info.service_price {
             ServicePrice::Free => "Free",
             ServicePrice::Paid => "Paid",
@@ -71,7 +64,7 @@ impl ServiceRow {
         };
         price_label.set_text(price_string);
 
-        let arrow_event: gtk::EventBox = builder.get_object("arrow_event").expect(GTK_BUILDER_ERROR);
+        let arrow_event = builder.get::<EventBox>("arrow_event");
         arrow_event.connect_leave_notify_event(|widget, _| {
             widget.get_child().unwrap().set_opacity(0.8);
             gtk::Inhibit(false)
@@ -81,10 +74,10 @@ impl ServiceRow {
             gtk::Inhibit(false)
         });
 
-        let arrow_image: gtk::Image = builder.get_object("arrow_image").expect(GTK_BUILDER_ERROR);
+        let arrow_image = builder.get::<Image>("arrow_image");
         let scale = row.get_style_context().get_scale();
 
-        let image: gtk::Image = builder.get_object("icon").expect(GTK_BUILDER_ERROR);
+        let image = builder.get::<Image>("icon");
         if let Some(icon) = info.icon {
             let surface = match icon {
                 PluginIcon::Vector(icon) => GtkUtil::create_surface_from_bytes(&icon.data, 64, 64, scale)?,

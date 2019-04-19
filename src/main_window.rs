@@ -6,14 +6,13 @@ use crate::main_window_state::MainWindowState;
 use crate::welcome_screen::{WelcomeHeaderbar, WelcomePage};
 use crate::Resources;
 use failure::Error;
-use gtk::{self, Application, ApplicationWindow, Builder, CssProvider, CssProviderExt, GtkWindowExt, GtkWindowExtManual, Inhibit, Stack, StackExt, StyleContext, WidgetExt};
+use gtk::{self, Application, ApplicationWindow, CssProvider, CssProviderExt, GtkWindowExt, GtkWindowExtManual, Inhibit, Stack, StackExt, StyleContext, WidgetExt};
 use log::{info, warn};
 use news_flash::models::{Tag, TagID};
 use news_flash::NewsFlash;
 use std::cell::RefCell;
 use std::rc::Rc;
-use std::str;
-use crate::util::{GTK_CSS_ERROR, GTK_RESOURCE_FILE_ERROR, GTK_BUILDER_ERROR};
+use crate::util::{GTK_CSS_ERROR, GTK_RESOURCE_FILE_ERROR, BuilderHelper};
 
 pub static DATA_DIR: &'static str = ".news-flash";
 const PANED_DEFAULT_POS: i32 = 600;
@@ -31,12 +30,9 @@ impl MainWindow {
         CssProvider::load_from_data(&provider, css_data.as_ref()).expect(GTK_CSS_ERROR);
         StyleContext::add_provider_for_screen(&screen, &provider, 600);
 
-        let ui_data = Resources::get("ui/main_window.ui").expect(GTK_RESOURCE_FILE_ERROR);
-        let ui_string = str::from_utf8(ui_data.as_ref()).expect(GTK_RESOURCE_FILE_ERROR);
-
-        let builder = Builder::new_from_string(ui_string);
-        let window: ApplicationWindow = builder.get_object("main_window").expect(GTK_BUILDER_ERROR);
-        let stack: Stack = builder.get_object("main_stack").expect(GTK_BUILDER_ERROR);
+        let builder = BuilderHelper::new("main_window");
+        let window = builder.get::<ApplicationWindow>("main_window");
+        let stack = builder.get::<Stack>("main_stack");
 
         let login_header = LoginHeaderbar::new(&window);
         let welcome_header = WelcomeHeaderbar::new()?;

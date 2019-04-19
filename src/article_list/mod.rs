@@ -5,21 +5,17 @@ mod single;
 use crate::content_page::HeaderSelection;
 use crate::gtk_handle;
 use crate::main_window_state::MainWindowState;
-use crate::util::GtkHandle;
-use crate::util::GtkUtil;
-use crate::Resources;
+use crate::util::{GtkHandle, GtkUtil, BuilderHelper};
 use failure::Error;
 use gio::{ActionExt, ActionMapExt};
 use glib::{translate::ToGlib, Variant};
-use gtk::{Builder, Continue, ListBoxExt, ListBoxRowExt, StackExt, StackTransitionType};
+use gtk::{Continue, ListBoxExt, ListBoxRowExt, Stack, StackExt, StackTransitionType};
 use models::ArticleListChangeSet;
 pub use models::ArticleListModel;
 use single::SingleArticleList;
 use news_flash::models::Read;
 use std::cell::RefCell;
 use std::rc::Rc;
-use std::str;
-use crate::util::{GTK_RESOURCE_FILE_ERROR, GTK_BUILDER_ERROR};
 
 pub enum CurrentList {
     List1,
@@ -38,12 +34,8 @@ pub struct ArticleList {
 
 impl ArticleList {
     pub fn new() -> Result<Self, Error> {
-        let ui_data = Resources::get("ui/article_list.ui").expect(GTK_RESOURCE_FILE_ERROR);
-        let ui_string = str::from_utf8(ui_data.as_ref()).expect(GTK_RESOURCE_FILE_ERROR);
-
-        let builder = Builder::new_from_string(ui_string);
-
-        let stack: gtk::Stack = builder.get_object("article_list_stack").expect(GTK_BUILDER_ERROR);
+        let builder = BuilderHelper::new("article_list");
+        let stack = builder.get::<Stack>("article_list_stack");
 
         let list_1 = SingleArticleList::new()?;
         let list_2 = SingleArticleList::new()?;

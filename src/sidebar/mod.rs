@@ -3,8 +3,7 @@ pub mod models;
 mod tag_list;
 
 use crate::gtk_handle;
-use crate::util::GtkHandle;
-use crate::util::GtkUtil;
+use crate::util::{GtkHandle, GtkUtil, BuilderHelper};
 use crate::Resources;
 use failure::format_err;
 use failure::Error;
@@ -13,15 +12,14 @@ use feed_list::FeedList;
 use gdk::{EventMask, EventType};
 use gio::{ActionExt, ActionMapExt};
 use glib::Variant;
-use gtk::{BoxExt, Builder, ImageExt, LabelExt, ListBoxExt, RevealerExt, StyleContextExt, WidgetExt, WidgetExtManual};
+use gtk::{Box, BoxExt, ImageExt, Label, LabelExt, EventBox, ListBoxExt, Image, Revealer, RevealerExt, StyleContextExt, WidgetExt, WidgetExtManual};
 use models::SidebarSelection;
 use news_flash::models::{PluginID, PluginIcon};
 use news_flash::NewsFlash;
 use std::cell::RefCell;
 use std::rc::Rc;
-use std::str;
 pub use tag_list::models::TagListModel;
-use crate::util::{GTK_RESOURCE_FILE_ERROR, GTK_BUILDER_ERROR};
+use crate::util::GTK_RESOURCE_FILE_ERROR;
 use tag_list::TagList;
 
 #[derive(Clone, Debug)]
@@ -37,23 +35,21 @@ pub struct SideBar {
 
 impl SideBar {
     pub fn new() -> Result<Self, Error> {
-        let ui_data = Resources::get("ui/sidebar.ui").expect(GTK_RESOURCE_FILE_ERROR);
-        let ui_string = str::from_utf8(ui_data.as_ref()).expect(GTK_RESOURCE_FILE_ERROR);
+        let builder = BuilderHelper::new("sidebar");
 
-        let builder = Builder::new_from_string(ui_string);
-        let sidebar: gtk::Box = builder.get_object("toplevel").expect(GTK_BUILDER_ERROR);
-        let logo: gtk::Image = builder.get_object("logo").expect(GTK_BUILDER_ERROR);
-        let unread_label: gtk::Label = builder.get_object("unread_count_all").expect(GTK_BUILDER_ERROR);
-        let service_label: gtk::Label = builder.get_object("service_label").expect(GTK_BUILDER_ERROR);
-        let categories_event_box: gtk::EventBox = builder.get_object("categories_event_box").expect(GTK_BUILDER_ERROR);
-        let categories_expander: gtk::Image = builder.get_object("categories_expander").expect(GTK_BUILDER_ERROR);
-        let tags_event_box: gtk::EventBox = builder.get_object("tags_event_box").expect(GTK_BUILDER_ERROR);
-        let tags_expander: gtk::Image = builder.get_object("tags_expander").expect(GTK_BUILDER_ERROR);
-        let categories_revealer: gtk::Revealer = builder.get_object("categories_revealer").expect(GTK_BUILDER_ERROR);
-        let tags_revealer: gtk::Revealer = builder.get_object("tags_revealer").expect(GTK_BUILDER_ERROR);
-        let all_event_box: gtk::EventBox = builder.get_object("all_event_box").expect(GTK_BUILDER_ERROR);
-        let feed_list_box: gtk::Box = builder.get_object("feed_list_box").expect(GTK_BUILDER_ERROR);
-        let tag_list_box: gtk::Box = builder.get_object("tags_list_box").expect(GTK_BUILDER_ERROR);
+        let sidebar = builder.get::<Box>("toplevel");
+        let logo = builder.get::<Image>("logo");
+        let unread_label = builder.get::<Label>("unread_count_all");
+        let service_label = builder.get::<Label>("service_label");
+        let categories_event_box = builder.get::<EventBox>("categories_event_box");
+        let categories_expander = builder.get::<Image>("categories_expander");
+        let tags_event_box = builder.get::<EventBox>("tags_event_box");
+        let tags_expander = builder.get::<Image>("tags_expander");
+        let categories_revealer = builder.get::<Revealer>("categories_revealer");
+        let tags_revealer = builder.get::<Revealer>("tags_revealer");
+        let all_event_box = builder.get::<EventBox>("all_event_box");
+        let feed_list_box = builder.get::<Box>("feed_list_box");
+        let tag_list_box = builder.get::<Box>("tags_list_box");
 
         let feed_list = FeedList::new()?;
         let tag_list = TagList::new();
