@@ -27,6 +27,9 @@ use std::str;
 struct Resources;
 
 fn main() {
+    // nicer backtrace
+    color_backtrace::install();
+
     gtk::init().expect("Error initializing gtk.");
 
     let application = Application::new("com.gitlab.newsflash", gio::ApplicationFlags::empty()).expect("Initialization gtk-app failed");
