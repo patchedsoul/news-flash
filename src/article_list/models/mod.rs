@@ -1,12 +1,13 @@
 mod article;
 mod change_set;
+mod error;
 
 pub use article::ArticleListArticleModel;
 pub use change_set::ArticleListChangeSet;
-use failure::format_err;
-use failure::Error;
+use error::{ArticleListModelError, ArticleListModelErrorKind};
 use news_flash::models::{Article, ArticleID, ArticleOrder, FavIcon, Read};
 use std::collections::HashSet;
+use log::{warn};
 
 #[derive(Debug)]
 pub struct ArticleListModel {
@@ -24,18 +25,20 @@ impl ArticleListModel {
         }
     }
 
-    pub fn add(&mut self, article: Article, feed_name: String, icon: Option<FavIcon>) -> Result<(), Error> {
+    pub fn add(&mut self, article: Article, feed_name: String, icon: Option<FavIcon>) -> Result<(), ArticleListModelError> {
         if self.contains(&article.article_id) {
-            return Err(format_err!("some err"));
+            warn!("Listmodel already contains id {}", article.article_id);
+            return Err(ArticleListModelErrorKind::AlreadyContainsArticle)?
         }
         self.ids.insert(article.article_id.clone());
         self.models.push(ArticleListArticleModel::new(article, feed_name, icon));
         Ok(())
     }
 
-    pub fn add_model(&mut self, model: ArticleListArticleModel) -> Result<(), Error> {
+    pub fn add_model(&mut self, model: ArticleListArticleModel) -> Result<(), ArticleListModelError> {
         if self.contains(&model.id) {
-            return Err(format_err!("some err"));
+            warn!("Listmodel already contains id {}", model.id);
+            return Err(ArticleListModelErrorKind::AlreadyContainsArticle)?
         }
         self.ids.insert(model.id.clone());
         self.models.push(model);

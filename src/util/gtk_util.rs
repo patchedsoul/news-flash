@@ -1,6 +1,4 @@
-use cairo::Context;
-use cairo::Surface;
-use failure::{format_err, Error};
+use cairo::{Context, Surface};
 use gdk::ContextExt;
 use gdk_pixbuf::Pixbuf;
 use gio::{Cancellable, MemoryInputStream};
@@ -10,6 +8,9 @@ use news_flash::models::PixelIcon;
 use std::cell::RefCell;
 use std::collections::HashMap;
 use std::rc::Rc;
+use super::error::{UtilError, UtilErrorKind};
+use failure::ResultExt;
+use log::{warn, error};
 
 pub type GtkHandle<T> = Rc<RefCell<T>>;
 pub type GtkHandleMap<T, K> = GtkHandle<HashMap<T, K>>;
@@ -28,20 +29,24 @@ macro_rules! gtk_handle {
 pub struct GtkUtil;
 
 impl GtkUtil {
-    pub fn create_surface_from_pixelicon(icon: &PixelIcon, scale_factor: i32) -> Result<Surface, Error> {
+    pub fn create_surface_from_pixelicon(icon: &PixelIcon, scale_factor: i32) -> Result<Surface, UtilError> {
         Self::create_surface_from_bytes(&icon.data, icon.width, icon.height, scale_factor)
     }
 
-    pub fn create_surface_from_bytes(data: &[u8], width: i32, height: i32, scale_factor: i32) -> Result<Surface, Error> {
+    pub fn create_surface_from_bytes(data: &[u8], width: i32, height: i32, scale_factor: i32) -> Result<Surface, UtilError> {
         let pixbuf = Self::create_pixbuf_from_bytes(data, width, height, scale_factor)?;
-        Context::cairo_surface_create_from_pixbuf(&pixbuf, scale_factor, None).ok_or_else(|| format_err!("some err"))
+        match Context::cairo_surface_create_from_pixbuf(&pixbuf, scale_factor, None) {
+            Some(surface) => return Ok(surface),
+            None => return Err(UtilErrorKind::CairoSurface)?
+        }
     }
 
-    pub fn create_pixbuf_from_bytes(data: &[u8], width: i32, height: i32, scale_factor: i32) -> Result<Pixbuf, Error> {
+    pub fn create_pixbuf_from_bytes(data: &[u8], width: i32, height: i32, scale_factor: i32) -> Result<Pixbuf, UtilError> {
         let bytes = Bytes::from(data);
         let stream = MemoryInputStream::new_from_bytes(&bytes);
         let cancellable: Option<&Cancellable> = None;
-        let pixbuf = Pixbuf::new_from_stream_at_scale(&stream, width * scale_factor, height * scale_factor, true, cancellable)?;
+        let pixbuf = Pixbuf::new_from_stream_at_scale(&stream, width * scale_factor, height * scale_factor, true, cancellable)
+            .context(UtilErrorKind::CairoSurface)?;
         Ok(pixbuf)
     }
 
@@ -56,15 +61,20 @@ impl GtkUtil {
         widget.clone().upcast::<gtk::Widget>().is::<gtk::ApplicationWindow>()
     }
 
-    pub fn get_main_window<W: IsA<gtk::Object> + IsA<gtk::Widget> + WidgetExt + Clone>(widget: &W) -> Result<gtk::ApplicationWindow, Error> {
+    pub fn get_main_window<W: IsA<gtk::Object> + IsA<gtk::Widget> + WidgetExt + Clone>(widget: &W) -> Result<gtk::ApplicationWindow, UtilError> {
         if let Some(toplevel) = widget.get_toplevel() {
             if Self::is_main_window(&toplevel) {
                 let main_window = toplevel.downcast::<gtk::ApplicationWindow>().unwrap();
                 return Ok(main_window);
             }
+            warn!("widget is not the main window");
         }
-
-        Err(format_err!("some err"))
+        else {
+            warn!("widget is not a toplevel");
+        }
+        
+        error!("getting main window for widget failed");
+        Err(UtilErrorKind::WidgetIsMainwindow)?
     }
 
     pub fn get_dnd_style_context_widget(row: &gtk::Widget) -> Option<StyleContext> {
@@ -72,6 +82,7 @@ impl GtkUtil {
             return Self::get_dnd_style_context_listboxrow(&row);
         }
 
+        warn!("Couldn't cast widget to ListBoxRow");
         None
     }
 
@@ -96,6 +107,7 @@ impl GtkUtil {
             let signal_id = SignalHandlerId::from_glib(signal_id);
             widget.disconnect(signal_id);
         }
+        //warn!("Signal ID to disconnect is NONE");
     }
 
     pub fn remove_source(source_id: Option<u32>) {
@@ -103,5 +115,6 @@ impl GtkUtil {
             let source_id = SourceId::from_glib(source_id);
             glib::source::source_remove(source_id);
         }
+        //warn!("Source ID to remove is NONE");
     }
 }

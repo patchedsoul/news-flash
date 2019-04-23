@@ -2,6 +2,7 @@ mod date_util;
 mod file_util;
 mod gtk_util;
 mod builder_helper;
+mod error;
 
 pub use date_util::DateUtil;
 pub use file_util::FileUtil;
