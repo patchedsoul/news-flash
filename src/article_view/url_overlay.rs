@@ -1,5 +1,5 @@
-use gtk::{Label, LabelExt, WidgetExt};
 use crate::util::BuilderHelper;
+use gtk::{Label, LabelExt, WidgetExt};
 
 #[derive(Clone, Debug)]
 pub struct UrlOverlay {

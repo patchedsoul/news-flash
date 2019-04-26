@@ -30,7 +30,9 @@ impl PartialEq for FeedListChangeSet {
                 _ => false,
             },
             FeedListChangeSet::AddCategory(model, pos, _) => match other {
-                FeedListChangeSet::AddCategory(other_model, other_pos, _) => model.id == other_model.id && pos == other_pos,
+                FeedListChangeSet::AddCategory(other_model, other_pos, _) => {
+                    model.id == other_model.id && pos == other_pos
+                }
                 _ => false,
             },
             FeedListChangeSet::FeedUpdateItemCount(id, count) => match other {
@@ -38,7 +40,9 @@ impl PartialEq for FeedListChangeSet {
                 _ => false,
             },
             FeedListChangeSet::CategoryUpdateItemCount(id, count) => match other {
-                FeedListChangeSet::CategoryUpdateItemCount(other_id, other_count) => id == other_id && count == other_count,
+                FeedListChangeSet::CategoryUpdateItemCount(other_id, other_count) => {
+                    id == other_id && count == other_count
+                }
                 _ => false,
             },
             FeedListChangeSet::FeedUpdateLabel(id, label) => match other {

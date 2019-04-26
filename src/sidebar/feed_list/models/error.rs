@@ -40,7 +40,9 @@ impl fmt::Display for FeedListModelError {
 
 impl From<FeedListModelErrorKind> for FeedListModelError {
     fn from(kind: FeedListModelErrorKind) -> FeedListModelError {
-        FeedListModelError { inner: Context::new(kind) }
+        FeedListModelError {
+            inner: Context::new(kind),
+        }
     }
 }
 

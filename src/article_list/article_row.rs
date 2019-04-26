@@ -1,26 +1,32 @@
-use super::models::ArticleListArticleModel;
+use super::models::{ArticleListArticleModel, ArticleListModel, MarkReadUpdate};
 use crate::gtk_handle;
-use crate::util::{GtkHandle, DateUtil, GtkUtil, BuilderHelper};
+use crate::util::GTK_RESOURCE_FILE_ERROR;
+use crate::util::{BuilderHelper, DateUtil, GtkHandle, GtkUtil};
 use crate::Resources;
 use failure::Error;
 use gdk::{EventType, NotifyType};
-use gtk::{ContainerExt, EventBox, ImageExt, Image, Inhibit, Label, LabelExt, ListBoxRowExt, Stack, StackExt, StyleContextExt, WidgetExt};
-use news_flash::models::{Marked, Read};
+use gio::{ActionExt, ActionMapExt};
+use glib::Variant;
+use gtk::{
+    ContainerExt, EventBox, Image, ImageExt, Inhibit, Label, LabelExt, ListBoxRowExt, Stack, StackExt, StyleContextExt,
+    WidgetExt,
+};
+use news_flash::models::{ArticleID, Marked, Read};
 use std::cell::RefCell;
 use std::rc::Rc;
-use crate::util::GTK_RESOURCE_FILE_ERROR;
 
 pub struct ArticleRow {
     widget: gtk::ListBoxRow,
     marked_handle: GtkHandle<Marked>,
-    unread_handle: GtkHandle<Read>,
+    read_handle: GtkHandle<Read>,
     marked_stack: gtk::Stack,
     unread_stack: gtk::Stack,
     title_label: gtk::Label,
+    row_hovered: GtkHandle<bool>,
 }
 
 impl ArticleRow {
-    pub fn new(article: &ArticleListArticleModel) -> Result<Self, Error> {
+    pub fn new(article: &ArticleListArticleModel, list_model: &GtkHandle<ArticleListModel>) -> Result<Self, Error> {
         let builder = BuilderHelper::new("article");
 
         let favicon = builder.get::<Image>("favicon");
@@ -70,20 +76,37 @@ impl ArticleRow {
             }
         }
 
-        let unread_handle = gtk_handle!(article.unread);
+        let read_handle = gtk_handle!(article.read);
         let marked_handle = gtk_handle!(article.marked);
+        let row_hovered = gtk_handle!(false);
 
-        Self::setup_row_eventbox(&article_eventbox, &unread_handle, &marked_handle, &unread_stack, &marked_stack, &title_label);
-        Self::setup_unread_eventbox(&unread_eventbox, &unread_handle, &unread_stack);
+        Self::setup_row_eventbox(
+            &article_eventbox,
+            &read_handle,
+            &marked_handle,
+            &unread_stack,
+            &marked_stack,
+            &title_label,
+            &row_hovered,
+        );
+        Self::setup_unread_eventbox(
+            &unread_eventbox,
+            &read_handle,
+            &unread_stack,
+            &title_label,
+            &article.id,
+            list_model,
+        );
         Self::setup_marked_eventbox(&marked_eventbox, &marked_handle, &marked_stack);
 
         Ok(ArticleRow {
             widget: row,
             marked_handle,
-            unread_handle,
+            read_handle,
             marked_stack,
             unread_stack,
             title_label,
+            row_hovered,
         })
     }
 
@@ -98,8 +121,8 @@ impl ArticleRow {
 
     pub fn update_unread(&mut self, unread: Read) {
         Self::update_title_label(&self.title_label, unread);
-        Self::update_unread_stack(&self.unread_stack, unread);
-        *self.unread_handle.borrow_mut() = unread;
+        Self::update_unread_stack(&self.unread_stack, unread, *self.row_hovered.borrow());
+        *self.read_handle.borrow_mut() = unread;
     }
 
     fn create_row(widget: &gtk::EventBox) -> gtk::ListBoxRow {
@@ -113,9 +136,17 @@ impl ArticleRow {
         row
     }
 
-    fn setup_unread_eventbox(eventbox: &gtk::EventBox, read: &GtkHandle<Read>, unread_stack: &gtk::Stack) {
+    fn setup_unread_eventbox(
+        eventbox: &gtk::EventBox,
+        read: &GtkHandle<Read>,
+        unread_stack: &gtk::Stack,
+        title_label: &gtk::Label,
+        article_id: &ArticleID,
+        list_model: &GtkHandle<ArticleListModel>,
+    ) {
         let read_1 = read.clone();
         let stack_1 = unread_stack.clone();
+        let title_label = title_label.clone();
         eventbox.connect_enter_notify_event(move |_widget, _event| {
             match *read_1.borrow() {
                 Read::Unread => stack_1.set_visible_child_name("read"),
@@ -133,18 +164,36 @@ impl ArticleRow {
             Inhibit(false)
         });
         let read_3 = read.clone();
-        eventbox.connect_button_press_event(move |_widget, event| {
+        let article_id = article_id.clone();
+        let list_model = list_model.clone();
+        eventbox.connect_button_press_event(move |widget, event| {
             if event.get_button() != 1 {
                 return Inhibit(false);
             }
             match event.get_event_type() {
-                EventType::ButtonRelease | EventType::DoubleButtonPress | EventType::TripleButtonPress => return Inhibit(false),
+                EventType::ButtonRelease | EventType::DoubleButtonPress | EventType::TripleButtonPress => {
+                    return Inhibit(false);
+                }
                 _ => {}
             }
             let read = *read_3.borrow();
             match read {
                 Read::Read => *read_3.borrow_mut() = Read::Unread,
                 Read::Unread => *read_3.borrow_mut() = Read::Read,
+            }
+            let read = *read_3.borrow();
+            Self::update_title_label(&title_label, read);
+            list_model.borrow_mut().set_read(&article_id, read);
+            if let Ok(main_window) = GtkUtil::get_main_window(widget) {
+                let update = MarkReadUpdate {
+                    article_id: article_id.clone(),
+                    read,
+                };
+                let update_data = serde_json::to_string(&update).unwrap();
+                let update_data = Variant::from(&update_data);
+                if let Some(action) = main_window.lookup_action("mark-article-read") {
+                    action.activate(Some(&update_data));
+                }
             }
             Inhibit(true)
         });
@@ -175,7 +224,9 @@ impl ArticleRow {
                 return Inhibit(false);
             }
             match event.get_event_type() {
-                EventType::ButtonRelease | EventType::DoubleButtonPress | EventType::TripleButtonPress => return Inhibit(false),
+                EventType::ButtonRelease | EventType::DoubleButtonPress | EventType::TripleButtonPress => {
+                    return Inhibit(false);
+                }
                 _ => {}
             }
             let read = *marked_3.borrow();
@@ -187,19 +238,29 @@ impl ArticleRow {
         });
     }
 
-    fn setup_row_eventbox(eventbox: &gtk::EventBox, read: &GtkHandle<Read>, marked: &GtkHandle<Marked>, unread_stack: &gtk::Stack, marked_stack: &gtk::Stack, title_label: &gtk::Label) {
+    fn setup_row_eventbox(
+        eventbox: &gtk::EventBox,
+        read: &GtkHandle<Read>,
+        marked: &GtkHandle<Marked>,
+        unread_stack: &gtk::Stack,
+        marked_stack: &gtk::Stack,
+        title_label: &gtk::Label,
+        row_hovered: &GtkHandle<bool>,
+    ) {
         Self::update_title_label(&title_label, *read.borrow());
-        Self::update_unread_stack(&unread_stack, *read.borrow());
+        Self::update_unread_stack(&unread_stack, *read.borrow(), *row_hovered.borrow());
         Self::update_marked_stack(&marked_stack, *marked.borrow());
 
         let read_1 = read.clone();
         let marked_1 = marked.clone();
         let unread_stack_1 = unread_stack.clone();
         let marked_stack_1 = marked_stack.clone();
+        let row_hovered_1 = row_hovered.clone();
         eventbox.connect_enter_notify_event(move |_widget, event| {
             if event.get_detail() == NotifyType::Inferior {
                 return Inhibit(true);
             }
+            *row_hovered_1.borrow_mut() = true;
             match *read_1.borrow() {
                 Read::Read => unread_stack_1.set_visible_child_name("read"),
                 Read::Unread => unread_stack_1.set_visible_child_name("unread"),
@@ -215,10 +276,12 @@ impl ArticleRow {
         let marked_2 = marked.clone();
         let unread_stack_2 = unread_stack.clone();
         let marked_stack_2 = marked_stack.clone();
+        let row_hovered_2 = row_hovered.clone();
         eventbox.connect_leave_notify_event(move |_widget, event| {
             if event.get_detail() == NotifyType::Inferior {
                 return Inhibit(true);
             }
+            *row_hovered_2.borrow_mut() = false;
             match *read_2.borrow() {
                 Read::Read => unread_stack_2.set_visible_child_name("empty"),
                 Read::Unread => unread_stack_2.set_visible_child_name("unread"),
@@ -239,9 +302,15 @@ impl ArticleRow {
         }
     }
 
-    fn update_unread_stack(unread_stack: &gtk::Stack, read: Read) {
+    fn update_unread_stack(unread_stack: &gtk::Stack, read: Read, row_hovered: bool) {
         match read {
-            Read::Read => unread_stack.set_visible_child_name("empty"),
+            Read::Read => {
+                if row_hovered {
+                    unread_stack.set_visible_child_name("read")
+                } else {
+                    unread_stack.set_visible_child_name("empty")
+                }
+            }
             Read::Unread => unread_stack.set_visible_child_name("unread"),
         }
     }

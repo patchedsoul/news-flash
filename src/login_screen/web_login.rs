@@ -1,6 +1,6 @@
 use crate::error_dialog::ErrorDialog;
 use crate::gtk_handle;
-use crate::util::{GtkHandle, GtkUtil, BuilderHelper, GTK_BUILDER_ERROR};
+use crate::util::{BuilderHelper, GtkHandle, GtkUtil, GTK_BUILDER_ERROR};
 use failure::Error;
 use gio::{ActionExt, ActionMapExt};
 use glib::{

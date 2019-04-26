@@ -38,7 +38,9 @@ impl<'a> fmt::Display for ArticleListChangeSet<'a> {
         match self {
             ArticleListChangeSet::Add(model, pos) => write!(f, "Add id='{}' pos='{}'", model.id, pos),
             ArticleListChangeSet::Remove(id) => write!(f, "Remove id='{}'", id),
-            ArticleListChangeSet::UpdateMarked(id, marked) => write!(f, "UpdateMarked id='{}' marked='{:?}'", id, marked),
+            ArticleListChangeSet::UpdateMarked(id, marked) => {
+                write!(f, "UpdateMarked id='{}' marked='{:?}'", id, marked)
+            }
             ArticleListChangeSet::UpdateRead(id, read) => write!(f, "UpdateMarked id='{}' read='{:?}'", id, read),
         }
     }

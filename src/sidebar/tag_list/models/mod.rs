@@ -74,10 +74,16 @@ impl TagListModel {
                     // still the same item -> check for item count
                     if new_item == old_item {
                         if new_item.item_count != old_item.item_count {
-                            diff.push(TagListChangeSet::UpdateItemCount(new_item.id.clone(), new_item.item_count));
+                            diff.push(TagListChangeSet::UpdateItemCount(
+                                new_item.id.clone(),
+                                new_item.item_count,
+                            ));
                         }
                         if new_item.label != old_item.label {
-                            diff.push(TagListChangeSet::UpdateLabel(new_item.id.clone(), new_item.label.clone()));
+                            diff.push(TagListChangeSet::UpdateLabel(
+                                new_item.id.clone(),
+                                new_item.label.clone(),
+                            ));
                         }
                         list_pos += 1;
                         old_index += 1;
@@ -100,7 +106,10 @@ impl TagListModel {
     }
 
     pub fn calculate_selection(&self, selected_index: i32) -> Option<(usize, &TagListTagModel)> {
-        self.models.iter().enumerate().find(|(index, _)| index == &(selected_index as usize))
+        self.models
+            .iter()
+            .enumerate()
+            .find(|(index, _)| index == &(selected_index as usize))
     }
 }
 

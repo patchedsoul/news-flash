@@ -3,16 +3,19 @@ use crate::gtk_handle;
 use crate::login_screen::{LoginHeaderbar, PasswordLogin, WebLogin};
 use crate::main_window_actions::MainWindowActions;
 use crate::main_window_state::MainWindowState;
+use crate::util::{BuilderHelper, GTK_CSS_ERROR, GTK_RESOURCE_FILE_ERROR};
 use crate::welcome_screen::{WelcomeHeaderbar, WelcomePage};
 use crate::Resources;
 use failure::Error;
-use gtk::{self, Application, ApplicationWindow, CssProvider, CssProviderExt, GtkWindowExt, GtkWindowExtManual, Inhibit, Stack, StackExt, StyleContext, WidgetExt};
+use gtk::{
+    self, Application, ApplicationWindow, CssProvider, CssProviderExt, GtkWindowExt, GtkWindowExtManual, Inhibit,
+    Stack, StackExt, StyleContext, WidgetExt,
+};
 use log::{info, warn};
 use news_flash::models::{Tag, TagID};
 use news_flash::NewsFlash;
 use std::cell::RefCell;
 use std::rc::Rc;
-use crate::util::{GTK_CSS_ERROR, GTK_RESOURCE_FILE_ERROR, BuilderHelper};
 
 pub static DATA_DIR: &'static str = ".news-flash";
 const PANED_DEFAULT_POS: i32 = 600;
@@ -69,11 +72,29 @@ impl MainWindow {
 
         MainWindowActions::setup_show_password_page_action(&window, &pw_login_handle, &stack, login_header.widget());
         MainWindowActions::setup_show_oauth_page_action(&window, &oauht_login_handle, &stack, login_header.widget());
-        MainWindowActions::setup_show_welcome_page_action(&window, &oauht_login_handle, &pw_login_handle, &stack, welcome_header.widget());
-        MainWindowActions::setup_show_content_page_action(&window, &news_flash_handle, &stack, &content_page_handle, content_header_handle.borrow().widget());
+        MainWindowActions::setup_show_welcome_page_action(
+            &window,
+            &oauht_login_handle,
+            &pw_login_handle,
+            &stack,
+            welcome_header.widget(),
+        );
+        MainWindowActions::setup_show_content_page_action(
+            &window,
+            &news_flash_handle,
+            &stack,
+            &content_page_handle,
+            content_header_handle.borrow().widget(),
+        );
         MainWindowActions::setup_login_action(&window, &news_flash_handle, &oauht_login_handle, &pw_login_handle);
         MainWindowActions::setup_sync_paned_action(&window, &content_page_handle, &content_header_handle);
-        MainWindowActions::setup_sync_action(&window, &content_page_handle, &content_header_handle, &news_flash_handle, &state);
+        MainWindowActions::setup_sync_action(
+            &window,
+            &content_page_handle,
+            &content_header_handle,
+            &news_flash_handle,
+            &state,
+        );
         MainWindowActions::setup_sidebar_selection_action(&window, &state);
         MainWindowActions::setup_headerbar_selection_action(&window, &state);
         MainWindowActions::setup_search_action(&window, &state);
@@ -89,12 +110,16 @@ impl MainWindow {
 
             stack.set_visible_child_name("content");
             let id = news_flash_lib.id().unwrap();
-            content_page_handle.borrow().set_service(&id, news_flash_lib.user_name())?;
+            content_page_handle
+                .borrow()
+                .set_service(&id, news_flash_lib.user_name())?;
             *news_flash_handle.borrow_mut() = Some(news_flash_lib);
 
             // try to fill content page with data
             content_page_handle.borrow_mut().update_sidebar(&news_flash_handle);
-            content_page_handle.borrow_mut().update_article_list(&news_flash_handle, &state);
+            content_page_handle
+                .borrow_mut()
+                .update_article_list(&news_flash_handle, &state);
 
             window.set_titlebar(&content_header_handle.borrow().widget());
         } else {

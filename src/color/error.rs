@@ -45,7 +45,9 @@ impl ColorError {
 
 impl From<ColorErrorKind> for ColorError {
     fn from(kind: ColorErrorKind) -> ColorError {
-        ColorError { inner: Context::new(kind) }
+        ColorError {
+            inner: Context::new(kind),
+        }
     }
 }
 

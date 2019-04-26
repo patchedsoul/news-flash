@@ -94,12 +94,28 @@ impl TagRow {
                 let mut rgba_inner = ColorRGBA::parse_string(color).unwrap();
                 rgba_inner.adjust_lightness(0.05).unwrap();
 
-                cairo_ctx.set_source_rgba(rgba_inner.red_normalized(), rgba_inner.green_normalized(), rgba_inner.blue_normalized(), rgba_inner.alpha_normalized());
+                cairo_ctx.set_source_rgba(
+                    rgba_inner.red_normalized(),
+                    rgba_inner.green_normalized(),
+                    rgba_inner.blue_normalized(),
+                    rgba_inner.alpha_normalized(),
+                );
                 cairo_ctx.arc(half_size, half_size, half_size, 0.0, 2.0 * std::f64::consts::PI);
                 cairo_ctx.fill_preserve();
 
-                cairo_ctx.arc(half_size, half_size, half_size - (half_size / 4.0), 0.0, 2.0 * std::f64::consts::PI);
-                cairo_ctx.set_source_rgba(rgba_outer.red_normalized(), rgba_outer.green_normalized(), rgba_outer.blue_normalized(), rgba_outer.alpha_normalized());
+                cairo_ctx.arc(
+                    half_size,
+                    half_size,
+                    half_size - (half_size / 4.0),
+                    0.0,
+                    2.0 * std::f64::consts::PI,
+                );
+                cairo_ctx.set_source_rgba(
+                    rgba_outer.red_normalized(),
+                    rgba_outer.green_normalized(),
+                    rgba_outer.blue_normalized(),
+                    rgba_outer.alpha_normalized(),
+                );
                 cairo_ctx.fill_preserve();
 
                 tag_color_circle.set_from_surface(&surface);

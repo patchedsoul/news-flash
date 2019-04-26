@@ -8,7 +8,9 @@ use crate::sidebar::feed_list::error::{FeedListError, FeedListErrorKind};
 use crate::sidebar::feed_list::{
     category_row::CategoryRow,
     feed_row::FeedRow,
-    models::{FeedListCategoryModel, FeedListChangeSet, FeedListDndAction, FeedListFeedModel, FeedListSelection, FeedListTree},
+    models::{
+        FeedListCategoryModel, FeedListChangeSet, FeedListDndAction, FeedListFeedModel, FeedListSelection, FeedListTree,
+    },
 };
 use crate::util::GtkHandle;
 use crate::util::GtkHandleMap;
@@ -16,7 +18,10 @@ use crate::util::GtkUtil;
 use crate::Resources;
 use failure::ResultExt;
 use gdk::{DragAction, EventType};
-use gtk::{self, ContainerExt, DestDefaults, Inhibit, ListBoxExt, ListBoxRowExt, SelectionMode, StyleContextExt, TargetEntry, TargetFlags, WidgetExt, WidgetExtManual};
+use gtk::{
+    self, ContainerExt, DestDefaults, Inhibit, ListBoxExt, ListBoxRowExt, SelectionMode, StyleContextExt, TargetEntry,
+    TargetFlags, WidgetExt, WidgetExtManual,
+};
 use log::debug;
 use news_flash::models::{CategoryID, FeedID};
 use std::cell::RefCell;
@@ -66,7 +71,8 @@ impl FeedList {
     fn setup_dnd(&self) {
         let entry = TargetEntry::new("FeedRow", TargetFlags::SAME_APP, 0);
         let tree = self.tree.clone();
-        self.list.drag_dest_set(DestDefaults::DROP | DestDefaults::MOTION, &[entry], DragAction::MOVE);
+        self.list
+            .drag_dest_set(DestDefaults::DROP | DestDefaults::MOTION, &[entry], DragAction::MOVE);
         self.list.drag_dest_add_text_targets();
         self.list.connect_drag_motion(|widget, _drag_context, _x, y, _time| {
             // maybe we should keep track of the previous highlighted rows instead of iterating over all of them
@@ -109,45 +115,52 @@ impl FeedList {
                 }
             }
         });
-        self.list.connect_drag_data_received(move |widget, _ctx, _x, y, selection_data, _info, _time| {
-            let children = widget.get_children();
-            for widget in children {
-                if let Some(ctx) = GtkUtil::get_dnd_style_context_widget(&widget) {
-                    ctx.remove_class("drag-above");
-                    ctx.remove_class("drag-below");
+        self.list
+            .connect_drag_data_received(move |widget, _ctx, _x, y, selection_data, _info, _time| {
+                let children = widget.get_children();
+                for widget in children {
+                    if let Some(ctx) = GtkUtil::get_dnd_style_context_widget(&widget) {
+                        ctx.remove_class("drag-above");
+                        ctx.remove_class("drag-below");
+                    }
                 }
-            }
 
-            if let Some(row) = widget.get_row_at_y(y) {
-                let alloc = row.get_allocation();
-                let index = row.get_index();
+                if let Some(row) = widget.get_row_at_y(y) {
+                    let alloc = row.get_allocation();
+                    let index = row.get_index();
 
-                let index = if y < alloc.y + (alloc.height / 2) {
-                    if index > 0 { index - 1 } else { index }
-                } else if index + 1 >= 0 { 
-                    index + 1
-                }
-                else {
-                    index
-                };
-
-                if let Ok((parent_category, sort_index)) = tree.borrow().calculate_dnd(index).map_err(|_| {
-                    debug!("Failed to calculate Drag&Drop action");
-                }) {
-                    if let Some(dnd_data_string) = selection_data.get_text() {
-                        if dnd_data_string.contains("FeedID") {
-                            let feed: FeedID = serde_json::from_str(&dnd_data_string.as_str().to_owned().split_off(6)).unwrap();
-                            let _fixme = FeedListDndAction::MoveFeed(feed, parent_category.clone(), sort_index);
+                    let index = if y < alloc.y + (alloc.height / 2) {
+                        if index > 0 {
+                            index - 1
+                        } else {
+                            index
                         }
+                    } else if index + 1 >= 0 {
+                        index + 1
+                    } else {
+                        index
+                    };
 
-                        if dnd_data_string.contains("CategoryID") {
-                            let category: CategoryID = serde_json::from_str(&dnd_data_string.as_str().to_owned().split_off(10)).unwrap();
-                            let _fixme = FeedListDndAction::MoveCategory(category, parent_category.clone(), sort_index);
+                    if let Ok((parent_category, sort_index)) = tree.borrow().calculate_dnd(index).map_err(|_| {
+                        debug!("Failed to calculate Drag&Drop action");
+                    }) {
+                        if let Some(dnd_data_string) = selection_data.get_text() {
+                            if dnd_data_string.contains("FeedID") {
+                                let feed: FeedID =
+                                    serde_json::from_str(&dnd_data_string.as_str().to_owned().split_off(6)).unwrap();
+                                let _fixme = FeedListDndAction::MoveFeed(feed, parent_category.clone(), sort_index);
+                            }
+
+                            if dnd_data_string.contains("CategoryID") {
+                                let category: CategoryID =
+                                    serde_json::from_str(&dnd_data_string.as_str().to_owned().split_off(10)).unwrap();
+                                let _fixme =
+                                    FeedListDndAction::MoveCategory(category, parent_category.clone(), sort_index);
+                            }
                         }
                     }
                 }
-            }
-        });
+            });
     }
 
     pub fn update(&mut self, new_tree: FeedListTree) {
@@ -205,38 +218,43 @@ impl FeedList {
         let category_id = category.id.clone();
         let tree = self.tree.clone();
         self.list.insert(&category_widget.borrow().row(), pos);
-        self.categories.borrow_mut().insert(category.id.clone(), category_widget.clone());
+        self.categories
+            .borrow_mut()
+            .insert(category.id.clone(), category_widget.clone());
 
-        category_widget.borrow().expander_event().connect_button_press_event(move |_widget, event| {
-            if event.get_button() != 1 {
-                return gtk::Inhibit(true);
-            }
-            match event.get_event_type() {
-                EventType::ButtonPress => (),
-                _ => return gtk::Inhibit(true),
-            }
-            if let Some((feed_ids, category_ids, expaneded)) = tree.borrow_mut().collapse_expand_ids(&category_id) {
-                for feed_id in feed_ids {
-                    if let Some(feed_handle) = feeds.borrow().get(&feed_id) {
-                        if expaneded {
-                            feed_handle.borrow_mut().expand();
-                        } else {
-                            feed_handle.borrow_mut().collapse();
+        category_widget
+            .borrow()
+            .expander_event()
+            .connect_button_press_event(move |_widget, event| {
+                if event.get_button() != 1 {
+                    return gtk::Inhibit(true);
+                }
+                match event.get_event_type() {
+                    EventType::ButtonPress => (),
+                    _ => return gtk::Inhibit(true),
+                }
+                if let Some((feed_ids, category_ids, expaneded)) = tree.borrow_mut().collapse_expand_ids(&category_id) {
+                    for feed_id in feed_ids {
+                        if let Some(feed_handle) = feeds.borrow().get(&feed_id) {
+                            if expaneded {
+                                feed_handle.borrow_mut().expand();
+                            } else {
+                                feed_handle.borrow_mut().collapse();
+                            }
+                        }
+                    }
+                    for category_id in category_ids {
+                        if let Some(category_handle) = categories.borrow().get(&category_id) {
+                            if expaneded {
+                                category_handle.borrow_mut().expand();
+                            } else {
+                                category_handle.borrow_mut().collapse();
+                            }
                         }
                     }
                 }
-                for category_id in category_ids {
-                    if let Some(category_handle) = categories.borrow().get(&category_id) {
-                        if expaneded {
-                            category_handle.borrow_mut().expand();
-                        } else {
-                            category_handle.borrow_mut().collapse();
-                        }
-                    }
-                }
-            }
-            gtk::Inhibit(true)
-        });
+                gtk::Inhibit(true)
+            });
     }
 
     fn add_feed(&mut self, feed: &FeedListFeedModel, pos: i32, visible: bool) {

@@ -1,8 +1,11 @@
 use crate::gtk_handle;
-use crate::util::{GtkHandle, GtkUtil, BuilderHelper};
+use crate::util::{BuilderHelper, GtkHandle, GtkUtil};
 use failure::Error;
 use gdk::{EventType, NotifyType};
-use gtk::{self, BinExt, EventBox, Image, ImageExt, Inhibit, Label, LabelExt, Revealer, RevealerExt, StyleContextExt, WidgetExt};
+use gtk::{
+    self, BinExt, EventBox, Image, ImageExt, Inhibit, Label, LabelExt, Revealer, RevealerExt, StyleContextExt,
+    WidgetExt,
+};
 use news_flash::models::{PluginIcon, PluginInfo, ServiceLicense, ServicePrice, ServiceType};
 use std::cell::RefCell;
 use std::rc::Rc;
@@ -51,7 +54,11 @@ impl ServiceRow {
         let type_string = match info.service_type {
             ServiceType::Local => "Local data only",
             ServiceType::Remote { self_hosted } => {
-                if self_hosted { "Synced & self hosted" } else { "Synced" }
+                if self_hosted {
+                    "Synced & self hosted"
+                } else {
+                    "Synced"
+                }
             }
         };
         type_label.set_text(type_string);
@@ -113,37 +120,38 @@ impl ServiceRow {
             Inhibit(false)
         });
         self.row.connect_leave_notify_event(move |_widget, crossing| {
-            if crossing.get_detail() != NotifyType::Inferior
-            && !handle_1.borrow().show_info {
+            if crossing.get_detail() != NotifyType::Inferior && !handle_1.borrow().show_info {
                 arrow_revealer_2.borrow().set_reveal_child(false);
             }
             Inhibit(false)
         });
 
         let info_revealer = self.info_revealer.clone();
-        self.arrow_event.borrow().connect_button_press_event(move |widget, event| {
-            if event.get_button() != 1 {
-                return gtk::Inhibit(false);
-            }
-            match event.get_event_type() {
-                EventType::ButtonPress => (),
-                _ => return gtk::Inhibit(false),
-            }
-            let arrow_image = widget.get_child().unwrap();
-            let context = arrow_image.get_style_context();
-            let expanded = handle.borrow().show_info;
-            if !expanded {
-                context.add_class("backward-arrow-expanded");
-                context.remove_class("backward-arrow-collapsed");
-                info_revealer.borrow().set_reveal_child(true);
-            } else {
-                context.remove_class("backward-arrow-expanded");
-                context.add_class("backward-arrow-collapsed");
-                info_revealer.borrow().set_reveal_child(false);
-            }
-            handle.borrow_mut().show_info = !expanded;
-            gtk::Inhibit(true)
-        });
+        self.arrow_event
+            .borrow()
+            .connect_button_press_event(move |widget, event| {
+                if event.get_button() != 1 {
+                    return gtk::Inhibit(false);
+                }
+                match event.get_event_type() {
+                    EventType::ButtonPress => (),
+                    _ => return gtk::Inhibit(false),
+                }
+                let arrow_image = widget.get_child().unwrap();
+                let context = arrow_image.get_style_context();
+                let expanded = handle.borrow().show_info;
+                if !expanded {
+                    context.add_class("backward-arrow-expanded");
+                    context.remove_class("backward-arrow-collapsed");
+                    info_revealer.borrow().set_reveal_child(true);
+                } else {
+                    context.remove_class("backward-arrow-expanded");
+                    context.add_class("backward-arrow-collapsed");
+                    info_revealer.borrow().set_reveal_child(false);
+                }
+                handle.borrow_mut().show_info = !expanded;
+                gtk::Inhibit(true)
+            });
     }
 
     pub fn widget(&self) -> gtk::EventBox {

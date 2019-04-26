@@ -1,13 +1,17 @@
 use crate::error_dialog::ErrorDialog;
+use crate::util::{BuilderHelper, GtkUtil, GTK_RESOURCE_FILE_ERROR};
 use crate::Resources;
 use failure::{Error, Fail};
 use gio::{ActionExt, ActionMapExt};
 use glib::{signal::SignalHandlerId, translate::ToGlib, Variant};
-use gtk::{self, Box, Button, ButtonExt, Entry, EntryExt, Image, ImageExt, InfoBar, InfoBarExt, Label, LabelExt, ResponseType, Revealer,
-    RevealerExt, StyleContextExt, WidgetExt};
-use news_flash::models::{LoginData, LoginGUI, PasswordLogin as PasswordLoginData, PasswordLoginGUI, PluginIcon, PluginInfo};
+use gtk::{
+    self, Box, Button, ButtonExt, Entry, EntryExt, Image, ImageExt, InfoBar, InfoBarExt, Label, LabelExt, ResponseType,
+    Revealer, RevealerExt, StyleContextExt, WidgetExt,
+};
+use news_flash::models::{
+    LoginData, LoginGUI, PasswordLogin as PasswordLoginData, PasswordLoginGUI, PluginIcon, PluginInfo,
+};
 use news_flash::{FeedApiError, FeedApiErrorKind, NewsFlashError, NewsFlashErrorKind};
-use crate::util::{GtkUtil, BuilderHelper, GTK_RESOURCE_FILE_ERROR};
 
 #[derive(Clone, Debug)]
 pub struct PasswordLogin {
@@ -100,14 +104,17 @@ impl PasswordLogin {
         // set Icon
         if let Some(icon) = info.icon {
             let surface = match icon {
-                PluginIcon::Vector(icon) => GtkUtil::create_surface_from_bytes(&icon.data, icon.width, icon.height, self.scale_factor)?,
+                PluginIcon::Vector(icon) => {
+                    GtkUtil::create_surface_from_bytes(&icon.data, icon.width, icon.height, self.scale_factor)?
+                }
                 PluginIcon::Pixel(icon) => GtkUtil::create_surface_from_pixelicon(&icon, self.scale_factor)?,
             };
             self.logo.set_from_surface(&surface);
         }
 
         // set headline
-        self.headline.set_text(&format!("Please log into {} and enjoy using NewsFlash", info.name));
+        self.headline
+            .set_text(&format!("Please log into {} and enjoy using NewsFlash", info.name));
 
         // setup infobar
         self.info_bar_close_signal = Some(

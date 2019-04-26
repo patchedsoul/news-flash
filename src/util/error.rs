@@ -41,7 +41,9 @@ impl UtilError {
 
 impl From<UtilErrorKind> for UtilError {
     fn from(kind: UtilErrorKind) -> UtilError {
-        UtilError { inner: Context::new(kind) }
+        UtilError {
+            inner: Context::new(kind),
+        }
     }
 }
 

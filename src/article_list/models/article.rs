@@ -10,13 +10,13 @@ pub struct ArticleListArticleModel {
     pub favicon: Option<FavIcon>,
     pub date: NaiveDateTime,
     pub summary: String,
-    pub unread: Read,
+    pub read: Read,
     pub marked: Marked,
 }
 
 impl ArticleListArticleModel {
     pub fn new(article: Article, feed_title: String, favicon: Option<FavIcon>) -> Self {
-        let (article_id, title, _author, feed_id, _url, date, summary, _direction, unread, marked) = article.decompose();
+        let (article_id, title, _author, feed_id, _url, date, summary, _direction, read, marked) = article.decompose();
 
         ArticleListArticleModel {
             id: article_id,
@@ -32,7 +32,7 @@ impl ArticleListArticleModel {
                 Some(summary) => summary,
                 None => "No Summary".to_owned(),
             },
-            unread,
+            read,
             marked,
         }
     }

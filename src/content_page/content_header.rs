@@ -1,10 +1,13 @@
 use super::header_selection::HeaderSelection;
-use crate::util::{GtkUtil, BuilderHelper};
+use crate::util::{BuilderHelper, GtkUtil};
 use failure::Error;
 use gdk::EventType;
 use gio::{ActionExt, ActionMapExt};
 use glib::{signal::Inhibit, Variant};
-use gtk::{Button, ButtonExt, EntryExt, Paned, PanedExt, SearchEntry, SearchEntryExt, Stack, StackExt, ToggleButton, ToggleButtonExt, WidgetExt};
+use gtk::{
+    Button, ButtonExt, EntryExt, Paned, PanedExt, SearchEntry, SearchEntryExt, Stack, StackExt, ToggleButton,
+    ToggleButtonExt, WidgetExt,
+};
 
 pub struct ContentHeader {
     header: gtk::Paned,
@@ -67,7 +70,12 @@ impl ContentHeader {
         self.update_stack.set_visible_child_name("icon");
     }
 
-    fn setup_linked_button(button: &ToggleButton, other_button_1: &ToggleButton, other_button_2: &ToggleButton, mode: HeaderSelection) {
+    fn setup_linked_button(
+        button: &ToggleButton,
+        other_button_1: &ToggleButton,
+        other_button_2: &ToggleButton,
+        mode: HeaderSelection,
+    ) {
         let button_clone = button.clone();
         let other_button_1 = other_button_1.clone();
         let other_button_2 = other_button_2.clone();

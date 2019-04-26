@@ -1,8 +1,7 @@
-use failure::Fail;
-use gtk::{Box, BoxExt, GtkWindowExt, LabelExt, Window, WidgetExt};
-use news_flash::{NewsFlash, NewsFlashError};
 use crate::util::BuilderHelper;
-
+use failure::Fail;
+use gtk::{Box, BoxExt, GtkWindowExt, LabelExt, WidgetExt, Window};
+use news_flash::{NewsFlash, NewsFlashError};
 
 #[derive(Clone, Debug)]
 pub struct ErrorDialog {
@@ -50,9 +49,6 @@ impl ErrorDialog {
         error_dialog.set_transient_for(parent);
         error_dialog.show_all();
 
-        ErrorDialog {
-            error_dialog,
-            list_box,
-        }
+        ErrorDialog { error_dialog, list_box }
     }
 }

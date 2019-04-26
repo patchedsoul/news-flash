@@ -1,6 +1,6 @@
+use crate::util::BuilderHelper;
 use failure::Error;
 use gtk::HeaderBar;
-use crate::util::BuilderHelper;
 
 #[derive(Clone, Debug)]
 pub struct WelcomeHeaderbar {

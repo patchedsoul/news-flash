@@ -6,13 +6,20 @@ use self::models::{ArticleTheme, InternalState};
 use self::progress_overlay::ProgressOverlay;
 use self::url_overlay::UrlOverlay;
 use crate::gtk_handle;
-use crate::util::{GtkHandle, FileUtil, DateUtil, GtkUtil, BuilderHelper};
+use crate::util::GTK_RESOURCE_FILE_ERROR;
+use crate::util::{BuilderHelper, DateUtil, FileUtil, GtkHandle, GtkUtil};
 use crate::Resources;
 use failure::{format_err, Error};
-use gdk::{enums::key::KP_Add as KP_ADD, enums::key::KP_Subtract as KP_SUBTRACT, enums::key::KP_0, Cursor, CursorType, Display, EventMask, ModifierType, ScrollDirection};
+use gdk::{
+    enums::key::KP_Add as KP_ADD, enums::key::KP_Subtract as KP_SUBTRACT, enums::key::KP_0, Cursor, CursorType,
+    Display, EventMask, ModifierType, ScrollDirection,
+};
 use gio::Cancellable;
 use glib::{object::Cast, translate::ToGlib, MainLoop};
-use gtk::{Button, ButtonExt, ContainerExt, Continue, Inhibit, Overlay, OverlayExt, Stack, StackExt, WidgetExt, WidgetExtManual};
+use gtk::{
+    Button, ButtonExt, ContainerExt, Continue, Inhibit, Overlay, OverlayExt, Stack, StackExt, WidgetExt,
+    WidgetExtManual,
+};
 use log::error;
 use news_flash::models::FatArticle;
 use std::cell::RefCell;
@@ -21,10 +28,9 @@ use std::str;
 use std::sync::Arc;
 use std::sync::Mutex;
 use webkit2gtk::{
-    ContextMenuAction, ContextMenuExt, ContextMenuItemExt, HitTestResultExt, LoadEvent, NavigationPolicyDecision, NavigationPolicyDecisionExt, PolicyDecisionType, Settings, SettingsExt,
-    URIRequestExt, WebView, WebViewExt,
+    ContextMenuAction, ContextMenuExt, ContextMenuItemExt, HitTestResultExt, LoadEvent, NavigationPolicyDecision,
+    NavigationPolicyDecisionExt, PolicyDecisionType, Settings, SettingsExt, URIRequestExt, WebView, WebViewExt,
 };
-use crate::util::{GTK_RESOURCE_FILE_ERROR};
 
 const MIDDLE_MOUSE_BUTTON: u32 = 2;
 
@@ -80,7 +86,8 @@ impl ArticleView {
                         if let Some(default_screen) = gdk::Screen::get_default() {
                             if let Some(path) = path.to_str() {
                                 let uri = format!("file://{}", path);
-                                if gtk::show_uri(&default_screen, &uri, glib::get_current_time().tv_sec as u32).is_err() {
+                                if gtk::show_uri(&default_screen, &uri, glib::get_current_time().tv_sec as u32).is_err()
+                                {
                                     // log smth
                                 }
                             }
@@ -271,7 +278,9 @@ impl ArticleView {
                         LoadEvent::Started => {
                             if let Some(uri) = closure_webivew.get_uri() {
                                 if let Some(default_screen) = gdk::Screen::get_default() {
-                                    if gtk::show_uri(&default_screen, &uri, glib::get_current_time().tv_sec as u32).is_err() {
+                                    if gtk::show_uri(&default_screen, &uri, glib::get_current_time().tv_sec as u32)
+                                        .is_err()
+                                    {
                                         // log smth
                                     }
                                 }
@@ -297,7 +306,13 @@ impl ArticleView {
                                         if let Some(uri_req) = action.get_request() {
                                             if let Some(uri) = uri_req.get_uri() {
                                                 if let Some(default_screen) = gdk::Screen::get_default() {
-                                                    if gtk::show_uri(&default_screen, &uri, glib::get_current_time().tv_sec as u32).is_err() {
+                                                    if gtk::show_uri(
+                                                        &default_screen,
+                                                        &uri,
+                                                        glib::get_current_time().tv_sec as u32,
+                                                    )
+                                                    .is_err()
+                                                    {
                                                         return true;
                                                     }
                                                 }
@@ -328,7 +343,11 @@ impl ArticleView {
                             let rel_x = pointer_pos.borrow().0 / f64::from(allocation.width);
                             let rel_y = pointer_pos.borrow().1 / f64::from(allocation.height);
 
-                            let align = if rel_x <= 0.5 && rel_y >= 0.85 { gtk::Align::End } else { gtk::Align::Start };
+                            let align = if rel_x <= 0.5 && rel_y >= 0.85 {
+                                gtk::Align::End
+                            } else {
+                                gtk::Align::Start
+                            };
 
                             url_overlay_handle.borrow().set_url(uri.as_str().to_owned(), align);
                             url_overlay_handle.borrow().reveal(true);
@@ -402,7 +421,10 @@ impl ArticleView {
                         }
 
                         match item.get_stock_action() {
-                            ContextMenuAction::CopyLinkToClipboard | ContextMenuAction::Copy | ContextMenuAction::CopyImageToClipboard | ContextMenuAction::CopyImageUrlToClipboard => {}
+                            ContextMenuAction::CopyLinkToClipboard
+                            | ContextMenuAction::Copy
+                            | ContextMenuAction::CopyImageToClipboard
+                            | ContextMenuAction::CopyImageUrlToClipboard => {}
                             _ => ctx_menu.remove(&item),
                         }
                     }
@@ -474,7 +496,14 @@ impl ArticleView {
                                     if let Some(window) = closure_webivew.get_window() {
                                         let cursor = Cursor::new_for_display(&display, CursorType::Fleur);
                                         // FIXME
-                                        let _grab_status = seat.grab(&window, gdk::SeatCapabilities::POINTER, false, Some(&cursor), None, Some(&mut |_, _| {}));
+                                        let _grab_status = seat.grab(
+                                            &window,
+                                            gdk::SeatCapabilities::POINTER,
+                                            false,
+                                            Some(&cursor),
+                                            None,
+                                            Some(&mut |_, _| {}),
+                                        );
 
                                         gtk::device_grab_add(&widget, &pointer, false);
                                         let drag_buffer_update = drag_buffer.clone();
@@ -495,7 +524,8 @@ impl ArticleView {
                                                 }
 
                                                 (*drag_buffer_update.borrow_mut())[0] = *drag_y_pos_update.borrow();
-                                                *drag_momentum_update.borrow_mut() = (*drag_buffer_update.borrow())[9] - (*drag_buffer_update.borrow())[0];
+                                                *drag_momentum_update.borrow_mut() = (*drag_buffer_update.borrow())[9]
+                                                    - (*drag_buffer_update.borrow())[0];
                                                 Continue(true)
                                             })
                                             .to_glib(),
@@ -551,7 +581,9 @@ impl ArticleView {
                                 let old_adjust = f64::from(Self::get_scroll_pos(&view).unwrap());
                                 let upper = f64::from(Self::get_scroll_upper(&view).unwrap()) * view.get_zoom_level();
 
-                                if (old_adjust + adjust_value) > (upper - page_size) || (old_adjust + adjust_value) < 0.0 {
+                                if (old_adjust + adjust_value) > (upper - page_size)
+                                    || (old_adjust + adjust_value) < 0.0
+                                {
                                     *drag_momentum.borrow_mut() = 0.0;
                                 }
 

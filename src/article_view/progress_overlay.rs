@@ -1,5 +1,5 @@
-use gtk::{Box, Label, LabelExt, WidgetExt};
 use crate::util::BuilderHelper;
+use gtk::{Box, Label, LabelExt, WidgetExt};
 
 #[derive(Clone, Debug)]
 pub struct ProgressOverlay {

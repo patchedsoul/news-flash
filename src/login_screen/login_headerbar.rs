@@ -1,6 +1,6 @@
+use crate::util::BuilderHelper;
 use gio::{ActionExt, ActionMapExt};
 use gtk::{Button, ButtonExt, HeaderBar};
-use crate::util::BuilderHelper;
 
 #[derive(Clone, Debug)]
 pub struct LoginHeaderbar {

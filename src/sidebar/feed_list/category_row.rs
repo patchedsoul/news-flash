@@ -2,7 +2,9 @@ use crate::gtk_handle;
 use crate::sidebar::feed_list::models::FeedListCategoryModel;
 use crate::Resources;
 use gdk::{EventMask, EventType};
-use gtk::{self, BinExt, Cast, ContainerExt, LabelExt, ListBoxRowExt, RevealerExt, StyleContextExt, WidgetExt, WidgetExtManual};
+use gtk::{
+    self, BinExt, Cast, ContainerExt, LabelExt, ListBoxRowExt, RevealerExt, StyleContextExt, WidgetExt, WidgetExtManual,
+};
 use news_flash::models::CategoryID;
 use std::cell::RefCell;
 use std::rc::Rc;

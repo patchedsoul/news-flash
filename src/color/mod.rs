@@ -1,10 +1,8 @@
 mod error;
 
 use self::error::{ColorError, ColorErrorKind};
-use std::str::Chars;
 use log::error;
-
-
+use std::str::Chars;
 
 const MAX_COLOR_DIFF: f64 = 0.01;
 
@@ -19,13 +17,16 @@ pub struct ColorRGBA {
 impl ColorRGBA {
     pub fn parse_string(color_string: &str) -> Result<Self, ColorError> {
         if color_string.len() != 7 {
-            error!("Expected lenght of color string is 7, string lenght is {}", color_string.len());
-            return Err(ColorErrorKind::Parse)?
+            error!(
+                "Expected lenght of color string is 7, string lenght is {}",
+                color_string.len()
+            );
+            return Err(ColorErrorKind::Parse)?;
         }
 
         if !color_string.starts_with('#') {
             error!("Expected color string to start with '#' - string: {}", color_string);
-            return Err(ColorErrorKind::Parse)?
+            return Err(ColorErrorKind::Parse)?;
         }
 
         let mut chars = color_string.chars();
@@ -105,11 +106,15 @@ impl ColorRGBA {
             hue = 60.0 * (((red_normalized - green_normalized) / delta) + 4.0);
         } else {
             error!("c_max matches neither R, G or B");
-            return Err(ColorErrorKind::RgbToHsla)?
+            return Err(ColorErrorKind::RgbToHsla)?;
         }
 
         let lightness = (c_max + c_min) / 2.0;
-        let saturation = if delta != 0.0 { delta / (1.0 - ((2.0 * lightness) - 1.0).abs()) } else { 0.0 };
+        let saturation = if delta != 0.0 {
+            delta / (1.0 - ((2.0 * lightness) - 1.0).abs())
+        } else {
+            0.0
+        };
 
         Ok(ColorHSLA {
             hue,
@@ -177,7 +182,7 @@ impl ColorRGBA {
             _ => {
                 error!("illegal character {}", c);
                 Err(ColorErrorKind::IllegalCharacter)?
-            },
+            }
         }
     }
 }
@@ -234,7 +239,7 @@ impl ColorHSLA {
             b_n = x;
         } else if self.hue > 360.0 {
             error!("hue exceeds 360°: {}", self.hue);
-            return Err(ColorErrorKind::HslaToRgb)?
+            return Err(ColorErrorKind::HslaToRgb)?;
         }
 
         let red = ((r_n + m) * 255.0) as u8;

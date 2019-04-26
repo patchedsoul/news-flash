@@ -1,16 +1,16 @@
+use super::error::{UtilError, UtilErrorKind};
 use cairo::{Context, Surface};
+use failure::ResultExt;
 use gdk::ContextExt;
 use gdk_pixbuf::Pixbuf;
 use gio::{Cancellable, MemoryInputStream};
 use glib::{object::IsA, object::ObjectExt, signal::SignalHandlerId, source::SourceId, translate::FromGlib, Bytes};
 use gtk::{BinExt, Cast, EntryExt, ListBoxRow, Revealer, StyleContext, WidgetExt};
+use log::{error, warn};
 use news_flash::models::PixelIcon;
 use std::cell::RefCell;
 use std::collections::HashMap;
 use std::rc::Rc;
-use super::error::{UtilError, UtilErrorKind};
-use failure::ResultExt;
-use log::{warn, error};
 
 pub type GtkHandle<T> = Rc<RefCell<T>>;
 pub type GtkHandleMap<T, K> = GtkHandle<HashMap<T, K>>;
@@ -33,20 +33,31 @@ impl GtkUtil {
         Self::create_surface_from_bytes(&icon.data, icon.width, icon.height, scale_factor)
     }
 
-    pub fn create_surface_from_bytes(data: &[u8], width: i32, height: i32, scale_factor: i32) -> Result<Surface, UtilError> {
+    pub fn create_surface_from_bytes(
+        data: &[u8],
+        width: i32,
+        height: i32,
+        scale_factor: i32,
+    ) -> Result<Surface, UtilError> {
         let pixbuf = Self::create_pixbuf_from_bytes(data, width, height, scale_factor)?;
         match Context::cairo_surface_create_from_pixbuf(&pixbuf, scale_factor, None) {
             Some(surface) => return Ok(surface),
-            None => return Err(UtilErrorKind::CairoSurface)?
+            None => return Err(UtilErrorKind::CairoSurface)?,
         }
     }
 
-    pub fn create_pixbuf_from_bytes(data: &[u8], width: i32, height: i32, scale_factor: i32) -> Result<Pixbuf, UtilError> {
+    pub fn create_pixbuf_from_bytes(
+        data: &[u8],
+        width: i32,
+        height: i32,
+        scale_factor: i32,
+    ) -> Result<Pixbuf, UtilError> {
         let bytes = Bytes::from(data);
         let stream = MemoryInputStream::new_from_bytes(&bytes);
         let cancellable: Option<&Cancellable> = None;
-        let pixbuf = Pixbuf::new_from_stream_at_scale(&stream, width * scale_factor, height * scale_factor, true, cancellable)
-            .context(UtilErrorKind::CairoSurface)?;
+        let pixbuf =
+            Pixbuf::new_from_stream_at_scale(&stream, width * scale_factor, height * scale_factor, true, cancellable)
+                .context(UtilErrorKind::CairoSurface)?;
         Ok(pixbuf)
     }
 
@@ -61,18 +72,19 @@ impl GtkUtil {
         widget.clone().upcast::<gtk::Widget>().is::<gtk::ApplicationWindow>()
     }
 
-    pub fn get_main_window<W: IsA<gtk::Object> + IsA<gtk::Widget> + WidgetExt + Clone>(widget: &W) -> Result<gtk::ApplicationWindow, UtilError> {
+    pub fn get_main_window<W: IsA<gtk::Object> + IsA<gtk::Widget> + WidgetExt + Clone>(
+        widget: &W,
+    ) -> Result<gtk::ApplicationWindow, UtilError> {
         if let Some(toplevel) = widget.get_toplevel() {
             if Self::is_main_window(&toplevel) {
                 let main_window = toplevel.downcast::<gtk::ApplicationWindow>().unwrap();
                 return Ok(main_window);
             }
             warn!("widget is not the main window");
-        }
-        else {
+        } else {
             warn!("widget is not a toplevel");
         }
-        
+
         error!("getting main window for widget failed");
         Err(UtilErrorKind::WidgetIsMainwindow)?
     }

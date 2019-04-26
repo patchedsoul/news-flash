@@ -5,15 +5,15 @@ mod single;
 use crate::content_page::HeaderSelection;
 use crate::gtk_handle;
 use crate::main_window_state::MainWindowState;
-use crate::util::{GtkHandle, GtkUtil, BuilderHelper};
+use crate::util::{BuilderHelper, GtkHandle, GtkUtil};
 use failure::Error;
 use gio::{ActionExt, ActionMapExt};
 use glib::{translate::ToGlib, Variant};
 use gtk::{Continue, ListBoxExt, ListBoxRowExt, Stack, StackExt, StackTransitionType};
 use models::ArticleListChangeSet;
-pub use models::ArticleListModel;
-use single::SingleArticleList;
+pub use models::{ArticleListModel, MarkReadUpdate};
 use news_flash::models::Read;
+use single::SingleArticleList;
 use std::cell::RefCell;
 use std::rc::Rc;
 
@@ -112,8 +112,9 @@ impl ArticleList {
             self.list_model.borrow_mut().add_model(model.clone())?;
             let model = model.clone();
             let list = list.clone();
+            let list_model = self.list_model.clone();
             gtk::idle_add(move || {
-                list.borrow_mut().add(&model, -1);
+                list.borrow_mut().add(&model, -1, &list_model);
                 Continue(false)
             });
         }
@@ -130,7 +131,7 @@ impl ArticleList {
         for diff in diff {
             match diff {
                 ArticleListChangeSet::Add(article, pos) => {
-                    list.borrow_mut().add(article, pos);
+                    list.borrow_mut().add(article, pos, &self.list_model);
                 }
                 ArticleListChangeSet::Remove(id) => {
                     list.borrow_mut().remove(id.clone());
@@ -184,21 +185,30 @@ impl ArticleList {
                     if let Some(selected_article) = selected_article {
                         let selected_article_id = selected_article.id.clone();
                         if let Ok(main_window) = GtkUtil::get_main_window(list) {
-                            let selected_article_id = Variant::from(&selected_article_id.to_str());
+                            let selected_article_id_variant = Variant::from(&selected_article_id.to_str());
                             if let Some(action) = main_window.lookup_action("show-article") {
-                                action.activate(Some(&selected_article_id));
+                                action.activate(Some(&selected_article_id_variant));
                             }
-                            if selected_article.unread == Read::Unread {
+                            if selected_article.read == Read::Unread {
+                                let update = MarkReadUpdate {
+                                    article_id: selected_article_id,
+                                    read: Read::Read,
+                                };
+                                let update_data = serde_json::to_string(&update).unwrap();
+                                let update_data = Variant::from(&update_data);
                                 list_model.borrow_mut().set_read(&selected_article.id, Read::Read);
                                 match *current_list.borrow() {
-                                    CurrentList::List1 => list_1.borrow_mut().update_read(&selected_article.id, Read::Read),
-                                    CurrentList::List2 => list_2.borrow_mut().update_read(&selected_article.id, Read::Read),
+                                    CurrentList::List1 => {
+                                        list_1.borrow_mut().update_read(&selected_article.id, Read::Read)
+                                    }
+                                    CurrentList::List2 => {
+                                        list_2.borrow_mut().update_read(&selected_article.id, Read::Read)
+                                    }
                                 }
                                 if let Some(action) = main_window.lookup_action("mark-article-read") {
-                                    action.activate(Some(&selected_article_id));
+                                    action.activate(Some(&update_data));
                                 }
                             }
-                            
                         }
                     }
                 }

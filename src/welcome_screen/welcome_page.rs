@@ -1,6 +1,6 @@
 use super::service_row::ServiceRow;
 use crate::gtk_handle;
-use crate::util::{GtkHandleMap, BuilderHelper};
+use crate::util::{BuilderHelper, GtkHandleMap};
 use failure::Error;
 use gio::{ActionExt, ActionMapExt};
 use glib::Variant;
@@ -41,7 +41,9 @@ impl WelcomePage {
         for (index, (id, api_meta)) in services.iter().enumerate() {
             let row = ServiceRow::new(api_meta.clone())?;
             self.list.insert(&row.widget(), index as i32);
-            self.services.borrow_mut().insert(index as i32, (id.clone(), api_meta.login_gui.clone()));
+            self.services
+                .borrow_mut()
+                .insert(index as i32, (id.clone(), api_meta.login_gui.clone()));
         }
         Ok(())
     }

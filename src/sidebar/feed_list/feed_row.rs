@@ -6,7 +6,10 @@ use crate::Resources;
 use cairo::{self, Format, ImageSurface};
 use gdk::{DragAction, ModifierType};
 use glib::{source::SourceId, translate::FromGlib, translate::ToGlib, Source};
-use gtk::{self, ContainerExt, Continue, DragContextExtManual, ImageExt, LabelExt, ListBoxRowExt, RevealerExt, StyleContextExt, TargetEntry, TargetFlags, WidgetExt, WidgetExtManual};
+use gtk::{
+    self, ContainerExt, Continue, DragContextExtManual, ImageExt, LabelExt, ListBoxRowExt, RevealerExt,
+    StyleContextExt, TargetEntry, TargetFlags, WidgetExt, WidgetExtManual,
+};
 use news_flash::models::{FavIcon, FeedID};
 use std::cell::RefCell;
 use std::rc::Rc;

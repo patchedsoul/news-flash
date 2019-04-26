@@ -9,7 +9,7 @@ use crate::article_view::ArticleView;
 use crate::main_window_state::MainWindowState;
 use crate::sidebar::models::SidebarSelection;
 use crate::sidebar::{FeedListTree, SideBar, TagListModel};
-use crate::util::{GtkHandle, GtkUtil, BuilderHelper};
+use crate::util::{BuilderHelper, GtkHandle, GtkUtil};
 use failure::format_err;
 use failure::Error;
 use gio::{ActionExt, ActionMapExt};
@@ -78,13 +78,21 @@ impl ContentPage {
         self.paned.set_position(pos);
     }
 
-    pub fn update_article_list(&mut self, news_flash_handle: &GtkHandle<Option<NewsFlash>>, window_state: &GtkHandle<MainWindowState>) {
+    pub fn update_article_list(
+        &mut self,
+        news_flash_handle: &GtkHandle<Option<NewsFlash>>,
+        window_state: &GtkHandle<MainWindowState>,
+    ) {
         if let Some(news_flash) = news_flash_handle.borrow_mut().as_mut() {
             self.update_article_list_from_ref(news_flash, window_state);
         }
     }
 
-    pub fn update_article_list_from_ref(&mut self, news_flash: &mut NewsFlash, window_state: &GtkHandle<MainWindowState>) {
+    pub fn update_article_list_from_ref(
+        &mut self,
+        news_flash: &mut NewsFlash,
+        window_state: &GtkHandle<MainWindowState>,
+    ) {
         let window_state = window_state.borrow().clone();
         let mut list_model = ArticleListModel::new(window_state.get_article_list_order());
         let mut articles = Self::load_articles(news_flash, &window_state, None);
@@ -104,7 +112,12 @@ impl ContentPage {
         self.article_list.update(list_model, window_state);
     }
 
-    pub fn load_more_articles(&mut self, news_flash_handle: &GtkHandle<Option<NewsFlash>>, window_state: &GtkHandle<MainWindowState>, offset: i64) -> Result<(), Error> {
+    pub fn load_more_articles(
+        &mut self,
+        news_flash_handle: &GtkHandle<Option<NewsFlash>>,
+        window_state: &GtkHandle<MainWindowState>,
+        offset: i64,
+    ) -> Result<(), Error> {
         let window_state = window_state.borrow().clone();
         let mut list_model = ArticleListModel::new(window_state.get_article_list_order());
         if let Some(news_flash) = news_flash_handle.borrow_mut().as_mut() {
@@ -212,7 +225,11 @@ impl ContentPage {
         self.sidebar.update_unread_all(total_unread);
     }
 
-    pub fn show_article(&mut self, article_id: &ArticleID, news_flash_handle: &GtkHandle<Option<NewsFlash>>) -> Result<(), Error> {
+    pub fn show_article(
+        &mut self,
+        article_id: &ArticleID,
+        news_flash_handle: &GtkHandle<Option<NewsFlash>>,
+    ) -> Result<(), Error> {
         if let Some(news_flash) = news_flash_handle.borrow_mut().as_mut() {
             let article = news_flash.get_fat_article(article_id).unwrap();
             let (feeds, _) = news_flash.get_feeds().unwrap();

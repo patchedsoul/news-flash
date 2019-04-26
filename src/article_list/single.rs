@@ -1,7 +1,8 @@
 use super::article_row::ArticleRow;
 use super::models::ArticleListArticleModel;
+use super::models::ArticleListModel;
 use crate::gtk_handle;
-use crate::util::{GtkHandle, GtkUtil, BuilderHelper};
+use crate::util::{BuilderHelper, GtkHandle, GtkUtil};
 use failure::Error;
 use gio::{ActionExt, ActionMapExt};
 use gtk::{AdjustmentExt, ContainerExt, Continue, ListBox, ListBoxExt, ScrolledWindow, ScrolledWindowExt, WidgetExt};
@@ -66,8 +67,8 @@ impl SingleArticleList {
         self.list.clone()
     }
 
-    pub fn add(&mut self, article: &ArticleListArticleModel, pos: i32) {
-        let article_row = ArticleRow::new(&article).unwrap();
+    pub fn add(&mut self, article: &ArticleListArticleModel, pos: i32, model: &GtkHandle<ArticleListModel>) {
+        let article_row = ArticleRow::new(&article, model).unwrap();
         self.list.insert(&article_row.widget(), pos);
         article_row.widget().show();
         self.articles.insert(article.id.clone(), gtk_handle!(article_row));

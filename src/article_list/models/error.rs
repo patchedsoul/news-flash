@@ -39,7 +39,9 @@ impl ArticleListModelError {
 
 impl From<ArticleListModelErrorKind> for ArticleListModelError {
     fn from(kind: ArticleListModelErrorKind) -> ArticleListModelError {
-        ArticleListModelError { inner: Context::new(kind) }
+        ArticleListModelError {
+            inner: Context::new(kind),
+        }
     }
 }
 

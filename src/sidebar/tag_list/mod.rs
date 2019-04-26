@@ -2,7 +2,7 @@ pub mod models;
 mod tag_row;
 
 use crate::gtk_handle;
-use crate::util::{GtkHandle, BuilderHelper};
+use crate::util::{BuilderHelper, GtkHandle};
 use gtk::{ContainerExt, ListBox, ListBoxExt, ListBoxRowExt, SelectionMode, WidgetExt};
 use models::{TagListChangeSet, TagListModel, TagListTagModel};
 use news_flash::models::TagID;

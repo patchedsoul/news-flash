@@ -1,8 +1,8 @@
+use crate::util::{GTK_BUILDER_ERROR, GTK_RESOURCE_FILE_ERROR};
 use crate::Resources;
-use crate::util::{GTK_RESOURCE_FILE_ERROR, GTK_BUILDER_ERROR};
-use std::str;
-use gtk::{Builder, Widget};
 use glib::object::{IsA, Object};
+use gtk::{Builder, Widget};
+use std::str;
 
 pub struct BuilderHelper {
     builder: Builder,
@@ -14,9 +14,7 @@ impl BuilderHelper {
         let ui_string = str::from_utf8(ui_data.as_ref()).expect(GTK_RESOURCE_FILE_ERROR);
         let builder = Builder::new_from_string(ui_string);
 
-        BuilderHelper {
-            builder
-        }
+        BuilderHelper { builder }
     }
 
     pub fn get<T: IsA<Widget> + IsA<Object>>(&self, name: &str) -> T {
