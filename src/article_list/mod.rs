@@ -11,7 +11,7 @@ use gio::{ActionExt, ActionMapExt};
 use glib::{translate::ToGlib, Variant};
 use gtk::{Continue, ListBoxExt, ListBoxRowExt, Stack, StackExt, StackTransitionType};
 use models::ArticleListChangeSet;
-pub use models::{ArticleListModel, MarkReadUpdate};
+pub use models::{ArticleListModel, ReadUpdate};
 use news_flash::models::Read;
 use single::SingleArticleList;
 use std::cell::RefCell;
@@ -63,6 +63,10 @@ impl ArticleList {
 
     pub fn widget(&self) -> gtk::Stack {
         self.stack.clone()
+    }
+
+    pub fn get_relevant_article_count(&self, header_selection: &HeaderSelection) -> usize {
+        self.list_model.borrow().get_relevant_count(header_selection)
     }
 
     pub fn new_list(&mut self, mut new_list: ArticleListModel) {
@@ -190,7 +194,7 @@ impl ArticleList {
                                 action.activate(Some(&selected_article_id_variant));
                             }
                             if selected_article.read == Read::Unread {
-                                let update = MarkReadUpdate {
+                                let update = ReadUpdate {
                                     article_id: selected_article_id,
                                     read: Read::Read,
                                 };

@@ -1,13 +1,14 @@
 mod article;
 mod change_set;
 mod error;
-mod mark_read_update;
+mod article_update_msg;
 
 pub use article::ArticleListArticleModel;
 pub use change_set::ArticleListChangeSet;
 use error::{ArticleListModelError, ArticleListModelErrorKind};
 use log::warn;
-pub use mark_read_update::MarkReadUpdate;
+pub use article_update_msg::{MarkUpdate, ReadUpdate};
+use crate::content_page::HeaderSelection;
 use news_flash::models::{Article, ArticleID, ArticleOrder, FavIcon, Marked, Read};
 use std::collections::HashSet;
 
@@ -77,6 +78,14 @@ impl ArticleListModel {
 
         if let Some(article_model) = self.models.iter_mut().find(|a| &a.id == id) {
             article_model.marked = marked;
+        }
+    }
+
+    pub fn get_relevant_count(&self, header_selection: &HeaderSelection) -> usize {
+        match header_selection {
+            HeaderSelection::All => self.models.len(),
+            HeaderSelection::Unread => self.models.iter().filter(|a| a.read == Read::Unread).count(),
+            HeaderSelection::Marked => self.models.iter().filter(|a| a.marked == Marked::Marked).count(),
         }
     }
 

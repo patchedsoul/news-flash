@@ -1,4 +1,4 @@
-use super::models::{ArticleListArticleModel, ArticleListModel, MarkReadUpdate};
+use super::models::{ArticleListArticleModel, ArticleListModel, ReadUpdate};
 use crate::gtk_handle;
 use crate::util::GTK_RESOURCE_FILE_ERROR;
 use crate::util::{BuilderHelper, DateUtil, GtkHandle, GtkUtil};
@@ -185,7 +185,7 @@ impl ArticleRow {
             Self::update_title_label(&title_label, read);
             list_model.borrow_mut().set_read(&article_id, read);
             if let Ok(main_window) = GtkUtil::get_main_window(widget) {
-                let update = MarkReadUpdate {
+                let update = ReadUpdate {
                     article_id: article_id.clone(),
                     read,
                 };

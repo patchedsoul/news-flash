@@ -93,9 +93,17 @@ impl ContentPage {
         news_flash: &mut NewsFlash,
         window_state: &GtkHandle<MainWindowState>,
     ) {
-        let window_state = window_state.borrow().clone();
+        let relevant_articles_loaded = self.article_list.get_relevant_article_count(window_state.borrow().get_header_selection());
+        let limit = if window_state.borrow_mut().reset_article_list() {
+            MainWindowState::page_size()
+        } else if relevant_articles_loaded as i64 >= MainWindowState::page_size() {
+            relevant_articles_loaded as i64
+        } else {
+            MainWindowState::page_size()
+        };
+        let window_state = window_state.borrow_mut().clone();
         let mut list_model = ArticleListModel::new(window_state.get_article_list_order());
-        let mut articles = Self::load_articles(news_flash, &window_state, None);
+        let mut articles = Self::load_articles(news_flash, &window_state, limit, None);
 
         let (feeds, _) = news_flash.get_feeds().unwrap();
         let _: Vec<_> = articles
@@ -116,12 +124,12 @@ impl ContentPage {
         &mut self,
         news_flash_handle: &GtkHandle<Option<NewsFlash>>,
         window_state: &GtkHandle<MainWindowState>,
-        offset: i64,
     ) -> Result<(), Error> {
         let window_state = window_state.borrow().clone();
+        let relevant_articles_loaded = self.article_list.get_relevant_article_count(window_state.get_header_selection());
         let mut list_model = ArticleListModel::new(window_state.get_article_list_order());
         if let Some(news_flash) = news_flash_handle.borrow_mut().as_mut() {
-            let mut articles = Self::load_articles(news_flash, &window_state, Some(offset));
+            let mut articles = Self::load_articles(news_flash, &window_state, MainWindowState::page_size(), Some(relevant_articles_loaded as i64));
             let (feeds, _) = news_flash.get_feeds().unwrap();
             let _: Vec<_> = articles
                 .drain(..)
@@ -139,7 +147,7 @@ impl ContentPage {
         Ok(())
     }
 
-    fn load_articles(news_flash: &mut NewsFlash, window_state: &MainWindowState, offset: Option<i64>) -> Vec<Article> {
+    fn load_articles(news_flash: &mut NewsFlash, window_state: &MainWindowState, limit: i64, offset: Option<i64>) -> Vec<Article> {
         let unread = match window_state.get_header_selection() {
             HeaderSelection::All | HeaderSelection::Marked => None,
             HeaderSelection::Unread => Some(Read::Unread),
@@ -161,15 +169,9 @@ impl ContentPage {
             SidebarSelection::Tag(id) => Some(id.clone()),
         };
 
-        let limit = window_state.get_articles_showing();
-        let limit = match offset {
-            Some(offset) => Some(limit - offset),
-            None => Some(limit),
-        };
-
         news_flash
             .get_articles(
-                limit,
+                Some(limit),
                 offset,
                 Some(window_state.get_article_list_order().clone()),
                 unread,

@@ -8,7 +8,7 @@ pub struct MainWindowState {
     header: HeaderSelection,
     search_term: Option<String>,
     article_list_order: ArticleOrder,
-    articles_showing: i64,
+    reset_article_list: bool,
 }
 
 const ARTICLE_LIST_PAGE_SIZE: i64 = 20;
@@ -20,16 +20,18 @@ impl MainWindowState {
             header: HeaderSelection::All,
             search_term: None,
             article_list_order: ArticleOrder::NewestFirst,
-            articles_showing: ARTICLE_LIST_PAGE_SIZE,
+            reset_article_list: false,
         }
     }
 
-    pub fn show_more(&mut self) {
-        self.articles_showing += ARTICLE_LIST_PAGE_SIZE;
+    pub fn page_size() -> i64 {
+        ARTICLE_LIST_PAGE_SIZE
     }
 
-    fn reset_article_list_size(&mut self) {
-        self.articles_showing = ARTICLE_LIST_PAGE_SIZE / 2;
+    pub fn reset_article_list(&mut self) -> bool {
+        let reset_article_list = self.reset_article_list;
+        self.reset_article_list = false;
+        reset_article_list
     }
 
     pub fn get_sidebar_selection(&self) -> &SidebarSelection {
@@ -38,7 +40,7 @@ impl MainWindowState {
 
     pub fn set_sidebar_selection(&mut self, sidebar: SidebarSelection) {
         self.sidebar = sidebar;
-        self.reset_article_list_size();
+        self.reset_article_list = true;
     }
 
     pub fn get_header_selection(&self) -> &HeaderSelection {
@@ -47,7 +49,7 @@ impl MainWindowState {
 
     pub fn set_header_selection(&mut self, header: HeaderSelection) {
         self.header = header;
-        self.reset_article_list_size();
+        self.reset_article_list = true;
     }
 
     #[allow(dead_code)]
@@ -57,7 +59,7 @@ impl MainWindowState {
 
     pub fn set_search_term(&mut self, search_term: Option<String>) {
         self.search_term = search_term;
-        self.reset_article_list_size();
+        self.reset_article_list = true;
     }
 
     pub fn get_article_list_order(&self) -> &ArticleOrder {
@@ -67,11 +69,7 @@ impl MainWindowState {
     #[allow(dead_code)]
     pub fn set_article_list_order(&mut self, order: ArticleOrder) {
         self.article_list_order = order;
-        self.reset_article_list_size();
-    }
-
-    pub fn get_articles_showing(&self) -> i64 {
-        self.articles_showing
+        self.reset_article_list = true;
     }
 }
 

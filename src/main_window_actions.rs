@@ -1,4 +1,4 @@
-use crate::article_list::MarkReadUpdate;
+use crate::article_list::ReadUpdate;
 use crate::content_page::HeaderSelection;
 use crate::content_page::{ContentHeader, ContentPage};
 use crate::error_dialog::ErrorDialog;
@@ -314,11 +314,9 @@ impl MainWindowActions {
         let news_flash = news_flash.clone();
         let show_more_articles_action = SimpleAction::new("show-more-articles", None);
         show_more_articles_action.connect_activate(move |_action, _data| {
-            let offset = state.borrow().get_articles_showing();
-            state.borrow_mut().show_more();
             content_page
                 .borrow_mut()
-                .load_more_articles(&news_flash, &state, offset)
+                .load_more_articles(&news_flash, &state)
                 .unwrap();
         });
         show_more_articles_action.set_enabled(true);
@@ -354,7 +352,7 @@ impl MainWindowActions {
         show_article_action.connect_activate(move |_action, data| {
             if let Some(data) = data {
                 if let Some(data) = data.get_str() {
-                    let update: MarkReadUpdate = serde_json::from_str(&data).unwrap();
+                    let update: ReadUpdate = serde_json::from_str(&data).unwrap();
 
                     if let Some(news_flash) = news_flash.borrow_mut().as_mut() {
                         news_flash.set_article_read(&[update.article_id], update.read).unwrap();
