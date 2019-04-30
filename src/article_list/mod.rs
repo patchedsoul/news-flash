@@ -85,13 +85,13 @@ impl ArticleList {
         self.switch_lists();
     }
 
-    pub fn update(&mut self, mut new_list: ArticleListModel, new_state: MainWindowState) {
+    pub fn update(&mut self, mut new_list: ArticleListModel, new_state: &MainWindowState) {
         self.stack.set_transition_type(self.calc_transition_type(&new_state));
 
         // check if a new list is reqired or current list should be updated
         if self.require_new_list(&new_state) {
             self.new_list(new_list);
-            self.window_state = new_state;
+            self.window_state = new_state.clone();
             return;
         }
 
@@ -103,7 +103,7 @@ impl ArticleList {
         }
 
         *self.list_model.borrow_mut() = new_list;
-        self.window_state = new_state;
+        self.window_state = new_state.clone();
     }
 
     pub fn add_more_articles(&mut self, new_list: ArticleListModel) -> Result<(), Error> {

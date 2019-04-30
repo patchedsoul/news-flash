@@ -11,7 +11,7 @@ use gio::{ActionExt, ActionMapExt, SimpleAction};
 use gtk::{self, ApplicationWindow, GtkWindowExt, HeaderBar, Stack, StackExt, StackTransitionType};
 use log::error;
 use news_flash::models::{ArticleID, LoginData, PluginID};
-use news_flash::NewsFlash;
+use news_flash::{NewsFlash, NewsFlashError};
 use std::path::PathBuf;
 
 pub struct MainWindowActions;
@@ -199,32 +199,49 @@ impl MainWindowActions {
 
     pub fn setup_sync_action(
         window: &ApplicationWindow,
-        content_page: &GtkHandle<ContentPage>,
         content_header: &GtkHandle<ContentHeader>,
         news_flash: &GtkHandle<Option<NewsFlash>>,
-        state: &GtkHandle<MainWindowState>,
     ) {
-        let state = state.clone();
-        let content_page = content_page.clone();
         let parent = window.clone();
         let content_header = content_header.clone();
         let news_flash = news_flash.clone();
         let sync_action = SimpleAction::new("sync", None);
         sync_action.connect_activate(move |_action, _data| {
+            let mut result : Result<(), NewsFlashError> = Ok(());
             if let Some(news_flash) = news_flash.borrow_mut().as_mut() {
-                match news_flash.sync() {
-                    Ok(()) => {
-                        content_header.borrow().finish_sync();
-                        content_page.borrow_mut().update_sidebar_from_ref(news_flash, &*state.borrow());
-                        content_page
-                            .borrow_mut()
-                            .update_article_list_from_ref(news_flash, &state);
+                result = news_flash.sync();
+            }
+            match result {
+                Ok(()) => {
+                    content_header.borrow().finish_sync();
+                    if let Some(action) = parent.lookup_action("update-sidebar") {
+                        action.activate(None);
                     }
-                    Err(error) => {
-                        let _dialog = ErrorDialog::new(&error, &parent);
+                    if let Some(action) = parent.lookup_action("update-article-list") {
+                        action.activate(None);
                     }
                 }
+                Err(error) => {
+                    let _dialog = ErrorDialog::new(&error, &parent);
+                }
             }
+        });
+        sync_action.set_enabled(true);
+        window.add_action(&sync_action);
+    }
+
+    pub fn setup_update_sidebar_action(
+        window: &ApplicationWindow,
+        content_page: &GtkHandle<ContentPage>,
+        news_flash: &GtkHandle<Option<NewsFlash>>,
+        state: &GtkHandle<MainWindowState>,
+    ) {
+        let state = state.clone();
+        let content_page = content_page.clone();
+        let news_flash = news_flash.clone();
+        let sync_action = SimpleAction::new("update-sidebar", None);
+        sync_action.connect_activate(move |_action, _data| {
+            content_page.borrow_mut().update_sidebar(&news_flash, &state);
         });
         sync_action.set_enabled(true);
         window.add_action(&sync_action);
@@ -256,10 +273,30 @@ impl MainWindowActions {
         headerbar_selection_action.connect_activate(move |_action, data| {
             if let Some(data) = data {
                 if let Some(data) = data.get_str() {
-                    let selection: HeaderSelection = serde_json::from_str(&data).unwrap();
-                    state.borrow_mut().set_header_selection(selection);
+                    let new_selection: HeaderSelection = serde_json::from_str(&data).unwrap();
+                    let old_selection = state.borrow().get_header_selection().clone();
+                    state.borrow_mut().set_header_selection(new_selection.clone());
                     if let Some(action) = main_window.lookup_action("update-article-list") {
                         action.activate(None);
+                    }
+                    let update_sidebar = match old_selection {
+                        HeaderSelection::All | HeaderSelection::Unread => {
+                            match new_selection {
+                                HeaderSelection::All | HeaderSelection::Unread => false,
+                                HeaderSelection::Marked => true,
+                            }
+                        },
+                        HeaderSelection::Marked => {
+                            match new_selection {
+                                HeaderSelection::All | HeaderSelection::Unread => true,
+                                HeaderSelection::Marked => false,
+                            }
+                        },
+                    };
+                    if update_sidebar {
+                        if let Some(action) = main_window.lookup_action("update-sidebar") {
+                            action.activate(None);
+                        }
                     }
                 }
             }
@@ -348,13 +385,10 @@ impl MainWindowActions {
 
     pub fn setup_mark_article_read_action(
         window: &ApplicationWindow,
-        state: &GtkHandle<MainWindowState>,
         news_flash: &GtkHandle<Option<NewsFlash>>,
-        content_page: &GtkHandle<ContentPage>,
     ) {
         let news_flash = news_flash.clone();
-        let content_page = content_page.clone();
-        let state = state.clone();
+        let main_window = window.clone();
         let show_article_action = SimpleAction::new("mark-article-read", glib::VariantTy::new("s").ok());
         show_article_action.connect_activate(move |_action, data| {
             if let Some(data) = data {
@@ -363,7 +397,9 @@ impl MainWindowActions {
 
                     if let Some(news_flash) = news_flash.borrow_mut().as_mut() {
                         news_flash.set_article_read(&[update.article_id], update.read).unwrap();
-                        content_page.borrow_mut().update_sidebar_from_ref(news_flash, &*state.borrow());
+                    }
+                    if let Some(action) = main_window.lookup_action("update-sidebar") {
+                        action.activate(None);
                     }
                 }
             }
@@ -374,13 +410,10 @@ impl MainWindowActions {
 
     pub fn setup_mark_article_action(
         window: &ApplicationWindow,
-        state: &GtkHandle<MainWindowState>,
         news_flash: &GtkHandle<Option<NewsFlash>>,
-        content_page: &GtkHandle<ContentPage>,
     ) {
         let news_flash = news_flash.clone();
-        let content_page = content_page.clone();
-        let state = state.clone();
+        let main_window = window.clone();
         let show_article_action = SimpleAction::new("mark-article", glib::VariantTy::new("s").ok());
         show_article_action.connect_activate(move |_action, data| {
             if let Some(data) = data {
@@ -390,7 +423,9 @@ impl MainWindowActions {
 
                     if let Some(news_flash) = news_flash.borrow_mut().as_mut() {
                         news_flash.set_article_marked(&[update.article_id], update.marked).unwrap();
-                        content_page.borrow_mut().update_sidebar_from_ref(news_flash, &*state.borrow());
+                    }
+                    if let Some(action) = main_window.lookup_action("update-sidebar") {
+                        action.activate(None);
                     }
                 }
             }

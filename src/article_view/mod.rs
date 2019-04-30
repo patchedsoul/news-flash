@@ -495,7 +495,7 @@ impl ArticleView {
                                 if let Some(pointer) = seat.get_pointer() {
                                     if let Some(window) = closure_webivew.get_window() {
                                         let cursor = Cursor::new_for_display(&display, CursorType::Fleur);
-                                        // FIXME
+
                                         let _grab_status = seat.grab(
                                             &window,
                                             gdk::SeatCapabilities::POINTER,

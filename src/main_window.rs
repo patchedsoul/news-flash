@@ -88,21 +88,16 @@ impl MainWindow {
         );
         MainWindowActions::setup_login_action(&window, &news_flash_handle, &oauht_login_handle, &pw_login_handle);
         MainWindowActions::setup_sync_paned_action(&window, &content_page_handle, &content_header_handle);
-        MainWindowActions::setup_sync_action(
-            &window,
-            &content_page_handle,
-            &content_header_handle,
-            &news_flash_handle,
-            &state,
-        );
+        MainWindowActions::setup_sync_action(&window, &content_header_handle, &news_flash_handle);
         MainWindowActions::setup_sidebar_selection_action(&window, &state);
+        MainWindowActions::setup_update_sidebar_action(&window, &content_page_handle, &news_flash_handle, &state);
         MainWindowActions::setup_headerbar_selection_action(&window, &state);
         MainWindowActions::setup_search_action(&window, &state);
         MainWindowActions::setup_update_article_list_action(&window, &state, &content_page_handle, &news_flash_handle);
         MainWindowActions::setup_show_more_articles_action(&window, &state, &content_page_handle, &news_flash_handle);
         MainWindowActions::setup_show_article_action(&window, &content_page_handle, &news_flash_handle);
-        MainWindowActions::setup_mark_article_read_action(&window, &state, &news_flash_handle, &content_page_handle);
-        MainWindowActions::setup_mark_article_action(&window, &state, &news_flash_handle, &content_page_handle);
+        MainWindowActions::setup_mark_article_read_action(&window, &news_flash_handle);
+        MainWindowActions::setup_mark_article_action(&window, &news_flash_handle);
 
         let mut data_dir = dirs::home_dir().expect("$HOME not available");
         data_dir.push(DATA_DIR);

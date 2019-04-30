@@ -84,24 +84,23 @@ impl ContentPage {
         window_state: &GtkHandle<MainWindowState>,
     ) {
         if let Some(news_flash) = news_flash_handle.borrow_mut().as_mut() {
-            self.update_article_list_from_ref(news_flash, window_state);
+            self.update_article_list_from_ref(news_flash, &mut *window_state.borrow_mut());
         }
     }
 
-    pub fn update_article_list_from_ref(
+    fn update_article_list_from_ref(
         &mut self,
         news_flash: &mut NewsFlash,
-        window_state: &GtkHandle<MainWindowState>,
+        window_state: &mut MainWindowState,
     ) {
-        let relevant_articles_loaded = self.article_list.get_relevant_article_count(window_state.borrow().get_header_selection());
-        let limit = if window_state.borrow_mut().reset_article_list() {
+        let relevant_articles_loaded = self.article_list.get_relevant_article_count(window_state.get_header_selection());
+        let limit = if window_state.reset_article_list() {
             MainWindowState::page_size()
         } else if relevant_articles_loaded as i64 >= MainWindowState::page_size() {
             relevant_articles_loaded as i64
         } else {
             MainWindowState::page_size()
         };
-        let window_state = window_state.borrow_mut().clone();
         let mut list_model = ArticleListModel::new(window_state.get_article_list_order());
         let mut articles = Self::load_articles(news_flash, &window_state, limit, None);
 
@@ -192,13 +191,12 @@ impl ContentPage {
         }
     }
 
-    pub fn update_sidebar_from_ref(&mut self, news_flash: &mut NewsFlash, state: &MainWindowState) {
+    fn update_sidebar_from_ref(&mut self, news_flash: &mut NewsFlash, state: &MainWindowState) {
         // feedlist
         let mut tree = FeedListTree::new();
         let categories = news_flash.get_categories().unwrap();
         for category in categories {
             let count = match state.get_header_selection() {
-                //FIXME: starred article count for mode "MARKED"
                 HeaderSelection::Marked => news_flash.marked_count_category(&category.category_id).unwrap(),
                 HeaderSelection::All |
                 HeaderSelection::Unread => news_flash.unread_count_category(&category.category_id).unwrap(),
@@ -208,7 +206,6 @@ impl ContentPage {
         let (feeds, mappings) = news_flash.get_feeds().unwrap();
         for mapping in mappings {
             let count = match state.get_header_selection() {
-                //FIXME: starred article count for mode "MARKED"
                 HeaderSelection::Marked => news_flash.marked_count_feed(&mapping.feed_id).unwrap(),
                 HeaderSelection::All |
                 HeaderSelection::Unread => news_flash.unread_count_feed(&mapping.feed_id).unwrap(),
@@ -226,17 +223,23 @@ impl ContentPage {
         //let tags = news_flash.get_tags().unwrap();
         let tags = crate::main_window::MainWindow::demo_tag_list();
         for tag in tags {
-            // FIXME: get marked count depending on window state
-            let count = news_flash.unread_count_tags(&tag.tag_id).unwrap();
+            let count = match state.get_header_selection() {
+                HeaderSelection::All |
+                HeaderSelection::Unread => news_flash.unread_count_tag(&tag.tag_id).unwrap(),
+                HeaderSelection::Marked => news_flash.marked_count_tag(&tag.tag_id).unwrap(),
+            };
             list.add(&tag, count as i32).unwrap();
         }
 
-        // FIXME: get marked count depending on window state
-        let total_unread = news_flash.unread_count_all().unwrap();
+        let total_count = match state.get_header_selection() {
+            HeaderSelection::All |
+            HeaderSelection::Unread => news_flash.unread_count_all().unwrap(),
+            HeaderSelection::Marked => news_flash.marked_count_all().unwrap(),
+        };
 
         self.sidebar.update_feedlist(tree);
         self.sidebar.update_taglist(list);
-        self.sidebar.update_unread_all(total_unread);
+        self.sidebar.update_unread_all(total_count);
     }
 
     pub fn show_article(
