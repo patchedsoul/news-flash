@@ -101,8 +101,8 @@ impl MainWindow {
         MainWindowActions::setup_update_article_list_action(&window, &state, &content_page_handle, &news_flash_handle);
         MainWindowActions::setup_show_more_articles_action(&window, &state, &content_page_handle, &news_flash_handle);
         MainWindowActions::setup_show_article_action(&window, &content_page_handle, &news_flash_handle);
-        MainWindowActions::setup_mark_article_read_action(&window, &news_flash_handle, &content_page_handle);
-        MainWindowActions::setup_mark_article_action(&window, &news_flash_handle, &content_page_handle);
+        MainWindowActions::setup_mark_article_read_action(&window, &state, &news_flash_handle, &content_page_handle);
+        MainWindowActions::setup_mark_article_action(&window, &state, &news_flash_handle, &content_page_handle);
 
         let mut data_dir = dirs::home_dir().expect("$HOME not available");
         data_dir.push(DATA_DIR);
@@ -117,7 +117,7 @@ impl MainWindow {
             *news_flash_handle.borrow_mut() = Some(news_flash_lib);
 
             // try to fill content page with data
-            content_page_handle.borrow_mut().update_sidebar(&news_flash_handle);
+            content_page_handle.borrow_mut().update_sidebar(&news_flash_handle, &state);
             content_page_handle
                 .borrow_mut()
                 .update_article_list(&news_flash_handle, &state);

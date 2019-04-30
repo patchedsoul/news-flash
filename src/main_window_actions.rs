@@ -215,7 +215,7 @@ impl MainWindowActions {
                 match news_flash.sync() {
                     Ok(()) => {
                         content_header.borrow().finish_sync();
-                        content_page.borrow_mut().update_sidebar_from_ref(news_flash);
+                        content_page.borrow_mut().update_sidebar_from_ref(news_flash, &*state.borrow());
                         content_page
                             .borrow_mut()
                             .update_article_list_from_ref(news_flash, &state);
@@ -348,11 +348,13 @@ impl MainWindowActions {
 
     pub fn setup_mark_article_read_action(
         window: &ApplicationWindow,
+        state: &GtkHandle<MainWindowState>,
         news_flash: &GtkHandle<Option<NewsFlash>>,
         content_page: &GtkHandle<ContentPage>,
     ) {
         let news_flash = news_flash.clone();
         let content_page = content_page.clone();
+        let state = state.clone();
         let show_article_action = SimpleAction::new("mark-article-read", glib::VariantTy::new("s").ok());
         show_article_action.connect_activate(move |_action, data| {
             if let Some(data) = data {
@@ -361,7 +363,7 @@ impl MainWindowActions {
 
                     if let Some(news_flash) = news_flash.borrow_mut().as_mut() {
                         news_flash.set_article_read(&[update.article_id], update.read).unwrap();
-                        content_page.borrow_mut().update_sidebar_from_ref(news_flash);
+                        content_page.borrow_mut().update_sidebar_from_ref(news_flash, &*state.borrow());
                     }
                 }
             }
@@ -372,11 +374,13 @@ impl MainWindowActions {
 
     pub fn setup_mark_article_action(
         window: &ApplicationWindow,
+        state: &GtkHandle<MainWindowState>,
         news_flash: &GtkHandle<Option<NewsFlash>>,
         content_page: &GtkHandle<ContentPage>,
     ) {
         let news_flash = news_flash.clone();
         let content_page = content_page.clone();
+        let state = state.clone();
         let show_article_action = SimpleAction::new("mark-article", glib::VariantTy::new("s").ok());
         show_article_action.connect_activate(move |_action, data| {
             if let Some(data) = data {
@@ -386,7 +390,7 @@ impl MainWindowActions {
 
                     if let Some(news_flash) = news_flash.borrow_mut().as_mut() {
                         news_flash.set_article_marked(&[update.article_id], update.marked).unwrap();
-                        content_page.borrow_mut().update_sidebar_from_ref(news_flash);
+                        content_page.borrow_mut().update_sidebar_from_ref(news_flash, &*state.borrow());
                     }
                 }
             }

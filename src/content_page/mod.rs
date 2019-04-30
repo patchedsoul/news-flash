@@ -186,23 +186,33 @@ impl ContentPage {
             .unwrap()
     }
 
-    pub fn update_sidebar(&mut self, news_flash_handle: &GtkHandle<Option<NewsFlash>>) {
+    pub fn update_sidebar(&mut self, news_flash_handle: &GtkHandle<Option<NewsFlash>>, state: &GtkHandle<MainWindowState>) {
         if let Some(news_flash) = news_flash_handle.borrow_mut().as_mut() {
-            self.update_sidebar_from_ref(news_flash);
+            self.update_sidebar_from_ref(news_flash, &*state.borrow());
         }
     }
 
-    pub fn update_sidebar_from_ref(&mut self, news_flash: &mut NewsFlash) {
+    pub fn update_sidebar_from_ref(&mut self, news_flash: &mut NewsFlash, state: &MainWindowState) {
         // feedlist
         let mut tree = FeedListTree::new();
         let categories = news_flash.get_categories().unwrap();
         for category in categories {
-            let count = news_flash.unread_count_category(&category.category_id).unwrap();
+            let count = match state.get_header_selection() {
+                //FIXME: starred article count for mode "MARKED"
+                HeaderSelection::Marked => news_flash.marked_count_category(&category.category_id).unwrap(),
+                HeaderSelection::All |
+                HeaderSelection::Unread => news_flash.unread_count_category(&category.category_id).unwrap(),
+            };
             tree.add_category(&category, count as i32).unwrap();
         }
         let (feeds, mappings) = news_flash.get_feeds().unwrap();
         for mapping in mappings {
-            let count = news_flash.unread_count_feed(&mapping.feed_id).unwrap();
+            let count = match state.get_header_selection() {
+                //FIXME: starred article count for mode "MARKED"
+                HeaderSelection::Marked => news_flash.marked_count_feed(&mapping.feed_id).unwrap(),
+                HeaderSelection::All |
+                HeaderSelection::Unread => news_flash.unread_count_feed(&mapping.feed_id).unwrap(),
+            };
             let feed = feeds.iter().find(|feed| feed.feed_id == mapping.feed_id).unwrap();
             let favicon = match news_flash.get_icon_info(&feed) {
                 Ok(favicon) => Some(favicon),
@@ -216,10 +226,12 @@ impl ContentPage {
         //let tags = news_flash.get_tags().unwrap();
         let tags = crate::main_window::MainWindow::demo_tag_list();
         for tag in tags {
+            // FIXME: get marked count depending on window state
             let count = news_flash.unread_count_tags(&tag.tag_id).unwrap();
             list.add(&tag, count as i32).unwrap();
         }
 
+        // FIXME: get marked count depending on window state
         let total_unread = news_flash.unread_count_all().unwrap();
 
         self.sidebar.update_feedlist(tree);
