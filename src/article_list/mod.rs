@@ -11,7 +11,7 @@ use gio::{ActionExt, ActionMapExt};
 use glib::{translate::ToGlib, Variant};
 use gtk::{Continue, ListBoxExt, ListBoxRowExt, Stack, StackExt, StackTransitionType};
 use models::ArticleListChangeSet;
-pub use models::{ArticleListModel, ReadUpdate};
+pub use models::{ArticleListModel, ReadUpdate, MarkUpdate};
 use news_flash::models::Read;
 use single::SingleArticleList;
 use std::cell::RefCell;

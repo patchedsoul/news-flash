@@ -1,4 +1,4 @@
-use crate::article_list::ReadUpdate;
+use crate::article_list::{ReadUpdate, MarkUpdate};
 use crate::content_page::HeaderSelection;
 use crate::content_page::{ContentHeader, ContentPage};
 use crate::error_dialog::ErrorDialog;
@@ -356,6 +356,25 @@ impl MainWindowActions {
 
                     if let Some(news_flash) = news_flash.borrow_mut().as_mut() {
                         news_flash.set_article_read(&[update.article_id], update.read).unwrap();
+                    }
+                }
+            }
+        });
+        show_article_action.set_enabled(true);
+        window.add_action(&show_article_action);
+    }
+
+    pub fn setup_mark_article_action(window: &ApplicationWindow, news_flash: &GtkHandle<Option<NewsFlash>>) {
+        let news_flash = news_flash.clone();
+        let show_article_action = SimpleAction::new("mark-article", glib::VariantTy::new("s").ok());
+        show_article_action.connect_activate(move |_action, data| {
+            if let Some(data) = data {
+                if let Some(data) = data.get_str() {
+                    println!("{}", data);
+                    let update: MarkUpdate = serde_json::from_str(&data).unwrap();
+
+                    if let Some(news_flash) = news_flash.borrow_mut().as_mut() {
+                        news_flash.set_article_marked(&[update.article_id], update.marked).unwrap();
                     }
                 }
             }

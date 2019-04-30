@@ -1,4 +1,4 @@
-use super::models::{ArticleListArticleModel, ArticleListModel, ReadUpdate};
+use super::models::{ArticleListArticleModel, ArticleListModel, ReadUpdate, MarkUpdate};
 use crate::gtk_handle;
 use crate::util::GTK_RESOURCE_FILE_ERROR;
 use crate::util::{BuilderHelper, DateUtil, GtkHandle, GtkUtil};
@@ -97,7 +97,13 @@ impl ArticleRow {
             &article.id,
             list_model,
         );
-        Self::setup_marked_eventbox(&marked_eventbox, &marked_handle, &marked_stack);
+        Self::setup_marked_eventbox(
+            &marked_eventbox,
+            &marked_handle,
+            &marked_stack,
+            &article.id,
+            list_model
+        );
 
         Ok(ArticleRow {
             widget: row,
@@ -199,7 +205,13 @@ impl ArticleRow {
         });
     }
 
-    fn setup_marked_eventbox(eventbox: &gtk::EventBox, marked: &GtkHandle<Marked>, marked_stack: &gtk::Stack) {
+    fn setup_marked_eventbox(
+        eventbox: &gtk::EventBox,
+        marked: &GtkHandle<Marked>,
+        marked_stack: &gtk::Stack,
+        article_id: &ArticleID,
+        list_model: &GtkHandle<ArticleListModel>,
+    ) {
         let marked_1 = marked.clone();
         let stack_1 = marked_stack.clone();
         eventbox.connect_enter_notify_event(move |_widget, _event| {
@@ -219,7 +231,9 @@ impl ArticleRow {
             Inhibit(false)
         });
         let marked_3 = marked.clone();
-        eventbox.connect_button_press_event(move |_widget, event| {
+        let article_id = article_id.clone();
+        let list_model = list_model.clone();
+        eventbox.connect_button_press_event(move |widget, event| {
             if event.get_button() != 1 {
                 return Inhibit(false);
             }
@@ -229,10 +243,24 @@ impl ArticleRow {
                 }
                 _ => {}
             }
-            let read = *marked_3.borrow();
-            match read {
+            let marked = *marked_3.borrow();
+            match marked {
                 Marked::Marked => *marked_3.borrow_mut() = Marked::Unmarked,
                 Marked::Unmarked => *marked_3.borrow_mut() = Marked::Marked,
+            }
+            let marked = *marked_3.borrow();
+            list_model.borrow_mut().set_marked(&article_id, marked);
+
+            if let Ok(main_window) = GtkUtil::get_main_window(widget) {
+                let update = MarkUpdate {
+                    article_id: article_id.clone(),
+                    marked,
+                };
+                let update_data = serde_json::to_string(&update).unwrap();
+                let update_data = Variant::from(&update_data);
+                if let Some(action) = main_window.lookup_action("mark-article") {
+                    action.activate(Some(&update_data));
+                }
             }
             Inhibit(true)
         });
