@@ -346,8 +346,13 @@ impl MainWindowActions {
         window.add_action(&show_article_action);
     }
 
-    pub fn setup_mark_article_read_action(window: &ApplicationWindow, news_flash: &GtkHandle<Option<NewsFlash>>) {
+    pub fn setup_mark_article_read_action(
+        window: &ApplicationWindow,
+        news_flash: &GtkHandle<Option<NewsFlash>>,
+        content_page: &GtkHandle<ContentPage>,
+    ) {
         let news_flash = news_flash.clone();
+        let content_page = content_page.clone();
         let show_article_action = SimpleAction::new("mark-article-read", glib::VariantTy::new("s").ok());
         show_article_action.connect_activate(move |_action, data| {
             if let Some(data) = data {
@@ -356,6 +361,7 @@ impl MainWindowActions {
 
                     if let Some(news_flash) = news_flash.borrow_mut().as_mut() {
                         news_flash.set_article_read(&[update.article_id], update.read).unwrap();
+                        content_page.borrow_mut().update_sidebar_from_ref(news_flash);
                     }
                 }
             }
@@ -364,8 +370,13 @@ impl MainWindowActions {
         window.add_action(&show_article_action);
     }
 
-    pub fn setup_mark_article_action(window: &ApplicationWindow, news_flash: &GtkHandle<Option<NewsFlash>>) {
+    pub fn setup_mark_article_action(
+        window: &ApplicationWindow,
+        news_flash: &GtkHandle<Option<NewsFlash>>,
+        content_page: &GtkHandle<ContentPage>,
+    ) {
         let news_flash = news_flash.clone();
+        let content_page = content_page.clone();
         let show_article_action = SimpleAction::new("mark-article", glib::VariantTy::new("s").ok());
         show_article_action.connect_activate(move |_action, data| {
             if let Some(data) = data {
@@ -375,6 +386,7 @@ impl MainWindowActions {
 
                     if let Some(news_flash) = news_flash.borrow_mut().as_mut() {
                         news_flash.set_article_marked(&[update.article_id], update.marked).unwrap();
+                        content_page.borrow_mut().update_sidebar_from_ref(news_flash);
                     }
                 }
             }
