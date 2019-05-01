@@ -27,10 +27,11 @@ use tag_list::TagList;
 
 #[derive(Clone, Debug)]
 pub struct SideBar {
-    sidebar: gtk::Box,
-    logo: gtk::Image,
-    unread_label: gtk::Label,
-    service_label: gtk::Label,
+    sidebar: Box,
+    tags_box: Box,
+    logo: Image,
+    unread_label: Label,
+    service_label: Label,
     scale_factor: i32,
     feed_list: GtkHandle<FeedList>,
     tag_list: GtkHandle<TagList>,
@@ -41,6 +42,7 @@ impl SideBar {
         let builder = BuilderHelper::new("sidebar");
 
         let sidebar = builder.get::<Box>("toplevel");
+        let tags_box = builder.get::<Box>("tags");
         let logo = builder.get::<Image>("logo");
         let unread_label = builder.get::<Label>("unread_count_all");
         let service_label = builder.get::<Label>("service_label");
@@ -137,6 +139,7 @@ impl SideBar {
 
         Ok(SideBar {
             sidebar,
+            tags_box,
             logo,
             unread_label,
             service_label,
@@ -158,6 +161,15 @@ impl SideBar {
     pub fn update_taglist(&mut self, list: TagListModel) {
         self.tag_list.borrow_mut().update(list);
         self.sidebar.show_all();
+    }
+
+    pub fn hide_taglist(&self) {
+        self.tags_box.hide();
+    }
+
+    pub fn show_taglist(&self) {
+        self.tags_box.show_all();
+        self.tag_list.borrow().widget().show_all();
     }
 
     pub fn update_unread_all(&mut self, count: i64) {

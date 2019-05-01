@@ -247,6 +247,7 @@
                   <object class="GtkBox" id="tags">
                     <property name="visible">True</property>
                     <property name="can_focus">False</property>
+                    <property name="no_show_all">True</property>
                     <property name="orientation">vertical</property>
                     <child>
                       <object class="GtkEventBox" id="tags_event_box">

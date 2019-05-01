@@ -136,30 +136,4 @@ impl MainWindow {
     pub fn present(&self) {
         self.widget.present();
     }
-
-    pub fn demo_tag_list() -> Vec<Tag> {
-        let tag_1 = Tag {
-            tag_id: TagID::new("Tag_1"),
-            label: "Tag Label 1".to_owned(),
-            color: Some("#4696C8".to_owned()),
-            sort_index: Some(0),
-        };
-        let tag_2 = Tag {
-            tag_id: TagID::new("Tag_2"),
-            label: "Tag Label 2".to_owned(),
-            color: Some("#FF0000".to_owned()),
-            sort_index: Some(1),
-        };
-        let tag_3 = Tag {
-            tag_id: TagID::new("Tag_3"),
-            label: "Tag Label 3".to_owned(),
-            color: Some("#2565FA".to_owned()),
-            sort_index: Some(2),
-        };
-        let mut list = Vec::new();
-        list.push(tag_1);
-        list.push(tag_2);
-        list.push(tag_3);
-        list
-    }
 }

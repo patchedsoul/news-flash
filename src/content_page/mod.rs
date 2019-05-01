@@ -15,7 +15,7 @@ use failure::Error;
 use gio::{ActionExt, ActionMapExt};
 use glib::Variant;
 use gtk::{Box, BoxExt, Paned, PanedExt};
-use news_flash::models::{Article, ArticleID, Marked, PluginID, Read};
+use news_flash::models::{Article, ArticleID, Marked, PluginID, PluginCapabilities, Read};
 use news_flash::NewsFlash;
 
 const SIDEBAR_PANED_DEFAULT_POS: i32 = 220;
@@ -219,16 +219,30 @@ impl ContentPage {
         }
 
         // tag list
-        let mut list = TagListModel::new();
-        //let tags = news_flash.get_tags().unwrap();
-        let tags = crate::main_window::MainWindow::demo_tag_list();
-        for tag in tags {
-            let count = match state.get_header_selection() {
-                HeaderSelection::All |
-                HeaderSelection::Unread => news_flash.unread_count_tag(&tag.tag_id).unwrap(),
-                HeaderSelection::Marked => news_flash.marked_count_tag(&tag.tag_id).unwrap(),
-            };
-            list.add(&tag, count as i32).unwrap();
+        let plugin_features = news_flash.features().unwrap();
+        let support_tags = plugin_features.contains(PluginCapabilities::SUPPORT_TAGS);
+
+        if !support_tags {
+            self.sidebar.hide_taglist();
+        } else {
+            let mut list = TagListModel::new();
+            let tags = news_flash.get_tags().unwrap();
+
+            if tags.is_empty() {
+                self.sidebar.hide_taglist();
+            } else {
+                for tag in tags {
+                    let count = match state.get_header_selection() {
+                        HeaderSelection::All |
+                        HeaderSelection::Unread => news_flash.unread_count_tag(&tag.tag_id).unwrap(),
+                        HeaderSelection::Marked => news_flash.marked_count_tag(&tag.tag_id).unwrap(),
+                    };
+                    list.add(&tag, count as i32).unwrap();
+                }
+
+                self.sidebar.update_taglist(list);
+                self.sidebar.show_taglist();
+            }
         }
 
         let total_count = match state.get_header_selection() {
@@ -238,7 +252,6 @@ impl ContentPage {
         };
 
         self.sidebar.update_feedlist(tree);
-        self.sidebar.update_taglist(list);
         self.sidebar.update_unread_all(total_count);
     }
 
