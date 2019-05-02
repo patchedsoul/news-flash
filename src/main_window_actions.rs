@@ -12,7 +12,6 @@ use gtk::{self, ApplicationWindow, GtkWindowExt, HeaderBar, Stack, StackExt, Sta
 use log::error;
 use news_flash::models::{ArticleID, LoginData, PluginID};
 use news_flash::{NewsFlash, NewsFlashError};
-use std::path::PathBuf;
 
 pub struct MainWindowActions;
 
@@ -102,11 +101,13 @@ impl MainWindowActions {
         stack: &Stack,
         content_page: &GtkHandle<ContentPage>,
         headerbar: gtk::Paned,
+        state: &GtkHandle<MainWindowState>,
     ) {
         let news_flash = news_flash.clone();
         let application_window = window.clone();
         let stack = stack.clone();
         let content_page = content_page.clone();
+        let state = state.clone();
         let show_content_page = SimpleAction::new("show-content-page", glib::VariantTy::new("s").ok());
         show_content_page.connect_activate(move |_action, data| {
             if let Some(data) = data {
@@ -116,6 +117,7 @@ impl MainWindowActions {
                     if let Some(api) = &*news_flash.borrow() {
                         user_name = api.user_name();
                     }
+                    content_page.borrow_mut().update_sidebar(&news_flash, &state);
                     content_page.borrow().set_service(&id, user_name).unwrap();
                     application_window.set_titlebar(&headerbar);
                     stack.set_transition_type(StackTransitionType::SlideLeft);
@@ -146,7 +148,7 @@ impl MainWindowActions {
                         LoginData::OAuth(oauth) => oauth.id.clone(),
                         LoginData::Password(pass) => pass.id.clone(),
                     };
-                    let mut news_flash_lib = NewsFlash::new(&PathBuf::from(DATA_DIR), &id).unwrap();
+                    let mut news_flash_lib = NewsFlash::new(&DATA_DIR, &id).unwrap();
                     match news_flash_lib.login(info.clone()) {
                         Ok(()) => {
                             // create main obj

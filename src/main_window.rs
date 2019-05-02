@@ -12,12 +12,16 @@ use gtk::{
     Stack, StackExt, StyleContext, WidgetExt,
 };
 use log::{info, warn};
-use news_flash::models::{Tag, TagID};
 use news_flash::NewsFlash;
 use std::cell::RefCell;
 use std::rc::Rc;
+use lazy_static::lazy_static;
+use std::path::PathBuf;
 
-pub static DATA_DIR: &'static str = ".news-flash";
+lazy_static! {
+    pub static ref DATA_DIR: PathBuf = dirs::home_dir().expect("$HOME not available").join(".news-flash");
+}
+
 const PANED_DEFAULT_POS: i32 = 600;
 
 pub struct MainWindow {
@@ -85,6 +89,7 @@ impl MainWindow {
             &stack,
             &content_page_handle,
             content_header_handle.borrow().widget(),
+            &state,
         );
         MainWindowActions::setup_login_action(&window, &news_flash_handle, &oauht_login_handle, &pw_login_handle);
         MainWindowActions::setup_sync_paned_action(&window, &content_page_handle, &content_header_handle);
@@ -99,9 +104,7 @@ impl MainWindow {
         MainWindowActions::setup_mark_article_read_action(&window, &news_flash_handle);
         MainWindowActions::setup_mark_article_action(&window, &news_flash_handle);
 
-        let mut data_dir = dirs::home_dir().expect("$HOME not available");
-        data_dir.push(DATA_DIR);
-        if let Ok(news_flash_lib) = NewsFlash::try_load(&data_dir) {
+        if let Ok(news_flash_lib) = NewsFlash::try_load(&DATA_DIR) {
             info!("Successful load from config");
 
             stack.set_visible_child_name("content");
