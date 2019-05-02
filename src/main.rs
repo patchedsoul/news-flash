@@ -10,6 +10,7 @@ mod main_window_state;
 mod sidebar;
 mod util;
 mod welcome_screen;
+mod settings;
 
 use crate::main_window::MainWindow;
 use gio::{self, ApplicationExt, ApplicationExtManual};

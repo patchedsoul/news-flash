@@ -1,3 +1,5 @@
+use serde_derive::{Deserialize, Serialize};
+
 #[derive(Clone, Debug)]
 pub enum InternalState {
     Empty,
@@ -26,7 +28,7 @@ impl InternalState {
     }
 }
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, Serialize, Deserialize)]
 pub enum ArticleTheme {
     Default,
     Spring,

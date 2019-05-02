@@ -2,7 +2,8 @@ mod models;
 mod progress_overlay;
 mod url_overlay;
 
-use self::models::{ArticleTheme, InternalState};
+pub use self::models::ArticleTheme;
+use self::models::InternalState;
 use self::progress_overlay::ProgressOverlay;
 use self::url_overlay::UrlOverlay;
 use crate::gtk_handle;
