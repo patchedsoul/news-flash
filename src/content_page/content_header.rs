@@ -2,11 +2,11 @@ use super::header_selection::HeaderSelection;
 use crate::util::{BuilderHelper, GtkUtil};
 use failure::Error;
 use gdk::EventType;
-use gio::{ActionExt, ActionMapExt};
+use gio::{ActionExt, ActionMapExt, Menu};
 use glib::{signal::Inhibit, Variant};
 use gtk::{
     Button, ButtonExt, EntryExt, Paned, PanedExt, SearchEntry, SearchEntryExt, Stack, StackExt, ToggleButton,
-    ToggleButtonExt, WidgetExt,
+    ToggleButtonExt, WidgetExt, MenuButton, MenuButtonExt,
 };
 
 pub struct ContentHeader {
@@ -24,6 +24,7 @@ impl ContentHeader {
         let marked_button = builder.get::<ToggleButton>("marked_button");
         let update_button = builder.get::<Button>("update_button");
         let update_stack = builder.get::<Stack>("update_stack");
+        let menu_button = builder.get::<MenuButton>("menu_button");
         let search_entry = builder.get::<SearchEntry>("search_entry");
         search_entry.connect_search_changed(|search_entry| {
             if let Ok(main_window) = GtkUtil::get_main_window(search_entry) {
@@ -40,6 +41,8 @@ impl ContentHeader {
         Self::setup_linked_button(&unread_button, &all_button, &marked_button, HeaderSelection::Unread);
         Self::setup_linked_button(&marked_button, &unread_button, &all_button, HeaderSelection::Marked);
         Self::setup_update_button(&update_button, &update_stack);
+
+        Self::setup_menu_button(&menu_button);
 
         header.connect_property_position_notify(|paned| {
             if let Ok(main_window) = GtkUtil::get_main_window(paned) {
@@ -117,5 +120,18 @@ impl ContentHeader {
                 }
             }
         });
+    }
+
+    fn setup_menu_button(button: &MenuButton) {
+        let about_model = Menu::new();
+        about_model.append("Shortcuts", "win.shortcuts");
+        about_model.append("About", "win.about");
+
+        let main_model = Menu::new();
+        main_model.append("Settings", "win.settings");
+        main_model.append_section("", &about_model);
+        
+
+        button.set_menu_model(&main_model);
     }
 }

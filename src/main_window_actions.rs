@@ -7,8 +7,9 @@ use crate::main_window::DATA_DIR;
 use crate::main_window_state::MainWindowState;
 use crate::sidebar::models::SidebarSelection;
 use crate::util::GtkHandle;
+use crate::about_dialog::NewsFlashAbout;
 use gio::{ActionExt, ActionMapExt, SimpleAction};
-use gtk::{self, ApplicationWindow, GtkWindowExt, HeaderBar, Stack, StackExt, StackTransitionType};
+use gtk::{self, ApplicationWindow, GtkWindowExt, GtkWindowExtManual, HeaderBar, Stack, StackExt, StackTransitionType};
 use log::error;
 use news_flash::models::{ArticleID, LoginData, PluginID};
 use news_flash::{NewsFlash, NewsFlashError};
@@ -391,8 +392,8 @@ impl MainWindowActions {
     ) {
         let news_flash = news_flash.clone();
         let main_window = window.clone();
-        let show_article_action = SimpleAction::new("mark-article-read", glib::VariantTy::new("s").ok());
-        show_article_action.connect_activate(move |_action, data| {
+        let mark_article_read_action = SimpleAction::new("mark-article-read", glib::VariantTy::new("s").ok());
+        mark_article_read_action.connect_activate(move |_action, data| {
             if let Some(data) = data {
                 if let Some(data) = data.get_str() {
                     let update: ReadUpdate = serde_json::from_str(&data).unwrap();
@@ -406,8 +407,8 @@ impl MainWindowActions {
                 }
             }
         });
-        show_article_action.set_enabled(true);
-        window.add_action(&show_article_action);
+        mark_article_read_action.set_enabled(true);
+        window.add_action(&mark_article_read_action);
     }
 
     pub fn setup_mark_article_action(
@@ -416,8 +417,8 @@ impl MainWindowActions {
     ) {
         let news_flash = news_flash.clone();
         let main_window = window.clone();
-        let show_article_action = SimpleAction::new("mark-article", glib::VariantTy::new("s").ok());
-        show_article_action.connect_activate(move |_action, data| {
+        let mark_article_action = SimpleAction::new("mark-article", glib::VariantTy::new("s").ok());
+        mark_article_action.connect_activate(move |_action, data| {
             if let Some(data) = data {
                 if let Some(data) = data.get_str() {
                     println!("{}", data);
@@ -432,7 +433,18 @@ impl MainWindowActions {
                 }
             }
         });
-        show_article_action.set_enabled(true);
-        window.add_action(&show_article_action);
+        mark_article_action.set_enabled(true);
+        window.add_action(&mark_article_action);
+    }
+
+    pub fn setup_about_action(window: &ApplicationWindow) {
+        let main_window = window.clone();
+        let about_action = SimpleAction::new("about", None);
+        about_action.connect_activate(move |_action, _data| {
+            let dialog = NewsFlashAbout::new(Some(&main_window)).widget();
+            dialog.present();
+        });
+        about_action.set_enabled(true);
+        window.add_action(&about_action);
     }
 }

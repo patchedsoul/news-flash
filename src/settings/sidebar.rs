@@ -5,3 +5,12 @@ pub struct SidebarSettings {
     only_unread: bool,
     only_feeds: bool,
 }
+
+impl SidebarSettings {
+    pub fn default() -> Self {
+        SidebarSettings {
+            only_unread: false,
+            only_feeds: false,
+        }
+    }
+}

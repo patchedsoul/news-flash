@@ -124,12 +124,10 @@
           </packing>
         </child>
         <child>
-          <object class="GtkButton">
+          <object class="GtkMenuButton" id="menu_button">
             <property name="visible">True</property>
-            <property name="can_focus">False</property>
-            <property name="focus_on_click">False</property>
+            <property name="can_focus">True</property>
             <property name="receives_default">True</property>
-            <property name="always_show_image">True</property>
             <child>
               <object class="GtkImage">
                 <property name="visible">True</property>

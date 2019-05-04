@@ -5,3 +5,11 @@ use news_flash::models::ArticleOrder;
 pub struct ArticleListSettings {
     order: ArticleOrder,
 }
+
+impl ArticleListSettings {
+    pub fn default() -> Self {
+        ArticleListSettings {
+            order: ArticleOrder::NewestFirst,
+        }
+    }
+}

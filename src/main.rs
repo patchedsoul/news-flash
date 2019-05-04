@@ -11,6 +11,7 @@ mod sidebar;
 mod util;
 mod welcome_screen;
 mod settings;
+mod about_dialog;
 
 use crate::main_window::MainWindow;
 use gio::{self, ApplicationExt, ApplicationExtManual};

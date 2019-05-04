@@ -6,6 +6,8 @@ use crate::main_window_state::MainWindowState;
 use crate::util::{BuilderHelper, GTK_CSS_ERROR, GTK_RESOURCE_FILE_ERROR};
 use crate::welcome_screen::{WelcomeHeaderbar, WelcomePage};
 use crate::Resources;
+use crate::settings::Settings;
+use crate::about_dialog::{ICON_NAME, APP_NAME};
 use failure::Error;
 use gtk::{
     self, Application, ApplicationWindow, CssProvider, CssProviderExt, GtkWindowExt, GtkWindowExtManual, Inhibit,
@@ -46,12 +48,14 @@ impl MainWindow {
         let content_header = ContentHeader::new()?;
 
         window.set_application(app);
-        window.set_icon_name("com.gitlab.newsflash");
-        window.set_title("NewsFlash");
+        window.set_icon_name(ICON_NAME);
+        window.set_title(APP_NAME);
         window.connect_delete_event(move |win, _| {
             win.destroy();
             Inhibit(false)
         });
+
+        let settings = gtk_handle!(Settings::open());
 
         // setup pages
         let welcome = WelcomePage::new(&window)?;
@@ -103,6 +107,7 @@ impl MainWindow {
         MainWindowActions::setup_show_article_action(&window, &content_page_handle, &news_flash_handle);
         MainWindowActions::setup_mark_article_read_action(&window, &news_flash_handle);
         MainWindowActions::setup_mark_article_action(&window, &news_flash_handle);
+        MainWindowActions::setup_about_action(&window);
 
         if let Ok(news_flash_lib) = NewsFlash::try_load(&DATA_DIR) {
             info!("Successful load from config");
