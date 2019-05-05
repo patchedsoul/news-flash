@@ -1,0 +1,21 @@
+image: "registry.gitlab.gnome.org/gnome/gnome-runtime-images/rust_bundle:master"
+
+stages:
+  - build
+
+variables:
+  CARGO_HOME: $CI_PROJECT_DIR/cargo
+  FEEDLY_CLIENT_ID: 1234
+  FEEDLY_CLIENT_SECRET: 5678
+  PASSWORD_CRYPT_KEY: abcd
+
+run-build:
+  stage: build
+  image: "registry.gitlab.gnome.org/gnome/gnome-runtime-images/rust_bundle:master"
+  script:
+    - rustc --version && cargo --version
+    - cargo build --release --jobs 1
+  cache:
+    paths:
+      - cargo/
+      - target/
