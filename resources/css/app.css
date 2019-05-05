@@ -193,3 +193,8 @@
   border-style: solid;
   border-color: rgba(0, 0, 0, 0.3);
 }
+
+.separator-row {
+  outline: none;
+  padding: 0;
+}

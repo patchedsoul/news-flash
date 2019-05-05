@@ -28,6 +28,10 @@ impl ArticleListModel {
         }
     }
 
+    pub fn order(&self) -> ArticleOrder {
+        self.sort.clone()
+    }
+
     pub fn add(
         &mut self,
         article: Article,

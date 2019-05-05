@@ -43,7 +43,7 @@ impl ArticleList {
         let list_2 = SingleArticleList::new()?;
 
         let window_state = MainWindowState::new();
-        let model = ArticleListModel::new(&settings.borrow().article_list().get_order());
+        let model = ArticleListModel::new(&settings.borrow().get_article_list_order());
 
         stack.add_named(&list_1.widget(), "list_1");
         stack.add_named(&list_2.widget(), "list_2");
@@ -80,7 +80,7 @@ impl ArticleList {
             CurrentList::List2 => CurrentList::List1,
         };
         *self.current_list.borrow_mut() = current_list;
-        let mut empty_model = ArticleListModel::new(&self.settings.borrow().article_list().get_order());
+        let mut empty_model = ArticleListModel::new(&self.settings.borrow().get_article_list_order());
         let diff = empty_model.generate_diff(&mut new_list);
 
         self.execute_diff(diff);
@@ -227,7 +227,8 @@ impl ArticleList {
     }
 
     fn require_new_list(&self, new_state: &MainWindowState) -> bool {
-        if &self.window_state == new_state {
+        if &self.window_state == new_state
+        && self.settings.borrow().get_article_list_order() == self.list_model.borrow().order() {
             return false;
         }
         true

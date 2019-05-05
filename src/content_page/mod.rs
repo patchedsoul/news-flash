@@ -22,8 +22,8 @@ use news_flash::NewsFlash;
 const SIDEBAR_PANED_DEFAULT_POS: i32 = 220;
 
 pub struct ContentPage {
-    page: gtk::Box,
-    paned: gtk::Paned,
+    page: Box,
+    paned: Paned,
     sidebar: SideBar,
     article_list: ArticleList,
     article_view: ArticleView,
@@ -106,7 +106,7 @@ impl ContentPage {
         } else {
             MainWindowState::page_size()
         };
-        let mut list_model = ArticleListModel::new(&self.settings.borrow().article_list().get_order());
+        let mut list_model = ArticleListModel::new(&self.settings.borrow().get_article_list_order());
         let mut articles = Self::load_articles(news_flash, &window_state, &self.settings, limit, None);
 
         let (feeds, _) = news_flash.get_feeds().unwrap();
@@ -131,7 +131,7 @@ impl ContentPage {
     ) -> Result<(), Error> {
         let window_state = window_state.borrow().clone();
         let relevant_articles_loaded = self.article_list.get_relevant_article_count(window_state.get_header_selection());
-        let mut list_model = ArticleListModel::new(&self.settings.borrow().article_list().get_order());
+        let mut list_model = ArticleListModel::new(&self.settings.borrow().get_article_list_order());
         if let Some(news_flash) = news_flash_handle.borrow_mut().as_mut() {
             let mut articles = Self::load_articles(
                 news_flash,
@@ -189,7 +189,7 @@ impl ContentPage {
             .get_articles(
                 Some(limit),
                 offset,
-                Some(settings.borrow().article_list().get_order()),
+                Some(settings.borrow().get_article_list_order()),
                 unread,
                 marked,
                 feed,

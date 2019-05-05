@@ -3,7 +3,7 @@ use news_flash::models::ArticleOrder;
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct ArticleListSettings {
-    order: ArticleOrder,
+    pub order: ArticleOrder,
 }
 
 impl ArticleListSettings {
@@ -11,9 +11,5 @@ impl ArticleListSettings {
         ArticleListSettings {
             order: ArticleOrder::NewestFirst,
         }
-    }
-
-    pub fn get_order(&self) -> ArticleOrder {
-        self.order.clone()
     }
 }

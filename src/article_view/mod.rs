@@ -689,7 +689,7 @@ impl ArticleView {
         let mut font_size : Option<i32> = None;
 
         // Try to use the configured font if it exists
-        if let Some(font_setting) = self.settings.borrow().article_view().font() {
+        if let Some(font_setting) = self.settings.borrow().get_article_view_font() {
             font_options.push(font_setting);
         }
 
@@ -736,7 +736,7 @@ impl ArticleView {
         }
 
         // $UNSELECTABLE
-        if self.settings.borrow().article_view().get_allow_select() {
+        if self.settings.borrow().get_article_view_allow_select() {
             template_string = template_string.replacen("$UNSELECTABLE", "", 1);
         } else {
             template_string = template_string.replacen("$UNSELECTABLE", "unselectable", 1);
@@ -767,7 +767,7 @@ impl ArticleView {
         template_string = template_string.replacen("$FEED", &feed_name, 1);
 
         // $THEME
-        template_string = template_string.replacen("$THEME", self.settings.borrow().article_view().get_theme().to_str(), 1);
+        template_string = template_string.replacen("$THEME", self.settings.borrow().get_article_view_theme().to_str(), 1);
 
         // $FONTFAMILY
         template_string = template_string.replacen("$FONTFAMILY", &font_family, 1);

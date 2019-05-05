@@ -108,6 +108,7 @@ impl MainWindow {
         MainWindowActions::setup_mark_article_read_action(&window, &news_flash_handle);
         MainWindowActions::setup_mark_article_action(&window, &news_flash_handle);
         MainWindowActions::setup_about_action(&window);
+        MainWindowActions::setup_settings_action(&window, &settings);
 
         if let Ok(news_flash_lib) = NewsFlash::try_load(&DATA_DIR) {
             info!("Successful load from config");

@@ -8,6 +8,7 @@ use crate::main_window_state::MainWindowState;
 use crate::sidebar::models::SidebarSelection;
 use crate::util::GtkHandle;
 use crate::about_dialog::NewsFlashAbout;
+use crate::settings::{Settings, SettingsDialog};
 use gio::{ActionExt, ActionMapExt, SimpleAction};
 use gtk::{self, ApplicationWindow, GtkWindowExt, GtkWindowExtManual, HeaderBar, Stack, StackExt, StackTransitionType};
 use log::error;
@@ -446,5 +447,17 @@ impl MainWindowActions {
         });
         about_action.set_enabled(true);
         window.add_action(&about_action);
+    }
+
+    pub fn setup_settings_action(window: &ApplicationWindow, settings: &GtkHandle<Settings>) {
+        let main_window = window.clone();
+        let settings = settings.clone();
+        let settings_action = SimpleAction::new("settings", None);
+        settings_action.connect_activate(move |_action, _data| {
+            let dialog = SettingsDialog::new(&main_window, &settings).widget();
+            dialog.present();
+        });
+        settings_action.set_enabled(true);
+        window.add_action(&settings_action);
     }
 }
