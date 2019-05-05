@@ -21,8 +21,9 @@
 	text-shadow: none;
 }
 
+.sidebar-paned separator,
 .sidebar separator {
-	background-color: shade(@sidebar-bg, 0.82);
+	background: shade(@sidebar-bg, 0.82);
 	border: none;
 }
 

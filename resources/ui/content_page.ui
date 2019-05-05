@@ -109,6 +109,9 @@
                 <property name="shrink">False</property>
               </packing>
             </child>
+            <style>
+              <class name="sidebar-paned"/>
+            </style>
           </object>
           <packing>
             <property name="resize">True</property>
