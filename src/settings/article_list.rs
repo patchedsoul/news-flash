@@ -12,4 +12,8 @@ impl ArticleListSettings {
             order: ArticleOrder::NewestFirst,
         }
     }
+
+    pub fn get_order(&self) -> ArticleOrder {
+        self.order.clone()
+    }
 }

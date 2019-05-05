@@ -6,6 +6,7 @@ use crate::content_page::HeaderSelection;
 use crate::gtk_handle;
 use crate::main_window_state::MainWindowState;
 use crate::util::{BuilderHelper, GtkHandle, GtkUtil};
+use crate::settings::Settings;
 use failure::Error;
 use gio::{ActionExt, ActionMapExt};
 use glib::{translate::ToGlib, Variant};
@@ -30,10 +31,11 @@ pub struct ArticleList {
     list_select_signal: Option<u64>,
     window_state: MainWindowState,
     current_list: GtkHandle<CurrentList>,
+    settings: GtkHandle<Settings>,
 }
 
 impl ArticleList {
-    pub fn new() -> Result<Self, Error> {
+    pub fn new(settings: &GtkHandle<Settings>) -> Result<Self, Error> {
         let builder = BuilderHelper::new("article_list");
         let stack = builder.get::<Stack>("article_list_stack");
 
@@ -41,10 +43,12 @@ impl ArticleList {
         let list_2 = SingleArticleList::new()?;
 
         let window_state = MainWindowState::new();
-        let model = ArticleListModel::new(window_state.get_article_list_order());
+        let model = ArticleListModel::new(&settings.borrow().article_list().get_order());
 
         stack.add_named(&list_1.widget(), "list_1");
         stack.add_named(&list_2.widget(), "list_2");
+
+        let settings = settings.clone();
 
         let mut article_list = ArticleList {
             stack,
@@ -54,6 +58,7 @@ impl ArticleList {
             list_select_signal: None,
             window_state,
             current_list: gtk_handle!(CurrentList::List1),
+            settings,
         };
 
         article_list.setup_list_selected_singal();
@@ -75,7 +80,7 @@ impl ArticleList {
             CurrentList::List2 => CurrentList::List1,
         };
         *self.current_list.borrow_mut() = current_list;
-        let mut empty_model = ArticleListModel::new(self.window_state.get_article_list_order());
+        let mut empty_model = ArticleListModel::new(&self.settings.borrow().article_list().get_order());
         let diff = empty_model.generate_diff(&mut new_list);
 
         self.execute_diff(diff);

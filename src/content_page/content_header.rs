@@ -128,6 +128,7 @@ impl ContentHeader {
         about_model.append("About", "win.about");
 
         let main_model = Menu::new();
+        main_model.append("Export OPML", "win.export");
         main_model.append("Settings", "win.settings");
         main_model.append_section("", &about_model);
         

@@ -1,13 +1,11 @@
 use crate::content_page::HeaderSelection;
 use crate::sidebar::models::SidebarSelection;
-use news_flash::models::ArticleOrder;
 
 #[derive(Clone, Debug)]
 pub struct MainWindowState {
     sidebar: SidebarSelection,
     header: HeaderSelection,
     search_term: Option<String>,
-    article_list_order: ArticleOrder,
     reset_article_list: bool,
 }
 
@@ -19,7 +17,6 @@ impl MainWindowState {
             sidebar: SidebarSelection::All,
             header: HeaderSelection::All,
             search_term: None,
-            article_list_order: ArticleOrder::NewestFirst,
             reset_article_list: false,
         }
     }
@@ -61,16 +58,6 @@ impl MainWindowState {
         self.search_term = search_term;
         self.reset_article_list = true;
     }
-
-    pub fn get_article_list_order(&self) -> &ArticleOrder {
-        &self.article_list_order
-    }
-
-    #[allow(dead_code)]
-    pub fn set_article_list_order(&mut self, order: ArticleOrder) {
-        self.article_list_order = order;
-        self.reset_article_list = true;
-    }
 }
 
 impl PartialEq for MainWindowState {
@@ -94,9 +81,6 @@ impl PartialEq for MainWindowState {
                 Some(_) => return false,
                 None => {}
             },
-        }
-        if self.article_list_order != other.article_list_order {
-            return false;
         }
         true
     }

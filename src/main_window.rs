@@ -43,6 +43,8 @@ impl MainWindow {
         let window = builder.get::<ApplicationWindow>("main_window");
         let stack = builder.get::<Stack>("main_stack");
 
+        let settings = gtk_handle!(Settings::open()?);
+
         let login_header = LoginHeaderbar::new(&window);
         let welcome_header = WelcomeHeaderbar::new()?;
         let content_header = ContentHeader::new()?;
@@ -55,8 +57,6 @@ impl MainWindow {
             Inhibit(false)
         });
 
-        let settings = gtk_handle!(Settings::open());
-
         // setup pages
         let welcome = WelcomePage::new(&window)?;
         stack.add_named(&welcome.widget(), "welcome");
@@ -67,7 +67,7 @@ impl MainWindow {
         let oauth_login = WebLogin::new();
         stack.add_named(&oauth_login.widget(), "oauth_login");
 
-        let content = ContentPage::new()?;
+        let content = ContentPage::new(&settings)?;
         stack.add_named(&content.widget(), "content");
 
         let pw_login_handle = gtk_handle!(pw_login);

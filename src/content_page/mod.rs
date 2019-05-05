@@ -10,6 +10,7 @@ use crate::main_window_state::MainWindowState;
 use crate::sidebar::models::SidebarSelection;
 use crate::sidebar::{FeedListTree, SideBar, TagListModel};
 use crate::util::{BuilderHelper, GtkHandle, GtkUtil};
+use crate::settings::Settings;
 use failure::format_err;
 use failure::Error;
 use gio::{ActionExt, ActionMapExt};
@@ -26,10 +27,11 @@ pub struct ContentPage {
     sidebar: SideBar,
     article_list: ArticleList,
     article_view: ArticleView,
+    settings: GtkHandle<Settings>,
 }
 
 impl ContentPage {
-    pub fn new() -> Result<Self, Error> {
+    pub fn new(settings: &GtkHandle<Settings>) -> Result<Self, Error> {
         let builder = BuilderHelper::new("content_page");
         let page = builder.get::<Box>("page");
         let feed_list_box = builder.get::<Box>("feedlist_box");
@@ -49,12 +51,14 @@ impl ContentPage {
         });
 
         let sidebar = SideBar::new()?;
-        let article_list = ArticleList::new()?;
-        let article_view = ArticleView::new()?;
+        let article_list = ArticleList::new(settings)?;
+        let article_view = ArticleView::new(settings)?;
 
         feed_list_box.pack_start(&sidebar.widget(), false, true, 0);
         article_list_box.pack_start(&article_list.widget(), false, true, 0);
         articleview_box.pack_start(&article_view.widget(), false, true, 0);
+
+        let settings = settings.clone();
 
         Ok(ContentPage {
             page,
@@ -62,6 +66,7 @@ impl ContentPage {
             sidebar,
             article_list,
             article_view,
+            settings,
         })
     }
 
@@ -101,8 +106,8 @@ impl ContentPage {
         } else {
             MainWindowState::page_size()
         };
-        let mut list_model = ArticleListModel::new(window_state.get_article_list_order());
-        let mut articles = Self::load_articles(news_flash, &window_state, limit, None);
+        let mut list_model = ArticleListModel::new(&self.settings.borrow().article_list().get_order());
+        let mut articles = Self::load_articles(news_flash, &window_state, &self.settings, limit, None);
 
         let (feeds, _) = news_flash.get_feeds().unwrap();
         let _: Vec<_> = articles
@@ -126,9 +131,15 @@ impl ContentPage {
     ) -> Result<(), Error> {
         let window_state = window_state.borrow().clone();
         let relevant_articles_loaded = self.article_list.get_relevant_article_count(window_state.get_header_selection());
-        let mut list_model = ArticleListModel::new(window_state.get_article_list_order());
+        let mut list_model = ArticleListModel::new(&self.settings.borrow().article_list().get_order());
         if let Some(news_flash) = news_flash_handle.borrow_mut().as_mut() {
-            let mut articles = Self::load_articles(news_flash, &window_state, MainWindowState::page_size(), Some(relevant_articles_loaded as i64));
+            let mut articles = Self::load_articles(
+                news_flash,
+                &window_state,
+                &self.settings,
+                MainWindowState::page_size(),
+                Some(relevant_articles_loaded as i64)
+            );
             let (feeds, _) = news_flash.get_feeds().unwrap();
             let _: Vec<_> = articles
                 .drain(..)
@@ -146,7 +157,13 @@ impl ContentPage {
         Ok(())
     }
 
-    fn load_articles(news_flash: &mut NewsFlash, window_state: &MainWindowState, limit: i64, offset: Option<i64>) -> Vec<Article> {
+    fn load_articles(
+        news_flash: &mut NewsFlash,
+        window_state: &MainWindowState,
+        settings: &GtkHandle<Settings>,
+        limit: i64,
+        offset: Option<i64>
+    ) -> Vec<Article> {
         let unread = match window_state.get_header_selection() {
             HeaderSelection::All | HeaderSelection::Marked => None,
             HeaderSelection::Unread => Some(Read::Unread),
@@ -172,7 +189,7 @@ impl ContentPage {
             .get_articles(
                 Some(limit),
                 offset,
-                Some(window_state.get_article_list_order().clone()),
+                Some(settings.borrow().article_list().get_order()),
                 unread,
                 marked,
                 feed,

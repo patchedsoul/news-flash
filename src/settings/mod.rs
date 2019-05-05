@@ -1,11 +1,9 @@
 mod article_list;
 mod article_view;
-mod sidebar;
 
 use serde_derive::{Deserialize, Serialize};
 use article_list::ArticleListSettings;
 use article_view::ArticleViewSettings;
-use sidebar::SidebarSettings;
 use failure::Error;
 use crate::main_window::DATA_DIR;
 use std::fs;
@@ -15,9 +13,8 @@ static CONFIG_NAME: &'static str = "newflash_gtk.json";
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct Settings {
-    pub article_list: ArticleListSettings,
-    pub article_view: ArticleViewSettings,
-    pub sidebar: SidebarSettings,
+    article_list: ArticleListSettings,
+    article_view: ArticleViewSettings,
     #[serde(skip_serializing)]
     #[serde(skip_deserializing)]
     path: PathBuf,
@@ -37,7 +34,6 @@ impl Settings {
         let settings = Settings {
             article_list: ArticleListSettings::default(),
             article_view: ArticleViewSettings::default(),
-            sidebar: SidebarSettings::default(),
             path: path.clone(),
         };
         settings.write()?;
@@ -48,5 +44,13 @@ impl Settings {
         let data = serde_json::to_string_pretty(self)?;
         fs::write(&self.path, data)?;
         Ok(())
+    }
+
+    pub fn article_list(&self) -> &ArticleListSettings {
+        &self.article_list
+    }
+
+    pub fn article_view(&self) -> &ArticleViewSettings {
+        &self.article_view
     }
 }

@@ -10,17 +10,19 @@ use crate::gtk_handle;
 use crate::util::GTK_RESOURCE_FILE_ERROR;
 use crate::util::{BuilderHelper, DateUtil, FileUtil, GtkHandle, GtkUtil};
 use crate::Resources;
+use crate::settings::Settings;
 use failure::{format_err, Error};
 use gdk::{
     enums::key::KP_Add as KP_ADD, enums::key::KP_Subtract as KP_SUBTRACT, enums::key::KP_0, Cursor, CursorType,
     Display, EventMask, ModifierType, ScrollDirection,
 };
-use gio::Cancellable;
+use gio::{Cancellable, Settings as GSettings, SettingsExt as GSettingsExt};
 use glib::{object::Cast, translate::ToGlib, MainLoop};
 use gtk::{
     Button, ButtonExt, ContainerExt, Continue, Inhibit, Overlay, OverlayExt, Stack, StackExt, WidgetExt,
     WidgetExtManual,
 };
+use pango::FontDescription;
 use log::error;
 use news_flash::models::FatArticle;
 use std::cell::RefCell;
@@ -30,19 +32,19 @@ use std::sync::Arc;
 use std::sync::Mutex;
 use webkit2gtk::{
     ContextMenuAction, ContextMenuExt, ContextMenuItemExt, HitTestResultExt, LoadEvent, NavigationPolicyDecision,
-    NavigationPolicyDecisionExt, PolicyDecisionType, Settings, SettingsExt, URIRequestExt, WebView, WebViewExt,
+    NavigationPolicyDecisionExt, PolicyDecisionType, Settings as WebkitSettings, SettingsExt, URIRequestExt, WebView, WebViewExt,
 };
 
 const MIDDLE_MOUSE_BUTTON: u32 = 2;
 
 #[derive(Clone, Debug)]
 pub struct ArticleView {
+    settings: GtkHandle<Settings>,
     stack: gtk::Stack,
     top_overlay: gtk::Overlay,
     view_html_button: gtk::Button,
     visible_article: GtkHandle<Option<FatArticle>>,
     internal_state: GtkHandle<InternalState>,
-    theme: ArticleTheme,
     load_changed_signal: GtkHandle<Option<u64>>,
     decide_policy_signal: GtkHandle<Option<u64>>,
     mouse_over_signal: GtkHandle<Option<u64>>,
@@ -66,7 +68,7 @@ pub struct ArticleView {
 }
 
 impl ArticleView {
-    pub fn new() -> Result<Self, Error> {
+    pub fn new(settings: &GtkHandle<Settings>) -> Result<Self, Error> {
         let builder = BuilderHelper::new("article_view");
 
         let url_overlay = builder.get::<Overlay>("url_overlay");
@@ -102,14 +104,15 @@ impl ArticleView {
         stack.set_visible_child_name("empty");
 
         let internal_state = InternalState::Empty;
+        let settings = settings.clone();
 
         let article_view = ArticleView {
+            settings,
             stack,
             top_overlay: progress_overlay,
             view_html_button,
             visible_article,
             internal_state: gtk_handle!(internal_state),
-            theme: ArticleTheme::Default,
             load_changed_signal: gtk_handle!(None),
             decide_policy_signal: gtk_handle!(None),
             mouse_over_signal: gtk_handle!(None),
@@ -247,7 +250,7 @@ impl ArticleView {
     }
 
     fn new_webview(&mut self) -> Result<WebView, Error> {
-        let settings = Settings::new();
+        let settings = WebkitSettings::new();
         settings.set_enable_accelerated_2d_canvas(true);
         settings.set_enable_html5_database(false);
         settings.set_enable_html5_local_storage(false);
@@ -675,15 +678,49 @@ impl ArticleView {
         let template_data = Resources::get("article_view/article.html").expect(GTK_RESOURCE_FILE_ERROR);
         let template_str = str::from_utf8(template_data.as_ref()).expect(GTK_RESOURCE_FILE_ERROR);
         let mut template_string = template_str.to_owned();
-        //template_string.push_str(template_str);
 
         let css_data = Resources::get("article_view/style.css").expect(GTK_RESOURCE_FILE_ERROR);
         let css_string = str::from_utf8(css_data.as_ref())?;
 
-        // FIXME
-        let unselectable = true;
-        let font_size = 12;
-        let font_family = "Cantarell";
+        // A list of fonts we should try to use in order of preference
+        // We will pass all of these to CSS in order
+        let mut font_options : Vec<String> = Vec::new();
+        let mut font_families : Vec<String> = Vec::new();
+        let mut font_size : Option<i32> = None;
+
+        // Try to use the configured font if it exists
+        if let Some(font_setting) = self.settings.borrow().article_view().font() {
+            font_options.push(font_setting);
+        }
+
+        // If there is no configured font, or it's broken, use the system default font
+        if let Some(font_system) = GSettings::new("org.gnome.desktop.interface").get_string("document-font-name") {
+            font_options.push(font_system.to_string());
+        }
+
+        // Backup if the system font is broken too
+        font_options.push("sans".to_owned());
+
+        for font in font_options {
+            let desc = FontDescription::from_string(&font);
+            if let Some(family) = desc.get_family() {
+                font_families.push(family.to_string());
+            }
+            if font_size.is_none() {
+                if desc.get_size() > 0 {
+                    font_size = Some(desc.get_size());
+                }
+            }
+        }
+
+        // if font size configured use it, otherwise use 12 as default
+        let font_size = match font_size {
+            Some(size) => size,
+            None => 12,
+        };
+        
+        let font_size = font_size / pango::SCALE;
+        let font_family = font_families.join(", ");
 
         let mut author_date = String::new();
         let date = DateUtil::format(&article.date);
@@ -699,10 +736,10 @@ impl ArticleView {
         }
 
         // $UNSELECTABLE
-        if unselectable {
-            template_string = template_string.replacen("$UNSELECTABLE", "unselectable", 1);
-        } else {
+        if self.settings.borrow().article_view().get_allow_select() {
             template_string = template_string.replacen("$UNSELECTABLE", "", 1);
+        } else {
+            template_string = template_string.replacen("$UNSELECTABLE", "unselectable", 1);
         }
 
         // $AUTHOR / $DATE
@@ -730,10 +767,10 @@ impl ArticleView {
         template_string = template_string.replacen("$FEED", &feed_name, 1);
 
         // $THEME
-        template_string = template_string.replacen("$THEME", self.theme.to_str(), 1);
+        template_string = template_string.replacen("$THEME", self.settings.borrow().article_view().get_theme().to_str(), 1);
 
         // $FONTFAMILY
-        template_string = template_string.replacen("$FONTFAMILY", font_family, 1);
+        template_string = template_string.replacen("$FONTFAMILY", &font_family, 1);
 
         // $FONTSIZE
         template_string = template_string.replacen("$FONTSIZE", &format!("{}", font_size), 1);
