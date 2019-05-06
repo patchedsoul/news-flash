@@ -1,11 +1,12 @@
 use crate::settings::Settings;
 use crate::article_view::{ArticleView, ArticleTheme};
 use crate::util::{BuilderHelper, GtkHandle};
-use gtk::{Dialog, DialogExt, ListBox, ListBoxExt, GtkWindowExt, Window, WidgetExt};
+use gtk::{Dialog, DialogExt, Inhibit, ListBox, ListBoxExt, ListBoxRow, ListBoxRowExt, GtkWindowExt, Window, WidgetExt};
 use glib::{object::IsA};
 use webkit2gtk::{WebView, WebViewExt};
 use news_flash::models::{ArticleID, FeedID, FatArticle, Read, Marked};
 use chrono::Utc;
+use failure::Error;
 
 pub struct ThemeChooser {
     widget: Dialog,
@@ -21,7 +22,7 @@ impl ThemeChooser {
         let mut demo_article = FatArticle {
             article_id: ArticleID::new("demo"),
             title: None,
-            author: Some("Author".to_owned()),
+            author: None,
             feed_id: FeedID::new("demo_feed"),
             direction: None,
             date: Utc::now().naive_utc(),
@@ -29,28 +30,13 @@ impl ThemeChooser {
             unread: Read::Unread,
             url: None,
             summary: None,
-            html: Some("test123".to_owned()),
+            html: None,
         };
 
-        let default_view = builder.get::<WebView>("default_view");
-        demo_article.title = Some("Default".to_owned());
-        let default_html = ArticleView::build_article_static("theme_preview", &demo_article, "Feed Name", settings, Some(ArticleTheme::Default), Some(10240)).unwrap();
-        default_view.load_html(&default_html, None);
-
-        let spring_view = builder.get::<WebView>("spring_view");
-        demo_article.title = Some("Spring".to_owned());
-        let spring_html = ArticleView::build_article_static("theme_preview", &demo_article, "Feed Name", settings, Some(ArticleTheme::Spring), Some(10240)).unwrap();
-        spring_view.load_html(&spring_html, None);
-
-        let midnight_view = builder.get::<WebView>("midnight_view");
-        demo_article.title = Some("Midnight".to_owned());
-        let midnight_html = ArticleView::build_article_static("theme_preview", &demo_article, "Feed Name", settings, Some(ArticleTheme::Midnight), Some(10240)).unwrap();
-        midnight_view.load_html(&midnight_html, None);
-        
-        let parchment_view = builder.get::<WebView>("parchment_view");
-        demo_article.title = Some("Parchment".to_owned());
-        let parchment_html = ArticleView::build_article_static("theme_preview", &demo_article, "Feed Name", settings, Some(ArticleTheme::Parchment), Some(10240)).unwrap();
-        parchment_view.load_html(&parchment_html, None);
+        Self::prepare_theme_selection(&builder, settings, &mut demo_article, ArticleTheme::Default, "default", "Default").unwrap();
+        Self::prepare_theme_selection(&builder, settings, &mut demo_article, ArticleTheme::Spring, "spring", "Spring").unwrap();
+        Self::prepare_theme_selection(&builder, settings, &mut demo_article, ArticleTheme::Midnight, "midnight", "Midnight").unwrap();
+        Self::prepare_theme_selection(&builder, settings, &mut demo_article, ArticleTheme::Parchment, "parchment", "Parchment").unwrap();
 
         let dialog_clone = dialog.clone();
         let settings = settings.clone();
@@ -77,5 +63,25 @@ impl ThemeChooser {
 
     pub fn widget(&self) -> Dialog {
         self.widget.clone()
+    }
+
+    fn prepare_theme_selection(
+        builder: &BuilderHelper,
+        settings: &GtkHandle<Settings>,
+        article: &mut FatArticle,
+        theme: ArticleTheme,
+        id: &str,
+        name: &str
+    ) -> Result<(), Error> {
+        let view = builder.get::<WebView>(&format!("{}_view", id));
+        let row = builder.get::<ListBoxRow>(&format!("{}_row", id));
+        view.connect_button_press_event(move |_view, _event| { 
+            row.emit_activate();
+            Inhibit(true)
+        });
+        article.title = Some(name.to_owned());
+        let html = ArticleView::build_article_static("theme_preview", article, "Feed Name", settings, Some(theme), Some(10240))?;
+        view.load_html(&html, None);
+        Ok(())
     }
 }

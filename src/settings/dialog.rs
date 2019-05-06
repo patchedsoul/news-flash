@@ -2,7 +2,7 @@ use crate::settings::Settings;
 use crate::util::{BuilderHelper, GtkHandle};
 use super::theme_chooser::ThemeChooser;
 use gtk::{Dialog, DialogExt, Window, GtkWindowExt, GtkWindowExtManual, Inhibit, FontButton, FontButtonExt, FontChooserExt,
-    Label, ListBox, ListBoxExt, Stack, StackExt, Switch, SwitchExt, WidgetExt};
+    Label, LabelExt, ListBox, ListBoxExt, Stack, StackExt, Switch, SwitchExt, WidgetExt};
 use glib::{object::IsA};
 use gio::{ActionExt, ActionMapExt};
 use news_flash::models::ArticleOrder;
@@ -46,12 +46,17 @@ impl SettingsDialog {
         let dialog_window = dialog.clone();
         let main_window = window.clone();
         let article_view_settings = builder.get::<ListBox>("article_view_settings");
+        let theme_label = builder.get::<Label>("theme_label");
+        theme_label.set_label(settings.borrow().get_article_view_theme().name());
         article_view_settings.connect_row_activated(move |_list, row| {
             if let Some(row_name) = row.get_name() {
                 if "theme" == row_name {
                     let main_window = main_window.clone();
+                    let theme_label = theme_label.clone();
+                    let settings = settings_2.clone();
                     let theme_chooser = ThemeChooser::new(&dialog_window, &settings_2);
                     theme_chooser.widget().connect_close(move |_dialog| {
+                        theme_label.set_label(settings.borrow().get_article_view_theme().name());
                         if let Some(action) = main_window.lookup_action("redraw-article") {
                             action.activate(None);
                         }

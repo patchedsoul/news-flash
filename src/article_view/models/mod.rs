@@ -45,4 +45,13 @@ impl ArticleTheme {
             ArticleTheme::Parchment => "theme parchment",
         }
     }
+
+    pub fn name(&self) -> &str {
+        match self {
+            ArticleTheme::Default => "Default",
+            ArticleTheme::Spring => "Spring",
+            ArticleTheme::Midnight => "Midnight",
+            ArticleTheme::Parchment => "Parchment",
+        }
+    }
 }

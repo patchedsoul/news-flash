@@ -75,7 +75,7 @@
                 <property name="vexpand">True</property>
                 <property name="selection_mode">none</property>
                 <child>
-                  <object class="GtkListBoxRow">
+                  <object class="GtkListBoxRow" id="default_row">
                     <property name="name">default</property>
                     <property name="height_request">80</property>
                     <property name="visible">True</property>
@@ -84,7 +84,7 @@
                     <child>
                       <object class="WebKitWebView" id="default_view">
                         <property name="visible">True</property>
-                        <property name="can_focus">True</property>
+                        <property name="can_focus">False</property>
                         <property name="settings">settings1</property>
                         <child>
                           <placeholder/>
@@ -111,7 +111,7 @@
                   </object>
                 </child>
                 <child>
-                  <object class="GtkListBoxRow">
+                  <object class="GtkListBoxRow" id="spring_row">
                     <property name="name">spring</property>
                     <property name="height_request">80</property>
                     <property name="visible">True</property>
@@ -119,7 +119,7 @@
                     <child>
                       <object class="WebKitWebView" id="spring_view">
                         <property name="visible">True</property>
-                        <property name="can_focus">True</property>
+                        <property name="can_focus">False</property>
                         <property name="settings">settings1</property>
                         <child>
                           <placeholder/>
@@ -146,7 +146,7 @@
                   </object>
                 </child>
                 <child>
-                  <object class="GtkListBoxRow">
+                  <object class="GtkListBoxRow" id="midnight_row">
                     <property name="name">midnight</property>
                     <property name="height_request">80</property>
                     <property name="visible">True</property>
@@ -154,7 +154,7 @@
                     <child>
                       <object class="WebKitWebView" id="midnight_view">
                         <property name="visible">True</property>
-                        <property name="can_focus">True</property>
+                        <property name="can_focus">False</property>
                         <property name="settings">settings1</property>
                         <child>
                           <placeholder/>
@@ -181,11 +181,11 @@
                   </object>
                 </child>
                 <child>
-                  <object class="GtkListBoxRow">
+                  <object class="GtkListBoxRow" id="parchment_row">
                     <property name="name">parchment</property>
                     <property name="height_request">80</property>
                     <property name="visible">True</property>
-                    <property name="can_focus">True</property>
+                    <property name="can_focus">False</property>
                     <child>
                       <object class="WebKitWebView" id="parchment_view">
                         <property name="visible">True</property>
