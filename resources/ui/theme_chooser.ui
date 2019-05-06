@@ -24,7 +24,7 @@
     <property name="enable_javascript_markup">False</property>
   </object>
   <object class="GtkDialog" id="dialog">
-    <property name="width_request">550</property>
+    <property name="width_request">500</property>
     <property name="can_focus">False</property>
     <property name="resizable">False</property>
     <property name="modal">True</property>
@@ -39,7 +39,7 @@
     </child>
     <child internal-child="vbox">
       <object class="GtkBox">
-        <property name="width_request">450</property>
+        <property name="width_request">400</property>
         <property name="can_focus">False</property>
         <property name="halign">center</property>
         <property name="margin_top">10</property>
@@ -77,15 +77,14 @@
                 <child>
                   <object class="GtkListBoxRow">
                     <property name="name">default</property>
-                    <property name="height_request">150</property>
+                    <property name="height_request">80</property>
                     <property name="visible">True</property>
                     <property name="can_focus">True</property>
                     <property name="vexpand">True</property>
                     <child>
                       <object class="WebKitWebView" id="default_view">
                         <property name="visible">True</property>
-                        <property name="sensitive">False</property>
-                        <property name="can_focus">False</property>
+                        <property name="can_focus">True</property>
                         <property name="settings">settings1</property>
                         <child>
                           <placeholder/>
@@ -114,14 +113,13 @@
                 <child>
                   <object class="GtkListBoxRow">
                     <property name="name">spring</property>
-                    <property name="height_request">150</property>
+                    <property name="height_request">80</property>
                     <property name="visible">True</property>
                     <property name="can_focus">True</property>
                     <child>
                       <object class="WebKitWebView" id="spring_view">
                         <property name="visible">True</property>
-                        <property name="sensitive">False</property>
-                        <property name="can_focus">False</property>
+                        <property name="can_focus">True</property>
                         <property name="settings">settings1</property>
                         <child>
                           <placeholder/>
@@ -150,14 +148,13 @@
                 <child>
                   <object class="GtkListBoxRow">
                     <property name="name">midnight</property>
-                    <property name="height_request">150</property>
+                    <property name="height_request">80</property>
                     <property name="visible">True</property>
                     <property name="can_focus">True</property>
                     <child>
                       <object class="WebKitWebView" id="midnight_view">
                         <property name="visible">True</property>
-                        <property name="sensitive">False</property>
-                        <property name="can_focus">False</property>
+                        <property name="can_focus">True</property>
                         <property name="settings">settings1</property>
                         <child>
                           <placeholder/>
@@ -186,14 +183,13 @@
                 <child>
                   <object class="GtkListBoxRow">
                     <property name="name">parchment</property>
-                    <property name="height_request">150</property>
+                    <property name="height_request">80</property>
                     <property name="visible">True</property>
                     <property name="can_focus">True</property>
                     <child>
                       <object class="WebKitWebView" id="parchment_view">
                         <property name="visible">True</property>
-                        <property name="sensitive">False</property>
-                        <property name="can_focus">False</property>
+                        <property name="can_focus">True</property>
                         <property name="settings">settings1</property>
                         <child>
                           <placeholder/>

@@ -34,22 +34,22 @@ impl ThemeChooser {
 
         let default_view = builder.get::<WebView>("default_view");
         demo_article.title = Some("Default".to_owned());
-        let default_html = ArticleView::build_article_static(&demo_article, "Feed Name", settings, Some(ArticleTheme::Default), Some(7000)).unwrap();
+        let default_html = ArticleView::build_article_static("theme_preview", &demo_article, "Feed Name", settings, Some(ArticleTheme::Default), Some(10240)).unwrap();
         default_view.load_html(&default_html, None);
 
         let spring_view = builder.get::<WebView>("spring_view");
         demo_article.title = Some("Spring".to_owned());
-        let spring_html = ArticleView::build_article_static(&demo_article, "Feed Name", settings, Some(ArticleTheme::Spring), Some(7000)).unwrap();
+        let spring_html = ArticleView::build_article_static("theme_preview", &demo_article, "Feed Name", settings, Some(ArticleTheme::Spring), Some(10240)).unwrap();
         spring_view.load_html(&spring_html, None);
 
         let midnight_view = builder.get::<WebView>("midnight_view");
         demo_article.title = Some("Midnight".to_owned());
-        let midnight_html = ArticleView::build_article_static(&demo_article, "Feed Name", settings, Some(ArticleTheme::Midnight), Some(7000)).unwrap();
+        let midnight_html = ArticleView::build_article_static("theme_preview", &demo_article, "Feed Name", settings, Some(ArticleTheme::Midnight), Some(10240)).unwrap();
         midnight_view.load_html(&midnight_html, None);
         
         let parchment_view = builder.get::<WebView>("parchment_view");
         demo_article.title = Some("Parchment".to_owned());
-        let parchment_html = ArticleView::build_article_static(&demo_article, "Feed Name", settings, Some(ArticleTheme::Parchment), Some(7000)).unwrap();
+        let parchment_html = ArticleView::build_article_static("theme_preview", &demo_article, "Feed Name", settings, Some(ArticleTheme::Parchment), Some(10240)).unwrap();
         parchment_view.load_html(&parchment_html, None);
 
         let dialog_clone = dialog.clone();

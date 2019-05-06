@@ -388,8 +388,8 @@ b {
 }
 
 /* Themes with no background boxes need less padding */
-body.theme.default header.post, body.theme.parchment header.post,
-body.theme.default div.nfcontent, body.theme.parchment div.nfcontent
+header.post,
+div.nfcontent
 {
 	padding-top: 0;
 	padding-bottom: 0;
@@ -430,8 +430,7 @@ body.theme.midnight td {
     border: 1px solid rgba(255, 255, 255, 0.6);
 }
 
-body.theme.midnight div.nfcontent th,
-body.theme.midnight header.post {
+body.theme.midnight div.nfcontent th {
     background: rgba(0, 0, 0, 0.1);
 }
 
@@ -451,10 +450,6 @@ body.theme.midnight header.post span.author {
     color: rgba(255, 255, 255, 0.6);
 }
 
-body.theme.midnight div.nfcontent {
-    border: 1px solid rgba(0, 0, 0, 0.1);
-}
-
 body.theme.midnight div.nfcontent a {
     color: #2978a6;
 }
@@ -464,10 +459,6 @@ body.theme.midnight div.nfcontent h2,
 body.theme.midnight div.nfcontent h3,
 body.theme.midnight div.nfcontent h4 {
     color: #2978a6;
-}
-
-body.theme.midnight div.nfcontent h2 {
-    border-color: #2978a6;
 }
 
 body.theme.midnight div.nfcontent body,
@@ -484,20 +475,8 @@ body.theme.spring {
     background: #f8fff2;
 }
 
-body.theme.spring header.post {
-    background: #ccffa6;
-}
-
 body.theme.spring header.post h1 {
     color: #405e80;
-}
-
-body.theme.spring header.post span.source {
-    color: #405e80;
-}
-
-body.theme.spring div.nfcontent {
-    border: 1px solid #ccffa6;
 }
 
 body.theme.spring div.nfcontent a {

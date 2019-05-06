@@ -700,17 +700,18 @@ impl ArticleView {
     }
 
     fn build_article(&self, article: &FatArticle, feed_name: &str) -> Result<String, Error> {
-        Self::build_article_static(article, feed_name, &self.settings, None, None)
+        Self::build_article_static("article", article, feed_name, &self.settings, None, None)
     }
 
     pub fn build_article_static(
+        file_name: &str,
         article: &FatArticle,
         feed_name: &str,
         settings: &GtkHandle<Settings>,
         theme_override: Option<ArticleTheme>,
         font_size_override: Option<i32>,
     ) -> Result<String, Error> {
-        let template_data = Resources::get("article_view/article.html").expect(GTK_RESOURCE_FILE_ERROR);
+        let template_data = Resources::get(&format!("article_view/{}.html", file_name)).expect(GTK_RESOURCE_FILE_ERROR);
         let template_str = str::from_utf8(template_data.as_ref()).expect(GTK_RESOURCE_FILE_ERROR);
         let mut template_string = template_str.to_owned();
 
@@ -758,7 +759,6 @@ impl ArticleView {
                 }
             },
         };
-        println!("font size: {}", font_size);
         
         let font_size = font_size / pango::SCALE;
         let font_family = font_families.join(", ");
