@@ -1,6 +1,7 @@
 mod article_list;
 mod article_view;
 mod dialog;
+mod theme_chooser;
 
 pub use dialog::SettingsDialog;
 use serde_derive::{Deserialize, Serialize};
@@ -62,6 +63,12 @@ impl Settings {
 
     pub fn get_article_view_theme(&self) -> ArticleTheme {
         self.article_view.theme.clone()
+    }
+
+    pub fn set_article_view_theme(&mut self, theme: ArticleTheme) -> Result<(), Error> {
+        self.article_view.theme = theme;
+        self.write()?;
+        Ok(())
     }
 
     pub fn get_article_view_allow_select(&self) -> bool {

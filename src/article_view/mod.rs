@@ -700,6 +700,16 @@ impl ArticleView {
     }
 
     fn build_article(&self, article: &FatArticle, feed_name: &str) -> Result<String, Error> {
+        Self::build_article_static(article, feed_name, &self.settings, None, None)
+    }
+
+    pub fn build_article_static(
+        article: &FatArticle,
+        feed_name: &str,
+        settings: &GtkHandle<Settings>,
+        theme_override: Option<ArticleTheme>,
+        font_size_override: Option<i32>,
+    ) -> Result<String, Error> {
         let template_data = Resources::get("article_view/article.html").expect(GTK_RESOURCE_FILE_ERROR);
         let template_str = str::from_utf8(template_data.as_ref()).expect(GTK_RESOURCE_FILE_ERROR);
         let mut template_string = template_str.to_owned();
@@ -714,7 +724,7 @@ impl ArticleView {
         let mut font_size : Option<i32> = None;
 
         // Try to use the configured font if it exists
-        if let Some(font_setting) = self.settings.borrow().get_article_view_font() {
+        if let Some(font_setting) = settings.borrow().get_article_view_font() {
             font_options.push(font_setting);
         }
 
@@ -739,10 +749,16 @@ impl ArticleView {
         }
 
         // if font size configured use it, otherwise use 12 as default
-        let font_size = match font_size {
-            Some(size) => size,
-            None => 12,
+        let font_size = match font_size_override {
+            Some(fsize_override) => fsize_override,
+            None => {
+                match font_size {
+                    Some(size) => size,
+                    None => 12,
+                }
+            },
         };
+        println!("font size: {}", font_size);
         
         let font_size = font_size / pango::SCALE;
         let font_family = font_families.join(", ");
@@ -761,7 +777,7 @@ impl ArticleView {
         }
 
         // $UNSELECTABLE
-        if self.settings.borrow().get_article_view_allow_select() {
+        if settings.borrow().get_article_view_allow_select() {
             template_string = template_string.replacen("$UNSELECTABLE", "", 1);
         } else {
             template_string = template_string.replacen("$UNSELECTABLE", "unselectable", 1);
@@ -792,7 +808,12 @@ impl ArticleView {
         template_string = template_string.replacen("$FEED", feed_name, 1);
 
         // $THEME
-        template_string = template_string.replacen("$THEME", self.settings.borrow().get_article_view_theme().to_str(), 1);
+        let theme = if let Some(theme_override) = &theme_override {
+            theme_override.to_str().to_owned()
+        } else {
+            settings.borrow().get_article_view_theme().to_str().to_owned()
+        };
+        template_string = template_string.replacen("$THEME", &theme, 1);
 
         // $FONTFAMILY
         template_string = template_string.replacen("$FONTFAMILY", &font_family, 1);
