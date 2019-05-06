@@ -286,4 +286,8 @@ impl ContentPage {
         }
         Err(format_err!("some err"))
     }
+
+    pub fn redraw_article(&mut self) -> Result<(), Error> {
+        self.article_view.redraw_article()
+    }
 }

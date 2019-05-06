@@ -387,6 +387,19 @@ impl MainWindowActions {
         window.add_action(&show_article_action);
     }
 
+    pub fn setup_redraw_article_action(
+        window: &ApplicationWindow,
+        content_page: &GtkHandle<ContentPage>,
+    ) {
+        let content_page = content_page.clone();
+        let redraw_article_action = SimpleAction::new("redraw-article", None);
+        redraw_article_action.connect_activate(move |_action, _data| {
+            content_page.borrow_mut().redraw_article().unwrap();
+        });
+        redraw_article_action.set_enabled(true);
+        window.add_action(&redraw_article_action);
+    }
+
     pub fn setup_mark_article_read_action(
         window: &ApplicationWindow,
         news_flash: &GtkHandle<Option<NewsFlash>>,

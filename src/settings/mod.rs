@@ -68,7 +68,19 @@ impl Settings {
         self.article_view.allow_select
     }
 
+    pub fn set_article_view_allow_select(&mut self, allow: bool) -> Result<(), Error> {
+        self.article_view.allow_select = allow;
+        self.write()?;
+        Ok(())
+    }
+
     pub fn get_article_view_font(&self) -> Option<String> {
         self.article_view.font.clone()
+    }
+
+    pub fn set_article_view_font(&mut self, font: Option<String>) -> Result<(), Error> {
+        self.article_view.font = font;
+        self.write()?;
+        Ok(())
     }
 }

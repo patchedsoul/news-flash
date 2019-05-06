@@ -188,12 +188,13 @@
                     <property name="can_focus">False</property>
                     <property name="label_xalign">0</property>
                     <child>
-                      <object class="GtkListBox">
+                      <object class="GtkListBox" id="article_view_settings">
                         <property name="visible">True</property>
                         <property name="can_focus">False</property>
                         <property name="selection_mode">none</property>
                         <child>
-                          <object class="GtkListBoxRow">
+                          <object class="GtkListBoxRow" id="article_list_theme_row">
+                            <property name="name">theme</property>
                             <property name="height_request">50</property>
                             <property name="visible">True</property>
                             <property name="can_focus">True</property>
@@ -278,7 +279,7 @@
                                   </packing>
                                 </child>
                                 <child>
-                                  <object class="GtkSwitch">
+                                  <object class="GtkSwitch" id="allow_selection_switch">
                                     <property name="visible">True</property>
                                     <property name="can_focus">True</property>
                                     <property name="valign">center</property>
@@ -339,7 +340,7 @@
                                   </packing>
                                 </child>
                                 <child>
-                                  <object class="GtkSwitch">
+                                  <object class="GtkSwitch" id="use_system_font_switch">
                                     <property name="visible">True</property>
                                     <property name="can_focus">True</property>
                                     <property name="valign">center</property>
@@ -388,7 +389,7 @@
                                 <property name="margin_top">5</property>
                                 <property name="margin_bottom">5</property>
                                 <child>
-                                  <object class="GtkLabel">
+                                  <object class="GtkLabel" id="font_label">
                                     <property name="visible">True</property>
                                     <property name="sensitive">False</property>
                                     <property name="can_focus">False</property>
@@ -402,7 +403,7 @@
                                   </packing>
                                 </child>
                                 <child>
-                                  <object class="GtkFontButton">
+                                  <object class="GtkFontButton" id="font_button">
                                     <property name="visible">True</property>
                                     <property name="sensitive">False</property>
                                     <property name="can_focus">True</property>
@@ -411,6 +412,7 @@
                                     <property name="font">Sans 12</property>
                                     <property name="language">en-gb</property>
                                     <property name="preview_text"/>
+                                    <property name="use_font">True</property>
                                   </object>
                                   <packing>
                                     <property name="expand">False</property>

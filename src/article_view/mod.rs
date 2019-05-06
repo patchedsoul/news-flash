@@ -23,7 +23,7 @@ use gtk::{
     WidgetExtManual,
 };
 use pango::FontDescription;
-use log::error;
+use log::{warn, error};
 use news_flash::models::FatArticle;
 use std::cell::RefCell;
 use std::rc::Rc;
@@ -44,6 +44,7 @@ pub struct ArticleView {
     top_overlay: gtk::Overlay,
     view_html_button: gtk::Button,
     visible_article: GtkHandle<Option<FatArticle>>,
+    visible_feed_name: GtkHandle<Option<String>>,
     internal_state: GtkHandle<InternalState>,
     load_changed_signal: GtkHandle<Option<u64>>,
     decide_policy_signal: GtkHandle<Option<u64>>,
@@ -80,6 +81,7 @@ impl ArticleView {
         progress_overlay.add_overlay(&progress_overlay_label.widget());
 
         let visible_article: GtkHandle<Option<FatArticle>> = gtk_handle!(None);
+        let visible_feed_name: GtkHandle<Option<String>> = gtk_handle!(None);
         let visible_article_crash_view = visible_article.clone();
         let view_html_button = builder.get::<Button>("view_html_button");
         view_html_button.connect_clicked(move |_button| {
@@ -112,6 +114,7 @@ impl ArticleView {
             top_overlay: progress_overlay,
             view_html_button,
             visible_article,
+            visible_feed_name,
             internal_state: gtk_handle!(internal_state),
             load_changed_signal: gtk_handle!(None),
             decide_policy_signal: gtk_handle!(None),
@@ -145,9 +148,31 @@ impl ArticleView {
 
     pub fn show_article(&mut self, article: FatArticle, feed_name: String) -> Result<(), Error> {
         let webview = self.switch_view()?;
-        let html = self.build_article(&article, feed_name)?;
+        let html = self.build_article(&article, &feed_name)?;
         webview.load_html(&html, None);
         *self.visible_article.borrow_mut() = Some(article);
+        *self.visible_feed_name.borrow_mut() = Some(feed_name);
+        Ok(())
+    }
+
+    pub fn redraw_article(&mut self) -> Result<(), Error> {
+        let mut html = String::new();
+        let mut success = false;
+
+        if let Some(article) = &*self.visible_article.borrow() {
+            if let Some(feed_name) = &*self.visible_feed_name.borrow() {
+                html = self.build_article(&article, feed_name)?;
+                success = true;
+            }
+        }
+
+        if !success {
+            warn!("Can't redraw article view. No article is on display.");
+            return Ok(())
+        }
+
+        let webview = self.switch_view()?;
+        webview.load_html(&html, None);
         Ok(())
     }
 
@@ -674,7 +699,7 @@ impl ArticleView {
         Ok(webview)
     }
 
-    fn build_article(&self, article: &FatArticle, feed_name: String) -> Result<String, Error> {
+    fn build_article(&self, article: &FatArticle, feed_name: &str) -> Result<String, Error> {
         let template_data = Resources::get("article_view/article.html").expect(GTK_RESOURCE_FILE_ERROR);
         let template_str = str::from_utf8(template_data.as_ref()).expect(GTK_RESOURCE_FILE_ERROR);
         let mut template_string = template_str.to_owned();
@@ -764,7 +789,7 @@ impl ArticleView {
         }
 
         // $FEED
-        template_string = template_string.replacen("$FEED", &feed_name, 1);
+        template_string = template_string.replacen("$FEED", feed_name, 1);
 
         // $THEME
         template_string = template_string.replacen("$THEME", self.settings.borrow().get_article_view_theme().to_str(), 1);
