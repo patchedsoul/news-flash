@@ -1,0 +1,105 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<interface>
+  <object class="GtkShortcutsWindow" id="shortcuts-window">
+    <property name="modal">1</property>
+    <child>
+      <object class="GtkShortcutsSection">
+        <property name="section-name">newsflash</property>
+        <property name="title" translatable="yes">NewsFlash Shortcuts</property>
+        <child>
+          <object class="GtkShortcutsGroup">
+            <property name="title" translatable="yes">Global</property>
+            <child>
+              <object class="GtkShortcutsShortcut">
+                <property name="title" translatable="yes">Refresh</property>
+                <property name="accelerator">&lt;ctrl&gt;T</property>
+              </object>
+            </child>
+            <child>
+              <object class="GtkShortcutsShortcut">
+                <property name="title" translatable="yes">Search</property>
+                <property name="accelerator">&lt;ctrl&gt;T</property>
+              </object>
+            </child>
+            <child>
+              <object class="GtkShortcutsShortcut">
+                <property name="title" translatable="yes">Quit</property>
+                <property name="accelerator">&lt;ctrl&gt;T</property>
+              </object>
+            </child>
+          </object>
+        </child>
+        <child>
+          <object class="GtkShortcutsGroup">
+            <property name="title" translatable="yes">Article List</property>
+            <child>
+              <object class="GtkShortcutsShortcut">
+                <property name="title" translatable="yes">Next/Previous Article</property>
+                <property name="accelerator">&lt;ctrl&gt;T</property>
+              </object>
+            </child>
+            <child>
+              <object class="GtkShortcutsShortcut">
+                <property name="title" translatable="yes">Toggle Read</property>
+                <property name="accelerator">&lt;ctrl&gt;T</property>
+              </object>
+            </child>
+            <child>
+              <object class="GtkShortcutsShortcut">
+                <property name="title" translatable="yes">Toggle Starred</property>
+                <property name="accelerator">&lt;ctrl&gt;T</property>
+              </object>
+            </child>
+			<child>
+              <object class="GtkShortcutsShortcut">
+                <property name="title" translatable="yes">Open In Browser</property>
+                <property name="accelerator">&lt;ctrl&gt;T</property>
+              </object>
+            </child>
+          </object>
+        </child>
+        <child>
+          <object class="GtkShortcutsGroup">
+            <property name="title" translatable="yes">Article View</property>
+            <child>
+              <object class="GtkShortcutsShortcut">
+                <property name="title" translatable="yes">Scroll Up</property>
+                <property name="accelerator">&lt;ctrl&gt;T</property>
+              </object>
+            </child>
+            <child>
+              <object class="GtkShortcutsShortcut">
+                <property name="title" translatable="yes">Scroll Down</property>
+                <property name="accelerator">&lt;ctrl&gt;T</property>
+              </object>
+            </child>
+          </object>
+        </child>
+        <child>
+          <object class="GtkShortcutsGroup">
+            <property name="title" translatable="yes">Feed List</property>
+            <child>
+              <object class="GtkShortcutsShortcut">
+                <property name="title" translatable="yes">Next / Previous Item</property>
+		<property name="accelerator">&lt;ctrl&gt;T</property>
+              </object>
+            </child>
+            <child>
+              <object class="GtkShortcutsShortcut">
+                <property name="title" translatable="yes">Expand / Collapse Category</property>
+		<property name="accelerator">&lt;ctrl&gt;T</property>
+              </object>
+            </child>
+            <child>
+              <object class="GtkShortcutsShortcut">
+		<property name="title" translatable="yes">Mark Item Read</property>
+                <property name="accelerator">&lt;ctrl&gt;T</property>
+              </object>
+            </child>
+          </object>
+        </child>
+      </object>
+    </child>
+  </object>
+</interface>
+

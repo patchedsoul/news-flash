@@ -11,9 +11,12 @@ pub struct BuilderHelper {
 impl BuilderHelper {
     pub fn new(ui_file: &str) -> Self {
         let ui_data = Resources::get(&format!("ui/{}.ui", ui_file)).expect(GTK_RESOURCE_FILE_ERROR);
-        let ui_string = str::from_utf8(ui_data.as_ref()).expect(GTK_RESOURCE_FILE_ERROR);
-        let builder = Builder::new_from_string(ui_string);
+        let ui_xml = str::from_utf8(ui_data.as_ref()).expect(GTK_RESOURCE_FILE_ERROR);
+        Self::new_from_xml(ui_xml)
+    }
 
+    pub fn new_from_xml(ui_xml: &str) -> Self {
+        let builder = Builder::new_from_string(ui_xml);
         BuilderHelper { builder }
     }
 

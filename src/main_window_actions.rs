@@ -8,9 +8,9 @@ use crate::main_window_state::MainWindowState;
 use crate::sidebar::models::SidebarSelection;
 use crate::util::GtkHandle;
 use crate::about_dialog::NewsFlashAbout;
-use crate::settings::{Settings, SettingsDialog};
+use crate::settings::{Settings, SettingsDialog, NewsFlashShortcutWindow};
 use gio::{ActionExt, ActionMapExt, SimpleAction};
-use gtk::{self, ApplicationWindow, GtkWindowExt, GtkWindowExtManual, HeaderBar, Stack, StackExt, StackTransitionType};
+use gtk::{self, ApplicationWindow, GtkWindowExt, GtkWindowExtManual, HeaderBar, Stack, StackExt, StackTransitionType, WidgetExt};
 use log::error;
 use news_flash::models::{ArticleID, LoginData, PluginID};
 use news_flash::{NewsFlash, NewsFlashError};
@@ -226,6 +226,7 @@ impl MainWindowActions {
                     }
                 }
                 Err(error) => {
+                    content_header.borrow().finish_sync();
                     let _dialog = ErrorDialog::new(&error, &parent);
                 }
             }
@@ -468,6 +469,19 @@ impl MainWindowActions {
         let settings_action = SimpleAction::new("settings", None);
         settings_action.connect_activate(move |_action, _data| {
             let dialog = SettingsDialog::new(&main_window, &settings).widget();
+            dialog.present();
+        });
+        settings_action.set_enabled(true);
+        window.add_action(&settings_action);
+    }
+
+    pub fn setup_shortcut_window_action(window: &ApplicationWindow, settings: &GtkHandle<Settings>) {
+        let main_window = window.clone();
+        let settings = settings.clone();
+        let settings_action = SimpleAction::new("shortcuts", None);
+        settings_action.connect_activate(move |_action, _data| {
+            let dialog = NewsFlashShortcutWindow::new(&main_window, &settings).widget();
+            dialog.show_all();
             dialog.present();
         });
         settings_action.set_enabled(true);
