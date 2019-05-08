@@ -494,7 +494,6 @@ impl MainWindowActions {
         let news_flash = news_flash.clone();
         let export_action = SimpleAction::new("export", None);
         export_action.connect_activate(move |_action, _data| {
-            let news_flash = news_flash.clone();
             let filter = FileFilter::new();
             filter.add_mime_type("OPML");
             let dialog = FileChooserDialog::with_buttons(
@@ -508,13 +507,19 @@ impl MainWindowActions {
             );
             dialog.set_filter(&filter);
             dialog.set_filename("NewsFlash.OPML");
-            dialog.connect_file_activated(move |_dialog| {
-                if let Some(news_flash) = news_flash.borrow().as_ref() {
-                    let opml = news_flash.export_opml().unwrap();
-                    println!("opml: {}", opml)
-                }
-            });
-            dialog.run();
+
+            match ResponseType::from(dialog.run()) {
+                ResponseType::Ok => {
+                    if let Some(news_flash) = news_flash.borrow().as_ref() {
+                        let opml = news_flash.export_opml().unwrap();
+                        println!("opml: {}", opml);
+                    }
+                },
+                _ => {},
+            }
+
+            dialog.emit_close();
+            
         });
         export_action.set_enabled(true);
         window.add_action(&export_action);
