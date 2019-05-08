@@ -6,7 +6,7 @@ use crate::login_screen::{PasswordLogin, WebLogin};
 use crate::main_window::DATA_DIR;
 use crate::main_window_state::MainWindowState;
 use crate::sidebar::models::SidebarSelection;
-use crate::util::GtkHandle;
+use crate::util::{GtkHandle, FileUtil};
 use crate::about_dialog::NewsFlashAbout;
 use crate::settings::{Settings, SettingsDialog, NewsFlashShortcutWindow};
 use gio::{ActionExt, ActionMapExt, SimpleAction};
@@ -494,8 +494,6 @@ impl MainWindowActions {
         let news_flash = news_flash.clone();
         let export_action = SimpleAction::new("export", None);
         export_action.connect_activate(move |_action, _data| {
-            let filter = FileFilter::new();
-            filter.add_mime_type("OPML");
             let dialog = FileChooserDialog::with_buttons(
                 "Export OPML",
                 Some(&main_window),
@@ -505,14 +503,25 @@ impl MainWindowActions {
                     ("Save", ResponseType::Ok)
                 ]
             );
+
+            let filter = FileFilter::new();
+            filter.add_pattern("*.OPML");
+            filter.add_pattern("*.opml");
+            filter.add_mime_type("application/xml");
+            filter.add_mime_type("text/xml");
+            filter.add_mime_type("text/x-opml");
+            filter.set_name("OPML");
+            dialog.add_filter(&filter);
             dialog.set_filter(&filter);
-            dialog.set_filename("NewsFlash.OPML");
+            dialog.set_current_name("NewsFlash.OPML");
 
             match ResponseType::from(dialog.run()) {
                 ResponseType::Ok => {
                     if let Some(news_flash) = news_flash.borrow().as_ref() {
                         let opml = news_flash.export_opml().unwrap();
-                        println!("opml: {}", opml);
+                        if let Some(filename) = dialog.get_filename() {
+                            FileUtil::write_text_file(&filename, &opml).unwrap();
+                        }
                     }
                 },
                 _ => {},

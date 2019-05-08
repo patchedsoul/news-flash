@@ -16,4 +16,10 @@ impl FileUtil {
 
         Ok(temp_file)
     }
+
+    pub fn write_text_file(file_path: &PathBuf, content: &str) -> Result<(), Error> {
+        let mut file = File::create(file_path)?;
+        file.write_all(content.as_bytes())?;
+        Ok(())
+    }
 }
