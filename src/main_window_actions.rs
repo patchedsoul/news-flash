@@ -10,7 +10,7 @@ use crate::util::GtkHandle;
 use crate::about_dialog::NewsFlashAbout;
 use crate::settings::{Settings, SettingsDialog, NewsFlashShortcutWindow};
 use gio::{ActionExt, ActionMapExt, SimpleAction};
-use gtk::{self, ApplicationWindow, GtkWindowExt, GtkWindowExtManual, HeaderBar, Stack, StackExt, StackTransitionType, WidgetExt};
+use gtk::{self, ApplicationWindow, GtkWindowExt, GtkWindowExtManual, HeaderBar, Stack, StackExt, StackTransitionType};
 use log::error;
 use news_flash::models::{ArticleID, LoginData, PluginID};
 use news_flash::{NewsFlash, NewsFlashError};
@@ -481,7 +481,6 @@ impl MainWindowActions {
         let settings_action = SimpleAction::new("shortcuts", None);
         settings_action.connect_activate(move |_action, _data| {
             let dialog = NewsFlashShortcutWindow::new(&main_window, &settings).widget();
-            dialog.show_all();
             dialog.present();
         });
         settings_action.set_enabled(true);

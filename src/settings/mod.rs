@@ -96,6 +96,16 @@ impl Settings {
         Ok(())
     }
 
+    pub fn get_keybind_shortcut(&self) -> Option<String> {
+        self.keybindings.general.shortcut.clone()
+    }
+
+    pub fn set_keybind_shortcut(&mut self, key: Option<String>) -> Result<(), Error> {
+        self.keybindings.general.shortcut = key;
+        self.write()?;
+        Ok(())
+    }
+
     pub fn get_keybind_refresh(&self) -> Option<String> {
         self.keybindings.general.refresh.clone()
     }
