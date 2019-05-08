@@ -10,7 +10,8 @@ use crate::util::GtkHandle;
 use crate::about_dialog::NewsFlashAbout;
 use crate::settings::{Settings, SettingsDialog, NewsFlashShortcutWindow};
 use gio::{ActionExt, ActionMapExt, SimpleAction};
-use gtk::{self, ApplicationWindow, GtkWindowExt, GtkWindowExtManual, HeaderBar, Stack, StackExt, StackTransitionType};
+use gtk::{self, ApplicationWindow, GtkWindowExt, GtkWindowExtManual, HeaderBar, Stack, StackExt, StackTransitionType,
+    FileChooserDialog, FileChooserAction, FileFilter, FileChooserExt, DialogExt, ResponseType};
 use log::error;
 use news_flash::models::{ArticleID, LoginData, PluginID};
 use news_flash::{NewsFlash, NewsFlashError};
@@ -485,5 +486,37 @@ impl MainWindowActions {
         });
         settings_action.set_enabled(true);
         window.add_action(&settings_action);
+    }
+
+
+    pub fn setup_export_action(window: &ApplicationWindow, news_flash: &GtkHandle<Option<NewsFlash>>) {
+        let main_window = window.clone();
+        let news_flash = news_flash.clone();
+        let export_action = SimpleAction::new("export", None);
+        export_action.connect_activate(move |_action, _data| {
+            let news_flash = news_flash.clone();
+            let filter = FileFilter::new();
+            filter.add_mime_type("OPML");
+            let dialog = FileChooserDialog::with_buttons(
+                "Export OPML",
+                Some(&main_window),
+                FileChooserAction::Save,
+                &vec![
+                    ("Cancel", ResponseType::Cancel),
+                    ("Save", ResponseType::Ok)
+                ]
+            );
+            dialog.set_filter(&filter);
+            dialog.set_filename("NewsFlash.OPML");
+            dialog.connect_file_activated(move |_dialog| {
+                if let Some(news_flash) = news_flash.borrow().as_ref() {
+                    let opml = news_flash.export_opml().unwrap();
+                    println!("opml: {}", opml)
+                }
+            });
+            dialog.run();
+        });
+        export_action.set_enabled(true);
+        window.add_action(&export_action);
     }
 }
