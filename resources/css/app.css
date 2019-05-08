@@ -11,45 +11,45 @@
 /*   sidebar   */
 /***************/
 
-.sidebar {
+.newsflash-sidebar {
 	background: @sidebar-bg;
 }
 
-.sidebar label:not(.item-count) {
+.newsflash-sidebar label:not(.item-count) {
 	color: @sidebar-label;
 	font-weight: bold;
 	text-shadow: none;
 }
 
 .sidebar-paned separator,
-.sidebar separator {
+.newsflash-sidebar separator {
 	background: shade(@sidebar-bg, 0.82);
 	border: none;
 }
 
-.sidebar .symbolic {
+.newsflash-sidebar .symbolic {
 	color: @sidebar-label;
 }
 
-.sidebar .highlight,
-.sidebar row:hover {
+.newsflash-sidebar .highlight,
+.newsflash-sidebar row:hover {
 	background-color: @sidebar-hightlight;
 }
 
-.sidebar row {
+.newsflash-sidebar row {
 	padding: 0;
 }
 
-.sidebar .selected,
-.sidebar row:selected {
+.newsflash-sidebar .selected,
+.newsflash-sidebar row:selected {
 	background: @sidebar-selected;
 }
 
-.sidebar .backdrop {
+.newsflash-sidebar .backdrop {
 	background-color: @sidebar-backdrop;
 }
 
-.sidebar .item-count {
+.newsflash-sidebar .item-count {
 	background-color: @sidebar-label;
 	color: black;
 	font-weight: bold;
@@ -59,25 +59,25 @@
 	padding: 2px 5px 1px;
 }
 
-.sidebar .drag-icon {
+.newsflash-sidebar .drag-icon {
 	background: @sidebar-backdrop;
 	border: 1px solid white;
 }
 
-.sidebar .drag-idle {
+.newsflash-sidebar .drag-idle {
 	border-top: 1px solid transparent;
 	border-bottom: 1px solid transparent;
 }
 
-.sidebar .drag-above {
+.newsflash-sidebar .drag-above {
 	border-bottom: 1px solid white;
 }
 
-.sidebar .drag-below {
+.newsflash-sidebar .drag-below {
 	border-top: 1px solid white;
 }
 
-.sidebar .activatable {
+.newsflash-sidebar .activatable {
 	box-shadow: None;
 }
 
@@ -95,21 +95,21 @@
 /* sidebar footer */
 /******************/
 
-.sidebar .footer {
+.newsflash-sidebar .footer {
 	background: @sidebar-footer;
 }
 
-.sidebar .footer button:hover,
-.sidebar .footer-popover {
+.newsflash-sidebar .footer button:hover,
+.newsflash-sidebar .footer-popover {
 	background: @sidebar-hightlight;
 }
-.sidebar .footer button {
+.newsflash-sidebar .footer button {
 	border: 0;
 	border-radius:0;
 	-gtk-icon-shadow: none;
 	box-shadow: none;
 }
-.sidebar .footer button:disabled {
+.newsflash-sidebar .footer button:disabled {
 	color: @sidebar-label-disabled;
 }
 

@@ -451,7 +451,7 @@
       </packing>
     </child>
     <style>
-      <class name="sidebar"/>
+      <class name="newsflash-sidebar"/>
     </style>
   </object>
 </interface>
