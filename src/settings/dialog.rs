@@ -1,6 +1,7 @@
 use crate::settings::Settings;
 use crate::util::{BuilderHelper, GtkHandle};
 use super::theme_chooser::ThemeChooser;
+use super::keybinding_editor::KeybindingEditor;
 use gtk::{Dialog, DialogExt, Window, GtkWindowExt, GtkWindowExtManual, Inhibit, FontButton, FontButtonExt, FontChooserExt,
     Label, LabelExt, ListBox, ListBoxExt, Stack, StackExt, Switch, SwitchExt, WidgetExt};
 use glib::{object::IsA};
@@ -153,48 +154,46 @@ impl SettingsDialog {
     fn setup_keybindings_section(
         builder: &BuilderHelper,
         settings: &GtkHandle<Settings>,
-        _dialog: &Dialog
+        dialog: &Dialog
     ) {
-        Self::setup_keybinding_row(builder, "next_article_label", settings.borrow().get_keybind_article_list_next());
-        Self::setup_keybinding_row(builder, "previous_article_label", settings.borrow().get_keybind_article_list_prev());
-        Self::setup_keybinding_row(builder, "toggle_read_label", settings.borrow().get_keybind_article_list_read());
-        Self::setup_keybinding_row(builder, "toggle_marked_label", settings.borrow().get_keybind_article_list_mark());
-        Self::setup_keybinding_row(builder, "open_browser_label", settings.borrow().get_keybind_article_list_open());
+        let article_keys_list = builder.get::<ListBox>("article_keys_list");
+        Self::setup_keybinding_row(builder, &article_keys_list, dialog, settings, "next_article", settings.borrow().get_keybind_article_list_next());
+        Self::setup_keybinding_row(builder, &article_keys_list, dialog, settings, "previous_article", settings.borrow().get_keybind_article_list_prev());
+        Self::setup_keybinding_row(builder, &article_keys_list, dialog, settings, "toggle_read", settings.borrow().get_keybind_article_list_read());
+        Self::setup_keybinding_row(builder, &article_keys_list, dialog, settings, "toggle_marked", settings.borrow().get_keybind_article_list_mark());
+        Self::setup_keybinding_row(builder, &article_keys_list, dialog, settings, "open_browser", settings.borrow().get_keybind_article_list_open());
         
-        Self::setup_keybinding_row(builder, "next_item_label", settings.borrow().get_keybind_feed_list_next());
-        Self::setup_keybinding_row(builder, "previous_item_label", settings.borrow().get_keybind_feed_list_prev());
-        Self::setup_keybinding_row(builder, "expand_category_label", settings.borrow().get_keybind_feed_list_expand());
-        Self::setup_keybinding_row(builder, "collapse_category_label", settings.borrow().get_keybind_feed_list_collapse());
-        Self::setup_keybinding_row(builder, "feed_read_label", settings.borrow().get_keybind_feed_list_read());
+        let feed_keys_list = builder.get::<ListBox>("feed_keys_list");
+        Self::setup_keybinding_row(builder, &feed_keys_list, dialog, settings, "next_item", settings.borrow().get_keybind_feed_list_next());
+        Self::setup_keybinding_row(builder, &feed_keys_list, dialog, settings, "previous_item", settings.borrow().get_keybind_feed_list_prev());
+        Self::setup_keybinding_row(builder, &feed_keys_list, dialog, settings, "expand_category", settings.borrow().get_keybind_feed_list_expand());
+        Self::setup_keybinding_row(builder, &feed_keys_list, dialog, settings, "collapse_category", settings.borrow().get_keybind_feed_list_collapse());
+        Self::setup_keybinding_row(builder, &feed_keys_list, dialog, settings, "feed_read", settings.borrow().get_keybind_feed_list_read());
         
-        Self::setup_keybinding_row(builder, "shortcuts_label", settings.borrow().get_keybind_shortcut());
-        Self::setup_keybinding_row(builder, "refresh_label", settings.borrow().get_keybind_refresh());
-        Self::setup_keybinding_row(builder, "search_label", settings.borrow().get_keybind_search());
-        Self::setup_keybinding_row(builder, "quit_label", settings.borrow().get_keybind_quit());
+        let general_keys_list = builder.get::<ListBox>("general_keys_list");
+        Self::setup_keybinding_row(builder, &general_keys_list, dialog, settings, "shortcuts", settings.borrow().get_keybind_shortcut());
+        Self::setup_keybinding_row(builder, &general_keys_list, dialog, settings, "refresh", settings.borrow().get_keybind_refresh());
+        Self::setup_keybinding_row(builder, &general_keys_list, dialog, settings, "search", settings.borrow().get_keybind_search());
+        Self::setup_keybinding_row(builder, &general_keys_list, dialog, settings, "quit", settings.borrow().get_keybind_quit());
 
-        Self::setup_keybinding_row(builder, "scroll_up_label", settings.borrow().get_keybind_article_view_up());
-        Self::setup_keybinding_row(builder, "scroll_down_label", settings.borrow().get_keybind_article_view_down());
+        let article_view_keys_list = builder.get::<ListBox>("article_view_keys_list");
+        Self::setup_keybinding_row(builder, &article_view_keys_list, dialog, settings, "scroll_up", settings.borrow().get_keybind_article_view_up());
+        Self::setup_keybinding_row(builder, &article_view_keys_list, dialog, settings, "scroll_down", settings.borrow().get_keybind_article_view_down());
     }
 
     fn setup_keybinding_row(
         builder: &BuilderHelper,
-        label_id: &str,
+        list: &ListBox,
+        dialog: &Dialog,
+        settigns: &GtkHandle<Settings>,
+        id: &str,
         keybinding: Option<String>,
     ) {
-        let label = builder.get::<Label>(label_id);
+        let label = builder.get::<Label>(&format!("{}_label", id));
         let label_text = match keybinding {
             Some(keybinding) => {
                 label.set_sensitive(true);
-                let (keyval, modifier) = gtk::accelerator_parse(&keybinding);
-                let keyval = Self::parse_keyval(keyval);
-                let modifier = Self::parse_modifiers(modifier);
-                match modifier {
-                    Some(mut modifier) => {
-                        modifier.push_str(&keyval);
-                        modifier
-                    },
-                    None => keyval,
-                }
+                Self::parse_shortcut(&keybinding)
             },
             None => {
                 label.set_sensitive(false);
@@ -202,6 +201,26 @@ impl SettingsDialog {
             },
         };
         label.set_label(&label_text);
+
+        let settings = settigns.clone();
+        let dialog = dialog.clone();
+        list.connect_row_activated(move |list, row| {
+            let editor = KeybindingEditor::new(&dialog, &settings);
+            editor.widget().present();
+        });
+    }
+
+    fn parse_shortcut(keybinding: &str) -> String {
+        let (keyval, modifier) = gtk::accelerator_parse(&keybinding);
+        let keyval = Self::parse_keyval(keyval);
+        let modifier = Self::parse_modifiers(modifier);
+        match modifier {
+            Some(mut modifier) => {
+                modifier.push_str(&keyval);
+                modifier
+            },
+            None => keyval,
+        }
     }
 
     fn parse_keyval(keyval: u32) -> String {

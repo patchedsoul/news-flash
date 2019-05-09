@@ -3,6 +3,7 @@ mod article_view;
 mod dialog;
 mod theme_chooser;
 mod keybindings;
+mod keybinding_editor;
 
 pub use dialog::SettingsDialog;
 pub use keybindings::NewsFlashShortcutWindow;

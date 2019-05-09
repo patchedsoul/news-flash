@@ -490,7 +490,7 @@
                             <property name="can_focus">False</property>
                             <property name="label_xalign">0</property>
                             <child>
-                              <object class="GtkListBox">
+                              <object class="GtkListBox" id="article_keys_list">
                                 <property name="visible">True</property>
                                 <property name="can_focus">False</property>
                                 <property name="selection_mode">none</property>
@@ -798,7 +798,7 @@
                             <property name="can_focus">False</property>
                             <property name="label_xalign">0</property>
                             <child>
-                              <object class="GtkListBox">
+                              <object class="GtkListBox" id="feed_keys_list">
                                 <property name="visible">True</property>
                                 <property name="can_focus">False</property>
                                 <property name="selection_mode">none</property>
@@ -1106,7 +1106,7 @@
                             <property name="can_focus">False</property>
                             <property name="label_xalign">0</property>
                             <child>
-                              <object class="GtkListBox">
+                              <object class="GtkListBox" id="general_keys_list">
                                 <property name="visible">True</property>
                                 <property name="can_focus">False</property>
                                 <property name="selection_mode">none</property>
@@ -1355,7 +1355,7 @@
                             <property name="can_focus">False</property>
                             <property name="label_xalign">0</property>
                             <child>
-                              <object class="GtkListBox">
+                              <object class="GtkListBox" id="article_view_keys_list">
                                 <property name="visible">True</property>
                                 <property name="can_focus">False</property>
                                 <property name="selection_mode">none</property>
