@@ -64,7 +64,7 @@
           </packing>
         </child>
         <child>
-          <object class="GtkStack">
+          <object class="GtkStack" id="stack">
             <property name="visible">True</property>
             <property name="can_focus">False</property>
             <property name="vexpand">True</property>
@@ -76,26 +76,31 @@
                 <property name="can_focus">False</property>
                 <property name="orientation">vertical</property>
                 <child>
-                  <object class="GtkLabel" id="instuction_label">
+                  <object class="GtkLabel">
                     <property name="visible">True</property>
                     <property name="can_focus">False</property>
-                    <property name="label" translatable="yes">Enter new keybinding to change {}</property>
+                    <property name="margin_top">20</property>
+                    <property name="margin_bottom">20</property>
+                    <property name="label" translatable="yes">Enter new keybinding to change</property>
                     <style>
-                      <class name="h2"/>
+                      <class name="h3"/>
                     </style>
                   </object>
                   <packing>
-                    <property name="expand">True</property>
+                    <property name="expand">False</property>
                     <property name="fill">True</property>
                     <property name="position">0</property>
                   </packing>
                 </child>
                 <child>
-                  <object class="GtkLabel">
+                  <object class="GtkLabel" id="instuction_label">
                     <property name="visible">True</property>
                     <property name="can_focus">False</property>
-                    <property name="opacity">0.59999999999999998</property>
-                    <property name="label" translatable="yes">Press ESC to cancel or Backspace to reset the keybinding.</property>
+                    <property name="label" translatable="yes">STUFF</property>
+                    <property name="yalign">0.30000001192092896</property>
+                    <style>
+                      <class name="h1"/>
+                    </style>
                   </object>
                   <packing>
                     <property name="expand">True</property>
@@ -103,9 +108,24 @@
                     <property name="position">1</property>
                   </packing>
                 </child>
+                <child>
+                  <object class="GtkLabel">
+                    <property name="visible">True</property>
+                    <property name="can_focus">False</property>
+                    <property name="opacity">0.59999999999999998</property>
+                    <property name="margin_top">10</property>
+                    <property name="margin_bottom">20</property>
+                    <property name="label" translatable="yes">Press ESC to cancel or Backspace to reset the keybinding.</property>
+                  </object>
+                  <packing>
+                    <property name="expand">False</property>
+                    <property name="fill">True</property>
+                    <property name="position">2</property>
+                  </packing>
+                </child>
               </object>
               <packing>
-                <property name="name">page0</property>
+                <property name="name">info</property>
                 <property name="title" translatable="yes">page0</property>
               </packing>
             </child>
@@ -114,9 +134,12 @@
                 <property name="visible">True</property>
                 <property name="can_focus">False</property>
                 <property name="label" translatable="yes">SHORTCUT</property>
+                <style>
+                  <class name="h1"/>
+                </style>
               </object>
               <packing>
-                <property name="name">page1</property>
+                <property name="name">confirm</property>
                 <property name="title" translatable="yes">page1</property>
                 <property name="position">1</property>
               </packing>

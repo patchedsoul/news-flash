@@ -1,17 +1,19 @@
 use crate::settings::Settings;
-use crate::util::{BuilderHelper, GtkHandle};
+use crate::util::{BuilderHelper, GtkHandle, GTK_BUILDER_ERROR};
 use super::theme_chooser::ThemeChooser;
-use super::keybinding_editor::KeybindingEditor;
+use super::keybindings::Keybindings;
+use super::keybinding_editor::{KeybindingEditor, KeybindState};
 use gtk::{Dialog, DialogExt, Window, GtkWindowExt, GtkWindowExtManual, Inhibit, FontButton, FontButtonExt, FontChooserExt,
     Label, LabelExt, ListBox, ListBoxExt, Stack, StackExt, Switch, SwitchExt, WidgetExt};
 use glib::{object::IsA};
-use gdk::{ModifierType, enums::key};
 use gio::{ActionExt, ActionMapExt};
 use news_flash::models::ArticleOrder;
 
 
 pub struct SettingsDialog {
     widget: Dialog,
+    settings: GtkHandle<Settings>,
+    builder: BuilderHelper,
 }
 
 impl SettingsDialog {
@@ -21,35 +23,34 @@ impl SettingsDialog {
         let dialog = builder.get::<Dialog>("dialog");
         dialog.set_transient_for(window);
 
-        Self::setup_ui_section(&builder, window, settings, &dialog);
-        Self::setup_keybindings_section(&builder, settings, &dialog);
-
-        SettingsDialog {
+        let settings_dialog = SettingsDialog {
             widget: dialog,
-        }
+            settings: settings.clone(),
+            builder,
+        };
+
+        settings_dialog.setup_ui_section(window);
+        settings_dialog.setup_keybindings_section();
+
+        settings_dialog
     }
 
     pub fn widget(&self) -> Dialog {
         self.widget.clone()
     }
 
-    fn setup_ui_section<W: IsA<Window> + GtkWindowExt + ActionMapExt>(
-        builder: &BuilderHelper,
-        window: &W,
-        settings: &GtkHandle<Settings>,
-        dialog: &Dialog
-    ) {
-        let article_list_order_stack = builder.get::<Stack>("article_list_order_stack");
-        Self::set_article_list_order_stack(settings, &article_list_order_stack);
+    fn setup_ui_section<W: IsA<Window> + GtkWindowExt + ActionMapExt>(&self, window: &W) {
+        let article_list_order_stack = self.builder.get::<Stack>("article_list_order_stack");
+        Self::set_article_list_order_stack(&self.settings, &article_list_order_stack);
         
-        let settings_1 = settings.clone();
-        let settings_2 = settings.clone();
-        let settings_3 = settings.clone();
-        let settings_4 = settings.clone();
-        let settings_5 = settings.clone();
+        let settings_1 = self.settings.clone();
+        let settings_2 = self.settings.clone();
+        let settings_3 = self.settings.clone();
+        let settings_4 = self.settings.clone();
+        let settings_5 = self.settings.clone();
 
         let main_window = window.clone();
-        let article_list_settings = builder.get::<ListBox>("article_list_settings");
+        let article_list_settings = self.builder.get::<ListBox>("article_list_settings");
         article_list_settings.connect_row_activated(move |_list, row| {
             if let Some(row_name) = row.get_name() {
                 if "order" == row_name {
@@ -63,11 +64,11 @@ impl SettingsDialog {
             }
         });
 
-        let dialog_window = dialog.clone();
+        let dialog_window = self.widget.clone();
         let main_window = window.clone();
-        let article_view_settings = builder.get::<ListBox>("article_view_settings");
-        let theme_label = builder.get::<Label>("theme_label");
-        theme_label.set_label(settings.borrow().get_article_view_theme().name());
+        let article_view_settings = self.builder.get::<ListBox>("article_view_settings");
+        let theme_label = self.builder.get::<Label>("theme_label");
+        theme_label.set_label(self.settings.borrow().get_article_view_theme().name());
         article_view_settings.connect_row_activated(move |_list, row| {
             if let Some(row_name) = row.get_name() {
                 if "theme" == row_name {
@@ -87,8 +88,8 @@ impl SettingsDialog {
         });
 
         let main_window = window.clone();
-        let allow_selection_switch = builder.get::<Switch>("allow_selection_switch");
-        allow_selection_switch.set_state(settings.borrow().get_article_view_allow_select());
+        let allow_selection_switch = self.builder.get::<Switch>("allow_selection_switch");
+        allow_selection_switch.set_state(self.settings.borrow().get_article_view_allow_select());
         allow_selection_switch.connect_state_set(move |_switch, is_set| {
             settings_3.borrow_mut().set_article_view_allow_select(is_set).unwrap();
             if let Some(action) = main_window.lookup_action("redraw-article") {
@@ -98,9 +99,9 @@ impl SettingsDialog {
         });
 
         let main_window = window.clone();
-        let font_label = builder.get::<Label>("font_label");
-        let font_button = builder.get::<FontButton>("font_button");
-        if let Some(font) = settings.borrow().get_article_view_font() {
+        let font_label = self.builder.get::<Label>("font_label");
+        let font_button = self.builder.get::<FontButton>("font_button");
+        if let Some(font) = self.settings.borrow().get_article_view_font() {
             font_button.set_font(&font);
         }
         font_button.connect_font_set(move |button| {
@@ -116,8 +117,8 @@ impl SettingsDialog {
 
 
         let main_window = window.clone();
-        let use_system_font_switch = builder.get::<Switch>("use_system_font_switch");
-        let have_custom_font = match settings.borrow().get_article_view_font() {
+        let use_system_font_switch = self.builder.get::<Switch>("use_system_font_switch");
+        let have_custom_font = match self.settings.borrow().get_article_view_font() {
             Some(_) => true,
             None => false,
         };
@@ -151,49 +152,44 @@ impl SettingsDialog {
         }
     }
 
-    fn setup_keybindings_section(
-        builder: &BuilderHelper,
-        settings: &GtkHandle<Settings>,
-        dialog: &Dialog
-    ) {
-        let article_keys_list = builder.get::<ListBox>("article_keys_list");
-        Self::setup_keybinding_row(builder, &article_keys_list, dialog, settings, "next_article", settings.borrow().get_keybind_article_list_next());
-        Self::setup_keybinding_row(builder, &article_keys_list, dialog, settings, "previous_article", settings.borrow().get_keybind_article_list_prev());
-        Self::setup_keybinding_row(builder, &article_keys_list, dialog, settings, "toggle_read", settings.borrow().get_keybind_article_list_read());
-        Self::setup_keybinding_row(builder, &article_keys_list, dialog, settings, "toggle_marked", settings.borrow().get_keybind_article_list_mark());
-        Self::setup_keybinding_row(builder, &article_keys_list, dialog, settings, "open_browser", settings.borrow().get_keybind_article_list_open());
+    fn setup_keybindings_section(&self) {
+        let article_keys_list = self.builder.get::<ListBox>("article_keys_list");
+        self.setup_keybinding_row(&article_keys_list, "next_article", self.settings.borrow().get_keybind_article_list_next());
+        self.setup_keybinding_row(&article_keys_list, "previous_article", self.settings.borrow().get_keybind_article_list_prev());
+        self.setup_keybinding_row(&article_keys_list, "toggle_read", self.settings.borrow().get_keybind_article_list_read());
+        self.setup_keybinding_row(&article_keys_list, "toggle_marked", self.settings.borrow().get_keybind_article_list_mark());
+        self.setup_keybinding_row(&article_keys_list, "open_browser", self.settings.borrow().get_keybind_article_list_open());
         
-        let feed_keys_list = builder.get::<ListBox>("feed_keys_list");
-        Self::setup_keybinding_row(builder, &feed_keys_list, dialog, settings, "next_item", settings.borrow().get_keybind_feed_list_next());
-        Self::setup_keybinding_row(builder, &feed_keys_list, dialog, settings, "previous_item", settings.borrow().get_keybind_feed_list_prev());
-        Self::setup_keybinding_row(builder, &feed_keys_list, dialog, settings, "expand_category", settings.borrow().get_keybind_feed_list_expand());
-        Self::setup_keybinding_row(builder, &feed_keys_list, dialog, settings, "collapse_category", settings.borrow().get_keybind_feed_list_collapse());
-        Self::setup_keybinding_row(builder, &feed_keys_list, dialog, settings, "feed_read", settings.borrow().get_keybind_feed_list_read());
+        let feed_keys_list = self.builder.get::<ListBox>("feed_keys_list");
+        self.setup_keybinding_row(&feed_keys_list, "next_item", self.settings.borrow().get_keybind_feed_list_next());
+        self.setup_keybinding_row(&feed_keys_list, "previous_item", self.settings.borrow().get_keybind_feed_list_prev());
+        self.setup_keybinding_row(&feed_keys_list, "expand_category", self.settings.borrow().get_keybind_feed_list_expand());
+        self.setup_keybinding_row(&feed_keys_list, "collapse_category", self.settings.borrow().get_keybind_feed_list_collapse());
+        self.setup_keybinding_row(&feed_keys_list, "feed_read", self.settings.borrow().get_keybind_feed_list_read());
         
-        let general_keys_list = builder.get::<ListBox>("general_keys_list");
-        Self::setup_keybinding_row(builder, &general_keys_list, dialog, settings, "shortcuts", settings.borrow().get_keybind_shortcut());
-        Self::setup_keybinding_row(builder, &general_keys_list, dialog, settings, "refresh", settings.borrow().get_keybind_refresh());
-        Self::setup_keybinding_row(builder, &general_keys_list, dialog, settings, "search", settings.borrow().get_keybind_search());
-        Self::setup_keybinding_row(builder, &general_keys_list, dialog, settings, "quit", settings.borrow().get_keybind_quit());
+        let general_keys_list = self.builder.get::<ListBox>("general_keys_list");
+        self.setup_keybinding_row(&general_keys_list, "shortcuts", self.settings.borrow().get_keybind_shortcut());
+        self.setup_keybinding_row(&general_keys_list, "refresh", self.settings.borrow().get_keybind_refresh());
+        self.setup_keybinding_row(&general_keys_list, "search", self.settings.borrow().get_keybind_search());
+        self.setup_keybinding_row(&general_keys_list, "quit", self.settings.borrow().get_keybind_quit());
 
-        let article_view_keys_list = builder.get::<ListBox>("article_view_keys_list");
-        Self::setup_keybinding_row(builder, &article_view_keys_list, dialog, settings, "scroll_up", settings.borrow().get_keybind_article_view_up());
-        Self::setup_keybinding_row(builder, &article_view_keys_list, dialog, settings, "scroll_down", settings.borrow().get_keybind_article_view_down());
+        let article_view_keys_list = self.builder.get::<ListBox>("article_view_keys_list");
+        self.setup_keybinding_row(&article_view_keys_list, "scroll_up", self.settings.borrow().get_keybind_article_view_up());
+        self.setup_keybinding_row(&article_view_keys_list, "scroll_down", self.settings.borrow().get_keybind_article_view_down());
     }
 
     fn setup_keybinding_row(
-        builder: &BuilderHelper,
+        &self,
         list: &ListBox,
-        dialog: &Dialog,
-        settigns: &GtkHandle<Settings>,
         id: &str,
         keybinding: Option<String>,
     ) {
-        let label = builder.get::<Label>(&format!("{}_label", id));
+        let label = self.builder.get::<Label>(&format!("{}_label", id));
         let label_text = match keybinding {
             Some(keybinding) => {
                 label.set_sensitive(true);
-                Self::parse_shortcut(&keybinding)
+                Keybindings::parse_shortcut_string(&keybinding)
+                    .expect("Failed parsing saved shortcut. This should never happen!")
             },
             None => {
                 label.set_sensitive(false);
@@ -202,115 +198,26 @@ impl SettingsDialog {
         };
         label.set_label(&label_text);
 
-        let settings = settigns.clone();
-        let dialog = dialog.clone();
+        let settings = self.settings.clone();
+        let dialog = self.widget.clone();
         let id = id.to_owned();
-        list.connect_row_activated(move |list, row| {
+        let info_label = self.builder.get::<Label>(&format!("{}_info_label", id));
+        let info_text = info_label.get_label().expect(GTK_BUILDER_ERROR);
+        list.connect_row_activated(move |_list, row| {
             if let Some(row_name) = row.get_name() {
                 if id == row_name {
-                    let editor = KeybindingEditor::new(&dialog, &settings);
+                    let settings = settings.clone();
+                    let editor = KeybindingEditor::new(&dialog, &info_text);
                     editor.widget().present();
+                    editor.widget().connect_close(move |_dialog| {
+                        match &*editor.keybinding.borrow() {
+                            KeybindState::Canceled | KeybindState::Illegal => {},
+                            KeybindState::Disabled => { settings.borrow_mut().set_keybind_quit(None).unwrap() /* FIXME */ },
+                            KeybindState::Enabled(keybind) => { settings.borrow_mut().set_keybind_quit(Some(keybind.clone())).unwrap() /* FIXME */ },
+                        }
+                    });
                 }
             }
         });
-    }
-
-    fn parse_shortcut(keybinding: &str) -> String {
-        let (keyval, modifier) = gtk::accelerator_parse(&keybinding);
-        let keyval = Self::parse_keyval(keyval);
-        let modifier = Self::parse_modifiers(modifier);
-        match modifier {
-            Some(mut modifier) => {
-                modifier.push_str(&keyval);
-                modifier
-            },
-            None => keyval,
-        }
-    }
-
-    fn parse_keyval(keyval: u32) -> String {
-        let keyval = gdk::keyval_to_upper(keyval);
-        match gdk::keyval_to_unicode(keyval) {
-            Some(keyval) => {
-                let mut buffer : [u8; 4] = [0; 4];
-                keyval.encode_utf8(&mut buffer).to_owned()
-            },
-            None => {
-                match keyval {
-                    key::Shift_L | key::Control_L | key::Alt_L | key::Meta_L | key::Super_L | key::Hyper_L |
-                    key::Shift_R | key::Control_R | key::Alt_R | key::Meta_R | key::Super_R | key::Hyper_R => Self::get_modifier_label(keyval),
-                    key::Left => "←".to_owned(),
-                    key::Right => "→".to_owned(),
-                    key::Down => "↓".to_owned(),
-                    key::Up => "↑".to_owned(),
-                    key::space => "␣".to_owned(),
-                    key::Return => "⏎".to_owned(),
-                    key::Page_Up => "⇑".to_owned(),
-                    key::Page_Down => "⇓".to_owned(),
-                    key::F1 => "F1".to_owned(),
-                    key::F2 => "F2".to_owned(),
-                    key::F3 => "F3".to_owned(),
-                    key::F4 => "F4".to_owned(),
-                    key::F5 => "F5".to_owned(),
-                    key::F6 => "F6".to_owned(),
-                    key::F7 => "F7".to_owned(),
-                    key::F8 => "F8".to_owned(),
-                    key::F9 => "F9".to_owned(),
-                    key::F10 => "F10".to_owned(),
-                    key::F11 => "F11".to_owned(),
-                    key::F12 => "F12".to_owned(),
-                    _ => "fixme".to_owned(),
-                }
-            },
-        }
-    }
-
-    fn get_modifier_label(keyval: u32) -> String {
-        let mut mod_string = String::new();
-        match keyval {
-            key::Shift_L | key::Control_L | key::Alt_L | key::Meta_L | key::Super_L | key::Hyper_L => { mod_string.push('L') },
-            key::Shift_R | key::Control_R | key::Alt_R | key::Meta_R | key::Super_R | key::Hyper_R => { mod_string.push('R') },
-            _ => {},
-        }
-
-        match keyval {
-            key::Shift_L | key::Shift_R => { mod_string.push_str("Shift") },
-            key::Control_L | key::Control_R => { mod_string.push_str("Ctrl") },
-            key::Meta_L | key::Meta_R => { mod_string.push_str("Meta") },
-            key::Super_L | key::Super_R => { mod_string.push_str("Super") },
-            key::Hyper_L | key::Hyper_R => { mod_string.push_str("Hyper") },
-            _ => {},
-        }
-
-        mod_string
-    }
-
-    fn parse_modifiers(modifier: ModifierType) -> Option<String> {
-        let mut mod_string = String::new();
-
-        if modifier.contains(ModifierType::SHIFT_MASK) {
-            mod_string.push_str("Shift+");
-        }
-        if modifier.contains(ModifierType::CONTROL_MASK) {
-            mod_string.push_str("Ctrl+");
-        }
-        if modifier.contains(ModifierType::MOD1_MASK) {
-            mod_string.push_str("Alt+");
-        }
-        if modifier.contains(ModifierType::SUPER_MASK) {
-            mod_string.push_str("Super+");
-        }
-        if modifier.contains(ModifierType::HYPER_MASK) {
-            mod_string.push_str("Hyper+");
-        }
-        if modifier.contains(ModifierType::META_MASK) {
-            mod_string.push_str("Meta+");
-        }
-
-        if mod_string.is_empty() {
-            return None
-        }
-
-        Some(mod_string)
     }
 }
