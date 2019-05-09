@@ -204,9 +204,14 @@ impl SettingsDialog {
 
         let settings = settigns.clone();
         let dialog = dialog.clone();
+        let id = id.to_owned();
         list.connect_row_activated(move |list, row| {
-            let editor = KeybindingEditor::new(&dialog, &settings);
-            editor.widget().present();
+            if let Some(row_name) = row.get_name() {
+                if id == row_name {
+                    let editor = KeybindingEditor::new(&dialog, &settings);
+                    editor.widget().present();
+                }
+            }
         });
     }
 

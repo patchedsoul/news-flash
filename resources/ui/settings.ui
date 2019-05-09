@@ -495,7 +495,8 @@
                                 <property name="can_focus">False</property>
                                 <property name="selection_mode">none</property>
                                 <child>
-                                  <object class="GtkListBoxRow">
+                                  <object class="GtkListBoxRow" id="next_article">
+                                    <property name="name">next_article</property>
                                     <property name="height_request">40</property>
                                     <property name="visible">True</property>
                                     <property name="can_focus">False</property>
@@ -552,7 +553,8 @@
                                   </object>
                                 </child>
                                 <child>
-                                  <object class="GtkListBoxRow">
+                                  <object class="GtkListBoxRow" id="previous_article">
+                                    <property name="name">previous_article</property>
                                     <property name="height_request">40</property>
                                     <property name="visible">True</property>
                                     <property name="can_focus">False</property>
@@ -609,7 +611,8 @@
                                   </object>
                                 </child>
                                 <child>
-                                  <object class="GtkListBoxRow">
+                                  <object class="GtkListBoxRow" id="toggle_read">
+                                    <property name="name">toggle_read</property>
                                     <property name="height_request">40</property>
                                     <property name="visible">True</property>
                                     <property name="can_focus">False</property>
@@ -666,7 +669,8 @@
                                   </object>
                                 </child>
                                 <child>
-                                  <object class="GtkListBoxRow">
+                                  <object class="GtkListBoxRow" id="toggle_marked">
+                                    <property name="name">toggle_marked</property>
                                     <property name="height_request">40</property>
                                     <property name="visible">True</property>
                                     <property name="can_focus">False</property>
@@ -723,7 +727,8 @@
                                   </object>
                                 </child>
                                 <child>
-                                  <object class="GtkListBoxRow">
+                                  <object class="GtkListBoxRow" id="open_browser">
+                                    <property name="name">open_browser</property>
                                     <property name="height_request">40</property>
                                     <property name="visible">True</property>
                                     <property name="can_focus">False</property>
@@ -803,7 +808,8 @@
                                 <property name="can_focus">False</property>
                                 <property name="selection_mode">none</property>
                                 <child>
-                                  <object class="GtkListBoxRow">
+                                  <object class="GtkListBoxRow" id="next_item">
+                                    <property name="name">next_item</property>
                                     <property name="height_request">40</property>
                                     <property name="visible">True</property>
                                     <property name="can_focus">False</property>
@@ -860,7 +866,8 @@
                                   </object>
                                 </child>
                                 <child>
-                                  <object class="GtkListBoxRow">
+                                  <object class="GtkListBoxRow" id="previous_item">
+                                    <property name="name">previous_item</property>
                                     <property name="height_request">40</property>
                                     <property name="visible">True</property>
                                     <property name="can_focus">False</property>
@@ -917,7 +924,8 @@
                                   </object>
                                 </child>
                                 <child>
-                                  <object class="GtkListBoxRow">
+                                  <object class="GtkListBoxRow" id="expand_category">
+                                    <property name="name">expand_category</property>
                                     <property name="height_request">40</property>
                                     <property name="visible">True</property>
                                     <property name="can_focus">False</property>
@@ -974,7 +982,8 @@
                                   </object>
                                 </child>
                                 <child>
-                                  <object class="GtkListBoxRow">
+                                  <object class="GtkListBoxRow" id="collapse_category">
+                                    <property name="name">collapse_category</property>
                                     <property name="height_request">40</property>
                                     <property name="visible">True</property>
                                     <property name="can_focus">False</property>
@@ -1031,7 +1040,8 @@
                                   </object>
                                 </child>
                                 <child>
-                                  <object class="GtkListBoxRow">
+                                  <object class="GtkListBoxRow" id="feed_read">
+                                    <property name="name">feed_read</property>
                                     <property name="height_request">40</property>
                                     <property name="visible">True</property>
                                     <property name="can_focus">False</property>
@@ -1111,7 +1121,8 @@
                                 <property name="can_focus">False</property>
                                 <property name="selection_mode">none</property>
                                 <child>
-                                  <object class="GtkListBoxRow">
+                                  <object class="GtkListBoxRow" id="shortcuts">
+                                    <property name="name">shortcuts</property>
                                     <property name="height_request">40</property>
                                     <property name="visible">True</property>
                                     <property name="can_focus">True</property>
@@ -1166,7 +1177,8 @@
                                   </object>
                                 </child>
                                 <child>
-                                  <object class="GtkListBoxRow">
+                                  <object class="GtkListBoxRow" id="refresh">
+                                    <property name="name">refresh</property>
                                     <property name="height_request">40</property>
                                     <property name="visible">True</property>
                                     <property name="can_focus">False</property>
@@ -1223,7 +1235,8 @@
                                   </object>
                                 </child>
                                 <child>
-                                  <object class="GtkListBoxRow">
+                                  <object class="GtkListBoxRow" id="search">
+                                    <property name="name">search</property>
                                     <property name="height_request">40</property>
                                     <property name="visible">True</property>
                                     <property name="can_focus">False</property>
@@ -1280,7 +1293,8 @@
                                   </object>
                                 </child>
                                 <child>
-                                  <object class="GtkListBoxRow">
+                                  <object class="GtkListBoxRow" id="quit">
+                                    <property name="name">quit</property>
                                     <property name="height_request">40</property>
                                     <property name="visible">True</property>
                                     <property name="can_focus">False</property>
@@ -1360,7 +1374,8 @@
                                 <property name="can_focus">False</property>
                                 <property name="selection_mode">none</property>
                                 <child>
-                                  <object class="GtkListBoxRow">
+                                  <object class="GtkListBoxRow" id="scroll_up">
+                                    <property name="name">scroll_up</property>
                                     <property name="height_request">40</property>
                                     <property name="visible">True</property>
                                     <property name="can_focus">False</property>
@@ -1417,7 +1432,8 @@
                                   </object>
                                 </child>
                                 <child>
-                                  <object class="GtkListBoxRow">
+                                  <object class="GtkListBoxRow" id="scroll_down">
+                                    <property name="name">scroll_down</property>
                                     <property name="height_request">40</property>
                                     <property name="visible">True</property>
                                     <property name="can_focus">False</property>
