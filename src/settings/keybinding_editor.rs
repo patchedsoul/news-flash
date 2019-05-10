@@ -32,17 +32,24 @@ impl KeybindingEditor {
         let shortcut_label = builder.get::<Label>("shortcut_label");
         let stack = builder.get::<Stack>("stack");
         let keybinding_internal_clone = keybinding_internal.clone();
+        let keybinding_public_clone = keybinding_public.clone();
         let set_button_clone = set_button.clone();
         let cancel_button_clone = cancel_button.clone();
         let dialog = builder.get::<Dialog>("dialog");
         dialog.set_transient_for(settings_dialog);
-        dialog.connect_key_press_event(move |_widget, event| {
+        dialog.connect_key_press_event(move |widget, event| {
             let keyval = event.get_keyval();
             let modifier = Keybindings::clean_modifier(&event.get_state());
 
             stack.set_visible_child_name("confirm");
 
-            if  keyval == key::BackSpace {
+            if keyval == key::Escape {
+                *keybinding_public_clone.borrow_mut() = KeybindState::Canceled;
+                widget.emit_close();
+                return Inhibit(true)
+            }
+
+            if keyval == key::BackSpace {
                 shortcut_label.set_label("Disable Keybinding");
                 set_button_clone.set_visible(true);
                 cancel_button_clone.set_visible(true);
