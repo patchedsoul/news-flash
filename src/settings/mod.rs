@@ -6,11 +6,10 @@ mod keybindings;
 mod keybinding_editor;
 
 pub use dialog::SettingsDialog;
-pub use keybindings::NewsFlashShortcutWindow;
+pub use keybindings::{NewsFlashShortcutWindow, Keybindings};
 use serde_derive::{Deserialize, Serialize};
 use article_list::ArticleListSettings;
 use article_view::ArticleViewSettings;
-use keybindings::Keybindings;
 use failure::Error;
 use crate::main_window::DATA_DIR;
 use std::fs;

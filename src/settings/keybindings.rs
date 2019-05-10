@@ -6,6 +6,8 @@ use crate::util::{BuilderHelper, GtkHandle, GTK_RESOURCE_FILE_ERROR};
 use crate::settings::Settings;
 use crate::Resources;
 use std::str;
+use log::warn;
+use failure::{Error, format_err};
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct Keybindings {
@@ -170,6 +172,56 @@ impl Keybindings {
         modifier.remove(ModifierType::MODIFIER_RESERVED_29_MASK);
 
         modifier
+    }
+
+    pub fn write_keybinding(id: &str, keybinding: Option<String>, settings: &GtkHandle<Settings>) -> Result<(), Error> {
+        match id {
+            "next_article" => settings.borrow_mut().set_keybind_article_list_next(keybinding),
+            "previous_article" => settings.borrow_mut().set_keybind_article_list_prev(keybinding),
+            "toggle_read" => settings.borrow_mut().set_keybind_article_list_read(keybinding),
+            "toggle_marked" => settings.borrow_mut().set_keybind_article_list_mark(keybinding),
+            "open_browser" => settings.borrow_mut().set_keybind_article_list_open(keybinding),
+            "feed_keys_list" => settings.borrow_mut().set_keybind_feed_list_next(keybinding),
+            "previous_item" => settings.borrow_mut().set_keybind_feed_list_prev(keybinding),
+            "expand_category" => settings.borrow_mut().set_keybind_feed_list_expand(keybinding),
+            "collapse_category" => settings.borrow_mut().set_keybind_feed_list_collapse(keybinding),
+            "feed_read" => settings.borrow_mut().set_keybind_feed_list_read(keybinding),
+            "shortcuts" => settings.borrow_mut().set_keybind_shortcut(keybinding),
+            "refresh" => settings.borrow_mut().set_keybind_refresh(keybinding),
+            "search" => settings.borrow_mut().set_keybind_search(keybinding),
+            "quit" => settings.borrow_mut().set_keybind_quit(keybinding),
+            "scroll_up" => settings.borrow_mut().set_keybind_article_view_up(keybinding),
+            "scroll_down" => settings.borrow_mut().set_keybind_article_view_down(keybinding),
+            _ => {
+                warn!("unexpected keybind id: {}", id);
+                Err(format_err!("some err"))
+            },
+        }
+    }
+
+    pub fn read_keybinding(id: &str, settings: &GtkHandle<Settings>) -> Result<Option<String>, Error> {
+        match id {
+            "next_article" => Ok(settings.borrow_mut().get_keybind_article_list_next()),
+            "previous_article" => Ok(settings.borrow_mut().get_keybind_article_list_prev()),
+            "toggle_read" => Ok(settings.borrow_mut().get_keybind_article_list_read()),
+            "toggle_marked" => Ok(settings.borrow_mut().get_keybind_article_list_mark()),
+            "open_browser" => Ok(settings.borrow_mut().get_keybind_article_list_open()),
+            "feed_keys_list" => Ok(settings.borrow_mut().get_keybind_feed_list_next()),
+            "previous_item" => Ok(settings.borrow_mut().get_keybind_feed_list_prev()),
+            "expand_category" => Ok(settings.borrow_mut().get_keybind_feed_list_expand()),
+            "collapse_category" => Ok(settings.borrow_mut().get_keybind_feed_list_collapse()),
+            "feed_read" => Ok(settings.borrow_mut().get_keybind_feed_list_read()),
+            "shortcuts" => Ok(settings.borrow_mut().get_keybind_shortcut()),
+            "refresh" => Ok(settings.borrow_mut().get_keybind_refresh()),
+            "search" => Ok(settings.borrow_mut().get_keybind_search()),
+            "quit" => Ok(settings.borrow_mut().get_keybind_quit()),
+            "scroll_up" => Ok(settings.borrow_mut().get_keybind_article_view_up()),
+            "scroll_down" => Ok(settings.borrow_mut().get_keybind_article_view_down()),
+            _ => {
+                warn!("unexpected keybind id: {}", id);
+                Err(format_err!("some err"))
+            },
+        }
     }
 }
 

@@ -3,16 +3,18 @@ use crate::gtk_handle;
 use crate::login_screen::{LoginHeaderbar, PasswordLogin, WebLogin};
 use crate::main_window_actions::MainWindowActions;
 use crate::main_window_state::MainWindowState;
-use crate::util::{BuilderHelper, GTK_CSS_ERROR, GTK_RESOURCE_FILE_ERROR};
+use crate::util::{BuilderHelper, GTK_CSS_ERROR, GTK_RESOURCE_FILE_ERROR, GtkHandle};
 use crate::welcome_screen::{WelcomeHeaderbar, WelcomePage};
 use crate::Resources;
-use crate::settings::Settings;
+use crate::settings::{Settings, Keybindings};
 use crate::about_dialog::{ICON_NAME, APP_NAME};
 use failure::Error;
 use gtk::{
     self, Application, ApplicationWindow, CssProvider, CssProviderExt, GtkWindowExt, GtkWindowExtManual, Inhibit,
     Stack, StackExt, StyleContext, WidgetExt,
 };
+use gdk::EventKey;
+use gio::{ActionExt, ActionMapExt};
 use log::{info, warn};
 use news_flash::NewsFlash;
 use std::cell::RefCell;
@@ -25,6 +27,7 @@ lazy_static! {
 }
 
 const PANED_DEFAULT_POS: i32 = 600;
+const CONTENT_PAGE: &str = "content";
 
 pub struct MainWindow {
     widget: ApplicationWindow,
@@ -68,7 +71,7 @@ impl MainWindow {
         stack.add_named(&oauth_login.widget(), "oauth_login");
 
         let content = ContentPage::new(&settings)?;
-        stack.add_named(&content.widget(), "content");
+        stack.add_named(&content.widget(), CONTENT_PAGE);
 
         let pw_login_handle = gtk_handle!(pw_login);
         let oauht_login_handle = gtk_handle!(oauth_login);
@@ -113,10 +116,12 @@ impl MainWindow {
         MainWindowActions::setup_shortcut_window_action(&window, &settings);
         MainWindowActions::setup_export_action(&window, &news_flash_handle);
 
+        Self::setup_shortcuts(&window, &stack, &settings);
+
         if let Ok(news_flash_lib) = NewsFlash::try_load(&DATA_DIR) {
             info!("Successful load from config");
 
-            stack.set_visible_child_name("content");
+            stack.set_visible_child_name(CONTENT_PAGE);
             let id = news_flash_lib.id().unwrap();
             content_page_handle
                 .borrow()
@@ -147,5 +152,55 @@ impl MainWindow {
 
     pub fn present(&self) {
         self.widget.present();
+    }
+
+    fn setup_shortcuts(window: &ApplicationWindow, main_stack: &Stack, settings: &GtkHandle<Settings>) {
+        let main_stack = main_stack.clone();
+        let settings = settings.clone();
+        window.connect_key_press_event(move |widget, event| {
+
+            // ignore shortcuts when not on content page
+            if let Some(visible_child) = main_stack.get_visible_child_name() {
+                if visible_child != CONTENT_PAGE {
+                    return Inhibit(false)
+                }
+            }
+
+            // ignore shortcuts when focusing search box (or any other entry)
+            // FIXME
+
+            if Self::check_shortcut("shortcuts", &settings, event) {
+                if let Some(action) = widget.lookup_action("shortcuts") {
+                    action.activate(None);
+                }
+            }
+
+            if Self::check_shortcut("refresh", &settings, event) {
+                if let Some(action) = widget.lookup_action("sync") {
+                    action.activate(None);
+                }
+            }
+
+            Inhibit(true)
+        });
+    }
+
+    fn check_shortcut(id: &str, settings: &GtkHandle<Settings>, event: &EventKey) -> bool {
+        if let Ok(keybinding) = Keybindings::read_keybinding(id, settings) {
+            if let Some(keybinding) = keybinding {
+                let (keyval, modifier) = gtk::accelerator_parse(&keybinding);
+
+                if gdk::keyval_to_lower(keyval) == gdk::keyval_to_lower(event.get_keyval()) {
+                    if modifier.is_empty() {
+                        if Keybindings::clean_modifier(&event.get_state()).is_empty() {
+                            return true
+                        }
+                    } else if event.get_state().contains(modifier) {
+                        return true
+                    }
+                }
+            }
+        }
+        false
     }
 }
