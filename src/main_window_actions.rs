@@ -150,6 +150,7 @@ impl MainWindowActions {
                     let id = match &info {
                         LoginData::OAuth(oauth) => oauth.id.clone(),
                         LoginData::Password(pass) => pass.id.clone(),
+                        LoginData::None(id) => id.clone(),
                     };
                     let mut news_flash_lib = NewsFlash::new(&DATA_DIR, &id).unwrap();
                     match news_flash_lib.login(info.clone()) {
@@ -172,6 +173,9 @@ impl MainWindowActions {
                                 LoginData::Password(_) => {
                                     pw_page.borrow_mut().show_error(error);
                                 }
+                                LoginData::None(_) => {
+                                    // NOTHING
+                                },
                             }
                         }
                     }

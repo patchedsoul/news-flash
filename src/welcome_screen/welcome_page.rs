@@ -64,7 +64,10 @@ impl WelcomePage {
                         if let Some(action) = main_window.lookup_action("show-pw-page") {
                             action.activate(Some(&id));
                         }
-                    }
+                    },
+                    LoginGUI::None => {
+                        // FIXME: trigger "login" action directly
+                    },
                 };
             }
         });
