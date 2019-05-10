@@ -8,6 +8,8 @@ use gtk::{Dialog, DialogExt, Window, GtkWindowExt, GtkWindowExtManual, Inhibit, 
 use glib::{object::IsA};
 use gio::{ActionExt, ActionMapExt};
 use news_flash::models::ArticleOrder;
+use failure::{Error, format_err};
+use log::warn;
 
 
 pub struct SettingsDialog {
@@ -185,6 +187,41 @@ impl SettingsDialog {
         keybinding: Option<String>,
     ) {
         let label = self.builder.get::<Label>(&format!("{}_label", id));
+        Self::keybind_label_text(keybinding, &label);
+
+        let dialog = self.widget.clone();
+        let id = id.to_owned();
+        let info_label = self.builder.get::<Label>(&format!("{}_info_label", id));
+        let info_text = info_label.get_label().expect(GTK_BUILDER_ERROR);
+        let settings = self.settings.clone();
+        list.connect_row_activated(move |_list, row| {
+            if let Some(row_name) = row.get_name() {
+                if id == row_name {
+                    let id = id.clone();
+                    let label = label.clone();
+                    let settings = settings.clone();
+                    let editor = KeybindingEditor::new(&dialog, &info_text);
+                    editor.widget().present();
+                    editor.widget().connect_close(move |_dialog| {
+                        let _settings = settings.clone();
+                        match &*editor.keybinding.borrow() {
+                            KeybindState::Canceled | KeybindState::Illegal => {},
+                            KeybindState::Disabled => { 
+                                Self::write_setting(&id, None, &settings).unwrap();
+                                Self::keybind_label_text(None, &label);
+                            },
+                            KeybindState::Enabled(keybind) => {
+                                Self::write_setting(&id, Some(keybind.clone()), &settings).unwrap();
+                                Self::keybind_label_text(Some(keybind.clone()), &label);
+                            },
+                        }
+                    });
+                }
+            }
+        });
+    }
+
+    fn keybind_label_text(keybinding: Option<String>, label: &Label) {
         let label_text = match keybinding {
             Some(keybinding) => {
                 label.set_sensitive(true);
@@ -197,27 +234,30 @@ impl SettingsDialog {
             },
         };
         label.set_label(&label_text);
+    }
 
-        let settings = self.settings.clone();
-        let dialog = self.widget.clone();
-        let id = id.to_owned();
-        let info_label = self.builder.get::<Label>(&format!("{}_info_label", id));
-        let info_text = info_label.get_label().expect(GTK_BUILDER_ERROR);
-        list.connect_row_activated(move |_list, row| {
-            if let Some(row_name) = row.get_name() {
-                if id == row_name {
-                    let settings = settings.clone();
-                    let editor = KeybindingEditor::new(&dialog, &info_text);
-                    editor.widget().present();
-                    editor.widget().connect_close(move |_dialog| {
-                        match &*editor.keybinding.borrow() {
-                            KeybindState::Canceled | KeybindState::Illegal => {},
-                            KeybindState::Disabled => { settings.borrow_mut().set_keybind_quit(None).unwrap() /* FIXME */ },
-                            KeybindState::Enabled(keybind) => { settings.borrow_mut().set_keybind_quit(Some(keybind.clone())).unwrap() /* FIXME */ },
-                        }
-                    });
-                }
-            }
-        });
+    fn write_setting(id: &str, keybinding: Option<String>, settings: &GtkHandle<Settings>) -> Result<(), Error> {
+        match id {
+            "next_article" => settings.borrow_mut().set_keybind_article_list_next(keybinding),
+            "previous_article" => settings.borrow_mut().set_keybind_article_list_prev(keybinding),
+            "toggle_read" => settings.borrow_mut().set_keybind_article_list_read(keybinding),
+            "toggle_marked" => settings.borrow_mut().set_keybind_article_list_mark(keybinding),
+            "open_browser" => settings.borrow_mut().set_keybind_article_list_open(keybinding),
+            "feed_keys_list" => settings.borrow_mut().set_keybind_feed_list_next(keybinding),
+            "previous_item" => settings.borrow_mut().set_keybind_feed_list_prev(keybinding),
+            "expand_category" => settings.borrow_mut().set_keybind_feed_list_expand(keybinding),
+            "collapse_category" => settings.borrow_mut().set_keybind_feed_list_collapse(keybinding),
+            "feed_read" => settings.borrow_mut().set_keybind_feed_list_read(keybinding),
+            "shortcuts" => settings.borrow_mut().set_keybind_shortcut(keybinding),
+            "refresh" => settings.borrow_mut().set_keybind_refresh(keybinding),
+            "search" => settings.borrow_mut().set_keybind_search(keybinding),
+            "quit" => settings.borrow_mut().set_keybind_quit(keybinding),
+            "scroll_up" => settings.borrow_mut().set_keybind_article_view_up(keybinding),
+            "scroll_down" => settings.borrow_mut().set_keybind_article_view_down(keybinding),
+            _ => {
+                warn!("unexpected keybind id: {}", id);
+                Err(format_err!("some err"))
+            },
+        }
     }
 }

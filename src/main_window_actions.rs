@@ -437,7 +437,6 @@ impl MainWindowActions {
         mark_article_action.connect_activate(move |_action, data| {
             if let Some(data) = data {
                 if let Some(data) = data.get_str() {
-                    println!("{}", data);
                     let update: MarkUpdate = serde_json::from_str(&data).unwrap();
 
                     if let Some(news_flash) = news_flash.borrow_mut().as_mut() {

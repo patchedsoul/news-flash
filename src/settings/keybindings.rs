@@ -139,6 +139,38 @@ impl Keybindings {
 
         Some(mod_string)
     }
+
+    pub fn clean_modifier(modifier: &ModifierType) -> ModifierType {
+        let mut modifier = modifier.clone();
+
+        modifier.remove(ModifierType::MOD2_MASK);
+        modifier.remove(ModifierType::MOD3_MASK);
+        modifier.remove(ModifierType::MOD4_MASK);
+        modifier.remove(ModifierType::MOD5_MASK);
+        modifier.remove(ModifierType::LOCK_MASK);
+        modifier.remove(ModifierType::BUTTON1_MASK);
+        modifier.remove(ModifierType::BUTTON2_MASK);
+        modifier.remove(ModifierType::BUTTON3_MASK);
+        modifier.remove(ModifierType::BUTTON4_MASK);
+        modifier.remove(ModifierType::BUTTON5_MASK);
+        modifier.remove(ModifierType::RELEASE_MASK);
+        modifier.remove(ModifierType::MODIFIER_RESERVED_13_MASK);
+        modifier.remove(ModifierType::MODIFIER_RESERVED_14_MASK);
+        modifier.remove(ModifierType::MODIFIER_RESERVED_15_MASK);
+        modifier.remove(ModifierType::MODIFIER_RESERVED_16_MASK);
+        modifier.remove(ModifierType::MODIFIER_RESERVED_17_MASK);
+        modifier.remove(ModifierType::MODIFIER_RESERVED_18_MASK);
+        modifier.remove(ModifierType::MODIFIER_RESERVED_19_MASK);
+        modifier.remove(ModifierType::MODIFIER_RESERVED_20_MASK);
+        modifier.remove(ModifierType::MODIFIER_RESERVED_21_MASK);
+        modifier.remove(ModifierType::MODIFIER_RESERVED_22_MASK);
+        modifier.remove(ModifierType::MODIFIER_RESERVED_23_MASK);
+        modifier.remove(ModifierType::MODIFIER_RESERVED_24_MASK);
+        modifier.remove(ModifierType::MODIFIER_RESERVED_25_MASK);
+        modifier.remove(ModifierType::MODIFIER_RESERVED_29_MASK);
+
+        modifier
+    }
 }
 
 //--------------------------------------------

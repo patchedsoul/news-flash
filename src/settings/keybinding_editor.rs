@@ -38,7 +38,7 @@ impl KeybindingEditor {
         dialog.set_transient_for(settings_dialog);
         dialog.connect_key_press_event(move |_widget, event| {
             let keyval = event.get_keyval();
-            let modifier = event.get_state();
+            let modifier = Keybindings::clean_modifier(&event.get_state());
 
             stack.set_visible_child_name("confirm");
 
