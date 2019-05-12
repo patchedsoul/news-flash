@@ -9,8 +9,8 @@ use crate::sidebar::models::SidebarSelection;
 use crate::util::{GtkHandle, FileUtil};
 use crate::about_dialog::NewsFlashAbout;
 use crate::settings::{Settings, SettingsDialog, NewsFlashShortcutWindow};
-use gio::{ActionExt, ActionMapExt, SimpleAction};
-use gtk::{self, ApplicationWindow, GtkWindowExt, GtkWindowExtManual, HeaderBar, Stack, StackExt, StackTransitionType,
+use gio::{ActionExt, ActionMapExt, ApplicationExt, SimpleAction};
+use gtk::{self, Application, ApplicationWindow, GtkWindowExt, GtkWindowExtManual, HeaderBar, Stack, StackExt, StackTransitionType,
     FileChooserDialog, FileChooserAction, FileFilter, FileChooserExt, DialogExt, ResponseType};
 use log::error;
 use news_flash::models::{ArticleID, LoginData, PluginID};
@@ -491,6 +491,28 @@ impl MainWindowActions {
         window.add_action(&settings_action);
     }
 
+    pub fn setup_quit_action(window: &ApplicationWindow, app: &Application) {
+        let main_window = window.clone();
+        let app = app.clone();
+        let quit_action = SimpleAction::new("quit", None);
+        quit_action.connect_activate(move |_action, _data| {
+            // FIXME: check for ongoing sync
+            main_window.close();
+            app.quit();
+        });
+        quit_action.set_enabled(true);
+        window.add_action(&quit_action);
+    }
+
+    pub fn setup_focus_search_action(window: &ApplicationWindow, content_header: &GtkHandle<ContentHeader>) {
+        let content_header = content_header.clone();
+        let focus_search_action = SimpleAction::new("focus-search", None);
+        focus_search_action.connect_activate(move |_action, _data| {
+            content_header.borrow().focus_search();
+        });
+        focus_search_action.set_enabled(true);
+        window.add_action(&focus_search_action);
+    }
 
     pub fn setup_export_action(window: &ApplicationWindow, news_flash: &GtkHandle<Option<NewsFlash>>) {
         let main_window = window.clone();

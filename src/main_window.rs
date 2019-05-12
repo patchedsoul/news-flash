@@ -114,6 +114,8 @@ impl MainWindow {
         MainWindowActions::setup_about_action(&window);
         MainWindowActions::setup_settings_action(&window, &settings);
         MainWindowActions::setup_shortcut_window_action(&window, &settings);
+        MainWindowActions::setup_quit_action(&window, app);
+        MainWindowActions::setup_focus_search_action(&window, &content_header_handle);
         MainWindowActions::setup_export_action(&window, &news_flash_handle);
 
         Self::setup_shortcuts(&window, &stack, &settings);
@@ -181,7 +183,19 @@ impl MainWindow {
                 }
             }
 
-            Inhibit(true)
+            if Self::check_shortcut("quit", &settings, event) {
+                if let Some(action) = widget.lookup_action("quit") {
+                    action.activate(None);
+                }
+            }
+
+            if Self::check_shortcut("search", &settings, event) {
+                if let Some(action) = widget.lookup_action("focus-search") {
+                    action.activate(None);
+                }
+            }
+
+            Inhibit(false)
         });
     }
 

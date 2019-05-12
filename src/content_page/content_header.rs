@@ -10,9 +10,10 @@ use gtk::{
 };
 
 pub struct ContentHeader {
-    header: gtk::Paned,
-    update_stack: gtk::Stack,
-    update_button: gtk::Button,
+    header: Paned,
+    update_stack: Stack,
+    update_button: Button,
+    search_entry: SearchEntry,
 }
 
 impl ContentHeader {
@@ -57,6 +58,7 @@ impl ContentHeader {
             header,
             update_stack,
             update_button,
+            search_entry,
         })
     }
 
@@ -71,6 +73,10 @@ impl ContentHeader {
     pub fn finish_sync(&self) {
         self.update_button.set_sensitive(true);
         self.update_stack.set_visible_child_name("icon");
+    }
+
+    pub fn focus_search(&self) {
+        self.search_entry.grab_focus()
     }
 
     fn setup_linked_button(
