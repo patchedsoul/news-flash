@@ -456,6 +456,32 @@ impl MainWindowActions {
         window.add_action(&mark_article_action);
     }
 
+    pub fn setup_select_next_article_action(
+        window: &ApplicationWindow,
+        content_page: &GtkHandle<ContentPage>,
+    ) {
+        let content_page = content_page.clone();
+        let next_article_action = SimpleAction::new("next-article", None);
+        next_article_action.connect_activate(move |_action, _data| {
+            content_page.borrow().select_next_article();
+        });
+        next_article_action.set_enabled(true);
+        window.add_action(&next_article_action);
+    }
+
+    pub fn setup_select_prev_article_action(
+        window: &ApplicationWindow,
+        content_page: &GtkHandle<ContentPage>,
+    ) {
+        let content_page = content_page.clone();
+        let prev_article_action = SimpleAction::new("prev-article", None);
+        prev_article_action.connect_activate(move |_action, _data| {
+            content_page.borrow().select_prev_article();
+        });
+        prev_article_action.set_enabled(true);
+        window.add_action(&prev_article_action);
+    }
+
     pub fn setup_about_action(window: &ApplicationWindow) {
         let main_window = window.clone();
         let about_action = SimpleAction::new("about", None);

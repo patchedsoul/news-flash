@@ -12,7 +12,7 @@ use gio::{ActionExt, ActionMapExt};
 use glib::{translate::ToGlib, Variant};
 use gtk::{Continue, ListBoxExt, ListBoxRowExt, Stack, StackExt, StackTransitionType};
 use models::ArticleListChangeSet;
-pub use models::{ArticleListModel, ReadUpdate, MarkUpdate};
+pub use models::{ArticleListModel, ArticleListArticleModel, ReadUpdate, MarkUpdate};
 use news_flash::models::Read;
 use single::SingleArticleList;
 use std::cell::RefCell;
@@ -24,7 +24,7 @@ pub enum CurrentList {
 }
 
 pub struct ArticleList {
-    stack: gtk::Stack,
+    stack: Stack,
     list_1: GtkHandle<SingleArticleList>,
     list_2: GtkHandle<SingleArticleList>,
     list_model: GtkHandle<ArticleListModel>,
@@ -187,36 +187,34 @@ impl ArticleList {
         let select_signal_id = new_list
             .borrow()
             .list()
-            .connect_row_selected(move |list, row| {
-                if let Some(selected_row) = row {
-                    let selected_index = selected_row.get_index();
-                    let selected_article = list_model.borrow_mut().calculate_selection(selected_index).cloned();
-                    if let Some(selected_article) = selected_article {
-                        let selected_article_id = selected_article.id.clone();
-                        if let Ok(main_window) = GtkUtil::get_main_window(list) {
-                            let selected_article_id_variant = Variant::from(&selected_article_id.to_str());
-                            if let Some(action) = main_window.lookup_action("show-article") {
-                                action.activate(Some(&selected_article_id_variant));
+            .connect_row_activated(move |list, row| {
+                let selected_index = row.get_index();
+                let selected_article = list_model.borrow_mut().calculate_selection(selected_index).cloned();
+                if let Some(selected_article) = selected_article {
+                    let selected_article_id = selected_article.id.clone();
+                    if let Ok(main_window) = GtkUtil::get_main_window(list) {
+                        let selected_article_id_variant = Variant::from(&selected_article_id.to_str());
+                        if let Some(action) = main_window.lookup_action("show-article") {
+                            action.activate(Some(&selected_article_id_variant));
+                        }
+                        if selected_article.read == Read::Unread {
+                            let update = ReadUpdate {
+                                article_id: selected_article_id,
+                                read: Read::Read,
+                            };
+                            let update_data = serde_json::to_string(&update).unwrap();
+                            let update_data = Variant::from(&update_data);
+                            list_model.borrow_mut().set_read(&selected_article.id, Read::Read);
+                            match *current_list.borrow() {
+                                CurrentList::List1 => {
+                                    list_1.borrow_mut().update_read(&selected_article.id, Read::Read)
+                                }
+                                CurrentList::List2 => {
+                                    list_2.borrow_mut().update_read(&selected_article.id, Read::Read)
+                                }
                             }
-                            if selected_article.read == Read::Unread {
-                                let update = ReadUpdate {
-                                    article_id: selected_article_id,
-                                    read: Read::Read,
-                                };
-                                let update_data = serde_json::to_string(&update).unwrap();
-                                let update_data = Variant::from(&update_data);
-                                list_model.borrow_mut().set_read(&selected_article.id, Read::Read);
-                                match *current_list.borrow() {
-                                    CurrentList::List1 => {
-                                        list_1.borrow_mut().update_read(&selected_article.id, Read::Read)
-                                    }
-                                    CurrentList::List2 => {
-                                        list_2.borrow_mut().update_read(&selected_article.id, Read::Read)
-                                    }
-                                }
-                                if let Some(action) = main_window.lookup_action("mark-article-read") {
-                                    action.activate(Some(&update_data));
-                                }
+                            if let Some(action) = main_window.lookup_action("mark-article-read") {
+                                action.activate(Some(&update_data));
                             }
                         }
                     }
@@ -253,5 +251,52 @@ impl ArticleList {
             }
         }
         StackTransitionType::Crossfade
+    }
+
+    fn get_current_list(&self) -> GtkHandle<SingleArticleList> {
+        match *self.current_list.borrow() {
+            CurrentList::List1 => self.list_1.clone(),
+            CurrentList::List2 => self.list_1.clone(),
+        }
+    }
+
+    pub fn select_next_article(&self) {
+        self.select_article(1)
+    }
+
+    pub fn select_prev_article(&self) {
+        self.select_article(-1)
+    }
+
+    fn select_article(&self, direction: i32) {
+        let current_list = self.get_current_list();
+        let selected_index = current_list.borrow().get_selected_index();
+        if let Some(selected_index) = selected_index {
+            let selected_row = self.list_model.borrow_mut().calculate_selection(selected_index).map(|r| r.clone());
+            let next_row = self.list_model.borrow_mut().calculate_selection(selected_index + direction).map(|r| r.clone());
+
+            if let Some(selected_row) = selected_row {
+                if let Some(next_row) = next_row {
+                    current_list.borrow().select_after(&next_row.id, 300);
+                    if let Some(height) = current_list.borrow().get_allocated_row_height(&selected_row.id) {
+                        current_list.borrow().animate_scroll(f64::from(direction * height));
+                    }
+                }
+            }
+        }
+    }
+
+    pub fn get_selected_article_model(&self) -> Option<ArticleListArticleModel> {
+        let current_list = self.get_current_list();
+        let selected_index = current_list.borrow().get_selected_index();
+        if let Some(selected_index) = selected_index {
+            let selected_row = self.list_model.borrow_mut().calculate_selection(selected_index).map(|r| r.clone());
+
+            if let Some(selected_row) = selected_row {
+                return Some(selected_row);
+            }
+        }
+
+        None
     }
 }

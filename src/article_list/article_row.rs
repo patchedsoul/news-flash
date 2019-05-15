@@ -9,19 +9,19 @@ use gio::{ActionExt, ActionMapExt};
 use glib::Variant;
 use gtk::{
     ContainerExt, EventBox, Image, ImageExt, Inhibit, Label, LabelExt, ListBoxRowExt, Stack, StackExt, StyleContextExt,
-    WidgetExt,
+    WidgetExt, ListBoxRow,
 };
 use news_flash::models::{ArticleID, Marked, Read};
 use std::cell::RefCell;
 use std::rc::Rc;
 
 pub struct ArticleRow {
-    widget: gtk::ListBoxRow,
+    widget: ListBoxRow,
     marked_handle: GtkHandle<Marked>,
     read_handle: GtkHandle<Read>,
-    marked_stack: gtk::Stack,
-    unread_stack: gtk::Stack,
-    title_label: gtk::Label,
+    marked_stack: Stack,
+    unread_stack: Stack,
+    title_label: Label,
     row_hovered: GtkHandle<bool>,
 }
 
@@ -116,7 +116,7 @@ impl ArticleRow {
         })
     }
 
-    pub fn widget(&self) -> gtk::ListBoxRow {
+    pub fn widget(&self) -> ListBoxRow {
         self.widget.clone()
     }
 
@@ -131,9 +131,9 @@ impl ArticleRow {
         *self.read_handle.borrow_mut() = unread;
     }
 
-    fn create_row(widget: &gtk::EventBox) -> gtk::ListBoxRow {
-        let row = gtk::ListBoxRow::new();
-        row.set_activatable(false);
+    fn create_row(widget: &EventBox) -> ListBoxRow {
+        let row = ListBoxRow::new();
+        row.set_activatable(true);
         row.set_can_focus(false);
         row.add(widget);
         let context = row.get_style_context();
@@ -143,10 +143,10 @@ impl ArticleRow {
     }
 
     fn setup_unread_eventbox(
-        eventbox: &gtk::EventBox,
+        eventbox: &EventBox,
         read: &GtkHandle<Read>,
-        unread_stack: &gtk::Stack,
-        title_label: &gtk::Label,
+        unread_stack: &Stack,
+        title_label: &Label,
         article_id: &ArticleID,
         list_model: &GtkHandle<ArticleListModel>,
     ) {
@@ -206,9 +206,9 @@ impl ArticleRow {
     }
 
     fn setup_marked_eventbox(
-        eventbox: &gtk::EventBox,
+        eventbox: &EventBox,
         marked: &GtkHandle<Marked>,
-        marked_stack: &gtk::Stack,
+        marked_stack: &Stack,
         article_id: &ArticleID,
         list_model: &GtkHandle<ArticleListModel>,
     ) {
@@ -267,12 +267,12 @@ impl ArticleRow {
     }
 
     fn setup_row_eventbox(
-        eventbox: &gtk::EventBox,
+        eventbox: &EventBox,
         read: &GtkHandle<Read>,
         marked: &GtkHandle<Marked>,
-        unread_stack: &gtk::Stack,
-        marked_stack: &gtk::Stack,
-        title_label: &gtk::Label,
+        unread_stack: &Stack,
+        marked_stack: &Stack,
+        title_label: &Label,
         row_hovered: &GtkHandle<bool>,
     ) {
         Self::update_title_label(&title_label, *read.borrow());
@@ -322,7 +322,7 @@ impl ArticleRow {
         });
     }
 
-    fn update_title_label(title_label: &gtk::Label, read: Read) {
+    fn update_title_label(title_label: &Label, read: Read) {
         let context = title_label.get_style_context();
         match read {
             Read::Read => context.remove_class("bold"),
@@ -330,7 +330,7 @@ impl ArticleRow {
         }
     }
 
-    fn update_unread_stack(unread_stack: &gtk::Stack, read: Read, row_hovered: bool) {
+    fn update_unread_stack(unread_stack: &Stack, read: Read, row_hovered: bool) {
         match read {
             Read::Read => {
                 if row_hovered {
@@ -343,7 +343,7 @@ impl ArticleRow {
         }
     }
 
-    fn update_marked_stack(marked_stack: &gtk::Stack, marked: Marked) {
+    fn update_marked_stack(marked_stack: &Stack, marked: Marked) {
         match marked {
             Marked::Unmarked => marked_stack.set_visible_child_name("empty"),
             Marked::Marked => marked_stack.set_visible_child_name("marked"),

@@ -206,7 +206,7 @@ impl Keybindings {
             "toggle_read" => Ok(settings.borrow_mut().get_keybind_article_list_read()),
             "toggle_marked" => Ok(settings.borrow_mut().get_keybind_article_list_mark()),
             "open_browser" => Ok(settings.borrow_mut().get_keybind_article_list_open()),
-            "feed_keys_list" => Ok(settings.borrow_mut().get_keybind_feed_list_next()),
+            "next_item" => Ok(settings.borrow_mut().get_keybind_feed_list_next()),
             "previous_item" => Ok(settings.borrow_mut().get_keybind_feed_list_prev()),
             "expand_category" => Ok(settings.borrow_mut().get_keybind_feed_list_expand()),
             "collapse_category" => Ok(settings.borrow_mut().get_keybind_feed_list_collapse()),

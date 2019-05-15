@@ -3,16 +3,18 @@ use crate::gtk_handle;
 use crate::login_screen::{LoginHeaderbar, PasswordLogin, WebLogin};
 use crate::main_window_actions::MainWindowActions;
 use crate::main_window_state::MainWindowState;
-use crate::util::{BuilderHelper, GTK_CSS_ERROR, GTK_RESOURCE_FILE_ERROR, GtkHandle};
+use crate::util::{BuilderHelper, GtkUtil, GTK_CSS_ERROR, GTK_RESOURCE_FILE_ERROR, GtkHandle};
 use crate::welcome_screen::{WelcomeHeaderbar, WelcomePage};
 use crate::Resources;
 use crate::settings::{Settings, Keybindings};
 use crate::about_dialog::{ICON_NAME, APP_NAME};
+use crate::article_list::{ReadUpdate, MarkUpdate};
 use failure::Error;
 use gtk::{
     self, Application, ApplicationWindow, CssProvider, CssProviderExt, GtkWindowExt, GtkWindowExtManual, Inhibit,
     Stack, StackExt, StyleContext, WidgetExt,
 };
+use glib::Variant;
 use gdk::EventKey;
 use gio::{ActionExt, ActionMapExt};
 use log::{info, warn};
@@ -117,8 +119,10 @@ impl MainWindow {
         MainWindowActions::setup_quit_action(&window, app);
         MainWindowActions::setup_focus_search_action(&window, &content_header_handle);
         MainWindowActions::setup_export_action(&window, &news_flash_handle);
+        MainWindowActions::setup_select_next_article_action(&window, &content_page_handle);
+        MainWindowActions::setup_select_prev_article_action(&window, &content_page_handle);
 
-        Self::setup_shortcuts(&window, &stack, &settings);
+        Self::setup_shortcuts(&window, &content_page_handle, &stack, &settings);
 
         if let Ok(news_flash_lib) = NewsFlash::try_load(&DATA_DIR) {
             info!("Successful load from config");
@@ -156,9 +160,11 @@ impl MainWindow {
         self.widget.present();
     }
 
-    fn setup_shortcuts(window: &ApplicationWindow, main_stack: &Stack, settings: &GtkHandle<Settings>) {
+    fn setup_shortcuts(window: &ApplicationWindow, content_page: &GtkHandle<ContentPage>, main_stack: &Stack, settings: &GtkHandle<Settings>) {
         let main_stack = main_stack.clone();
         let settings = settings.clone();
+        let content_page = content_page.clone();
+        let main_window = window.clone();
         window.connect_key_press_event(move |widget, event| {
 
             // ignore shortcuts when not on content page
@@ -192,6 +198,69 @@ impl MainWindow {
             if Self::check_shortcut("search", &settings, event) {
                 if let Some(action) = widget.lookup_action("focus-search") {
                     action.activate(None);
+                }
+            }
+
+            if Self::check_shortcut("next_article", &settings, event) {
+                if let Some(action) = widget.lookup_action("next-article") {
+                    action.activate(None);
+                }
+            }
+
+            if Self::check_shortcut("previous_article", &settings, event) {
+                if let Some(action) = widget.lookup_action("prev-article") {
+                    action.activate(None);
+                }
+            }
+
+            if Self::check_shortcut("toggle_read", &settings, event) {
+                let article_model = content_page.borrow().get_selected_article_model();
+                if let Some(article_model) = article_model {
+                    if let Ok(main_window) = GtkUtil::get_main_window(&main_stack) {
+                        let update = ReadUpdate {
+                            article_id: article_model.id.clone(),
+                            read: article_model.read.invert(),
+                        };
+
+                        let update_data = serde_json::to_string(&update).unwrap();
+                        let update_data = Variant::from(&update_data);
+                        if let Some(action) = main_window.lookup_action("mark-article-read") {
+                            action.activate(Some(&update_data));
+                        }
+                        if let Some(action) = main_window.lookup_action("update-article-list") {
+                            action.activate(None);
+                        }
+                    }
+                }
+            }
+
+            if Self::check_shortcut("toggle_marked", &settings, event) {
+                let article_model = content_page.borrow().get_selected_article_model();
+                if let Some(article_model) = article_model {
+                    if let Ok(main_window) = GtkUtil::get_main_window(&main_stack) {
+                        let update = MarkUpdate {
+                            article_id: article_model.id.clone(),
+                            marked: article_model.marked.invert(),
+                        };
+
+                        let update_data = serde_json::to_string(&update).unwrap();
+                        let update_data = Variant::from(&update_data);
+                        if let Some(action) = main_window.lookup_action("mark-article") {
+                            action.activate(Some(&update_data));
+                        }
+                        if let Some(action) = main_window.lookup_action("update-article-list") {
+                            action.activate(None);
+                        }
+                    }
+                }
+            }
+
+            if Self::check_shortcut("open_browser", &settings, event) {
+                let article_model = content_page.borrow().get_selected_article_model();
+                if let Some(article_model) = article_model {
+                    if let Some(url) = article_model.url {
+                        gtk::show_uri_on_window(&main_window, url.get().as_str(), 0).unwrap();
+                    }
                 }
             }
 

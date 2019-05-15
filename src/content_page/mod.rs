@@ -4,7 +4,7 @@ mod header_selection;
 pub use self::content_header::ContentHeader;
 pub use self::header_selection::HeaderSelection;
 
-use crate::article_list::{ArticleList, ArticleListModel};
+use crate::article_list::{ArticleList, ArticleListModel, ArticleListArticleModel};
 use crate::article_view::ArticleView;
 use crate::main_window_state::MainWindowState;
 use crate::sidebar::models::SidebarSelection;
@@ -289,5 +289,17 @@ impl ContentPage {
 
     pub fn redraw_article(&mut self) -> Result<(), Error> {
         self.article_view.redraw_article()
+    }
+
+    pub fn select_next_article(&self) {
+        self.article_list.select_next_article()
+    }
+
+    pub fn select_prev_article(&self) {
+        self.article_list.select_prev_article()
+    }
+
+    pub fn get_selected_article_model(&self) -> Option<ArticleListArticleModel> {
+        self.article_list.get_selected_article_model()
     }
 }
