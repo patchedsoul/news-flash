@@ -1,4 +1,4 @@
-use crate::sidebar::FeedListSelection;
+use crate::sidebar::FeedListItemID;
 use news_flash::models::{CategoryID, FeedID, TagID};
 use serde_derive::{Deserialize, Serialize};
 
@@ -11,10 +11,10 @@ pub enum SidebarSelection {
 }
 
 impl SidebarSelection {
-    pub fn from_feed_list_selection(selection: FeedListSelection) -> Self {
+    pub fn from_feed_list_selection(selection: FeedListItemID) -> Self {
         match selection {
-            FeedListSelection::Feed(id) => SidebarSelection::Feed(id),
-            FeedListSelection::Cateogry(id) => SidebarSelection::Cateogry(id),
+            FeedListItemID::Feed(id) => SidebarSelection::Feed(id),
+            FeedListItemID::Category(id) => SidebarSelection::Cateogry(id),
         }
     }
 }

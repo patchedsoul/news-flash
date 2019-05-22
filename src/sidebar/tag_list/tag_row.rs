@@ -1,11 +1,10 @@
 use crate::color::ColorRGBA;
 use crate::gtk_handle;
 use crate::sidebar::tag_list::models::TagListTagModel;
-use crate::util::GtkHandle;
-use crate::Resources;
+use crate::util::{BuilderHelper, GtkHandle};
 use cairo::{Context, FillRule};
 use gdk::WindowExt;
-use gtk::{self, ContainerExt, ImageExt, LabelExt, ListBoxRowExt, StyleContextExt, WidgetExt};
+use gtk::{Box, ContainerExt, EventBox, Image, ImageExt, Label, LabelExt, ListBoxRow, ListBoxRowExt, StyleContextExt, WidgetExt};
 use news_flash::models::TagID;
 use std::cell::RefCell;
 use std::rc::Rc;
@@ -14,23 +13,21 @@ use std::str;
 #[derive(Clone, Debug)]
 pub struct TagRow {
     pub id: TagID,
-    widget: gtk::ListBoxRow,
-    item_count: gtk::Label,
-    item_count_event: gtk::EventBox,
-    title: gtk::Label,
-    tag_color_circle: gtk::Image,
+    widget: ListBoxRow,
+    item_count: Label,
+    item_count_event: EventBox,
+    title: Label,
+    tag_color_circle: Image,
 }
 
 impl TagRow {
     pub fn new(model: &TagListTagModel) -> GtkHandle<Self> {
-        let ui_data = Resources::get("ui/tag.ui").unwrap();
-        let ui_string = str::from_utf8(ui_data.as_ref()).unwrap();
-        let builder = gtk::Builder::new_from_string(ui_string);
-        let tag_box: gtk::Box = builder.get_object("tag_row").unwrap();
-        let title_label: gtk::Label = builder.get_object("tag_title").unwrap();
-        let item_count_label: gtk::Label = builder.get_object("item_count").unwrap();
-        let item_count_event: gtk::EventBox = builder.get_object("item_count_event").unwrap();
-        let tag_color_circle: gtk::Image = builder.get_object("tag_color").unwrap();
+        let builder = BuilderHelper::new("tag");
+        let tag_box = builder.get::<Box>("tag_row");
+        let title_label = builder.get::<Label>("tag_title");
+        let item_count_label = builder.get::<Label>("item_count");
+        let item_count_event = builder.get::<EventBox>("item_count_event");
+        let tag_color_circle = builder.get::<Image>("tag_color");
 
         let tag_image_update = tag_color_circle.clone();
         let tag_color_update = model.color.clone();
@@ -52,9 +49,9 @@ impl TagRow {
         gtk_handle!(tag)
     }
 
-    fn create_row(widget: &gtk::Box, _id: &TagID) -> gtk::ListBoxRow {
-        let row = gtk::ListBoxRow::new();
-        row.set_activatable(false);
+    fn create_row(widget: &Box, _id: &TagID) -> ListBoxRow {
+        let row = ListBoxRow::new();
+        row.set_activatable(true);
         row.set_can_focus(false);
         row.add(widget);
         let context = row.get_style_context();
@@ -63,7 +60,7 @@ impl TagRow {
         row
     }
 
-    pub fn row(&self) -> gtk::ListBoxRow {
+    pub fn widget(&self) -> ListBoxRow {
         self.widget.clone()
     }
 
@@ -76,11 +73,7 @@ impl TagRow {
         }
     }
 
-    // pub fn update_color_cirlce(&self, color: &str) {
-    //     Self::update_color_cirlce_internal(&self.tag_color_circle, color);
-    // }
-
-    fn update_color_cirlce_internal(tag_color_circle: &gtk::Image, color: &str) {
+    fn update_color_cirlce_internal(tag_color_circle: &Image, color: &str) {
         let size = 16;
         let half_size = f64::from(size / 2);
         let scale = tag_color_circle.get_style_context().get_scale();

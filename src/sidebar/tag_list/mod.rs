@@ -2,8 +2,10 @@ pub mod models;
 mod tag_row;
 
 use crate::gtk_handle;
-use crate::util::{BuilderHelper, GtkHandle};
-use gtk::{ContainerExt, ListBox, ListBoxExt, ListBoxRowExt, SelectionMode, WidgetExt};
+use crate::sidebar::SidebarIterateItem;
+use crate::util::{BuilderHelper, GtkHandle, GtkUtil};
+use gtk::{Continue, ContainerExt, ListBox, ListBoxExt, ListBoxRowExt, SelectionMode, WidgetExt};
+use glib::translate::ToGlib;
 use models::{TagListChangeSet, TagListModel, TagListTagModel};
 use news_flash::models::TagID;
 use std::cell::RefCell;
@@ -16,6 +18,7 @@ pub struct TagList {
     list: ListBox,
     tags: HashMap<TagID, GtkHandle<TagRow>>,
     list_model: GtkHandle<TagListModel>,
+    delayed_selection: GtkHandle<Option<u32>>,
 }
 
 impl TagList {
@@ -37,6 +40,7 @@ impl TagList {
             list: list_box,
             tags: HashMap::new(),
             list_model: gtk_handle!(TagListModel::new()),
+            delayed_selection: gtk_handle!(None),
         }
     }
 
@@ -52,7 +56,7 @@ impl TagList {
             match diff {
                 TagListChangeSet::Remove(id) => {
                     if let Some(tag_handle) = self.tags.get(&id) {
-                        self.list.remove(&tag_handle.borrow().row());
+                        self.list.remove(&tag_handle.borrow().widget());
                     }
                     self.tags.remove(&id);
                 }
@@ -75,7 +79,7 @@ impl TagList {
 
     fn add_tag(&mut self, tag: &TagListTagModel, pos: i32) {
         let tag_widget = TagRow::new(tag);
-        self.list.insert(&tag_widget.borrow().row(), pos);
+        self.list.insert(&tag_widget.borrow().widget(), pos);
         self.tags.insert(tag.id.clone(), tag_widget);
     }
 
@@ -91,5 +95,64 @@ impl TagList {
             }
         }
         None
+    }
+
+    pub fn get_next_item(&self) -> SidebarIterateItem {
+        if let Some(row) = self.list.get_selected_row() {
+            let index = row.get_index();
+            return self.list_model.borrow().calculate_next_item(index)
+        }
+        SidebarIterateItem::NothingSelected
+    }
+
+    pub fn get_prev_item(&self) -> SidebarIterateItem {
+        if let Some(row) = self.list.get_selected_row() {
+            let index = row.get_index();
+            return self.list_model.borrow().calculate_prev_item(index)
+        }
+        SidebarIterateItem::NothingSelected
+    }
+
+    pub fn get_first_item(&self) -> Option<TagID> {
+        self.list_model
+            .borrow_mut()
+            .first()
+            .map(|model| model.id.clone())
+    }
+
+    pub fn get_last_item(&self) -> Option<TagID> {
+        self.list_model
+            .borrow_mut()
+            .last()
+            .map(|model| model.id.clone())
+    }
+
+    pub fn set_selection(&self, selection: TagID) {
+        self.cancel_selection();
+
+        if let Some(tag_row) = self.tags.get(&selection) {
+            let list = self.list.clone();
+            let delayed_selection = self.delayed_selection.clone();
+            let row = tag_row.borrow().widget();
+            gtk::idle_add(move || {
+                list.select_row(&row);
+
+                let active_row = row.clone();
+                let source_id = delayed_selection.clone();
+                *delayed_selection.borrow_mut() = Some(gtk::timeout_add(300, move || {
+                    active_row.emit_activate();
+                    *source_id.borrow_mut() = None;
+                    Continue(false)
+                }).to_glib());
+
+                row.emit_activate();
+                Continue(false)
+            });
+        }
+    }
+
+    pub fn cancel_selection(&self) {
+        GtkUtil::remove_source(*self.delayed_selection.borrow());
+        *self.delayed_selection.borrow_mut() = None;
     }
 }

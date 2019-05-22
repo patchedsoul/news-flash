@@ -18,6 +18,7 @@ use single::SingleArticleList;
 use std::cell::RefCell;
 use std::rc::Rc;
 
+#[derive(Clone, Debug)]
 pub enum CurrentList {
     List1,
     List2,
@@ -256,7 +257,7 @@ impl ArticleList {
     fn get_current_list(&self) -> GtkHandle<SingleArticleList> {
         match *self.current_list.borrow() {
             CurrentList::List1 => self.list_1.clone(),
-            CurrentList::List2 => self.list_1.clone(),
+            CurrentList::List2 => self.list_2.clone(),
         }
     }
 

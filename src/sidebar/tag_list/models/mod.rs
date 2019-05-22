@@ -7,6 +7,7 @@ use failure::Error;
 use news_flash::models::{Tag, TagID};
 use std::collections::HashSet;
 pub use tag::TagListTagModel;
+use crate::sidebar::SidebarIterateItem;
 
 #[derive(Clone, Debug)]
 pub struct TagListModel {
@@ -109,7 +110,31 @@ impl TagListModel {
         self.models
             .iter()
             .enumerate()
-            .find(|(index, _)| index == &(selected_index as usize))
+            .find(|(index, _item)| index == &(selected_index as usize))
+    }
+
+    pub fn calculate_next_item(&self, selected_index: i32) -> SidebarIterateItem {
+        match self.calculate_selection(selected_index + 1) {
+            None => SidebarIterateItem::SelectAll,
+            Some((_index, model)) => SidebarIterateItem::SelectTagList(model.id.clone()),
+        }
+    }
+
+    pub fn calculate_prev_item(&self, selected_index: i32) -> SidebarIterateItem {
+        match self.calculate_selection(selected_index - 1) {
+            None => SidebarIterateItem::FeedListSelectLastItem,
+            Some((_index, model)) => SidebarIterateItem::SelectTagList(model.id.clone()),
+        }
+    }
+
+    pub fn first(&mut self) -> Option<TagListTagModel> {
+        self.sort();
+        self.models.first().cloned()
+    }
+
+    pub fn last(&mut self) -> Option<TagListTagModel> {
+        self.sort();
+        self.models.last().cloned()
     }
 }
 

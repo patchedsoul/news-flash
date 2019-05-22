@@ -1,6 +1,14 @@
+use serde_derive::{Deserialize, Serialize};
 use super::category::FeedListCategoryModel;
 use super::feed::FeedListFeedModel;
 use std::cmp::Ordering;
+use news_flash::models::{CategoryID, FeedID};
+
+#[derive(Clone, Debug, Serialize, Deserialize)]
+pub enum FeedListItemID {
+    Category(CategoryID),
+    Feed(FeedID),
+}
 
 #[derive(Eq, Clone, Debug)]
 pub enum FeedListItem {

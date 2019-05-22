@@ -3,7 +3,8 @@ use super::change_set::FeedListChangeSet;
 use super::error::{FeedListModelError, FeedListModelErrorKind};
 use super::feed::FeedListFeedModel;
 use super::item::FeedListItem;
-use super::FeedListSelection;
+use super::FeedListItemID;
+use crate::sidebar::SidebarIterateItem;
 use news_flash::models::{Category, CategoryID, FavIcon, Feed, FeedID, FeedMapping, NEWSFLASH_TOPLEVEL};
 
 #[derive(Clone, Debug)]
@@ -17,6 +18,21 @@ impl FeedListTree {
         FeedListTree {
             top_level_id: NEWSFLASH_TOPLEVEL.clone(),
             top_level: Vec::new(),
+        }
+    }
+
+    pub fn len(&self) -> i32 {
+        let mut count = 0;
+        Self::len_internal(&self.top_level, &mut count);
+        count
+    }
+
+    fn len_internal(items: &[FeedListItem], count: &mut i32) {
+        for item in items {
+            *count += 1;
+            if let FeedListItem::Category(category) = item {
+                Self::len_internal(&category.children, count);
+            }
         }
     }
 
@@ -354,7 +370,7 @@ impl FeedListTree {
         Err(FeedListModelErrorKind::DnD)?
     }
 
-    pub fn calculate_selection(&self, selected_index: i32) -> Option<FeedListSelection> {
+    pub fn calculate_selection(&self, selected_index: i32) -> Option<FeedListItemID> {
         let mut index = 0;
         Self::calculate_selection_internal(selected_index + 1, &self.top_level, &mut index)
     }
@@ -363,18 +379,18 @@ impl FeedListTree {
         selected_index: i32,
         items: &[FeedListItem],
         index: &mut i32,
-    ) -> Option<FeedListSelection> {
+    ) -> Option<FeedListItemID> {
         for item in items {
             *index += 1;
             match item {
                 FeedListItem::Feed(feed) => {
                     if *index == selected_index {
-                        return Some(FeedListSelection::Feed(feed.id.clone()));
+                        return Some(FeedListItemID::Feed(feed.id.clone()));
                     }
                 }
                 FeedListItem::Category(category) => {
                     if *index == selected_index {
-                        return Some(FeedListSelection::Cateogry(category.id.clone()));
+                        return Some(FeedListItemID::Category(category.id.clone()));
                     }
                     if let Some(selection) =
                         Self::calculate_selection_internal(selected_index, &category.children, index)
@@ -385,6 +401,113 @@ impl FeedListTree {
             }
         }
         None
+    }
+
+    pub fn calculate_next_item(&mut self, selected_index: i32) -> SidebarIterateItem {
+        let mut index = 0;
+        let mut selected_found = false;
+        self.top_level.sort();
+        Self::iterate_next_internal(selected_index + 1, &mut self.top_level, &mut index, &mut selected_found)
+    }
+
+    fn iterate_next_internal(
+        selected_index: i32,
+        items: &[FeedListItem],
+        index: &mut i32,
+        selected_found: &mut bool,
+    ) -> SidebarIterateItem {
+        
+        for item in items {
+            *index += 1;
+            match item {
+                FeedListItem::Feed(feed) => {
+                    if !*selected_found {
+                        if *index == selected_index {
+                            *selected_found = true;
+                            continue
+                        }
+                    } else {
+                        return SidebarIterateItem::SelectFeedListFeed(feed.id.clone())
+                    }
+                }
+                FeedListItem::Category(category) => {
+                    if !*selected_found {
+                        if *index == selected_index {
+                            *selected_found = true;
+                            if !category.expanded {
+                                continue
+                            }
+                        }
+                    } else {
+                        return SidebarIterateItem::SelectFeedListCategory(category.id.clone())
+                    }
+
+                    match Self::iterate_next_internal(selected_index, &category.children, index, selected_found) {
+                        SidebarIterateItem::SelectFeedListCategory(category) => return SidebarIterateItem::SelectFeedListCategory(category),
+                        SidebarIterateItem::SelectFeedListFeed(feed) => return SidebarIterateItem::SelectFeedListFeed(feed),
+                        _ => {}
+                    }
+                }
+            }
+        }
+        SidebarIterateItem::TagListSelectFirstItem
+    }
+
+    pub fn calculate_prev_item(&mut self, selected_index: i32) -> SidebarIterateItem {
+        let mut index = self.len();
+        let mut selected_found = false;
+        self.top_level.sort();
+        Self::iterate_prev_internal(selected_index, &mut self.top_level, &mut index, &mut selected_found)
+    }
+
+    fn iterate_prev_internal(
+        selected_index: i32,
+        items: &[FeedListItem],
+        index: &mut i32,
+        selected_found: &mut bool,
+    ) -> SidebarIterateItem {
+        
+        for item in items.iter().rev() {
+            match item {
+                FeedListItem::Feed(feed) => {
+                    *index -= 1;
+                    if !*selected_found {
+                        if *index == selected_index {
+                            *selected_found = true;
+                            continue
+                        }
+                    } else {
+                        return SidebarIterateItem::SelectFeedListFeed(feed.id.clone())
+                    }
+                }
+                FeedListItem::Category(category) => {
+
+                    if category.expanded {
+                        match Self::iterate_prev_internal(selected_index, &category.children, index, selected_found) {
+                            SidebarIterateItem::SelectFeedListCategory(category) => return SidebarIterateItem::SelectFeedListCategory(category),
+                            SidebarIterateItem::SelectFeedListFeed(feed) => return SidebarIterateItem::SelectFeedListFeed(feed),
+                            _ => {}
+                        }
+                    } else {
+                        *index -= category.len();
+                    }
+                    
+
+                    *index -= 1;
+                    if !*selected_found {
+                        if *index == selected_index {
+                            *selected_found = true;
+                            if !category.expanded {
+                                continue
+                            }
+                        }
+                    } else {
+                        return SidebarIterateItem::SelectFeedListCategory(category.id.clone())
+                    }
+                }
+            }
+        }
+        SidebarIterateItem::SelectAll
     }
 
     #[allow(dead_code)]
@@ -401,7 +524,6 @@ impl FeedListTree {
 
             match item {
                 FeedListItem::Category(model) => {
-                    println!("{}", model.label);
                     self.print_internal(&model.children, &mut new_level);
                 }
                 FeedListItem::Feed(model) => {

@@ -55,6 +55,21 @@ impl FeedListCategoryModel {
         self.expanded = !self.expanded;
         self.expanded
     }
+
+    pub fn len(&self) -> i32 {
+        let mut count = 0;
+        Self::len_internal(&self.children, &mut count);
+        count
+    }
+
+    fn len_internal(items: &[FeedListItem], count: &mut i32) {
+        for item in items {
+            *count += 1;
+            if let FeedListItem::Category(category) = item {
+                Self::len_internal(&category.children, count);
+            }
+        }
+    }
 }
 
 impl PartialEq for FeedListCategoryModel {

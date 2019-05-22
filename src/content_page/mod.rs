@@ -302,4 +302,12 @@ impl ContentPage {
     pub fn get_selected_article_model(&self) -> Option<ArticleListArticleModel> {
         self.article_list.get_selected_article_model()
     }
+
+    pub fn sidebar_select_next_item(&self) -> Result<(), Error> {
+        self.sidebar.select_next_item()
+    }
+
+    pub fn sidebar_select_prev_item(&self) -> Result<(), Error> {
+        self.sidebar.select_prev_item()
+    }
 }

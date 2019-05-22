@@ -12,6 +12,10 @@ pub enum FeedListErrorKind {
     EmbedFile,
     #[fail(display = "Failed to find widget in UI file")]
     UIFile,
+    #[fail(display = "Category is not present in list")]
+    CategoryNotFound,
+    #[fail(display = "Feed is not present in list")]
+    FeedNotFound,
     #[fail(display = "Unknown Error")]
     Unknown,
 }

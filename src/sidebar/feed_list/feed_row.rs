@@ -2,13 +2,13 @@ use crate::gtk_handle;
 use crate::sidebar::feed_list::models::FeedListFeedModel;
 use crate::util::GtkHandle;
 use crate::util::GtkUtil;
-use crate::Resources;
+use crate::util::BuilderHelper;
 use cairo::{self, Format, ImageSurface};
 use gdk::{DragAction, ModifierType};
 use glib::{source::SourceId, translate::FromGlib, translate::ToGlib, Source};
 use gtk::{
-    self, ContainerExt, Continue, DragContextExtManual, ImageExt, LabelExt, ListBoxRowExt, RevealerExt,
-    StyleContextExt, TargetEntry, TargetFlags, WidgetExt, WidgetExtManual,
+    self, Box, ContainerExt, Continue, DragContextExtManual, EventBox, Image, ImageExt, Label, LabelExt, ListBoxRow, ListBoxRowExt,
+    Revealer, RevealerExt, StyleContextExt, TargetEntry, TargetFlags, WidgetExt, WidgetExtManual,
 };
 use news_flash::models::{FavIcon, FeedID};
 use std::cell::RefCell;
@@ -18,28 +18,26 @@ use std::str;
 #[derive(Clone, Debug)]
 pub struct FeedRow {
     pub id: FeedID,
-    widget: gtk::ListBoxRow,
-    item_count: gtk::Label,
-    item_count_event: gtk::EventBox,
-    title: gtk::Label,
-    revealer: gtk::Revealer,
+    widget: ListBoxRow,
+    item_count: Label,
+    item_count_event: EventBox,
+    title: Label,
+    revealer: Revealer,
     hide_timeout: GtkHandle<Option<u32>>,
-    favicon: gtk::Image,
+    favicon: Image,
 }
 
 impl FeedRow {
     pub fn new(model: &FeedListFeedModel, visible: bool) -> GtkHandle<FeedRow> {
-        let ui_data = Resources::get("ui/feed.ui").unwrap();
-        let ui_string = str::from_utf8(ui_data.as_ref()).unwrap();
-        let builder = gtk::Builder::new_from_string(ui_string);
-        let revealer: gtk::Revealer = builder.get_object("feed_row").unwrap();
-        let level_margin: gtk::Box = builder.get_object("level_margin").unwrap();
+        let builder = BuilderHelper::new("feed");
+        let revealer = builder.get::<Revealer>("feed_row");
+        let level_margin = builder.get::<Box>("level_margin");
         level_margin.set_margin_start(model.level * 24);
 
-        let title_label: gtk::Label = builder.get_object("feed_title").unwrap();
-        let item_count_label: gtk::Label = builder.get_object("item_count").unwrap();
-        let item_count_event: gtk::EventBox = builder.get_object("item_count_event").unwrap();
-        let favicon: gtk::Image = builder.get_object("favicon").unwrap();
+        let title_label = builder.get::<Label>("feed_title");
+        let item_count_label = builder.get::<Label>("item_count");
+        let item_count_event = builder.get::<EventBox>("item_count_event");
+        let favicon = builder.get::<Image>("favicon");
 
         let mut feed = FeedRow {
             id: model.id.clone(),
@@ -60,9 +58,9 @@ impl FeedRow {
         gtk_handle!(feed)
     }
 
-    fn create_row(widget: &gtk::Revealer, id: &FeedID) -> gtk::ListBoxRow {
+    fn create_row(widget: &gtk::Revealer, id: &FeedID) -> ListBoxRow {
         let row = gtk::ListBoxRow::new();
-        row.set_activatable(false);
+        row.set_activatable(true);
         row.set_can_focus(false);
         row.add(widget);
         let context = row.get_style_context();
@@ -94,7 +92,7 @@ impl FeedRow {
         row_2nd_handle
     }
 
-    pub fn row(&self) -> gtk::ListBoxRow {
+    pub fn widget(&self) -> ListBoxRow {
         self.widget.clone()
     }
 
@@ -129,7 +127,7 @@ impl FeedRow {
         // hide row after animation finished
         {
             // add new timeout
-            let widget = self.row();
+            let widget = self.widget();
             let hide_timeout = self.hide_timeout.clone();
             let source_id = gtk::timeout_add(250, move || {
                 widget.set_visible(false);

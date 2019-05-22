@@ -260,8 +260,20 @@ impl MainWindow {
                 if let Some(article_model) = article_model {
                     if let Some(url) = article_model.url {
                         gtk::show_uri_on_window(&main_window, url.get().as_str(), 0).unwrap();
+                    } else {
+                        warn!("Open selected article in browser: No url available.")
                     }
+                } else {
+                    warn!("Open selected article in browser: No article Selected.")
                 }
+            }
+
+            if Self::check_shortcut("next_item", &settings, event) {
+                content_page.borrow().sidebar_select_next_item().unwrap();
+            }
+
+            if Self::check_shortcut("previous_item", &settings, event) {
+                content_page.borrow().sidebar_select_prev_item().unwrap();
             }
 
             Inhibit(false)
