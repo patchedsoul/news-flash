@@ -9,6 +9,7 @@ use crate::Resources;
 use crate::settings::{Settings, Keybindings};
 use crate::about_dialog::{ICON_NAME, APP_NAME};
 use crate::article_list::{ReadUpdate, MarkUpdate};
+use crate::sidebar::models::SidebarSelection;
 use failure::Error;
 use gtk::{
     self, Application, ApplicationWindow, CssProvider, CssProviderExt, GtkWindowExt, GtkWindowExtManual, Inhibit,
@@ -122,7 +123,7 @@ impl MainWindow {
         MainWindowActions::setup_select_next_article_action(&window, &content_page_handle);
         MainWindowActions::setup_select_prev_article_action(&window, &content_page_handle);
 
-        Self::setup_shortcuts(&window, &content_page_handle, &stack, &settings);
+        Self::setup_shortcuts(&window, &content_page_handle, &stack, &settings, &news_flash_handle);
 
         if let Ok(news_flash_lib) = NewsFlash::try_load(&DATA_DIR) {
             info!("Successful load from config");
@@ -160,11 +161,18 @@ impl MainWindow {
         self.widget.present();
     }
 
-    fn setup_shortcuts(window: &ApplicationWindow, content_page: &GtkHandle<ContentPage>, main_stack: &Stack, settings: &GtkHandle<Settings>) {
+    fn setup_shortcuts(
+        window: &ApplicationWindow,
+        content_page: &GtkHandle<ContentPage>,
+        main_stack: &Stack,
+        settings: &GtkHandle<Settings>,
+        news_flash: &GtkHandle<Option<NewsFlash>>,
+    ) {
         let main_stack = main_stack.clone();
         let settings = settings.clone();
         let content_page = content_page.clone();
         let main_window = window.clone();
+        let news_flash = news_flash.clone();
         window.connect_key_press_event(move |widget, event| {
 
             // ignore shortcuts when not on content page
@@ -278,6 +286,24 @@ impl MainWindow {
 
             if Self::check_shortcut("previous_item", &settings, event) {
                 content_page.borrow().sidebar_select_prev_item().unwrap();
+            }
+
+            if Self::check_shortcut("sidebar_set_read", &settings, event) {
+                if let Some(news_flash) = news_flash.borrow_mut().as_mut() {
+                    match content_page.borrow().sidebar_get_selection() {
+                        SidebarSelection::All => news_flash.set_all_read().unwrap(),
+                        SidebarSelection::Cateogry(category_id) => news_flash.set_category_read(&vec![category_id]).unwrap(),
+                        SidebarSelection::Feed(feed_id) => news_flash.set_feed_read(&vec![feed_id]).unwrap(),
+                        SidebarSelection::Tag(tag_id) => news_flash.set_tag_read(&vec![tag_id]).unwrap(),
+                    }
+                }
+
+                if let Some(action) = main_window.lookup_action("update-article-list") {
+                    action.activate(None);
+                }
+                if let Some(action) = main_window.lookup_action("update-sidebar") {
+                    action.activate(None);
+                }
             }
 
             Inhibit(false)

@@ -115,7 +115,7 @@
             <child>
               <object class="GtkShortcutsShortcut">
                 <property name="title" translatable="yes">Mark Item Read</property>
-                <property name="accelerator">$FEEDREAD</property>
+                <property name="accelerator">$ITEMREAD</property>
               </object>
             </child>
           </object>

@@ -314,4 +314,8 @@ impl ContentPage {
     pub fn sidebar_expand_collase_category(&self) {
         self.sidebar.expand_collapse_selected_category()
     }
+
+    pub fn sidebar_get_selection(&self) -> SidebarSelection {
+        self.sidebar.get_selection()
+    }
 }

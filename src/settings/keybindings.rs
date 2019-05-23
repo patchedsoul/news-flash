@@ -184,7 +184,7 @@ impl Keybindings {
             "feed_keys_list" => settings.borrow_mut().set_keybind_feed_list_next(keybinding),
             "previous_item" => settings.borrow_mut().set_keybind_feed_list_prev(keybinding),
             "toggle_category_expanded" => settings.borrow_mut().set_keybind_feed_list_toggle_expanded(keybinding),
-            "feed_read" => settings.borrow_mut().set_keybind_feed_list_read(keybinding),
+            "sidebar_set_read" => settings.borrow_mut().set_keybind_sidebar_set_read(keybinding),
             "shortcuts" => settings.borrow_mut().set_keybind_shortcut(keybinding),
             "refresh" => settings.borrow_mut().set_keybind_refresh(keybinding),
             "search" => settings.borrow_mut().set_keybind_search(keybinding),
@@ -208,7 +208,7 @@ impl Keybindings {
             "next_item" => Ok(settings.borrow_mut().get_keybind_feed_list_next()),
             "previous_item" => Ok(settings.borrow_mut().get_keybind_feed_list_prev()),
             "toggle_category_expanded" => Ok(settings.borrow_mut().get_keybind_feed_list_toggle_expanded()),
-            "feed_read" => Ok(settings.borrow_mut().get_keybind_feed_list_read()),
+            "sidebar_set_read" => Ok(settings.borrow_mut().get_keybind_sidebar_set_read()),
             "shortcuts" => Ok(settings.borrow_mut().get_keybind_shortcut()),
             "refresh" => Ok(settings.borrow_mut().get_keybind_refresh()),
             "search" => Ok(settings.borrow_mut().get_keybind_search()),
@@ -373,7 +373,7 @@ impl NewsFlashShortcutWindow {
         ui_xml = Self::setup_shortcut(&ui_xml, "$NEXTFEED", settings.borrow().get_keybind_feed_list_next());
         ui_xml = Self::setup_shortcut(&ui_xml, "$PREVFEED", settings.borrow().get_keybind_feed_list_prev());
         ui_xml = Self::setup_shortcut(&ui_xml, "$TOGGLEEXPAND", settings.borrow().get_keybind_feed_list_toggle_expanded());
-        ui_xml = Self::setup_shortcut(&ui_xml, "$FEEDREAD", settings.borrow().get_keybind_feed_list_read());
+        ui_xml = Self::setup_shortcut(&ui_xml, "$ITEMREAD", settings.borrow().get_keybind_sidebar_set_read());
         
 
         let builder = BuilderHelper::new_from_xml(&ui_xml);

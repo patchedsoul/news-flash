@@ -236,11 +236,11 @@ impl Settings {
         Ok(())
     }
 
-    pub fn get_keybind_feed_list_read(&self) -> Option<String> {
+    pub fn get_keybind_sidebar_set_read(&self) -> Option<String> {
         self.keybindings.feed_list.read.clone()
     }
 
-    pub fn set_keybind_feed_list_read(&mut self, key: Option<String>) -> Result<(), Error> {
+    pub fn set_keybind_sidebar_set_read(&mut self, key: Option<String>) -> Result<(), Error> {
         self.keybindings.feed_list.read = key;
         self.write()?;
         Ok(())

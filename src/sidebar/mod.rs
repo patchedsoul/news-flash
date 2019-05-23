@@ -439,6 +439,10 @@ impl SideBar {
         Ok(())
     }
 
+    pub fn get_selection(&self) -> SidebarSelection {
+        (*self.selection.borrow()).clone()
+    }
+
     fn deselect(&self) {
         Self::deselect_all_button(&self.all_event_box, &self.delayed_all_selection);
         self.feed_list.borrow().cancel_selection();
