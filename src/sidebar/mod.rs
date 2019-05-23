@@ -66,7 +66,7 @@ impl SideBar {
         let feed_list_box = builder.get::<Box>("feed_list_box");
         let tag_list_box = builder.get::<Box>("tags_list_box");
 
-        let feed_list = FeedList::new()?;
+        let feed_list = FeedList::new();
         let tag_list = TagList::new();
 
         let feed_list_handle = gtk_handle!(feed_list);
@@ -425,6 +425,10 @@ impl SideBar {
                 }
             },
             SidebarIterateItem::TagListSelectLastItem => {
+                // if tags not supported or not available jump back to "All Articles"
+                if !self.tags_box.is_visible() {
+                    return self.select_item(SidebarIterateItem::FeedListSelectLastItem)
+                }
                 Self::expand_list(true, &self.tags_revealer, &self.tags_expander, &self.expanded_tags);
                 if let Some(item) = self.tag_list.borrow().get_last_item() {
                     self.tag_list.borrow().set_selection(item);
@@ -441,5 +445,9 @@ impl SideBar {
         self.feed_list.borrow().widget().unselect_all();
         self.tag_list.borrow().cancel_selection();
         self.tag_list.borrow().widget().unselect_all();
+    }
+
+    pub fn expand_collapse_selected_category(&self) {
+        self.feed_list.borrow().expand_collapse_selected_category()
     }
 }

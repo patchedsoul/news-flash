@@ -213,6 +213,10 @@ impl MainWindow {
                 }
             }
 
+            if Self::check_shortcut("toggle_category_expanded", &settings, event) {
+                content_page.borrow().sidebar_expand_collase_category();
+            }
+
             if Self::check_shortcut("toggle_read", &settings, event) {
                 let article_model = content_page.borrow().get_selected_article_model();
                 if let Some(article_model) = article_model {

@@ -13,14 +13,10 @@ use crate::sidebar::feed_list::{
         FeedListCategoryModel, FeedListChangeSet, FeedListDndAction, FeedListFeedModel, FeedListItem, FeedListItemID, FeedListTree,
     },
 };
-use crate::util::GtkHandle;
-use crate::util::GtkHandleMap;
-use crate::util::GtkUtil;
-use crate::Resources;
-use failure::ResultExt;
+use crate::util::{GtkHandle, GtkHandleMap, GtkUtil, BuilderHelper};
 use gdk::{DragAction, EventType};
 use gtk::{
-    self, ContainerExt, DestDefaults, Inhibit, ListBoxExt, ListBoxRowExt, SelectionMode, StyleContextExt, TargetEntry,
+    self, ContainerExt, DestDefaults, Inhibit, ListBox, ListBoxExt, ListBoxRowExt, SelectionMode, StyleContextExt, TargetEntry,
     TargetFlags, WidgetExt, WidgetExtManual, Continue,
 };
 use glib::translate::ToGlib;
@@ -29,11 +25,10 @@ use news_flash::models::{CategoryID, FeedID};
 use std::cell::RefCell;
 use std::collections::HashMap;
 use std::rc::Rc;
-use std::str;
 
 #[derive(Clone, Debug)]
 pub struct FeedList {
-    list: gtk::ListBox,
+    list: ListBox,
     categories: GtkHandleMap<CategoryID, GtkHandle<CategoryRow>>,
     feeds: GtkHandleMap<FeedID, GtkHandle<FeedRow>>,
     tree: GtkHandle<FeedListTree>,
@@ -41,11 +36,9 @@ pub struct FeedList {
 }
 
 impl FeedList {
-    pub fn new() -> Result<Self, FeedListError> {
-        let ui_data = Resources::get("ui/sidebar_list.ui").ok_or(FeedListErrorKind::UIFile)?;
-        let ui_string = str::from_utf8(ui_data.as_ref()).context(FeedListErrorKind::EmbedFile)?;
-        let builder = gtk::Builder::new_from_string(ui_string);
-        let list_box: gtk::ListBox = builder.get_object("sidebar_list").ok_or(FeedListErrorKind::UIFile)?;
+    pub fn new() -> Self {
+        let builder = BuilderHelper::new("sidebar_list");
+        let list_box = builder.get::<ListBox>("sidebar_list");
 
         // set selection mode from NONE -> SINGLE after a delay after it's been shown
         // this ensures selection mode is in SINGLE without having a selected row in the list
@@ -65,10 +58,10 @@ impl FeedList {
             delayed_selection: gtk_handle!(None),
         };
         feed_list.setup_dnd();
-        Ok(feed_list)
+        feed_list
     }
 
-    pub fn widget(&self) -> gtk::ListBox {
+    pub fn widget(&self) -> ListBox {
         self.list.clone()
     }
 
@@ -231,34 +224,54 @@ impl FeedList {
             .expander_event()
             .connect_button_press_event(move |_widget, event| {
                 if event.get_button() != 1 {
-                    return gtk::Inhibit(true);
+                    return Inhibit(true);
                 }
                 match event.get_event_type() {
                     EventType::ButtonPress => (),
-                    _ => return gtk::Inhibit(true),
+                    _ => return Inhibit(true),
                 }
-                if let Some((feed_ids, category_ids, expaneded)) = tree.borrow_mut().collapse_expand_ids(&category_id) {
-                    for feed_id in feed_ids {
-                        if let Some(feed_handle) = feeds.borrow().get(&feed_id) {
-                            if expaneded {
-                                feed_handle.borrow_mut().expand();
-                            } else {
-                                feed_handle.borrow_mut().collapse();
-                            }
-                        }
-                    }
-                    for category_id in category_ids {
-                        if let Some(category_handle) = categories.borrow().get(&category_id) {
-                            if expaneded {
-                                category_handle.borrow_mut().expand();
-                            } else {
-                                category_handle.borrow_mut().collapse();
-                            }
-                        }
-                    }
-                }
-                gtk::Inhibit(true)
+                Self::expand_collapse_category(&category_id, &tree, &categories, &feeds);
+                Inhibit(true)
             });
+    }
+
+    pub fn expand_collapse_selected_category(&self) {
+        if let Some(row) = self.list.get_selected_row() {
+            let selection = self.tree.borrow().calculate_selection(row.get_index());
+            if let Some(selected_item) = selection {
+                if let FeedListItemID::Category(id) = selected_item {
+                    Self::expand_collapse_category(&id, &self.tree, &self.categories, &self.feeds);
+                }
+            }
+        }
+    }
+
+    fn expand_collapse_category(
+        category_id: &CategoryID,
+        tree: &GtkHandle<FeedListTree>,
+        categories: &GtkHandleMap<CategoryID, GtkHandle<CategoryRow>>,
+        feeds: &GtkHandleMap<FeedID, GtkHandle<FeedRow>>,
+    ) {
+        if let Some((feed_ids, category_ids, expaneded)) = tree.borrow_mut().collapse_expand_ids(category_id) {
+            for feed_id in feed_ids {
+                if let Some(feed_handle) = feeds.borrow().get(&feed_id) {
+                    if expaneded {
+                        feed_handle.borrow_mut().expand();
+                    } else {
+                        feed_handle.borrow_mut().collapse();
+                    }
+                }
+            }
+            for category_id in category_ids {
+                if let Some(category_handle) = categories.borrow().get(&category_id) {
+                    if expaneded {
+                        category_handle.borrow_mut().expand();
+                    } else {
+                        category_handle.borrow_mut().collapse();
+                    }
+                }
+            }
+        }
     }
 
     fn add_feed(&mut self, feed: &FeedListFeedModel, pos: i32, visible: bool) {

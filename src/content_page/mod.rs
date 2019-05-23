@@ -310,4 +310,8 @@ impl ContentPage {
     pub fn sidebar_select_prev_item(&self) -> Result<(), Error> {
         self.sidebar.select_prev_item()
     }
+
+    pub fn sidebar_expand_collase_category(&self) {
+        self.sidebar.expand_collapse_selected_category()
+    }
 }

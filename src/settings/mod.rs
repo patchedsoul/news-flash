@@ -226,22 +226,12 @@ impl Settings {
         Ok(())
     }
 
-    pub fn get_keybind_feed_list_expand(&self) -> Option<String> {
-        self.keybindings.feed_list.expand.clone()
+    pub fn get_keybind_feed_list_toggle_expanded(&self) -> Option<String> {
+        self.keybindings.feed_list.toggle_expanded.clone()
     }
 
-    pub fn set_keybind_feed_list_expand(&mut self, key: Option<String>) -> Result<(), Error> {
-        self.keybindings.feed_list.expand = key;
-        self.write()?;
-        Ok(())
-    }
-
-    pub fn get_keybind_feed_list_collapse(&self) -> Option<String> {
-        self.keybindings.feed_list.collapse.clone()
-    }
-
-    pub fn set_keybind_feed_list_collapse(&mut self, key: Option<String>) -> Result<(), Error> {
-        self.keybindings.feed_list.collapse = key;
+    pub fn set_keybind_feed_list_toggle_expanded(&mut self, key: Option<String>) -> Result<(), Error> {
+        self.keybindings.feed_list.toggle_expanded = key;
         self.write()?;
         Ok(())
     }

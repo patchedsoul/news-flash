@@ -183,8 +183,7 @@ impl Keybindings {
             "open_browser" => settings.borrow_mut().set_keybind_article_list_open(keybinding),
             "feed_keys_list" => settings.borrow_mut().set_keybind_feed_list_next(keybinding),
             "previous_item" => settings.borrow_mut().set_keybind_feed_list_prev(keybinding),
-            "expand_category" => settings.borrow_mut().set_keybind_feed_list_expand(keybinding),
-            "collapse_category" => settings.borrow_mut().set_keybind_feed_list_collapse(keybinding),
+            "toggle_category_expanded" => settings.borrow_mut().set_keybind_feed_list_toggle_expanded(keybinding),
             "feed_read" => settings.borrow_mut().set_keybind_feed_list_read(keybinding),
             "shortcuts" => settings.borrow_mut().set_keybind_shortcut(keybinding),
             "refresh" => settings.borrow_mut().set_keybind_refresh(keybinding),
@@ -208,8 +207,7 @@ impl Keybindings {
             "open_browser" => Ok(settings.borrow_mut().get_keybind_article_list_open()),
             "next_item" => Ok(settings.borrow_mut().get_keybind_feed_list_next()),
             "previous_item" => Ok(settings.borrow_mut().get_keybind_feed_list_prev()),
-            "expand_category" => Ok(settings.borrow_mut().get_keybind_feed_list_expand()),
-            "collapse_category" => Ok(settings.borrow_mut().get_keybind_feed_list_collapse()),
+            "toggle_category_expanded" => Ok(settings.borrow_mut().get_keybind_feed_list_toggle_expanded()),
             "feed_read" => Ok(settings.borrow_mut().get_keybind_feed_list_read()),
             "shortcuts" => Ok(settings.borrow_mut().get_keybind_shortcut()),
             "refresh" => Ok(settings.borrow_mut().get_keybind_refresh()),
@@ -328,10 +326,7 @@ pub struct KeybindingsFeedList {
     pub prev: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
     #[serde(default)]
-    pub expand: Option<String>,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    #[serde(default)]
-    pub collapse: Option<String>,
+    pub toggle_expanded: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
     #[serde(default)]
     pub read: Option<String>,
@@ -342,8 +337,7 @@ impl KeybindingsFeedList {
         KeybindingsFeedList {
             next: Some("<ctl>J".to_owned()),
             prev: Some("<ctl>K".to_owned()),
-            expand: Some("Right".to_owned()),
-            collapse: Some("Left".to_owned()),
+            toggle_expanded: Some("C".to_owned()),
             read: Some("<Shift>A".to_owned()),
         }
     }
@@ -378,8 +372,7 @@ impl NewsFlashShortcutWindow {
         ui_xml = Self::setup_shortcut(&ui_xml, "$SCROLLDOWN", settings.borrow().get_keybind_article_view_down());
         ui_xml = Self::setup_shortcut(&ui_xml, "$NEXTFEED", settings.borrow().get_keybind_feed_list_next());
         ui_xml = Self::setup_shortcut(&ui_xml, "$PREVFEED", settings.borrow().get_keybind_feed_list_prev());
-        ui_xml = Self::setup_shortcut(&ui_xml, "$CATCOLLAPSE", settings.borrow().get_keybind_feed_list_collapse());
-        ui_xml = Self::setup_shortcut(&ui_xml, "$CATEXPAND", settings.borrow().get_keybind_feed_list_expand());
+        ui_xml = Self::setup_shortcut(&ui_xml, "$TOGGLEEXPAND", settings.borrow().get_keybind_feed_list_toggle_expanded());
         ui_xml = Self::setup_shortcut(&ui_xml, "$FEEDREAD", settings.borrow().get_keybind_feed_list_read());
         
 

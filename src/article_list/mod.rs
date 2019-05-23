@@ -280,9 +280,16 @@ impl ArticleList {
                 if let Some(next_row) = next_row {
                     current_list.borrow().select_after(&next_row.id, 300);
                     if let Some(height) = current_list.borrow().get_allocated_row_height(&selected_row.id) {
-                        current_list.borrow().animate_scroll(f64::from(direction * height));
+                        current_list.borrow().animate_scroll_diff(f64::from(direction * height));
                     }
                 }
+            }
+        } else {
+            let first_row = self.list_model.borrow_mut().first().map(|r| r.clone());
+
+            if let Some(first_row) = first_row {
+                current_list.borrow().select_after(&first_row.id, 300);
+                current_list.borrow().animate_scroll_absolute(0.0);
             }
         }
     }

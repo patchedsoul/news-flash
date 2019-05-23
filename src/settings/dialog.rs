@@ -163,8 +163,7 @@ impl SettingsDialog {
         let feed_keys_list = self.builder.get::<ListBox>("feed_keys_list");
         self.setup_keybinding_row(&feed_keys_list, "next_item", self.settings.borrow().get_keybind_feed_list_next());
         self.setup_keybinding_row(&feed_keys_list, "previous_item", self.settings.borrow().get_keybind_feed_list_prev());
-        self.setup_keybinding_row(&feed_keys_list, "expand_category", self.settings.borrow().get_keybind_feed_list_expand());
-        self.setup_keybinding_row(&feed_keys_list, "collapse_category", self.settings.borrow().get_keybind_feed_list_collapse());
+        self.setup_keybinding_row(&feed_keys_list, "toggle_category_expanded", self.settings.borrow().get_keybind_feed_list_toggle_expanded());
         self.setup_keybinding_row(&feed_keys_list, "feed_read", self.settings.borrow().get_keybind_feed_list_read());
         
         let general_keys_list = self.builder.get::<ListBox>("general_keys_list");

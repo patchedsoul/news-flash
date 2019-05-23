@@ -156,9 +156,12 @@ impl SingleArticleList {
         }
     }
 
-    pub fn animate_scroll(&self, diff: f64) {
+    pub fn animate_scroll_diff(&self, diff: f64) {
         let pos = self.get_scroll_value() + diff;
+        self.animate_scroll_absolute(pos)
+    }
 
+    pub fn animate_scroll_absolute(&self, pos: f64) {
         let animate = match gtk::Settings::get_default() {
             Some(settings) => settings.get_property_gtk_enable_animations(),
             None => false,

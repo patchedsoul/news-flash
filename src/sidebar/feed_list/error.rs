@@ -8,10 +8,6 @@ pub struct FeedListError {
 
 #[derive(Copy, Clone, Eq, PartialEq, Debug, Fail)]
 pub enum FeedListErrorKind {
-    #[fail(display = "Failed to load embeded file")]
-    EmbedFile,
-    #[fail(display = "Failed to find widget in UI file")]
-    UIFile,
     #[fail(display = "Category is not present in list")]
     CategoryNotFound,
     #[fail(display = "Feed is not present in list")]

@@ -108,14 +108,8 @@
             </child>
             <child>
               <object class="GtkShortcutsShortcut">
-                <property name="title" translatable="yes">Expand Category</property>
-                <property name="accelerator">$CATEXPAND</property>
-              </object>
-            </child>
-            <child>
-              <object class="GtkShortcutsShortcut">
-                <property name="title" translatable="yes">Collapse Category</property>
-                <property name="accelerator">$CATCOLLAPSE</property>
+                <property name="title" translatable="yes">Expand/Collapse Category</property>
+                <property name="accelerator">$TOGGLEEXPAND</property>
               </object>
             </child>
             <child>

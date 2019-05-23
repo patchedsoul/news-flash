@@ -180,6 +180,13 @@ impl ArticleListModel {
         }
     }
 
+    pub fn first(&mut self) -> Option<&ArticleListArticleModel> {
+        self.sort();
+        self.models
+            .iter()
+            .next()
+    }
+
     pub fn calculate_selection(&mut self, selected_index: i32) -> Option<&ArticleListArticleModel> {
         self.sort();
         if let Some((_index, article)) = self
