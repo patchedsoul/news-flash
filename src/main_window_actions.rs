@@ -530,16 +530,6 @@ impl MainWindowActions {
         window.add_action(&quit_action);
     }
 
-    pub fn setup_focus_search_action(window: &ApplicationWindow, content_header: &GtkHandle<ContentHeader>) {
-        let content_header = content_header.clone();
-        let focus_search_action = SimpleAction::new("focus-search", None);
-        focus_search_action.connect_activate(move |_action, _data| {
-            content_header.borrow().focus_search();
-        });
-        focus_search_action.set_enabled(true);
-        window.add_action(&focus_search_action);
-    }
-
     pub fn setup_export_action(window: &ApplicationWindow, news_flash: &GtkHandle<Option<NewsFlash>>) {
         let main_window = window.clone();
         let news_flash = news_flash.clone();

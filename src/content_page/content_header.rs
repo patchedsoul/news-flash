@@ -1,9 +1,8 @@
 use super::header_selection::HeaderSelection;
 use crate::util::{BuilderHelper, GtkUtil};
 use failure::Error;
-use gdk::EventType;
 use gio::{ActionExt, ActionMapExt, Menu};
-use glib::{signal::Inhibit, Variant};
+use glib::Variant;
 use gtk::{
     Button, ButtonExt, EntryExt, Paned, PanedExt, SearchEntry, SearchEntryExt, Stack, StackExt, ToggleButton,
     ToggleButtonExt, WidgetExt, MenuButton, MenuButtonExt,
@@ -14,6 +13,9 @@ pub struct ContentHeader {
     update_stack: Stack,
     update_button: Button,
     search_entry: SearchEntry,
+    all_button: ToggleButton,
+    unread_button: ToggleButton,
+    marked_button: ToggleButton,
 }
 
 impl ContentHeader {
@@ -59,6 +61,9 @@ impl ContentHeader {
             update_stack,
             update_button,
             search_entry,
+            all_button,
+            unread_button,
+            marked_button,
         })
     }
 
@@ -75,8 +80,24 @@ impl ContentHeader {
         self.update_stack.set_visible_child_name("icon");
     }
 
+    pub fn is_search_focused(&self) -> bool {
+        self.search_entry.has_focus()
+    }
+
     pub fn focus_search(&self) {
         self.search_entry.grab_focus()
+    }
+
+    pub fn select_all_button(&self) {
+        self.all_button.set_active(true)
+    }
+
+    pub fn select_unread_button(&self) {
+        self.unread_button.set_active(true)
+    }
+
+    pub fn select_marked_button(&self) {
+        self.marked_button.set_active(true)
     }
 
     fn setup_linked_button(
@@ -88,17 +109,10 @@ impl ContentHeader {
         let button_clone = button.clone();
         let other_button_1 = other_button_1.clone();
         let other_button_2 = other_button_2.clone();
-        button.connect_button_press_event(move |button, event| {
-            if event.get_button() != 1 {
-                return gtk::Inhibit(false);
-            }
-            match event.get_event_type() {
-                EventType::ButtonPress => (),
-                _ => return gtk::Inhibit(false),
-            }
-            if button_clone.get_active() {
+        button.connect_toggled(move |button| {
+            if !button_clone.get_active() {
                 // ignore deactivating toggle-button
-                return Inhibit(true);
+                return;
             }
             other_button_1.set_active(false);
             other_button_2.set_active(false);
@@ -110,7 +124,6 @@ impl ContentHeader {
                     }
                 }
             }
-            Inhibit(false)
         });
     }
 

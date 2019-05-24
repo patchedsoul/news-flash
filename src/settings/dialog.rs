@@ -171,6 +171,9 @@ impl SettingsDialog {
         self.setup_keybinding_row(&general_keys_list, "refresh", self.settings.borrow().get_keybind_refresh());
         self.setup_keybinding_row(&general_keys_list, "search", self.settings.borrow().get_keybind_search());
         self.setup_keybinding_row(&general_keys_list, "quit", self.settings.borrow().get_keybind_quit());
+        self.setup_keybinding_row(&general_keys_list, "all_articles", self.settings.borrow().get_keybind_all_articles());
+        self.setup_keybinding_row(&general_keys_list, "only_unread", self.settings.borrow().get_keybind_only_unread());
+        self.setup_keybinding_row(&general_keys_list, "only_starred", self.settings.borrow().get_keybind_only_starred());
 
         let article_view_keys_list = self.builder.get::<ListBox>("article_view_keys_list");
         self.setup_keybinding_row(&article_view_keys_list, "scroll_up", self.settings.borrow().get_keybind_article_view_up());

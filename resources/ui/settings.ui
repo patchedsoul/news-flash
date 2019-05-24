@@ -1275,6 +1275,180 @@
                                     </child>
                                   </object>
                                 </child>
+                                <child>
+                                  <object class="GtkListBoxRow">
+                                    <property name="visible">True</property>
+                                    <property name="can_focus">False</property>
+                                    <property name="activatable">False</property>
+                                    <property name="selectable">False</property>
+                                    <child>
+                                      <object class="GtkSeparator">
+                                        <property name="visible">True</property>
+                                        <property name="can_focus">False</property>
+                                      </object>
+                                    </child>
+                                    <style>
+                                      <class name="separator-row"/>
+                                    </style>
+                                  </object>
+                                </child>
+                                <child>
+                                  <object class="GtkListBoxRow" id="all_articles">
+                                    <property name="name">all_articles</property>
+                                    <property name="height_request">40</property>
+                                    <property name="visible">True</property>
+                                    <property name="can_focus">True</property>
+                                    <child>
+                                      <object class="GtkBox">
+                                        <property name="visible">True</property>
+                                        <property name="can_focus">False</property>
+                                        <child>
+                                          <object class="GtkLabel" id="all_articles_info_label">
+                                            <property name="visible">True</property>
+                                            <property name="can_focus">False</property>
+                                            <property name="label" translatable="yes">All Articles</property>
+                                          </object>
+                                          <packing>
+                                            <property name="expand">False</property>
+                                            <property name="fill">True</property>
+                                            <property name="padding">10</property>
+                                            <property name="position">0</property>
+                                          </packing>
+                                        </child>
+                                        <child>
+                                          <object class="GtkLabel" id="all_articles_label">
+                                            <property name="visible">True</property>
+                                            <property name="can_focus">False</property>
+                                            <property name="label" translatable="yes">Disabled</property>
+                                          </object>
+                                          <packing>
+                                            <property name="expand">False</property>
+                                            <property name="fill">True</property>
+                                            <property name="padding">10</property>
+                                            <property name="pack_type">end</property>
+                                            <property name="position">1</property>
+                                          </packing>
+                                        </child>
+                                      </object>
+                                    </child>
+                                  </object>
+                                </child>
+                                <child>
+                                  <object class="GtkListBoxRow">
+                                    <property name="visible">True</property>
+                                    <property name="can_focus">False</property>
+                                    <property name="activatable">False</property>
+                                    <property name="selectable">False</property>
+                                    <child>
+                                      <object class="GtkSeparator">
+                                        <property name="visible">True</property>
+                                        <property name="can_focus">False</property>
+                                      </object>
+                                    </child>
+                                    <style>
+                                      <class name="separator-row"/>
+                                    </style>
+                                  </object>
+                                </child>
+                                <child>
+                                  <object class="GtkListBoxRow" id="only_unread">
+                                    <property name="name">only_unread</property>
+                                    <property name="height_request">40</property>
+                                    <property name="visible">True</property>
+                                    <property name="can_focus">True</property>
+                                    <child>
+                                      <object class="GtkBox">
+                                        <property name="visible">True</property>
+                                        <property name="can_focus">False</property>
+                                        <child>
+                                          <object class="GtkLabel" id="only_unread_info_label">
+                                            <property name="visible">True</property>
+                                            <property name="can_focus">False</property>
+                                            <property name="label" translatable="yes">Only Unread</property>
+                                          </object>
+                                          <packing>
+                                            <property name="expand">False</property>
+                                            <property name="fill">True</property>
+                                            <property name="padding">10</property>
+                                            <property name="position">0</property>
+                                          </packing>
+                                        </child>
+                                        <child>
+                                          <object class="GtkLabel" id="only_unread_label">
+                                            <property name="visible">True</property>
+                                            <property name="can_focus">False</property>
+                                            <property name="label" translatable="yes">Disabled</property>
+                                          </object>
+                                          <packing>
+                                            <property name="expand">False</property>
+                                            <property name="fill">True</property>
+                                            <property name="padding">10</property>
+                                            <property name="pack_type">end</property>
+                                            <property name="position">1</property>
+                                          </packing>
+                                        </child>
+                                      </object>
+                                    </child>
+                                  </object>
+                                </child>
+                                <child>
+                                  <object class="GtkListBoxRow">
+                                    <property name="visible">True</property>
+                                    <property name="can_focus">False</property>
+                                    <property name="activatable">False</property>
+                                    <property name="selectable">False</property>
+                                    <child>
+                                      <object class="GtkSeparator">
+                                        <property name="visible">True</property>
+                                        <property name="can_focus">False</property>
+                                      </object>
+                                    </child>
+                                    <style>
+                                      <class name="separator-row"/>
+                                    </style>
+                                  </object>
+                                </child>
+                                <child>
+                                  <object class="GtkListBoxRow" id="only_starred">
+                                    <property name="name">only_starred</property>
+                                    <property name="height_request">40</property>
+                                    <property name="visible">True</property>
+                                    <property name="can_focus">True</property>
+                                    <child>
+                                      <object class="GtkBox">
+                                        <property name="visible">True</property>
+                                        <property name="can_focus">False</property>
+                                        <child>
+                                          <object class="GtkLabel" id="only_starred_info_label">
+                                            <property name="visible">True</property>
+                                            <property name="can_focus">False</property>
+                                            <property name="label" translatable="yes">Only Starred</property>
+                                          </object>
+                                          <packing>
+                                            <property name="expand">False</property>
+                                            <property name="fill">True</property>
+                                            <property name="padding">10</property>
+                                            <property name="position">0</property>
+                                          </packing>
+                                        </child>
+                                        <child>
+                                          <object class="GtkLabel" id="only_starred_label">
+                                            <property name="visible">True</property>
+                                            <property name="can_focus">False</property>
+                                            <property name="label" translatable="yes">Disabled</property>
+                                          </object>
+                                          <packing>
+                                            <property name="expand">False</property>
+                                            <property name="fill">True</property>
+                                            <property name="padding">10</property>
+                                            <property name="pack_type">end</property>
+                                            <property name="position">1</property>
+                                          </packing>
+                                        </child>
+                                      </object>
+                                    </child>
+                                  </object>
+                                </child>
                               </object>
                             </child>
                             <child type="label_item">

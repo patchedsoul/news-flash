@@ -136,6 +136,36 @@ impl Settings {
         Ok(())
     }
 
+    pub fn get_keybind_all_articles(&self) -> Option<String> {
+        self.keybindings.general.all_articles.clone()
+    }
+
+    pub fn set_keybind_all_articles(&mut self, key: Option<String>) -> Result<(), Error> {
+        self.keybindings.general.all_articles = key;
+        self.write()?;
+        Ok(())
+    }
+
+    pub fn get_keybind_only_unread(&self) -> Option<String> {
+        self.keybindings.general.only_unread.clone()
+    }
+
+    pub fn set_keybind_only_unread(&mut self, key: Option<String>) -> Result<(), Error> {
+        self.keybindings.general.only_unread = key;
+        self.write()?;
+        Ok(())
+    }
+
+    pub fn get_keybind_only_starred(&self) -> Option<String> {
+        self.keybindings.general.only_starred.clone()
+    }
+
+    pub fn set_keybind_only_starred(&mut self, key: Option<String>) -> Result<(), Error> {
+        self.keybindings.general.only_starred = key;
+        self.write()?;
+        Ok(())
+    }
+
     pub fn get_keybind_article_view_up(&self) -> Option<String> {
         self.keybindings.article_view.scroll_up.clone()
     }

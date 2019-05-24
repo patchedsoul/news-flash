@@ -37,6 +37,24 @@
                 <property name="accelerator">$QUIT</property>
               </object>
             </child>
+            <child>
+              <object class="GtkShortcutsShortcut">
+                <property name="title" translatable="yes">All Articles</property>
+                <property name="accelerator">$ALLARTICLES</property>
+              </object>
+            </child>
+            <child>
+              <object class="GtkShortcutsShortcut">
+                <property name="title" translatable="yes">Only Unread Articles</property>
+                <property name="accelerator">$ONLYUNREAD</property>
+              </object>
+            </child>
+            <child>
+              <object class="GtkShortcutsShortcut">
+                <property name="title" translatable="yes">Only Starred Articles</property>
+                <property name="accelerator">$ONLYSTARRED</property>
+              </object>
+            </child>
           </object>
         </child>
         <child>

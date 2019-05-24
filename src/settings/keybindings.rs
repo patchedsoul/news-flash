@@ -189,6 +189,9 @@ impl Keybindings {
             "refresh" => settings.borrow_mut().set_keybind_refresh(keybinding),
             "search" => settings.borrow_mut().set_keybind_search(keybinding),
             "quit" => settings.borrow_mut().set_keybind_quit(keybinding),
+            "all_articles" => settings.borrow_mut().set_keybind_all_articles(keybinding),
+            "only_unread" => settings.borrow_mut().set_keybind_only_unread(keybinding),
+            "only_starred" => settings.borrow_mut().set_keybind_only_starred(keybinding),
             "scroll_up" => settings.borrow_mut().set_keybind_article_view_up(keybinding),
             "scroll_down" => settings.borrow_mut().set_keybind_article_view_down(keybinding),
             _ => {
@@ -213,6 +216,9 @@ impl Keybindings {
             "refresh" => Ok(settings.borrow_mut().get_keybind_refresh()),
             "search" => Ok(settings.borrow_mut().get_keybind_search()),
             "quit" => Ok(settings.borrow_mut().get_keybind_quit()),
+            "all_articles" => Ok(settings.borrow_mut().get_keybind_all_articles()),
+            "only_unread" => Ok(settings.borrow_mut().get_keybind_only_unread()),
+            "only_starred" => Ok(settings.borrow_mut().get_keybind_only_starred()),
             "scroll_up" => Ok(settings.borrow_mut().get_keybind_article_view_up()),
             "scroll_down" => Ok(settings.borrow_mut().get_keybind_article_view_down()),
             _ => {
@@ -241,6 +247,15 @@ pub struct KeybindingsGeneral {
     #[serde(skip_serializing_if = "Option::is_none")]
     #[serde(default)]
     pub quit: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    #[serde(default)]
+    pub all_articles: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    #[serde(default)]
+    pub only_unread: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    #[serde(default)]
+    pub only_starred: Option<String>,
 }
 
 impl KeybindingsGeneral {
@@ -250,6 +265,9 @@ impl KeybindingsGeneral {
             refresh: Some("F5".to_owned()),
             search: Some("<ctl>F".to_owned()),
             quit: Some("<ctl>Q".to_owned()),
+            all_articles: Some("<ctl>1".to_owned()),
+            only_unread: Some("<ctl>2".to_owned()),
+            only_starred: Some("<ctl>3".to_owned()),
         }
     }
 }
@@ -363,6 +381,9 @@ impl NewsFlashShortcutWindow {
         ui_xml = Self::setup_shortcut(&ui_xml, "$REFRESH", settings.borrow().get_keybind_refresh());
         ui_xml = Self::setup_shortcut(&ui_xml, "$SEARCH", settings.borrow().get_keybind_search());
         ui_xml = Self::setup_shortcut(&ui_xml, "$QUIT", settings.borrow().get_keybind_quit());
+        ui_xml = Self::setup_shortcut(&ui_xml, "$ALLARTICLES", settings.borrow().get_keybind_all_articles());
+        ui_xml = Self::setup_shortcut(&ui_xml, "$ONLYUNREAD", settings.borrow().get_keybind_only_unread());
+        ui_xml = Self::setup_shortcut(&ui_xml, "$ONLYSTARRED", settings.borrow().get_keybind_only_starred());
         ui_xml = Self::setup_shortcut(&ui_xml, "$NEXTART", settings.borrow().get_keybind_article_list_next());
         ui_xml = Self::setup_shortcut(&ui_xml, "$PREVART", settings.borrow().get_keybind_article_list_prev());
         ui_xml = Self::setup_shortcut(&ui_xml, "$TOGGLEREAD", settings.borrow().get_keybind_article_list_read());

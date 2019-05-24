@@ -118,12 +118,11 @@ impl MainWindow {
         MainWindowActions::setup_settings_action(&window, &settings);
         MainWindowActions::setup_shortcut_window_action(&window, &settings);
         MainWindowActions::setup_quit_action(&window, app);
-        MainWindowActions::setup_focus_search_action(&window, &content_header_handle);
         MainWindowActions::setup_export_action(&window, &news_flash_handle);
         MainWindowActions::setup_select_next_article_action(&window, &content_page_handle);
         MainWindowActions::setup_select_prev_article_action(&window, &content_page_handle);
 
-        Self::setup_shortcuts(&window, &content_page_handle, &stack, &settings, &news_flash_handle);
+        Self::setup_shortcuts(&window, &content_page_handle, &stack, &settings, &news_flash_handle, &content_header_handle);
 
         if let Ok(news_flash_lib) = NewsFlash::try_load(&DATA_DIR) {
             info!("Successful load from config");
@@ -167,12 +166,14 @@ impl MainWindow {
         main_stack: &Stack,
         settings: &GtkHandle<Settings>,
         news_flash: &GtkHandle<Option<NewsFlash>>,
+        content_header: &GtkHandle<ContentHeader>,
     ) {
         let main_stack = main_stack.clone();
         let settings = settings.clone();
         let content_page = content_page.clone();
         let main_window = window.clone();
         let news_flash = news_flash.clone();
+        let content_header = content_header.clone();
         window.connect_key_press_event(move |widget, event| {
 
             // ignore shortcuts when not on content page
@@ -182,8 +183,10 @@ impl MainWindow {
                 }
             }
 
-            // ignore shortcuts when focusing search box (or any other entry)
-            // FIXME
+            // ignore shortcuts when typing in search entry
+            if content_header.borrow().is_search_focused() {
+                return Inhibit(false)
+            }
 
             if Self::check_shortcut("shortcuts", &settings, event) {
                 if let Some(action) = widget.lookup_action("shortcuts") {
@@ -204,9 +207,19 @@ impl MainWindow {
             }
 
             if Self::check_shortcut("search", &settings, event) {
-                if let Some(action) = widget.lookup_action("focus-search") {
-                    action.activate(None);
-                }
+                content_header.borrow().focus_search();
+            }
+
+            if Self::check_shortcut("all_articles", &settings, event) {
+                content_header.borrow().select_all_button();
+            }
+
+            if Self::check_shortcut("only_unread", &settings, event) {
+                content_header.borrow().select_unread_button();
+            }
+
+            if Self::check_shortcut("only_starred", &settings, event) {
+                content_header.borrow().select_marked_button();
             }
 
             if Self::check_shortcut("next_article", &settings, event) {
