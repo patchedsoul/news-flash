@@ -288,6 +288,14 @@ impl MainWindow {
                 content_page.borrow().sidebar_select_prev_item().unwrap();
             }
 
+            if Self::check_shortcut("scroll_up", &settings, event) {
+                content_page.borrow().article_view_scroll_diff(-150.0).unwrap();
+            }
+
+            if Self::check_shortcut("scroll_down", &settings, event) {
+                content_page.borrow().article_view_scroll_diff(150.0).unwrap();
+            }
+
             if Self::check_shortcut("sidebar_set_read", &settings, event) {
                 if let Some(news_flash) = news_flash.borrow_mut().as_mut() {
                     match content_page.borrow().sidebar_get_selection() {

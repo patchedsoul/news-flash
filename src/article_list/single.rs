@@ -22,6 +22,7 @@ use std::rc::Rc;
 const LIST_BOTTOM_THREASHOLD: f64 = 200.0;
 const SCROLL_TRANSITION_DURATION: i64 = 500 * 1000;
 
+#[derive(Clone, Debug)]
 struct ScrollAnimationProperties {
     pub start_time: GtkHandle<Option<i64>>,
     pub end_time: GtkHandle<Option<i64>>,

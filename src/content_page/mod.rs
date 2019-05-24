@@ -287,6 +287,10 @@ impl ContentPage {
         Err(format_err!("some err"))
     }
 
+    pub fn article_view_scroll_diff(&self, diff: f64) -> Result<(), Error> {
+        self.article_view.animate_scroll_diff(diff)
+    }
+
     pub fn redraw_article(&mut self) -> Result<(), Error> {
         self.article_view.redraw_article()
     }
