@@ -5,7 +5,7 @@ use gio::{ActionExt, ActionMapExt, Menu};
 use glib::Variant;
 use gtk::{
     Button, ButtonExt, EntryExt, Paned, PanedExt, SearchEntry, SearchEntryExt, Stack, StackExt, ToggleButton,
-    ToggleButtonExt, WidgetExt, MenuButton, MenuButtonExt,
+    ToggleButtonExt, WidgetExt, MenuButton, MenuButtonExt, Inhibit,
 };
 
 pub struct ContentHeader {
@@ -106,11 +106,17 @@ impl ContentHeader {
         other_button_2: &ToggleButton,
         mode: HeaderSelection,
     ) {
-        let button_clone = button.clone();
+        button.connect_button_press_event(|button, _event| {
+            if button.get_active() {
+                return Inhibit(true)
+            }
+            Inhibit(false)
+        });
+
         let other_button_1 = other_button_1.clone();
         let other_button_2 = other_button_2.clone();
         button.connect_toggled(move |button| {
-            if !button_clone.get_active() {
+            if !button.get_active() {
                 // ignore deactivating toggle-button
                 return;
             }

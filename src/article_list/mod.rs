@@ -113,6 +113,10 @@ impl ArticleList {
         if new_list.len() == 0 {
             self.empty_label.set_label(&self.compose_empty_message(new_state));
             self.stack.set_visible_child_name("empty");
+            if let Some(current_list) = self.get_current_list() {
+                GtkUtil::disconnect_signal(self.list_select_signal, &current_list.borrow().list());
+            }
+            self.list_select_signal = None;
             *self.current_list.borrow_mut() = CurrentList::Empty;
             self.window_state = new_state.clone();
             return;
