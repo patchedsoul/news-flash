@@ -87,11 +87,11 @@ impl TagList {
         self.list.unselect_all();
     }
 
-    pub fn get_selection(&self) -> Option<TagID> {
+    pub fn get_selection(&self) -> Option<(TagID, String)> {
         if let Some(row) = self.list.get_selected_row() {
             let index = row.get_index();
             if let Some((_, model)) = self.list_model.borrow().calculate_selection(index) {
-                return Some(model.id.clone());
+                return Some((model.id.clone(), model.label.clone()));
             }
         }
         None

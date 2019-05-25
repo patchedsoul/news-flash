@@ -5,16 +5,16 @@ use serde_derive::{Deserialize, Serialize};
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub enum SidebarSelection {
     All,
-    Cateogry(CategoryID),
-    Feed(FeedID),
-    Tag(TagID),
+    Cateogry((CategoryID, String)),
+    Feed((FeedID, String)),
+    Tag((TagID, String)),
 }
 
 impl SidebarSelection {
-    pub fn from_feed_list_selection(selection: FeedListItemID) -> Self {
+    pub fn from_feed_list_selection(selection: FeedListItemID, title: String) -> Self {
         match selection {
-            FeedListItemID::Feed(id) => SidebarSelection::Feed(id),
-            FeedListItemID::Category(id) => SidebarSelection::Cateogry(id),
+            FeedListItemID::Feed(id) => SidebarSelection::Feed((id, title)),
+            FeedListItemID::Category(id) => SidebarSelection::Cateogry((id, title)),
         }
     }
 }
@@ -26,16 +26,16 @@ impl PartialEq for SidebarSelection {
                 SidebarSelection::All => true,
                 _ => false,
             },
-            SidebarSelection::Cateogry(self_id) => match other {
-                SidebarSelection::Cateogry(other_id) => self_id == other_id,
+            SidebarSelection::Cateogry((self_id, _title)) => match other {
+                SidebarSelection::Cateogry((other_id, _title)) => self_id == other_id,
                 _ => false,
             },
-            SidebarSelection::Feed(self_id) => match other {
-                SidebarSelection::Feed(other_id) => self_id == other_id,
+            SidebarSelection::Feed((self_id, _title)) => match other {
+                SidebarSelection::Feed((other_id, _title)) => self_id == other_id,
                 _ => false,
             },
-            SidebarSelection::Tag(self_id) => match other {
-                SidebarSelection::Tag(other_id) => self_id == other_id,
+            SidebarSelection::Tag((self_id, _title)) => match other {
+                SidebarSelection::Tag((other_id, _title)) => self_id == other_id,
                 _ => false,
             },
         }

@@ -174,15 +174,15 @@ impl ContentPage {
         };
         let feed = match &window_state.get_sidebar_selection() {
             SidebarSelection::All | SidebarSelection::Cateogry(_) | SidebarSelection::Tag(_) => None,
-            SidebarSelection::Feed(id) => Some(id.clone()),
+            SidebarSelection::Feed((id, _title)) => Some(id.clone()),
         };
         let category = match &window_state.get_sidebar_selection() {
             SidebarSelection::All | SidebarSelection::Feed(_) | SidebarSelection::Tag(_) => None,
-            SidebarSelection::Cateogry(id) => Some(id.clone()),
+            SidebarSelection::Cateogry((id, _title)) => Some(id.clone()),
         };
         let tag = match &window_state.get_sidebar_selection() {
             SidebarSelection::All | SidebarSelection::Feed(_) | SidebarSelection::Cateogry(_) => None,
-            SidebarSelection::Tag(id) => Some(id.clone()),
+            SidebarSelection::Tag((id, _title)) => Some(id.clone()),
         };
 
         news_flash

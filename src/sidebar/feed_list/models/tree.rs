@@ -370,7 +370,7 @@ impl FeedListTree {
         Err(FeedListModelErrorKind::DnD)?
     }
 
-    pub fn calculate_selection(&self, selected_index: i32) -> Option<FeedListItemID> {
+    pub fn calculate_selection(&self, selected_index: i32) -> Option<(FeedListItemID, String)> {
         let mut index = 0;
         Self::calculate_selection_internal(selected_index + 1, &self.top_level, &mut index)
     }
@@ -379,18 +379,18 @@ impl FeedListTree {
         selected_index: i32,
         items: &[FeedListItem],
         index: &mut i32,
-    ) -> Option<FeedListItemID> {
+    ) -> Option<(FeedListItemID, String)> {
         for item in items {
             *index += 1;
             match item {
                 FeedListItem::Feed(feed) => {
                     if *index == selected_index {
-                        return Some(FeedListItemID::Feed(feed.id.clone()));
+                        return Some((FeedListItemID::Feed(feed.id.clone()), feed.label.clone()));
                     }
                 }
                 FeedListItem::Category(category) => {
                     if *index == selected_index {
-                        return Some(FeedListItemID::Category(category.id.clone()));
+                        return Some((FeedListItemID::Category(category.id.clone()), category.label.clone()));
                     }
                     if let Some(selection) =
                         Self::calculate_selection_internal(selected_index, &category.children, index)

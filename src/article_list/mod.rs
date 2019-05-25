@@ -3,14 +3,17 @@ mod models;
 mod single;
 
 use crate::content_page::HeaderSelection;
+use crate::sidebar::models::SidebarSelection;
 use crate::gtk_handle;
 use crate::main_window_state::MainWindowState;
 use crate::util::{BuilderHelper, GtkHandle, GtkUtil};
 use crate::settings::Settings;
-use failure::Error;
+use failure::{Error, format_err};
 use gio::{ActionExt, ActionMapExt};
 use glib::{translate::ToGlib, Variant};
-use gtk::{Continue, ListBoxExt, ListBoxRowExt, Stack, StackExt, StackTransitionType};
+use pango::WrapMode;
+use gtk::{Continue, ListBoxExt, ListBoxRowExt, Label, LabelExt, Stack, StackExt,
+    StyleContextExt, StackTransitionType, WidgetExt};
 use models::ArticleListChangeSet;
 pub use models::{ArticleListModel, ArticleListArticleModel, ReadUpdate, MarkUpdate};
 use news_flash::models::Read;
@@ -22,6 +25,7 @@ use std::rc::Rc;
 pub enum CurrentList {
     List1,
     List2,
+    Empty,
 }
 
 pub struct ArticleList {
@@ -33,6 +37,7 @@ pub struct ArticleList {
     window_state: MainWindowState,
     current_list: GtkHandle<CurrentList>,
     settings: GtkHandle<Settings>,
+    empty_label: Label,
 }
 
 impl ArticleList {
@@ -42,12 +47,20 @@ impl ArticleList {
 
         let list_1 = SingleArticleList::new()?;
         let list_2 = SingleArticleList::new()?;
+        let empty_label = Label::new("No Articles found.");
+        empty_label.set_line_wrap(true);
+        empty_label.set_line_wrap_mode(WrapMode::Word);
+        empty_label.set_margin_start(20);
+        empty_label.set_margin_end(20);
+        empty_label.get_style_context().add_class("h2");
+        empty_label.get_style_context().add_class("dim-label");
 
         let window_state = MainWindowState::new();
         let model = ArticleListModel::new(&settings.borrow().get_article_list_order());
 
         stack.add_named(&list_1.widget(), "list_1");
         stack.add_named(&list_2.widget(), "list_2");
+        stack.add_named(&empty_label, "empty");
 
         let settings = settings.clone();
 
@@ -60,6 +73,7 @@ impl ArticleList {
             window_state,
             current_list: gtk_handle!(CurrentList::List1),
             settings,
+            empty_label,
         };
 
         article_list.setup_list_selected_singal();
@@ -78,7 +92,8 @@ impl ArticleList {
     pub fn new_list(&mut self, mut new_list: ArticleListModel) {
         let current_list = match *self.current_list.borrow() {
             CurrentList::List1 => CurrentList::List2,
-            CurrentList::List2 => CurrentList::List1,
+            CurrentList::List2 |
+            CurrentList::Empty => CurrentList::List1,
         };
         *self.current_list.borrow_mut() = current_list;
         let mut empty_model = ArticleListModel::new(&self.settings.borrow().get_article_list_order());
@@ -92,7 +107,16 @@ impl ArticleList {
     }
 
     pub fn update(&mut self, mut new_list: ArticleListModel, new_state: &MainWindowState) {
-        self.stack.set_transition_type(self.calc_transition_type(&new_state));
+        self.stack.set_transition_type(self.calc_transition_type(new_state));
+
+        // check if list model is empty and display a message
+        if new_list.len() == 0 {
+            self.empty_label.set_label(&self.compose_empty_message(new_state));
+            self.stack.set_visible_child_name("empty");
+            *self.current_list.borrow_mut() = CurrentList::Empty;
+            self.window_state = new_state.clone();
+            return;
+        }
 
         // check if a new list is reqired or current list should be updated
         if self.require_new_list(&new_state) {
@@ -116,6 +140,7 @@ impl ArticleList {
         let list = match *self.current_list.borrow() {
             CurrentList::List1 => &mut self.list_1,
             CurrentList::List2 => &mut self.list_2,
+            CurrentList::Empty => return Err(format_err!("some err!")),
         };
 
         for model in new_list.models() {
@@ -134,7 +159,8 @@ impl ArticleList {
 
     fn execute_diff(&mut self, diff: Vec<ArticleListChangeSet>) {
         let list = match *self.current_list.borrow() {
-            CurrentList::List1 => &mut self.list_1,
+            CurrentList::List1 |
+            CurrentList::Empty => &mut self.list_1,
             CurrentList::List2 => &mut self.list_2,
         };
 
@@ -158,6 +184,7 @@ impl ArticleList {
 
     fn switch_lists(&mut self) {
         match *self.current_list.borrow() {
+            CurrentList::Empty |
             CurrentList::List1 => self.stack.set_visible_child_name("list_1"),
             CurrentList::List2 => self.stack.set_visible_child_name("list_2"),
         }
@@ -165,12 +192,15 @@ impl ArticleList {
         self.setup_list_selected_singal();
 
         let old_list = match *self.current_list.borrow() {
-            CurrentList::List1 => self.list_2.clone(),
-            CurrentList::List2 => self.list_1.clone(),
+            CurrentList::List1 => Some(self.list_2.clone()),
+            CurrentList::List2 => Some(self.list_1.clone()),
+            CurrentList::Empty => None,
         };
 
         gtk::timeout_add(110, move || {
-            old_list.borrow_mut().clear();
+            if let Some(old_list) = &old_list {
+                old_list.borrow_mut().clear();
+            }
             Continue(false)
         });
     }
@@ -180,6 +210,7 @@ impl ArticleList {
         let (new_list, old_list) = match *self.current_list.borrow() {
             CurrentList::List1 => (&self.list_1, &self.list_2),
             CurrentList::List2 => (&self.list_2, &self.list_1),
+            CurrentList::Empty => return,
         };
         GtkUtil::disconnect_signal(self.list_select_signal, &old_list.borrow().list());
         let current_list = self.current_list.clone();
@@ -213,6 +244,7 @@ impl ArticleList {
                                 CurrentList::List2 => {
                                     list_2.borrow_mut().update_read(&selected_article.id, Read::Read)
                                 }
+                                CurrentList::Empty => return,
                             }
                             if let Some(action) = main_window.lookup_action("mark-article-read") {
                                 action.activate(Some(&update_data));
@@ -254,10 +286,104 @@ impl ArticleList {
         StackTransitionType::Crossfade
     }
 
-    fn get_current_list(&self) -> GtkHandle<SingleArticleList> {
+    fn compose_empty_message(&self, new_state: &MainWindowState) -> String {
+        match new_state.get_sidebar_selection() {
+            SidebarSelection::All => {
+                match new_state.get_header_selection() {
+                    HeaderSelection::All => {
+                        match new_state.get_search_term() {
+                            Some(search) => format!("No articles that fit \"{}\"", search),
+                            None => format!("No articles"),
+                        }
+                    },
+                    HeaderSelection::Unread => {
+                        match new_state.get_search_term() {
+                            Some(search) => format!("No unread articles that fit \"{}\"", search),
+                            None => format!("No unread articles"),
+                        }
+                    },
+                    HeaderSelection::Marked => {
+                        match new_state.get_search_term() {
+                            Some(search) => format!("No starred articles that fit \"{}\"", search),
+                            None => format!("No starred articles"),
+                        }
+                    }
+                }
+            },
+            SidebarSelection::Cateogry((_id, title)) => {
+                match new_state.get_header_selection() {
+                    HeaderSelection::All => {
+                        match new_state.get_search_term() {
+                            Some(search) => format!("No articles that fit \"{}\" in category \"{}\"", search, title),
+                            None => format!("No articles in category \"{}\"", title),
+                        }
+                    },
+                    HeaderSelection::Unread => {
+                        match new_state.get_search_term() {
+                            Some(search) => format!("No unread articles that fit \"{}\" in category \"{}\"", search, title),
+                            None => format!("No unread articles in category \"{}\"", title),
+                        }
+                    },
+                    HeaderSelection::Marked => {
+                        match new_state.get_search_term() {
+                            Some(search) => format!("No starred articles that fit \"{}\" in category \"{}\"", search, title),
+                            None => format!("No starred articles in category \"{}\"", title),
+                        }
+                    }
+                }
+            },
+            SidebarSelection::Feed((_id, title)) => {
+                match new_state.get_header_selection() {
+                    HeaderSelection::All => {
+                        match new_state.get_search_term() {
+                            Some(search) => format!("No articles that fit \"{}\" in feed \"{}\"", search, title),
+                            None => format!("No articles in feed \"{}\"", title),
+                        }
+                    },
+                    HeaderSelection::Unread => {
+                        match new_state.get_search_term() {
+                            Some(search) => format!("No unread articles that fit \"{}\" in feed \"{}\"", search, title),
+                            None => format!("No unread articles in feed \"{}\"", title),
+                        }
+                    },
+                    HeaderSelection::Marked => {
+                        match new_state.get_search_term() {
+                            Some(search) => format!("No starred articles that fit \"{}\" in feed \"{}\"", search, title),
+                            None => format!("No starred articles in feed \"{}\"", title),
+                        }
+                    }
+                }
+            },
+            SidebarSelection::Tag((_id, title)) => {
+                match new_state.get_header_selection() {
+                    HeaderSelection::All => {
+                        match new_state.get_search_term() {
+                            Some(search) => format!("No articles that fit \"{}\" in tag \"{}\"", search, title),
+                            None => format!("No articles in tag \"{}\"", title),
+                        }
+                    },
+                    HeaderSelection::Unread => {
+                        match new_state.get_search_term() {
+                            Some(search) => format!("No unread articles that fit \"{}\" in tag \"{}\"", search, title),
+                            None => format!("No unread articles in tag \"{}\"", title),
+                        }
+                    },
+                    HeaderSelection::Marked => {
+                        match new_state.get_search_term() {
+                            Some(search) => format!("No starred articles that fit \"{}\" in tag \"{}\"", search, title),
+                            None => format!("No starred articles in tag \"{}\"", title),
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    fn get_current_list(&self) -> Option<GtkHandle<SingleArticleList>> {
         match *self.current_list.borrow() {
-            CurrentList::List1 => self.list_1.clone(),
-            CurrentList::List2 => self.list_2.clone(),
+            CurrentList::List1 => Some(self.list_1.clone()),
+            CurrentList::List2 => Some(self.list_2.clone()),
+            CurrentList::Empty => None,
         }
     }
 
@@ -270,38 +396,40 @@ impl ArticleList {
     }
 
     fn select_article(&self, direction: i32) {
-        let current_list = self.get_current_list();
-        let selected_index = current_list.borrow().get_selected_index();
-        if let Some(selected_index) = selected_index {
-            let selected_row = self.list_model.borrow_mut().calculate_selection(selected_index).map(|r| r.clone());
-            let next_row = self.list_model.borrow_mut().calculate_selection(selected_index + direction).map(|r| r.clone());
+        if let Some(current_list) = self.get_current_list() {
+            let selected_index = current_list.borrow().get_selected_index();
+            if let Some(selected_index) = selected_index {
+                let selected_row = self.list_model.borrow_mut().calculate_selection(selected_index).map(|r| r.clone());
+                let next_row = self.list_model.borrow_mut().calculate_selection(selected_index + direction).map(|r| r.clone());
 
-            if let Some(selected_row) = selected_row {
-                if let Some(next_row) = next_row {
-                    current_list.borrow().select_after(&next_row.id, 300);
-                    if let Some(height) = current_list.borrow().get_allocated_row_height(&selected_row.id) {
-                        current_list.borrow().animate_scroll_diff(f64::from(direction * height));
+                if let Some(selected_row) = selected_row {
+                    if let Some(next_row) = next_row {
+                        current_list.borrow().select_after(&next_row.id, 300);
+                        if let Some(height) = current_list.borrow().get_allocated_row_height(&selected_row.id) {
+                            current_list.borrow().animate_scroll_diff(f64::from(direction * height));
+                        }
                     }
                 }
-            }
-        } else {
-            let first_row = self.list_model.borrow_mut().first().map(|r| r.clone());
+            } else {
+                let first_row = self.list_model.borrow_mut().first().map(|r| r.clone());
 
-            if let Some(first_row) = first_row {
-                current_list.borrow().select_after(&first_row.id, 300);
-                current_list.borrow().animate_scroll_absolute(0.0);
+                if let Some(first_row) = first_row {
+                    current_list.borrow().select_after(&first_row.id, 300);
+                    current_list.borrow().animate_scroll_absolute(0.0);
+                }
             }
         }
     }
 
     pub fn get_selected_article_model(&self) -> Option<ArticleListArticleModel> {
-        let current_list = self.get_current_list();
-        let selected_index = current_list.borrow().get_selected_index();
-        if let Some(selected_index) = selected_index {
-            let selected_row = self.list_model.borrow_mut().calculate_selection(selected_index).map(|r| r.clone());
+        if let Some(current_list) = self.get_current_list() {
+            let selected_index = current_list.borrow().get_selected_index();
+            if let Some(selected_index) = selected_index {
+                let selected_row = self.list_model.borrow_mut().calculate_selection(selected_index).map(|r| r.clone());
 
-            if let Some(selected_row) = selected_row {
-                return Some(selected_row);
+                if let Some(selected_row) = selected_row {
+                    return Some(selected_row);
+                }
             }
         }
 

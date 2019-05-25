@@ -313,9 +313,9 @@ impl MainWindow {
                 if let Some(news_flash) = news_flash.borrow_mut().as_mut() {
                     match content_page.borrow().sidebar_get_selection() {
                         SidebarSelection::All => news_flash.set_all_read().unwrap(),
-                        SidebarSelection::Cateogry(category_id) => news_flash.set_category_read(&vec![category_id]).unwrap(),
-                        SidebarSelection::Feed(feed_id) => news_flash.set_feed_read(&vec![feed_id]).unwrap(),
-                        SidebarSelection::Tag(tag_id) => news_flash.set_tag_read(&vec![tag_id]).unwrap(),
+                        SidebarSelection::Cateogry((category_id, _title)) => news_flash.set_category_read(&vec![category_id]).unwrap(),
+                        SidebarSelection::Feed((feed_id, _title)) => news_flash.set_feed_read(&vec![feed_id]).unwrap(),
+                        SidebarSelection::Tag((tag_id, _title)) => news_flash.set_tag_read(&vec![tag_id]).unwrap(),
                     }
                 }
 

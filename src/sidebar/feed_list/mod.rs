@@ -239,7 +239,7 @@ impl FeedList {
         if let Some(row) = self.list.get_selected_row() {
             let selection = self.tree.borrow().calculate_selection(row.get_index());
             if let Some(selected_item) = selection {
-                if let FeedListItemID::Category(id) = selected_item {
+                if let (FeedListItemID::Category(id), _title) = selected_item {
                     Self::expand_collapse_category(&id, &self.tree, &self.categories, &self.feeds);
                 }
             }
@@ -284,7 +284,7 @@ impl FeedList {
         self.list.unselect_all();
     }
 
-    pub fn get_selection(&self) -> Option<FeedListItemID> {
+    pub fn get_selection(&self) -> Option<(FeedListItemID, String)> {
         if let Some(row) = self.list.get_selected_row() {
             let index = row.get_index();
             return self.tree.borrow().calculate_selection(index);

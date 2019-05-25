@@ -322,7 +322,12 @@ impl MainWindowActions {
         search_action.connect_activate(move |_action, data| {
             if let Some(data) = data {
                 if let Some(data) = data.get_str() {
-                    state.borrow_mut().set_search_term(Some(data.to_owned()));
+                    if data.is_empty() {
+                        state.borrow_mut().set_search_term(None);
+                    } else {
+                        state.borrow_mut().set_search_term(Some(data.to_owned()));
+                    }
+
                     if let Some(action) = main_window.lookup_action("update-article-list") {
                         action.activate(None);
                     }

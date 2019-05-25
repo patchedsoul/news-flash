@@ -61,6 +61,10 @@ impl ArticleListModel {
         self.ids.contains(article_id)
     }
 
+    pub fn len(&self) -> usize {
+        self.models.len()
+    }
+
     pub fn models(&self) -> &Vec<ArticleListArticleModel> {
         &self.models
     }

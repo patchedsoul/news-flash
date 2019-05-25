@@ -109,8 +109,8 @@ impl SideBar {
                 Self::deselect_all_button(&feed_list_all_event_box, &feed_list_delayed_all_selection);
                 feed_list_tag_list_handle.borrow().deselect();
 
-                if let Some(selection) = feed_list_feed_list_handle.borrow().get_selection() {
-                    let selection = SidebarSelection::from_feed_list_selection(selection);
+                if let Some((item, title)) = feed_list_feed_list_handle.borrow().get_selection() {
+                    let selection = SidebarSelection::from_feed_list_selection(item, title);
                     *feed_list_selection_handle.borrow_mut() = selection.clone();
                 }
             });
