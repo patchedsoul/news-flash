@@ -111,8 +111,8 @@ impl ContentHeader {
         other_button_2: &ToggleButton,
         mode: HeaderSelection,
     ) {
-        let other_button_1 = other_button_1.clone();
-        let other_button_2 = other_button_2.clone();
+        let other_button_1_1 = other_button_1.clone();
+        let other_button_2_1 = other_button_2.clone();
         button.connect_button_press_event(move |button, event| {
             if button.get_active()
             || event.get_button() != 1 {
@@ -122,17 +122,21 @@ impl ContentHeader {
                 EventType::ButtonPress => (),
                 _ => return gtk::Inhibit(true),
             }
-            other_button_1.set_active(false);
-            other_button_2.set_active(false);
+            other_button_1_1.set_active(false);
+            other_button_2_1.set_active(false);
             Inhibit(false)
         });
 
-        
+        let other_button_1_2 = other_button_1.clone();
+        let other_button_2_2 = other_button_2.clone();
         button.connect_toggled(move |button| {
             if !button.get_active() {
                 // ignore deactivating toggle-button
                 return;
             }
+
+            other_button_1_2.set_active(false);
+            other_button_2_2.set_active(false);
             
             if let Ok(main_window) = GtkUtil::get_main_window(button) {
                 if let Some(action) = main_window.lookup_action("headerbar-selection") {
