@@ -110,7 +110,8 @@ impl MainWindow {
         MainWindowActions::setup_search_action(&window, &state);
         MainWindowActions::setup_update_article_list_action(&window, &state, &content_page_handle, &news_flash_handle);
         MainWindowActions::setup_show_more_articles_action(&window, &state, &content_page_handle, &news_flash_handle);
-        MainWindowActions::setup_show_article_action(&window, &content_page_handle, &news_flash_handle);
+        MainWindowActions::setup_show_article_action(&window, &content_page_handle, &content_header_handle, &news_flash_handle);
+        MainWindowActions::setup_close_article_action(&window, &content_page_handle, &content_header_handle);
         MainWindowActions::setup_redraw_article_action(&window, &content_page_handle);
         MainWindowActions::setup_mark_article_read_action(&window, &news_flash_handle);
         MainWindowActions::setup_mark_article_action(&window, &news_flash_handle);

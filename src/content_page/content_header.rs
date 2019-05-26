@@ -16,6 +16,7 @@ pub struct ContentHeader {
     all_button: ToggleButton,
     unread_button: ToggleButton,
     marked_button: ToggleButton,
+    more_actions_button: MenuButton,
 }
 
 impl ContentHeader {
@@ -28,6 +29,7 @@ impl ContentHeader {
         let update_button = builder.get::<Button>("update_button");
         let update_stack = builder.get::<Stack>("update_stack");
         let menu_button = builder.get::<MenuButton>("menu_button");
+        let more_actions_button = builder.get::<MenuButton>("more_actions_button");
         let search_entry = builder.get::<SearchEntry>("search_entry");
         search_entry.connect_search_changed(|search_entry| {
             if let Ok(main_window) = GtkUtil::get_main_window(search_entry) {
@@ -46,6 +48,7 @@ impl ContentHeader {
         Self::setup_update_button(&update_button, &update_stack);
 
         Self::setup_menu_button(&menu_button);
+        Self::setup_more_actions_button(&more_actions_button);
 
         header.connect_property_position_notify(|paned| {
             if let Ok(main_window) = GtkUtil::get_main_window(paned) {
@@ -64,6 +67,7 @@ impl ContentHeader {
             all_button,
             unread_button,
             marked_button,
+            more_actions_button,
         })
     }
 
@@ -159,5 +163,17 @@ impl ContentHeader {
         
 
         button.set_menu_model(&main_model);
+    }
+
+    fn setup_more_actions_button(button: &MenuButton) {
+        let model = Menu::new();
+        model.append("Export Article", "win.export-article");
+        model.append("Close Article", "win.close-article");
+        button.set_menu_model(&model);
+        button.set_sensitive(false);
+    }
+
+    pub fn set_article_header_sensitive(&self, sensitive: bool) {
+        self.more_actions_button.set_sensitive(sensitive);
     }
 }

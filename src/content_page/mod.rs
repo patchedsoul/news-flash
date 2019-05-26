@@ -272,7 +272,7 @@ impl ContentPage {
         self.sidebar.update_unread_all(total_count);
     }
 
-    pub fn show_article(
+    pub fn article_view_show(
         &mut self,
         article_id: &ArticleID,
         news_flash_handle: &GtkHandle<Option<NewsFlash>>,
@@ -291,7 +291,11 @@ impl ContentPage {
         self.article_view.animate_scroll_diff(diff)
     }
 
-    pub fn redraw_article(&mut self) -> Result<(), Error> {
+    pub fn article_view_close(&self) -> Result<(), Error> {
+        self.article_view.close_article()
+    }
+
+    pub fn article_view_redraw(&mut self) -> Result<(), Error> {
         self.article_view.redraw_article()
     }
 

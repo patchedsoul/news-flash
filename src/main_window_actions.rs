@@ -378,9 +378,11 @@ impl MainWindowActions {
     pub fn setup_show_article_action(
         window: &ApplicationWindow,
         content_page: &GtkHandle<ContentPage>,
+        content_header: &GtkHandle<ContentHeader>,
         news_flash: &GtkHandle<Option<NewsFlash>>,
     ) {
         let content_page = content_page.clone();
+        let content_header = content_header.clone();
         let news_flash = news_flash.clone();
         let show_article_action = SimpleAction::new("show-article", glib::VariantTy::new("s").ok());
         show_article_action.connect_activate(move |_action, data| {
@@ -389,8 +391,11 @@ impl MainWindowActions {
                     let article_id = ArticleID::new(data);
                     content_page
                         .borrow_mut()
-                        .show_article(&article_id, &news_flash)
+                        .article_view_show(&article_id, &news_flash)
                         .unwrap();
+                    content_header
+                        .borrow()
+                        .set_article_header_sensitive(true);
                 }
             }
         });
@@ -405,10 +410,31 @@ impl MainWindowActions {
         let content_page = content_page.clone();
         let redraw_article_action = SimpleAction::new("redraw-article", None);
         redraw_article_action.connect_activate(move |_action, _data| {
-            content_page.borrow_mut().redraw_article().unwrap();
+            content_page.borrow_mut().article_view_redraw().unwrap();
         });
         redraw_article_action.set_enabled(true);
         window.add_action(&redraw_article_action);
+    }
+
+    pub fn setup_close_article_action(
+        window: &ApplicationWindow,
+        content_page: &GtkHandle<ContentPage>,
+        content_header: &GtkHandle<ContentHeader>,
+    ) {
+        let content_page = content_page.clone();
+        let content_header = content_header.clone();
+        let close_article_action = SimpleAction::new("close-article", None);
+        close_article_action.connect_activate(move |_action, _data| {
+            content_page
+                .borrow_mut()
+                .article_view_close()
+                .unwrap();
+            content_header
+                .borrow()
+                .set_article_header_sensitive(false);
+        });
+        close_article_action.set_enabled(true);
+        window.add_action(&close_article_action);
     }
 
     pub fn setup_mark_article_read_action(

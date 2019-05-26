@@ -194,6 +194,13 @@ impl ArticleView {
         Ok(())
     }
 
+    pub fn close_article(&self) -> Result<(), Error> {
+        self.remove_old_view(150);
+        *self.internal_state.borrow_mut() = InternalState::Empty;
+        self.stack.set_visible_child_name("empty");
+        Ok(())
+    }
+
     fn switch_view(&mut self) -> Result<WebView, Error> {
         self.remove_old_view(150);
 
@@ -904,7 +911,7 @@ impl ArticleView {
         Err(format_err!("some err"))
     }
 
-    pub fn set_scroll_abs(&self, scroll: f64) -> Result<(), Error> {
+    fn set_scroll_abs(&self, scroll: f64) -> Result<(), Error> {
         let view_name = (*self.internal_state.borrow()).to_str().map(|s| s.to_owned());
         if let Some(view_name) = view_name {
             if let Some(view) = self.stack.get_child_by_name(&view_name) {
@@ -917,7 +924,7 @@ impl ArticleView {
         Err(format_err!("some err"))
     }
 
-    pub fn get_scroll_abs(&self) -> Result<f64, Error> {
+    fn get_scroll_abs(&self) -> Result<f64, Error> {
         let view_name = (*self.internal_state.borrow()).to_str().map(|s| s.to_owned());
         if let Some(view_name) = view_name {
             if let Some(view) = self.stack.get_child_by_name(&view_name) {
@@ -929,7 +936,7 @@ impl ArticleView {
         Err(format_err!("some err"))
     }
 
-    pub fn get_scroll_window_height(&self) -> Result<f64, Error> {
+    fn get_scroll_window_height(&self) -> Result<f64, Error> {
         let view_name = (*self.internal_state.borrow()).to_str().map(|s| s.to_owned());
         if let Some(view_name) = view_name {
             if let Some(view) = self.stack.get_child_by_name(&view_name) {
@@ -941,28 +948,12 @@ impl ArticleView {
         Err(format_err!("some err"))
     }
 
-    pub fn get_scroll_upper(&self) -> Result<f64, Error> {
+    fn get_scroll_upper(&self) -> Result<f64, Error> {
         let view_name = (*self.internal_state.borrow()).to_str().map(|s| s.to_owned());
         if let Some(view_name) = view_name {
             if let Some(view) = self.stack.get_child_by_name(&view_name) {
                 if let Ok(view) = view.downcast::<WebView>() {
                     return Self::get_scroll_upper_static(&view)
-                }
-            }
-        }
-        Err(format_err!("some err"))
-    }
-    
-    #[allow(dead_code)]
-    pub fn set_scroll_diff(&self, diff: f64) -> Result<(), Error> {
-        let view_name = (*self.internal_state.borrow()).to_str().map(|s| s.to_owned());
-        if let Some(view_name) = view_name {
-            if let Some(view) = self.stack.get_child_by_name(&view_name) {
-                if let Ok(view) = view.downcast::<WebView>() {
-                    if let Ok(pos) = Self::get_scroll_pos_static(&view) {
-                        Self::set_scroll_pos_static(&view, pos + diff)?;
-                        return Ok(())
-                    }
                 }
             }
         }
