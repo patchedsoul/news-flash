@@ -114,6 +114,7 @@ impl ArticleList {
             self.empty_label.set_label(&self.compose_empty_message(new_state));
             self.stack.set_visible_child_name("empty");
             if let Some(current_list) = self.get_current_list() {
+                current_list.borrow_mut().clear();
                 GtkUtil::disconnect_signal(self.list_select_signal, &current_list.borrow().list());
             }
             self.list_select_signal = None;

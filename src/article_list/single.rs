@@ -36,6 +36,7 @@ pub struct SingleArticleList {
     articles: HashMap<ArticleID, GtkHandle<ArticleRow>>,
     list: ListBox,
     select_after_signal: GtkHandle<Option<u32>>,
+    scroll_cooldown: GtkHandle<bool>,
     scroll_animation_data: ScrollAnimationProperties,
 }
 
@@ -45,8 +46,10 @@ impl SingleArticleList {
         let scroll = builder.get::<ScrolledWindow>("article_list_scroll");
         let list = builder.get::<ListBox>("article_list_box");
 
+        let scroll_cooldown = gtk_handle!(false);
+
         let vadj_scroll = scroll.clone();
-        let cooldown = gtk_handle!(false);
+        let cooldown = scroll_cooldown.clone();
         if let Some(vadjustment) = scroll.get_vadjustment() {
             vadjustment.connect_value_changed(move |vadj| {
                 let is_on_cooldown = *cooldown.borrow();
@@ -74,6 +77,7 @@ impl SingleArticleList {
             articles: HashMap::new(),
             list,
             select_after_signal: gtk_handle!(None),
+            scroll_cooldown,
             scroll_animation_data: ScrollAnimationProperties {
                 start_time: gtk_handle!(None),
                 end_time: gtk_handle!(None),
@@ -107,6 +111,7 @@ impl SingleArticleList {
     }
 
     pub fn clear(&mut self) {
+        *self.scroll_cooldown.borrow_mut() = true;
         for row in self.list.get_children() {
             let list = self.list.clone();
             gtk::idle_add(move || {
@@ -118,6 +123,7 @@ impl SingleArticleList {
         if let Some(vadjustment) = self.scroll.get_vadjustment() {
             vadjustment.set_value(0.0);
         }
+        *self.scroll_cooldown.borrow_mut() = false;
     }
 
     pub fn update_marked(&mut self, id: &ArticleID, marked: Marked) {

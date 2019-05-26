@@ -3,6 +3,7 @@ use crate::util::{BuilderHelper, GtkUtil};
 use failure::Error;
 use gio::{ActionExt, ActionMapExt, Menu};
 use glib::Variant;
+use gdk::EventType;
 use gtk::{
     Button, ButtonExt, EntryExt, Paned, PanedExt, SearchEntry, SearchEntryExt, Stack, StackExt, ToggleButton,
     ToggleButtonExt, WidgetExt, MenuButton, MenuButtonExt, Inhibit,
@@ -110,22 +111,29 @@ impl ContentHeader {
         other_button_2: &ToggleButton,
         mode: HeaderSelection,
     ) {
-        button.connect_button_press_event(|button, _event| {
-            if button.get_active() {
+        let other_button_1 = other_button_1.clone();
+        let other_button_2 = other_button_2.clone();
+        button.connect_button_press_event(move |button, event| {
+            if button.get_active()
+            || event.get_button() != 1 {
                 return Inhibit(true)
             }
+            match event.get_event_type() {
+                EventType::ButtonPress => (),
+                _ => return gtk::Inhibit(true),
+            }
+            other_button_1.set_active(false);
+            other_button_2.set_active(false);
             Inhibit(false)
         });
 
-        let other_button_1 = other_button_1.clone();
-        let other_button_2 = other_button_2.clone();
+        
         button.connect_toggled(move |button| {
             if !button.get_active() {
                 // ignore deactivating toggle-button
                 return;
             }
-            other_button_1.set_active(false);
-            other_button_2.set_active(false);
+            
             if let Ok(main_window) = GtkUtil::get_main_window(button) {
                 if let Some(action) = main_window.lookup_action("headerbar-selection") {
                     if let Ok(json) = serde_json::to_string(&mode) {
