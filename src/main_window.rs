@@ -13,7 +13,7 @@ use crate::sidebar::models::SidebarSelection;
 use failure::Error;
 use gtk::{
     self, Application, ApplicationWindow, CssProvider, CssProviderExt, GtkWindowExt, GtkWindowExtManual, Inhibit,
-    Stack, StackExt, StyleContext, WidgetExt,
+    Settings as GtkSettings, SettingsExt, Stack, StackExt, StyleContext, WidgetExt,
 };
 use glib::Variant;
 use gdk::EventKey;
@@ -38,12 +38,10 @@ pub struct MainWindow {
 
 impl MainWindow {
     pub fn new(app: &Application) -> Result<Self, Error> {
+        let provider_handle = gtk_handle!(CssProvider::new());
+
         // setup CSS for window
-        let css_data = Resources::get("css/app.css").expect(GTK_RESOURCE_FILE_ERROR);
-        let screen = gdk::Screen::get_default().expect(GTK_CSS_ERROR);
-        let provider = CssProvider::new();
-        CssProvider::load_from_data(&provider, css_data.as_ref()).expect(GTK_CSS_ERROR);
-        StyleContext::add_provider_for_screen(&screen, &provider, 600);
+        Self::load_css(&provider_handle);
 
         let builder = BuilderHelper::new("main_window");
         let window = builder.get::<ApplicationWindow>("main_window");
@@ -146,6 +144,17 @@ impl MainWindow {
             warn!("No account configured");
             stack.set_visible_child_name("welcome");
             window.set_titlebar(&welcome_header.widget());
+        }
+
+        if let Some(settings) = GtkSettings::get_default() {
+            let window = window.clone();
+            let provider = provider_handle.clone();
+            settings.connect_property_gtk_application_prefer_dark_theme_notify(move |_settings| {
+                Self::load_css(&provider);
+                if let Some(action) = window.lookup_action("redraw-article") {
+                    action.activate(None);
+                }
+            });
         }
 
         content_header_handle.borrow().set_paned(PANED_DEFAULT_POS);
@@ -349,5 +358,29 @@ impl MainWindow {
             }
         }
         false
+    }
+
+    fn load_css(provider: &GtkHandle<CssProvider>) {
+        let screen = gdk::Screen::get_default().expect(GTK_CSS_ERROR);
+
+        // remove old style provider
+        StyleContext::remove_provider_for_screen(&screen, &*provider.borrow());
+
+        // setup new style provider
+        let style_sheet = if let Some(settings) = GtkSettings::get_default() {
+            if settings.get_property_gtk_application_prefer_dark_theme() {
+                "app_dark"
+            } else {
+                "app"
+            }
+        } else {
+            "app"
+        };
+        let css_data = Resources::get(&format!("css/{}.css", style_sheet)).expect(GTK_RESOURCE_FILE_ERROR);
+        *provider.borrow_mut() = CssProvider::new();
+        CssProvider::load_from_data(&*provider.borrow(), css_data.as_ref()).expect(GTK_CSS_ERROR);
+
+        // apply new style provider
+        StyleContext::add_provider_for_screen(&screen, &*provider.borrow(), 600);
     }
 }

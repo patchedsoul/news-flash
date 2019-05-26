@@ -410,7 +410,68 @@ figure {
 	border: none;
 }
 
-/* MIDNIGHT THEME -- also default dark */
+/* DARK THEME*/
+
+body.theme.dark {
+    color: rgba(255, 255, 255, 0.9);
+    background: #222;
+}
+
+body.theme.dark pre,
+body.theme.dark pre code,
+body.theme.dark code {
+    background-color: rgba(255, 255, 255, 0.8);
+    color: black;
+}
+
+body.theme.dark table,
+body.theme.dark th,
+body.theme.dark td {
+    border: 1px solid rgba(255, 255, 255, 0.8);
+}
+
+body.theme.dark div.nfcontent th {
+    background: rgba(0, 0, 0, 0.1);
+}
+
+body.theme.dark header.post h1 {
+    color: rgba(255, 255, 255, 0.9);
+}
+
+body.theme.dark header.post h1 a {
+    color: rgba(255, 255, 255, 0.9);
+}
+
+body.theme.dark header.post span.source {
+    color: rgba(255, 255, 255, 0.7);
+}
+
+body.theme.dark header.post span.author {
+    color: rgba(255, 255, 255, 0.7);
+}
+
+body.theme.dark div.nfcontent a {
+    color: rgba(255, 255, 255, 0.9);
+}
+
+body.theme.dark div.nfcontent h1,
+body.theme.dark div.nfcontent h2,
+body.theme.dark div.nfcontent h3,
+body.theme.dark div.nfcontent h4 {
+    color: rgba(255, 255, 255, 0.8);
+}
+
+body.theme.dark div.nfcontent body,
+body.theme.dark div.nfcontent ul,
+body.theme.dark div.nfcontent figcaption,
+body.theme.dark div.nfcontent h5,
+body.theme.dark div.nfcontent h6,
+body.theme.dark div.nfcontent p {
+    color: rgba(255, 255, 255, 0.7);
+    text-align: justify;
+}
+
+/* MIDNIGHT THEME */
 
 body.theme.midnight {
     color: rgba(255, 255, 255, 0.6);
@@ -471,6 +532,8 @@ body.theme.midnight div.nfcontent p {
     text-align: justify;
 }
 
+/* SPRING THEME*/
+
 body.theme.spring {
     background: #f8fff2;
 }
@@ -493,6 +556,8 @@ body.theme.spring div.nfcontent h4 {
 body.theme.spring div.nfcontent h2 {
     border-color: #405e80;
 }
+
+/* PARCHMENT THEME*/
 
 body.theme.parchment {
     background: #faf2e1;
