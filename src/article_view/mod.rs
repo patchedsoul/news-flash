@@ -262,6 +262,9 @@ impl ArticleView {
         GtkUtil::remove_source(*drag_released_motion_signal.borrow());
         GtkUtil::remove_source(*drag_buffer_update_signal.borrow());
         GtkUtil::remove_source(*progress_overlay_delay_signal.borrow());
+        *drag_released_motion_signal.borrow_mut() = None;
+        *drag_buffer_update_signal.borrow_mut() = None;
+        *progress_overlay_delay_signal.borrow_mut() = None;
 
         // disconnect signals
         if let Some(old_state) = old_state.to_str() {
