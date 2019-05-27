@@ -925,7 +925,7 @@
                                 </child>
                                 <child>
                                   <object class="GtkListBoxRow" id="toggle_category_expanded">
-                                    <property name="name">expand_category</property>
+                                    <property name="name">toggle_category_expanded</property>
                                     <property name="height_request">40</property>
                                     <property name="visible">True</property>
                                     <property name="can_focus">False</property>
@@ -983,7 +983,7 @@
                                 </child>
                                 <child>
                                   <object class="GtkListBoxRow" id="sidebar_set_read">
-                                    <property name="name">feed_read</property>
+                                    <property name="name">sidebar_set_read</property>
                                     <property name="height_request">40</property>
                                     <property name="visible">True</property>
                                     <property name="can_focus">False</property>
