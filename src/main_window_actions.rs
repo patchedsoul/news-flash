@@ -10,7 +10,7 @@ use crate::util::{GtkHandle, FileUtil};
 use crate::about_dialog::NewsFlashAbout;
 use crate::settings::{Settings, SettingsDialog, NewsFlashShortcutWindow};
 use gio::{ActionExt, ActionMapExt, ApplicationExt, SimpleAction};
-use gtk::{self, Application, ApplicationWindow, GtkWindowExt, GtkWindowExtManual, HeaderBar, Stack, StackExt, StackTransitionType,
+use gtk::{self, Application, ApplicationWindow, GtkWindowExt, GtkWindowExtManual, Stack, StackExt, StackTransitionType,
     FileChooserDialog, FileChooserAction, FileFilter, FileChooserExt, DialogExt, ResponseType};
 use log::error;
 use news_flash::models::{ArticleID, LoginData, PluginID};
@@ -23,10 +23,10 @@ impl MainWindowActions {
         window: &ApplicationWindow,
         pw_page: &GtkHandle<PasswordLogin>,
         stack: &Stack,
-        headerbar: HeaderBar,
+        header_stack: &Stack,
     ) {
-        let application_window = window.clone();
         let stack = stack.clone();
+        let header_stack = header_stack.clone();
         let show_pw_page = SimpleAction::new("show-pw-page", glib::VariantTy::new("s").ok());
         let pw_page = pw_page.clone();
         show_pw_page.connect_activate(move |_action, data| {
@@ -35,7 +35,7 @@ impl MainWindowActions {
                     let id = PluginID::new(id_string);
                     if let Some(service_meta) = NewsFlash::list_backends().get(&id) {
                         if let Ok(()) = pw_page.borrow_mut().set_service(service_meta.clone()) {
-                            application_window.set_titlebar(&headerbar);
+                            header_stack.set_visible_child_name("login");
                             stack.set_transition_type(StackTransitionType::SlideLeft);
                             stack.set_visible_child_name("password_login");
                         }
@@ -51,10 +51,10 @@ impl MainWindowActions {
         window: &ApplicationWindow,
         oauth_page: &GtkHandle<WebLogin>,
         stack: &Stack,
-        headerbar: HeaderBar,
+        header_stack: &Stack,
     ) {
-        let application_window = window.clone();
         let stack = stack.clone();
+        let header_stack = header_stack.clone();
         let oauth_page = oauth_page.clone();
         let show_pw_page = SimpleAction::new("show-oauth-page", glib::VariantTy::new("s").ok());
         show_pw_page.connect_activate(move |_action, data| {
@@ -63,7 +63,7 @@ impl MainWindowActions {
                     let id = PluginID::new(id_string);
                     if let Some(service_meta) = NewsFlash::list_backends().get(&id) {
                         if let Ok(()) = oauth_page.borrow_mut().set_service(service_meta.clone()) {
-                            application_window.set_titlebar(&headerbar);
+                            header_stack.set_visible_child_name("login");
                             stack.set_transition_type(StackTransitionType::SlideLeft);
                             stack.set_visible_child_name("oauth_login");
                         }
@@ -80,15 +80,15 @@ impl MainWindowActions {
         oauth_page: &GtkHandle<WebLogin>,
         pw_page: &GtkHandle<PasswordLogin>,
         stack: &Stack,
-        headerbar: HeaderBar,
+        header_stack: &Stack,
     ) {
-        let application_window = window.clone();
         let stack = stack.clone();
+        let header_stack = header_stack.clone();
         let show_welcome_page = SimpleAction::new("show-welcome-page", None);
         let pw_page = pw_page.clone();
         let oauth_page = oauth_page.clone();
         show_welcome_page.connect_activate(move |_action, _data| {
-            application_window.set_titlebar(&headerbar);
+            header_stack.set_visible_child_name("welcome");
             pw_page.borrow_mut().reset();
             oauth_page.borrow_mut().reset();
             stack.set_transition_type(StackTransitionType::SlideRight);
@@ -102,13 +102,13 @@ impl MainWindowActions {
         window: &ApplicationWindow,
         news_flash: &GtkHandle<Option<NewsFlash>>,
         stack: &Stack,
+        header_stack: &Stack,
         content_page: &GtkHandle<ContentPage>,
-        headerbar: gtk::Paned,
         state: &GtkHandle<MainWindowState>,
     ) {
         let news_flash = news_flash.clone();
-        let application_window = window.clone();
         let stack = stack.clone();
+        let header_stack = header_stack.clone();
         let content_page = content_page.clone();
         let state = state.clone();
         let show_content_page = SimpleAction::new("show-content-page", glib::VariantTy::new("s").ok());
@@ -122,7 +122,7 @@ impl MainWindowActions {
                     }
                     content_page.borrow_mut().update_sidebar(&news_flash, &state);
                     content_page.borrow().set_service(&id, user_name).unwrap();
-                    application_window.set_titlebar(&headerbar);
+                    header_stack.set_visible_child_name("content");
                     stack.set_transition_type(StackTransitionType::SlideLeft);
                     stack.set_visible_child_name("content");
                 }

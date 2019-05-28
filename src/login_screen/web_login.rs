@@ -29,12 +29,11 @@ pub struct WebLogin {
 }
 
 impl WebLogin {
-    pub fn new() -> Self {
-        let builder = BuilderHelper::new("oauth_login");
+    pub fn new(builder: &BuilderHelper) -> Self {
         let page = builder.get::<Box>("oauth_box");
-        let info_bar = builder.get::<InfoBar>("info_bar");
-        let error_details_button = builder.get::<Button>("details_button");
-        let info_bar_label = builder.get::<Label>("info_bar_label");
+        let info_bar = builder.get::<InfoBar>("oauth_info_bar");
+        let error_details_button = builder.get::<Button>("oauth_details_button");
+        let info_bar_label = builder.get::<Label>("oauth_info_bar_label");
 
         let context = WebContext::get_default().expect(GTK_BUILDER_ERROR);
         let content_manager = UserContentManager::new();
@@ -53,10 +52,6 @@ impl WebLogin {
             info_bar_response_signal: None,
             error_details_signal: None,
         }
-    }
-
-    pub fn widget(&self) -> gtk::Box {
-        self.page.clone()
     }
 
     fn hide_info_bar(info_bar: &gtk::InfoBar) {

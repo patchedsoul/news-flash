@@ -22,7 +22,6 @@ use news_flash::NewsFlash;
 const SIDEBAR_PANED_DEFAULT_POS: i32 = 220;
 
 pub struct ContentPage {
-    page: Box,
     paned: Paned,
     sidebar: SideBar,
     article_list: ArticleList,
@@ -31,9 +30,7 @@ pub struct ContentPage {
 }
 
 impl ContentPage {
-    pub fn new(settings: &GtkHandle<Settings>) -> Result<Self, Error> {
-        let builder = BuilderHelper::new("content_page");
-        let page = builder.get::<Box>("page");
+    pub fn new(builder: &BuilderHelper, settings: &GtkHandle<Settings>) -> Result<Self, Error> {
         let feed_list_box = builder.get::<Box>("feedlist_box");
         let article_list_box = builder.get::<Box>("articlelist_box");
         let articleview_box = builder.get::<Box>("articleview_box");
@@ -61,17 +58,12 @@ impl ContentPage {
         let settings = settings.clone();
 
         Ok(ContentPage {
-            page,
             paned,
             sidebar,
             article_list,
             article_view,
             settings,
         })
-    }
-
-    pub fn widget(&self) -> gtk::Box {
-        self.page.clone()
     }
 
     pub fn set_service(&self, id: &PluginID, user_name: Option<String>) -> Result<(), Error> {

@@ -46,12 +46,13 @@ impl MainWindow {
         let builder = BuilderHelper::new("main_window");
         let window = builder.get::<ApplicationWindow>("main_window");
         let stack = builder.get::<Stack>("main_stack");
+        let header_stack = builder.get::<Stack>("header_stack");
 
         let settings = gtk_handle!(Settings::open()?);
 
-        let login_header = LoginHeaderbar::new(&window);
-        let welcome_header = WelcomeHeaderbar::new()?;
-        let content_header = ContentHeader::new()?;
+        let _login_header = LoginHeaderbar::new(&builder);
+        let _welcome_header = WelcomeHeaderbar::new(&builder);
+        let content_header = ContentHeader::new(&builder);
 
         window.set_application(app);
         window.set_icon_name(ICON_NAME);
@@ -62,17 +63,10 @@ impl MainWindow {
         });
 
         // setup pages
-        let welcome = WelcomePage::new(&window)?;
-        stack.add_named(&welcome.widget(), "welcome");
-
-        let pw_login = PasswordLogin::new()?;
-        stack.add_named(&pw_login.widget(), "password_login");
-
-        let oauth_login = WebLogin::new();
-        stack.add_named(&oauth_login.widget(), "oauth_login");
-
-        let content = ContentPage::new(&settings)?;
-        stack.add_named(&content.widget(), CONTENT_PAGE);
+        let _welcome = WelcomePage::new(&builder)?;
+        let pw_login = PasswordLogin::new(&builder);
+        let oauth_login = WebLogin::new(&builder);
+        let content = ContentPage::new(&builder, &settings)?;
 
         let pw_login_handle = gtk_handle!(pw_login);
         let oauht_login_handle = gtk_handle!(oauth_login);
@@ -82,21 +76,21 @@ impl MainWindow {
 
         let state = gtk_handle!(MainWindowState::new());
 
-        MainWindowActions::setup_show_password_page_action(&window, &pw_login_handle, &stack, login_header.widget());
-        MainWindowActions::setup_show_oauth_page_action(&window, &oauht_login_handle, &stack, login_header.widget());
+        MainWindowActions::setup_show_password_page_action(&window, &pw_login_handle, &stack, &header_stack);
+        MainWindowActions::setup_show_oauth_page_action(&window, &oauht_login_handle, &stack, &header_stack);
         MainWindowActions::setup_show_welcome_page_action(
             &window,
             &oauht_login_handle,
             &pw_login_handle,
             &stack,
-            welcome_header.widget(),
+            &header_stack,
         );
         MainWindowActions::setup_show_content_page_action(
             &window,
             &news_flash_handle,
             &stack,
+            &header_stack,
             &content_page_handle,
-            content_header_handle.borrow().widget(),
             &state,
         );
         MainWindowActions::setup_login_action(&window, &news_flash_handle, &oauht_login_handle, &pw_login_handle);
@@ -139,11 +133,11 @@ impl MainWindow {
                 .borrow_mut()
                 .update_article_list(&news_flash_handle, &state);
 
-            window.set_titlebar(&content_header_handle.borrow().widget());
+            header_stack.set_visible_child_name(CONTENT_PAGE);
         } else {
             warn!("No account configured");
             stack.set_visible_child_name("welcome");
-            window.set_titlebar(&welcome_header.widget());
+            header_stack.set_visible_child_name("welcome");
         }
 
         if let Some(settings) = GtkSettings::get_default() {

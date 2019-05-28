@@ -1,6 +1,5 @@
 use super::header_selection::HeaderSelection;
 use crate::util::{BuilderHelper, GtkUtil};
-use failure::Error;
 use gio::{ActionExt, ActionMapExt, Menu};
 use glib::Variant;
 use gdk::EventType;
@@ -21,8 +20,7 @@ pub struct ContentHeader {
 }
 
 impl ContentHeader {
-    pub fn new() -> Result<Self, Error> {
-        let builder = BuilderHelper::new("content_page_header");
+    pub fn new(builder: &BuilderHelper) -> Self {
         let header = builder.get::<Paned>("content_header");
         let all_button = builder.get::<ToggleButton>("all_button");
         let unread_button = builder.get::<ToggleButton>("unread_button");
@@ -60,7 +58,7 @@ impl ContentHeader {
             }
         });
 
-        Ok(ContentHeader {
+        ContentHeader {
             header,
             update_stack,
             update_button,
@@ -69,11 +67,7 @@ impl ContentHeader {
             unread_button,
             marked_button,
             more_actions_button,
-        })
-    }
-
-    pub fn widget(&self) -> gtk::Paned {
-        self.header.clone()
+        }
     }
 
     pub fn set_paned(&self, pos: i32) {

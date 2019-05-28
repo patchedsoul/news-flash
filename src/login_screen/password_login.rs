@@ -44,8 +44,7 @@ pub struct PasswordLogin {
 }
 
 impl PasswordLogin {
-    pub fn new() -> Result<Self, Error> {
-        let builder = BuilderHelper::new("password_login");
+    pub fn new(builder: &BuilderHelper) -> Self {
         let page = builder.get::<Box>("password_login");
         let logo = builder.get::<Image>("logo");
         let headline = builder.get::<Label>("headline");
@@ -57,18 +56,18 @@ impl PasswordLogin {
         let http_pass_entry = builder.get::<Entry>("http_pass_entry");
         let http_revealer = builder.get::<Revealer>("http_auth_revealer");
         let login_button = builder.get::<Button>("login_button");
-        let info_bar = builder.get::<InfoBar>("info_bar");
-        let info_bar_label = builder.get::<Label>("info_bar_label");
+        let info_bar = builder.get::<InfoBar>("pw_info_bar");
+        let info_bar_label = builder.get::<Label>("pw_info_bar_label");
         let ignore_tls_button = builder.get::<Button>("ignore_button");
-        let error_details_button = builder.get::<Button>("details_button");
+        let error_details_button = builder.get::<Button>("pw_details_button");
 
         let scale_factor = page.get_style_context().get_scale();
 
         let generic_logo_data = Resources::get("icons/feed-service-generic.svg").expect(GTK_RESOURCE_FILE_ERROR);
-        let surface = GtkUtil::create_surface_from_bytes(&generic_logo_data, 64, 64, scale_factor)?;
+        let surface = GtkUtil::create_surface_from_bytes(&generic_logo_data, 64, 64, scale_factor).expect(GTK_RESOURCE_FILE_ERROR);
         logo.set_from_surface(&surface);
 
-        let page = PasswordLogin {
+        PasswordLogin {
             page,
             logo,
             headline,
@@ -95,9 +94,7 @@ impl PasswordLogin {
             login_button_signal: None,
             ignore_tls_signal: None,
             error_details_signal: None,
-        };
-
-        Ok(page)
+        }
     }
 
     pub fn set_service(&mut self, info: PluginInfo) -> Result<(), Error> {
@@ -214,10 +211,6 @@ impl PasswordLogin {
             );
         }
         Ok(())
-    }
-
-    pub fn widget(&self) -> gtk::Box {
-        self.page.clone()
     }
 
     pub fn reset(&mut self) {

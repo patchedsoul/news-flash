@@ -1,10 +1,10 @@
 use super::service_row::ServiceRow;
 use crate::gtk_handle;
-use crate::util::{BuilderHelper, GtkHandleMap};
+use crate::util::{BuilderHelper, GtkHandleMap, GtkUtil};
 use failure::Error;
 use gio::{ActionExt, ActionMapExt};
 use glib::Variant;
-use gtk::{ApplicationWindow, Box, ListBox, ListBoxExt, ListBoxRowExt};
+use gtk::{Box, ListBox, ListBoxExt, ListBoxRowExt};
 use news_flash::models::{LoginGUI, PluginID};
 use news_flash::NewsFlash;
 use std::cell::RefCell;
@@ -19,8 +19,7 @@ pub struct WelcomePage {
 }
 
 impl WelcomePage {
-    pub fn new(window: &ApplicationWindow) -> Result<Self, Error> {
-        let builder = BuilderHelper::new("welcome_page");
+    pub fn new(builder: &BuilderHelper) -> Result<Self, Error> {
         let page = builder.get::<Box>("welcome_page");
         let list = builder.get::<ListBox>("list");
 
@@ -31,7 +30,7 @@ impl WelcomePage {
         };
 
         page.populate()?;
-        page.connect_signals(window);
+        page.connect_signals();
 
         Ok(page)
     }
@@ -48,8 +47,8 @@ impl WelcomePage {
         Ok(())
     }
 
-    fn connect_signals(&self, window: &ApplicationWindow) {
-        let main_window = window.clone();
+    fn connect_signals(&self) {
+        let main_window = GtkUtil::get_main_window(&self.page).unwrap();
         let services = self.services.clone();
         self.list.connect_row_activated(move |_list, row| {
             if let Some((id, login_desc)) = services.borrow().get(&row.get_index()) {
@@ -71,9 +70,5 @@ impl WelcomePage {
                 };
             }
         });
-    }
-
-    pub fn widget(&self) -> gtk::Box {
-        self.page.clone()
     }
 }
