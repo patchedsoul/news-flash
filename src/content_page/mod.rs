@@ -9,20 +9,15 @@ use crate::article_view::ArticleView;
 use crate::main_window_state::MainWindowState;
 use crate::sidebar::models::SidebarSelection;
 use crate::sidebar::{FeedListTree, SideBar, TagListModel};
-use crate::util::{BuilderHelper, GtkHandle, GtkUtil};
+use crate::util::{BuilderHelper, GtkHandle};
 use crate::settings::Settings;
 use failure::format_err;
 use failure::Error;
-use gio::{ActionExt, ActionMapExt};
-use glib::Variant;
-use gtk::{Box, BoxExt, Paned, PanedExt};
+use gtk::{Box, BoxExt, WidgetExt};
 use news_flash::models::{Article, ArticleID, Marked, PluginID, PluginCapabilities, Read};
 use news_flash::NewsFlash;
 
-const SIDEBAR_PANED_DEFAULT_POS: i32 = 220;
-
 pub struct ContentPage {
-    paned: Paned,
     sidebar: SideBar,
     article_list: ArticleList,
     article_view: ArticleView,
@@ -34,18 +29,10 @@ impl ContentPage {
         let feed_list_box = builder.get::<Box>("feedlist_box");
         let article_list_box = builder.get::<Box>("articlelist_box");
         let articleview_box = builder.get::<Box>("articleview_box");
-        let paned = builder.get::<Paned>("paned_lists_article_view");
-        let sidebar_paned = builder.get::<Paned>("paned_lists");
-        sidebar_paned.set_position(SIDEBAR_PANED_DEFAULT_POS);
 
-        paned.connect_property_position_notify(|paned| {
-            if let Ok(main_window) = GtkUtil::get_main_window(paned) {
-                if let Some(action) = main_window.lookup_action("sync-paned") {
-                    let pos = Variant::from(&paned.get_position());
-                    action.activate(Some(&pos));
-                }
-            }
-        });
+        // workaround
+        let sidebar_and_article_list = builder.get::<Box>("sidebar_and_article_list");
+        sidebar_and_article_list.set_hexpand(false);
 
         let sidebar = SideBar::new()?;
         let article_list = ArticleList::new(settings)?;
@@ -58,7 +45,6 @@ impl ContentPage {
         let settings = settings.clone();
 
         Ok(ContentPage {
-            paned,
             sidebar,
             article_list,
             article_view,
@@ -69,10 +55,6 @@ impl ContentPage {
     pub fn set_service(&self, id: &PluginID, user_name: Option<String>) -> Result<(), Error> {
         self.sidebar.set_service(id, user_name)?;
         Ok(())
-    }
-
-    pub fn set_paned(&self, pos: i32) {
-        self.paned.set_position(pos);
     }
 
     pub fn update_article_list(

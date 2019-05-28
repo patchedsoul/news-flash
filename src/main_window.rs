@@ -29,7 +29,6 @@ lazy_static! {
     pub static ref DATA_DIR: PathBuf = dirs::home_dir().expect("$HOME not available").join(".news-flash");
 }
 
-const PANED_DEFAULT_POS: i32 = 600;
 const CONTENT_PAGE: &str = "content";
 
 pub struct MainWindow {
@@ -94,7 +93,6 @@ impl MainWindow {
             &state,
         );
         MainWindowActions::setup_login_action(&window, &news_flash_handle, &oauht_login_handle, &pw_login_handle);
-        MainWindowActions::setup_sync_paned_action(&window, &content_page_handle, &content_header_handle);
         MainWindowActions::setup_sync_action(&window, &content_header_handle, &news_flash_handle);
         MainWindowActions::setup_sidebar_selection_action(&window, &state);
         MainWindowActions::setup_update_sidebar_action(&window, &content_page_handle, &news_flash_handle, &state);
@@ -151,8 +149,6 @@ impl MainWindow {
             });
         }
 
-        content_header_handle.borrow().set_paned(PANED_DEFAULT_POS);
-        content_page_handle.borrow().set_paned(PANED_DEFAULT_POS);
         window.show_all();
 
         let main_window = MainWindow { widget: window };

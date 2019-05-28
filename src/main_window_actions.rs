@@ -186,26 +186,6 @@ impl MainWindowActions {
         window.add_action(&login_action);
     }
 
-    pub fn setup_sync_paned_action(
-        window: &ApplicationWindow,
-        content_page: &GtkHandle<ContentPage>,
-        content_header: &GtkHandle<ContentHeader>,
-    ) {
-        let content_page = content_page.clone();
-        let content_header = content_header.clone();
-        let sync_paned = SimpleAction::new("sync-paned", glib::VariantTy::new("i").ok());
-        sync_paned.connect_activate(move |_action, data| {
-            if let Some(data) = data {
-                if let Some(pos) = data.get::<i32>() {
-                    content_page.borrow().set_paned(pos);
-                    content_header.borrow().set_paned(pos);
-                }
-            }
-        });
-        sync_paned.set_enabled(true);
-        window.add_action(&sync_paned);
-    }
-
     pub fn setup_sync_action(
         window: &ApplicationWindow,
         content_header: &GtkHandle<ContentHeader>,

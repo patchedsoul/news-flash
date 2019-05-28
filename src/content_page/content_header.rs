@@ -4,12 +4,11 @@ use gio::{ActionExt, ActionMapExt, Menu};
 use glib::Variant;
 use gdk::EventType;
 use gtk::{
-    Button, ButtonExt, EntryExt, Paned, PanedExt, SearchEntry, SearchEntryExt, Stack, StackExt, ToggleButton,
+    Button, ButtonExt, EntryExt, SearchEntry, SearchEntryExt, Stack, StackExt, ToggleButton,
     ToggleButtonExt, WidgetExt, MenuButton, MenuButtonExt, Inhibit,
 };
 
 pub struct ContentHeader {
-    header: Paned,
     update_stack: Stack,
     update_button: Button,
     search_entry: SearchEntry,
@@ -21,7 +20,6 @@ pub struct ContentHeader {
 
 impl ContentHeader {
     pub fn new(builder: &BuilderHelper) -> Self {
-        let header = builder.get::<Paned>("content_header");
         let all_button = builder.get::<ToggleButton>("all_button");
         let unread_button = builder.get::<ToggleButton>("unread_button");
         let marked_button = builder.get::<ToggleButton>("marked_button");
@@ -49,17 +47,7 @@ impl ContentHeader {
         Self::setup_menu_button(&menu_button);
         Self::setup_more_actions_button(&more_actions_button);
 
-        header.connect_property_position_notify(|paned| {
-            if let Ok(main_window) = GtkUtil::get_main_window(paned) {
-                if let Some(action) = main_window.lookup_action("sync-paned") {
-                    let pos = Variant::from(&paned.get_position());
-                    action.activate(Some(&pos));
-                }
-            }
-        });
-
         ContentHeader {
-            header,
             update_stack,
             update_button,
             search_entry,
@@ -68,10 +56,6 @@ impl ContentHeader {
             marked_button,
             more_actions_button,
         }
-    }
-
-    pub fn set_paned(&self, pos: i32) {
-        self.header.set_position(pos);
     }
 
     pub fn finish_sync(&self) {
