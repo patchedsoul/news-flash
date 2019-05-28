@@ -11,9 +11,8 @@ use crate::settings::Settings;
 use failure::{Error, format_err};
 use gio::{ActionExt, ActionMapExt};
 use glib::{translate::ToGlib, Variant};
-use pango::{WrapMode, EllipsizeMode};
-use gtk::{Continue, ListBoxExt, ListBoxRowExt, Label, LabelExt, Stack, StackExt,
-    StyleContextExt, StackTransitionType, WidgetExt};
+use gtk::{Continue, ScrolledWindow, ListBoxExt, ListBoxRowExt,
+    Label, LabelExt, Stack, StackExt, StackTransitionType};
 use models::ArticleListChangeSet;
 pub use models::{ArticleListModel, ArticleListArticleModel, ReadUpdate, MarkUpdate};
 use news_flash::models::Read;
@@ -44,18 +43,12 @@ impl ArticleList {
     pub fn new(settings: &GtkHandle<Settings>) -> Result<Self, Error> {
         let builder = BuilderHelper::new("article_list");
         let stack = builder.get::<Stack>("article_list_stack");
+        let empty_scroll = builder.get::<ScrolledWindow>("empty_scroll");
+        let empty_label = builder.get::<Label>("empty_label");
 
         let list_1 = SingleArticleList::new()?;
         let list_2 = SingleArticleList::new()?;
-        let empty_label = Label::new("No Articles found.");
-        empty_label.set_line_wrap(true);
-        empty_label.set_line_wrap_mode(WrapMode::Char);
-        empty_label.set_margin_start(20);
-        empty_label.set_margin_end(20);
-        empty_label.set_lines(2);
-        empty_label.set_ellipsize(EllipsizeMode::End);
-        empty_label.get_style_context().add_class("h2");
-        empty_label.get_style_context().add_class("dim-label");
+
 
 
         let window_state = MainWindowState::new();
@@ -63,7 +56,7 @@ impl ArticleList {
 
         stack.add_named(&list_1.widget(), "list_1");
         stack.add_named(&list_2.widget(), "list_2");
-        stack.add_named(&empty_label, "empty");
+        stack.add_named(&empty_scroll, "empty");
 
         let settings = settings.clone();
 

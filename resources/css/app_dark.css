@@ -197,10 +197,3 @@
   outline: none;
   padding: 0;
 }
-
-.header_left {
-	border-top-right-radius: 0;
-}
-.header_right {
-	border-top-left-radius: 0;
-}
