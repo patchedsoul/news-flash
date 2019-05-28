@@ -11,7 +11,7 @@ use crate::settings::Settings;
 use failure::{Error, format_err};
 use gio::{ActionExt, ActionMapExt};
 use glib::{translate::ToGlib, Variant};
-use pango::WrapMode;
+use pango::{WrapMode, EllipsizeMode};
 use gtk::{Continue, ListBoxExt, ListBoxRowExt, Label, LabelExt, Stack, StackExt,
     StyleContextExt, StackTransitionType, WidgetExt};
 use models::ArticleListChangeSet;
@@ -49,11 +49,14 @@ impl ArticleList {
         let list_2 = SingleArticleList::new()?;
         let empty_label = Label::new("No Articles found.");
         empty_label.set_line_wrap(true);
-        empty_label.set_line_wrap_mode(WrapMode::Word);
+        empty_label.set_line_wrap_mode(WrapMode::Char);
         empty_label.set_margin_start(20);
         empty_label.set_margin_end(20);
+        empty_label.set_lines(2);
+        empty_label.set_ellipsize(EllipsizeMode::End);
         empty_label.get_style_context().add_class("h2");
         empty_label.get_style_context().add_class("dim-label");
+
 
         let window_state = MainWindowState::new();
         let model = ArticleListModel::new(&settings.borrow().get_article_list_order());

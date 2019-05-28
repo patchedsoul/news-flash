@@ -7,7 +7,7 @@ edition = "2018"
 [dependencies]
 log = "0.4"
 chrono = "0.4"
-rust-embed = { version = "4.3", features = ["debug-embed"] }
+rust-embed = { version = "4.4", features = ["debug-embed"] }
 cairo-rs = "0.6"
 failure = "0.1"
 serde = "1.0"
@@ -16,13 +16,13 @@ serde_derive = "1.0"
 gtk = { version = "0.6", features = ["v3_24"] }
 gio = { version = "0.6", features = ["v2_58"] }
 gdk = { version = "0.10", features = ["v3_24"] }
-libhandy = { version="0.3", features=["v0_0_7"] }
+libhandy = { git = "https://gitlab.gnome.org/World/Rust/libhandy-rs", features=["v0_0_9"] }
 gdk-pixbuf = "0.6"
 pango = "0.6"
-webkit2gtk = { version = "0.6", features = ["v2_16"] }
+webkit2gtk = { version = "0.7", features = ["v2_16"] }
 glib = "0.7"
 log4rs = "0.8"
-dirs = "1.0"
+dirs = "2.0"
 color-backtrace = "0.1"
 lazy_static = "1.3"
 news-flash = { git = "http://gitlab.com/news-flash/news_flash_base.git" }

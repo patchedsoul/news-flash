@@ -929,6 +929,9 @@
                       <object class="GtkSeparator">
                         <property name="can_focus">False</property>
                         <property name="orientation">vertical</property>
+                        <style>
+                          <class name="dark-separator"/>
+                        </style>
                       </object>
                     </child>
                     <child>

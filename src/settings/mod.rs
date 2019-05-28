@@ -4,12 +4,14 @@ mod dialog;
 mod theme_chooser;
 mod keybindings;
 mod keybinding_editor;
+mod general;
 
 pub use dialog::SettingsDialog;
 pub use keybindings::{NewsFlashShortcutWindow, Keybindings};
 use serde_derive::{Deserialize, Serialize};
 use article_list::ArticleListSettings;
 use article_view::ArticleViewSettings;
+use general::GeneralSettings;
 use failure::Error;
 use crate::main_window::DATA_DIR;
 use std::fs;
@@ -21,6 +23,7 @@ static CONFIG_NAME: &'static str = "newflash_gtk.json";
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct Settings {
+    general: GeneralSettings,
     article_list: ArticleListSettings,
     article_view: ArticleViewSettings,
     keybindings: Keybindings,
@@ -41,6 +44,7 @@ impl Settings {
         }
 
         let settings = Settings {
+            general: GeneralSettings::default(),
             article_list: ArticleListSettings::default(),
             article_view: ArticleViewSettings::default(),
             keybindings: Keybindings::default(),
@@ -53,6 +57,26 @@ impl Settings {
     fn write(&self) -> Result<(), Error> {
         let data = serde_json::to_string_pretty(self)?;
         fs::write(&self.path, data)?;
+        Ok(())
+    }
+
+    pub fn get_keep_running_in_background(&self) -> bool {
+        self.general.keep_running_in_background
+    }
+
+    pub fn set_keep_running_in_background(&mut self, keep_running: bool) -> Result<(), Error> {
+        self.general.keep_running_in_background = keep_running;
+        self.write()?;
+        Ok(())
+    }
+
+    pub fn get_prefer_dark_theme(&self) -> bool {
+        self.general.prefer_dark_theme
+    }
+
+    pub fn set_prefer_dark_theme(&mut self, prefer_dark_theme: bool) -> Result<(), Error> {
+        self.general.prefer_dark_theme = prefer_dark_theme;
+        self.write()?;
         Ok(())
     }
 

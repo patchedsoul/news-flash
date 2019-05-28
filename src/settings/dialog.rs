@@ -4,7 +4,8 @@ use super::theme_chooser::ThemeChooser;
 use super::keybindings::Keybindings;
 use super::keybinding_editor::{KeybindingEditor, KeybindState};
 use gtk::{Dialog, DialogExt, Window, GtkWindowExt, GtkWindowExtManual, Inhibit, FontButton, FontButtonExt, FontChooserExt,
-    Label, LabelExt, ListBox, ListBoxExt, Stack, StackExt, Switch, SwitchExt, WidgetExt};
+    Label, LabelExt, ListBox, ListBoxExt, Settings as GtkSettings, SettingsExt as GtkSettingsExt, Stack, StackExt,
+    Switch, SwitchExt, WidgetExt};
 use glib::{object::IsA};
 use gio::{ActionExt, ActionMapExt};
 use news_flash::models::ArticleOrder;
@@ -48,6 +49,25 @@ impl SettingsDialog {
         let settings_3 = self.settings.clone();
         let settings_4 = self.settings.clone();
         let settings_5 = self.settings.clone();
+        let settings_6 = self.settings.clone();
+        let settings_7 = self.settings.clone();
+
+        let keep_running_switch = self.builder.get::<Switch>("keep_running_switch");
+        keep_running_switch.set_state(self.settings.borrow().get_keep_running_in_background());
+        keep_running_switch.connect_state_set(move |_switch, is_set| {
+            settings_6.borrow_mut().set_keep_running_in_background(is_set).unwrap();
+            Inhibit(false)
+        });
+
+        let dark_theme_switch = self.builder.get::<Switch>("dark_theme_switch");
+        dark_theme_switch.set_state(self.settings.borrow().get_prefer_dark_theme());
+        dark_theme_switch.connect_state_set(move |_switch, is_set| {
+            settings_7.borrow_mut().set_prefer_dark_theme(is_set).unwrap();
+            if let Some(settings) = GtkSettings::get_default() {
+                settings.set_property_gtk_application_prefer_dark_theme(is_set);
+            }
+            Inhibit(false)
+        });
 
         let main_window = window.clone();
         let article_list_settings = self.builder.get::<ListBox>("article_list_settings");

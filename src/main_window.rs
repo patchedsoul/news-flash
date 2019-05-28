@@ -40,6 +40,12 @@ impl MainWindow {
     pub fn new(app: &Application) -> Result<Self, Error> {
         let provider_handle = gtk_handle!(CssProvider::new());
 
+        let settings = gtk_handle!(Settings::open()?);
+
+        if let Some(gtk_settings) = GtkSettings::get_default() {
+            gtk_settings.set_property_gtk_application_prefer_dark_theme(settings.borrow().get_prefer_dark_theme());
+        }
+
         // setup CSS for window
         Self::load_css(&provider_handle);
 
@@ -49,8 +55,6 @@ impl MainWindow {
         let header_stack = builder.get::<Stack>("header_stack");
 
         let responsive_layout = gtk_handle!(ResponsiveLayout::new(&builder));
-
-        let settings = gtk_handle!(Settings::open()?);
 
         let _login_header = LoginHeaderbar::new(&builder);
         let _welcome_header = WelcomeHeaderbar::new(&builder);

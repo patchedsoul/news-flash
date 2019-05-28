@@ -21,6 +21,7 @@
 	text-shadow: none;
 }
 
+.dark-separator,
 .newsflash-sidebar separator {
 	background: shade(@sidebar-bg, 0.82);
 	border: none;
