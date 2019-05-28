@@ -14,6 +14,7 @@ use crate::settings::Settings;
 use failure::format_err;
 use failure::Error;
 use gtk::{Box, BoxExt, WidgetExt};
+use libhandy::{Leaflet};
 use news_flash::models::{Article, ArticleID, Marked, PluginID, PluginCapabilities, Read};
 use news_flash::NewsFlash;
 
@@ -31,8 +32,8 @@ impl ContentPage {
         let articleview_box = builder.get::<Box>("articleview_box");
 
         // workaround
-        let sidebar_and_article_list = builder.get::<Box>("sidebar_and_article_list");
-        sidebar_and_article_list.set_hexpand(false);
+        let minor_leaflet = builder.get::<Leaflet>("minor_leaflet");
+        minor_leaflet.set_hexpand(false);
 
         let sidebar = SideBar::new()?;
         let article_list = ArticleList::new(settings)?;

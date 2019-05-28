@@ -4,14 +4,14 @@ use gio::{ActionExt, ActionMapExt, Menu};
 use glib::Variant;
 use gdk::EventType;
 use gtk::{
-    Button, ButtonExt, EntryExt, SearchEntry, SearchEntryExt, Stack, StackExt, ToggleButton,
+    Button, ButtonExt, Stack, StackExt, ToggleButton,
     ToggleButtonExt, WidgetExt, MenuButton, MenuButtonExt, Inhibit,
 };
 
 pub struct ContentHeader {
     update_stack: Stack,
     update_button: Button,
-    search_entry: SearchEntry,
+    //search_button: Button,
     all_button: ToggleButton,
     unread_button: ToggleButton,
     marked_button: ToggleButton,
@@ -27,17 +27,7 @@ impl ContentHeader {
         let update_stack = builder.get::<Stack>("update_stack");
         let menu_button = builder.get::<MenuButton>("menu_button");
         let more_actions_button = builder.get::<MenuButton>("more_actions_button");
-        let search_entry = builder.get::<SearchEntry>("search_entry");
-        search_entry.connect_search_changed(|search_entry| {
-            if let Ok(main_window) = GtkUtil::get_main_window(search_entry) {
-                if let Some(action) = main_window.lookup_action("search-term") {
-                    if let Some(text) = search_entry.get_text() {
-                        let search_term = Variant::from(text.as_str());
-                        action.activate(Some(&search_term));
-                    }
-                }
-            }
-        });
+        //let search_button = builder.get::<Button>("search_button");
 
         Self::setup_linked_button(&all_button, &unread_button, &marked_button, HeaderSelection::All);
         Self::setup_linked_button(&unread_button, &all_button, &marked_button, HeaderSelection::Unread);
@@ -50,7 +40,7 @@ impl ContentHeader {
         ContentHeader {
             update_stack,
             update_button,
-            search_entry,
+            //search_button,
             all_button,
             unread_button,
             marked_button,
@@ -64,11 +54,12 @@ impl ContentHeader {
     }
 
     pub fn is_search_focused(&self) -> bool {
-        self.search_entry.has_focus()
+        // FIXME
+        false
     }
 
     pub fn focus_search(&self) {
-        self.search_entry.grab_focus()
+        // FIXME
     }
 
     pub fn select_all_button(&self) {

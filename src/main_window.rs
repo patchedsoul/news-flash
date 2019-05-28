@@ -10,6 +10,7 @@ use crate::settings::{Settings, Keybindings};
 use crate::about_dialog::{ICON_NAME, APP_NAME};
 use crate::article_list::{ReadUpdate, MarkUpdate};
 use crate::sidebar::models::SidebarSelection;
+use crate::responsive::{ResponsiveLayout};
 use failure::Error;
 use gtk::{
     self, Application, ApplicationWindow, CssProvider, CssProviderExt, GtkWindowExt, GtkWindowExtManual, Inhibit,
@@ -46,6 +47,8 @@ impl MainWindow {
         let window = builder.get::<ApplicationWindow>("main_window");
         let stack = builder.get::<Stack>("main_stack");
         let header_stack = builder.get::<Stack>("header_stack");
+
+        let responsive_layout = gtk_handle!(ResponsiveLayout::new(&builder));
 
         let settings = gtk_handle!(Settings::open()?);
 
@@ -94,13 +97,13 @@ impl MainWindow {
         );
         MainWindowActions::setup_login_action(&window, &news_flash_handle, &oauht_login_handle, &pw_login_handle);
         MainWindowActions::setup_sync_action(&window, &content_header_handle, &news_flash_handle);
-        MainWindowActions::setup_sidebar_selection_action(&window, &state);
+        MainWindowActions::setup_sidebar_selection_action(&window, &state, &responsive_layout);
         MainWindowActions::setup_update_sidebar_action(&window, &content_page_handle, &news_flash_handle, &state);
         MainWindowActions::setup_headerbar_selection_action(&window, &state);
         MainWindowActions::setup_search_action(&window, &state);
         MainWindowActions::setup_update_article_list_action(&window, &state, &content_page_handle, &news_flash_handle);
         MainWindowActions::setup_show_more_articles_action(&window, &state, &content_page_handle, &news_flash_handle);
-        MainWindowActions::setup_show_article_action(&window, &content_page_handle, &content_header_handle, &news_flash_handle);
+        MainWindowActions::setup_show_article_action(&window, &content_page_handle, &content_header_handle, &news_flash_handle, &responsive_layout);
         MainWindowActions::setup_close_article_action(&window, &content_page_handle, &content_header_handle);
         MainWindowActions::setup_redraw_article_action(&window, &content_page_handle);
         MainWindowActions::setup_mark_article_read_action(&window, &news_flash_handle);

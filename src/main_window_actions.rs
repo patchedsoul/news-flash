@@ -9,6 +9,7 @@ use crate::sidebar::models::SidebarSelection;
 use crate::util::{GtkHandle, FileUtil};
 use crate::about_dialog::NewsFlashAbout;
 use crate::settings::{Settings, SettingsDialog, NewsFlashShortcutWindow};
+use crate::responsive::ResponsiveLayout;
 use gio::{ActionExt, ActionMapExt, ApplicationExt, SimpleAction};
 use gtk::{self, Application, ApplicationWindow, GtkWindowExt, GtkWindowExtManual, Stack, StackExt, StackTransitionType,
     FileChooserDialog, FileChooserAction, FileFilter, FileChooserExt, DialogExt, ResponseType};
@@ -237,15 +238,21 @@ impl MainWindowActions {
         window.add_action(&sync_action);
     }
 
-    pub fn setup_sidebar_selection_action(window: &ApplicationWindow, state: &GtkHandle<MainWindowState>) {
+    pub fn setup_sidebar_selection_action(
+        window: &ApplicationWindow,
+        state: &GtkHandle<MainWindowState>,
+        responsive_layout: &GtkHandle<ResponsiveLayout>) {
         let state = state.clone();
         let main_window = window.clone();
+        let responsive_layout = responsive_layout.clone();
         let sidebar_selection_action = SimpleAction::new("sidebar-selection", glib::VariantTy::new("s").ok());
         sidebar_selection_action.connect_activate(move |_action, data| {
             if let Some(data) = data {
                 if let Some(data) = data.get_str() {
                     let selection: SidebarSelection = serde_json::from_str(&data).unwrap();
                     state.borrow_mut().set_sidebar_selection(selection);
+                    responsive_layout.borrow().state.borrow_mut().minor_leaflet_selected = true;
+                    ResponsiveLayout::process_state_change(&*responsive_layout.borrow());
                     if let Some(action) = main_window.lookup_action("update-article-list") {
                         action.activate(None);
                     }
@@ -360,10 +367,12 @@ impl MainWindowActions {
         content_page: &GtkHandle<ContentPage>,
         content_header: &GtkHandle<ContentHeader>,
         news_flash: &GtkHandle<Option<NewsFlash>>,
+        responsive_layout: &GtkHandle<ResponsiveLayout>,
     ) {
         let content_page = content_page.clone();
         let content_header = content_header.clone();
         let news_flash = news_flash.clone();
+        let responsive_layout = responsive_layout.clone();
         let show_article_action = SimpleAction::new("show-article", glib::VariantTy::new("s").ok());
         show_article_action.connect_activate(move |_action, data| {
             if let Some(data) = data {
@@ -376,6 +385,8 @@ impl MainWindowActions {
                     content_header
                         .borrow()
                         .set_article_header_sensitive(true);
+                    responsive_layout.borrow().state.borrow_mut().major_leaflet_selected = true;
+                    ResponsiveLayout::process_state_change(&*responsive_layout.borrow());
                 }
             }
         });

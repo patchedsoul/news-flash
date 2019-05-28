@@ -12,6 +12,7 @@ mod util;
 mod welcome_screen;
 mod settings;
 mod about_dialog;
+mod responsive;
 
 use crate::main_window::MainWindow;
 use gio::{self, ApplicationExt, ApplicationExtManual};
