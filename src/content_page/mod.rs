@@ -15,7 +15,7 @@ use failure::format_err;
 use failure::Error;
 use gtk::{Box, BoxExt, WidgetExt};
 use libhandy::{Leaflet};
-use news_flash::models::{Article, ArticleID, Marked, PluginID, PluginCapabilities, Read};
+use news_flash::models::{Article, ArticleFilter, ArticleID, Marked, PluginID, PluginCapabilities, Read};
 use news_flash::NewsFlash;
 
 pub struct ContentPage {
@@ -162,17 +162,19 @@ impl ContentPage {
 
         news_flash
             .get_articles(
-                Some(limit),
-                offset,
-                Some(settings.borrow().get_article_list_order()),
-                unread,
-                marked,
-                feed,
-                category,
-                tag,
-                None,
-                None,
-                None,
+                ArticleFilter {
+                    limit: Some(limit),
+                    offset,
+                    order: Some(settings.borrow().get_article_list_order()),
+                    unread,
+                    marked,
+                    feed,
+                    category,
+                    tag,
+                    ids: None,
+                    newer_than: None,
+                    older_than: None,
+                }
             )
             .unwrap()
     }
