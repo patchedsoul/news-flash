@@ -1,4 +1,4 @@
-use gtk::{Box, Button, ButtonExt, HeaderBar, WidgetExt};
+use gtk::{Box, Button, ButtonExt, MenuButton, HeaderBar, WidgetExt};
 use libhandy::{Leaflet, LeafletExt};
 use crate::util::{BuilderHelper, GtkHandle};
 use crate::gtk_handle;
@@ -18,6 +18,8 @@ pub struct ResponsiveLayout {
     pub article_view_box: Box,
     pub left_header: HeaderBar,
     pub right_header: HeaderBar,
+    pub mode_switch_box: Box,
+    pub mode_switch_button: MenuButton,
 }
 
 impl ResponsiveLayout {
@@ -34,6 +36,8 @@ impl ResponsiveLayout {
         let header_leaflet = builder.get::<Leaflet>("header_leaflet");
         let left_header = builder.get::<HeaderBar>("left_headerbar");
         let right_header = builder.get::<HeaderBar>("right_headerbar");
+        let mode_switch_box = builder.get::<Box>("mode_switch_box");
+        let mode_switch_button = builder.get::<MenuButton>("mode_switch_button");
         let layout = ResponsiveLayout {
             state,
             left_button,
@@ -46,6 +50,8 @@ impl ResponsiveLayout {
             article_view_box,
             left_header,
             right_header,
+            mode_switch_box,
+            mode_switch_button,
         };
         layout.setup_signals();
         layout
@@ -86,6 +92,11 @@ impl ResponsiveLayout {
                 layout.right_button.set_visible(false);
                 layout.major_leaflet.set_visible_child(&layout.minor_leaflet);
                 layout.header_leaflet.set_visible_child(&layout.left_header);
+                layout.mode_switch_box.set_visible(true);
+                layout.mode_switch_button.set_visible(false);
+            } else {
+                layout.mode_switch_box.set_visible(false);
+                layout.mode_switch_button.set_visible(true);
             }
             
             layout.state.borrow_mut().major_leaflet_folded = false;

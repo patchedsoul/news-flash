@@ -103,7 +103,7 @@ impl MainWindow {
         MainWindowActions::setup_sync_action(&window, &content_header_handle, &news_flash_handle);
         MainWindowActions::setup_sidebar_selection_action(&window, &state, &responsive_layout);
         MainWindowActions::setup_update_sidebar_action(&window, &content_page_handle, &news_flash_handle, &state);
-        MainWindowActions::setup_headerbar_selection_action(&window, &state);
+        MainWindowActions::setup_headerbar_selection_action(&window, &content_header_handle, &state);
         MainWindowActions::setup_search_action(&window, &state);
         MainWindowActions::setup_update_article_list_action(&window, &state, &content_page_handle, &news_flash_handle);
         MainWindowActions::setup_show_more_articles_action(&window, &state, &content_page_handle, &news_flash_handle);

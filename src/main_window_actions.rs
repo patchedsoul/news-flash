@@ -263,9 +263,14 @@ impl MainWindowActions {
         window.add_action(&sidebar_selection_action);
     }
 
-    pub fn setup_headerbar_selection_action(window: &ApplicationWindow, state: &GtkHandle<MainWindowState>) {
+    pub fn setup_headerbar_selection_action(
+        window: &ApplicationWindow,
+        header: &GtkHandle<ContentHeader>,
+        state: &GtkHandle<MainWindowState>
+    ) {
         let state = state.clone();
         let main_window = window.clone();
+        let header = header.clone();
         let headerbar_selection_action = SimpleAction::new("headerbar-selection", glib::VariantTy::new("s").ok());
         headerbar_selection_action.connect_activate(move |_action, data| {
             if let Some(data) = data {
@@ -273,6 +278,11 @@ impl MainWindowActions {
                     let new_selection: HeaderSelection = serde_json::from_str(&data).unwrap();
                     let old_selection = state.borrow().get_header_selection().clone();
                     state.borrow_mut().set_header_selection(new_selection.clone());
+                    match new_selection {
+                        HeaderSelection::All => header.borrow().select_all_button(),
+                        HeaderSelection::Unread => header.borrow().select_unread_button(),
+                        HeaderSelection::Marked => header.borrow().select_marked_button(),
+                    };
                     if let Some(action) = main_window.lookup_action("update-article-list") {
                         action.activate(None);
                     }

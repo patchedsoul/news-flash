@@ -1,10 +1,10 @@
 use super::header_selection::HeaderSelection;
 use crate::util::{BuilderHelper, GtkUtil};
-use gio::{ActionExt, ActionMapExt, Menu};
+use gio::{ActionExt, ActionMapExt, Menu, MenuItem};
 use glib::Variant;
 use gdk::EventType;
 use gtk::{
-    Button, ButtonExt, Stack, StackExt, ToggleButton,
+    Button, ButtonExt, Label, LabelExt, Stack, StackExt, ToggleButton,
     ToggleButtonExt, WidgetExt, MenuButton, MenuButtonExt, Inhibit,
 };
 
@@ -16,6 +16,7 @@ pub struct ContentHeader {
     unread_button: ToggleButton,
     marked_button: ToggleButton,
     more_actions_button: MenuButton,
+    mode_switch_button_label: Label,
 }
 
 impl ContentHeader {
@@ -28,6 +29,8 @@ impl ContentHeader {
         let menu_button = builder.get::<MenuButton>("menu_button");
         let more_actions_button = builder.get::<MenuButton>("more_actions_button");
         //let search_button = builder.get::<Button>("search_button");
+        let mode_button = builder.get::<MenuButton>("mode_switch_button");
+        let mode_switch_button_label = builder.get::<Label>("mode_switch_button_label");
 
         Self::setup_linked_button(&all_button, &unread_button, &marked_button, HeaderSelection::All);
         Self::setup_linked_button(&unread_button, &all_button, &marked_button, HeaderSelection::Unread);
@@ -35,6 +38,7 @@ impl ContentHeader {
         Self::setup_update_button(&update_button, &update_stack);
 
         Self::setup_menu_button(&menu_button);
+        Self::setup_mode_button(&mode_button);
         Self::setup_more_actions_button(&more_actions_button);
 
         ContentHeader {
@@ -45,6 +49,7 @@ impl ContentHeader {
             unread_button,
             marked_button,
             more_actions_button,
+            mode_switch_button_label,
         }
     }
 
@@ -63,15 +68,24 @@ impl ContentHeader {
     }
 
     pub fn select_all_button(&self) {
-        self.all_button.set_active(true)
+        self.all_button.set_active(true);
+        self.unread_button.set_active(false);
+        self.marked_button.set_active(false);
+        self.mode_switch_button_label.set_label("All");
     }
 
     pub fn select_unread_button(&self) {
-        self.unread_button.set_active(true)
+        self.unread_button.set_active(true);
+        self.all_button.set_active(false);
+        self.marked_button.set_active(false);
+        self.mode_switch_button_label.set_label("Unread");
     }
 
     pub fn select_marked_button(&self) {
-        self.marked_button.set_active(true)
+        self.marked_button.set_active(true);
+        self.all_button.set_active(false);
+        self.unread_button.set_active(false);
+        self.mode_switch_button_label.set_label("Starred");
     }
 
     fn setup_linked_button(
@@ -96,16 +110,11 @@ impl ContentHeader {
             Inhibit(false)
         });
 
-        let other_button_1_2 = other_button_1.clone();
-        let other_button_2_2 = other_button_2.clone();
         button.connect_toggled(move |button| {
             if !button.get_active() {
                 // ignore deactivating toggle-button
                 return;
             }
-
-            other_button_1_2.set_active(false);
-            other_button_2_2.set_active(false);
             
             if let Ok(main_window) = GtkUtil::get_main_window(button) {
                 if let Some(action) = main_window.lookup_action("headerbar-selection") {
@@ -142,8 +151,33 @@ impl ContentHeader {
         main_model.append("Settings", "win.settings");
         main_model.append_section("", &about_model);
         
-
         button.set_menu_model(&main_model);
+    }
+
+    fn setup_mode_button(button: &MenuButton) {
+        let model = Menu::new();
+        if let Ok(json) = serde_json::to_string(&HeaderSelection::All) {
+            let variant = Variant::from(&json);
+            let all_item = MenuItem::new("All", None);
+            all_item.set_action_and_target_value("win.headerbar-selection", &variant);
+            model.append_item(&all_item);
+        }
+
+        if let Ok(json) = serde_json::to_string(&HeaderSelection::Unread) {
+            let variant = Variant::from(&json);
+            let unread_item = MenuItem::new("Unread", None);
+            unread_item.set_action_and_target_value("win.headerbar-selection", &variant);
+            model.append_item(&unread_item);
+        }
+
+        if let Ok(json) = serde_json::to_string(&HeaderSelection::Marked) {
+            let variant = Variant::from(&json);
+            let marked_item = MenuItem::new("Starred", None);
+            marked_item.set_action_and_target_value("win.headerbar-selection", &variant);
+            model.append_item(&marked_item);
+        }
+        
+        button.set_menu_model(&model);
     }
 
     fn setup_more_actions_button(button: &MenuButton) {
