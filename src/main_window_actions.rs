@@ -13,7 +13,7 @@ use crate::responsive::ResponsiveLayout;
 use gio::{ActionExt, ActionMapExt, ApplicationExt, SimpleAction};
 use gtk::{self, Application, ApplicationWindow, GtkWindowExt, GtkWindowExtManual, Stack, StackExt, StackTransitionType,
     FileChooserDialog, FileChooserAction, FileFilter, FileChooserExt, DialogExt, ResponseType};
-use log::error;
+use log::{error, debug};
 use news_flash::models::{ArticleID, LoginData, PluginID};
 use news_flash::{NewsFlash, NewsFlashError};
 
@@ -322,6 +322,7 @@ impl MainWindowActions {
                     if data.is_empty() {
                         state.borrow_mut().set_search_term(None);
                     } else {
+                        debug!("Search term: {}", data);
                         state.borrow_mut().set_search_term(Some(data.to_owned()));
                     }
 

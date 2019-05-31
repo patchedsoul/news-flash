@@ -4,19 +4,21 @@ use gio::{ActionExt, ActionMapExt, Menu, MenuItem};
 use glib::Variant;
 use gdk::EventType;
 use gtk::{
-    Button, ButtonExt, Label, LabelExt, Stack, StackExt, ToggleButton,
+    Button, ButtonExt, EntryExt, Stack, StackExt, SearchEntry, SearchEntryExt, ToggleButton,
     ToggleButtonExt, WidgetExt, MenuButton, MenuButtonExt, Inhibit,
 };
+use libhandy::{SearchBar, SearchBarExt};
 
 pub struct ContentHeader {
     update_stack: Stack,
     update_button: Button,
-    //search_button: Button,
+    search_button: ToggleButton,
+    search_entry: SearchEntry,
     all_button: ToggleButton,
     unread_button: ToggleButton,
     marked_button: ToggleButton,
     more_actions_button: MenuButton,
-    mode_switch_button_label: Label,
+    mode_switch_stack: Stack,
 }
 
 impl ContentHeader {
@@ -28,14 +30,20 @@ impl ContentHeader {
         let update_stack = builder.get::<Stack>("update_stack");
         let menu_button = builder.get::<MenuButton>("menu_button");
         let more_actions_button = builder.get::<MenuButton>("more_actions_button");
-        //let search_button = builder.get::<Button>("search_button");
+        let search_button = builder.get::<ToggleButton>("search_button");
+        let search_bar = builder.get::<SearchBar>("search_bar");
+        let search_entry = builder.get::<SearchEntry>("search_entry");
         let mode_button = builder.get::<MenuButton>("mode_switch_button");
-        let mode_switch_button_label = builder.get::<Label>("mode_switch_button_label");
+        let mode_switch_stack = builder.get::<Stack>("mode_switch_stack");
+
 
         Self::setup_linked_button(&all_button, &unread_button, &marked_button, HeaderSelection::All);
         Self::setup_linked_button(&unread_button, &all_button, &marked_button, HeaderSelection::Unread);
         Self::setup_linked_button(&marked_button, &unread_button, &all_button, HeaderSelection::Marked);
         Self::setup_update_button(&update_button, &update_stack);
+        Self::setup_search_button(&search_button, &search_bar);
+        Self::setup_search_bar(&search_bar, &search_button);
+        Self::setup_search_entry(&search_entry);
 
         Self::setup_menu_button(&menu_button);
         Self::setup_mode_button(&mode_button);
@@ -44,12 +52,13 @@ impl ContentHeader {
         ContentHeader {
             update_stack,
             update_button,
-            //search_button,
+            search_button,
+            search_entry,
             all_button,
             unread_button,
             marked_button,
             more_actions_button,
-            mode_switch_button_label,
+            mode_switch_stack,
         }
     }
 
@@ -59,33 +68,34 @@ impl ContentHeader {
     }
 
     pub fn is_search_focused(&self) -> bool {
-        // FIXME
-        false
+        self.search_button.get_active() && self.search_entry.has_focus()
     }
 
     pub fn focus_search(&self) {
-        // FIXME
+        // shortcuts ignored when focues -> no need to hide seach bar on keybind (ESC still works)
+        self.search_button.set_active(true);
+        self.search_entry.grab_focus();
     }
 
     pub fn select_all_button(&self) {
         self.all_button.set_active(true);
         self.unread_button.set_active(false);
         self.marked_button.set_active(false);
-        self.mode_switch_button_label.set_label("All");
+        self.mode_switch_stack.set_visible_child_name("all");
     }
 
     pub fn select_unread_button(&self) {
         self.unread_button.set_active(true);
         self.all_button.set_active(false);
         self.marked_button.set_active(false);
-        self.mode_switch_button_label.set_label("Unread");
+        self.mode_switch_stack.set_visible_child_name("unread");
     }
 
     pub fn select_marked_button(&self) {
         self.marked_button.set_active(true);
         self.all_button.set_active(false);
         self.unread_button.set_active(false);
-        self.mode_switch_button_label.set_label("Starred");
+        self.mode_switch_stack.set_visible_child_name("marked");
     }
 
     fn setup_linked_button(
@@ -127,7 +137,7 @@ impl ContentHeader {
         });
     }
 
-    fn setup_update_button(button: &gtk::Button, stack: &gtk::Stack) {
+    fn setup_update_button(button: &Button, stack: &Stack) {
         let stack = stack.clone();
         button.connect_clicked(move |button| {
             button.set_sensitive(false);
@@ -136,6 +146,39 @@ impl ContentHeader {
             if let Ok(main_window) = GtkUtil::get_main_window(button) {
                 if let Some(action) = main_window.lookup_action("sync") {
                     action.activate(None);
+                }
+            }
+        });
+    }
+
+    fn setup_search_button(search_button: &ToggleButton, search_bar: &SearchBar) {
+        let search_bar = search_bar.clone();
+        search_button.connect_toggled(move |button| {
+            if button.get_active() {
+                search_bar.set_search_mode(true);
+            } else {
+                search_bar.set_search_mode(false);
+            }
+        });
+    }
+
+    fn setup_search_bar(search_bar: &SearchBar, search_button: &ToggleButton) {
+        let search_button = search_button.clone();
+        search_bar.connect_property_search_mode_enabled_notify(move |bar| {
+            if !bar.get_search_mode() {
+                search_button.set_active(false);
+            }
+        });
+    }
+
+    fn setup_search_entry(search_entry: &SearchEntry) {
+        search_entry.connect_search_changed(|search_entry| {
+            if let Ok(main_window) = GtkUtil::get_main_window(search_entry) {
+                if let Some(action) = main_window.lookup_action("search-term") {
+                    if let Some(text) = search_entry.get_text() {
+                        let search_term = Variant::from(text.as_str());
+                        action.activate(Some(&search_term));
+                    }
                 }
             }
         });
