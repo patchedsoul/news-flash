@@ -42,7 +42,7 @@ impl ContentHeader {
         Self::setup_linked_button(&marked_button, &unread_button, &all_button, HeaderSelection::Marked);
         Self::setup_update_button(&update_button, &update_stack);
         Self::setup_search_button(&search_button, &search_bar);
-        Self::setup_search_bar(&search_bar, &search_button);
+        Self::setup_search_bar(&search_bar, &search_button, &search_entry);
         Self::setup_search_entry(&search_entry);
 
         Self::setup_menu_button(&menu_button);
@@ -162,7 +162,8 @@ impl ContentHeader {
         });
     }
 
-    fn setup_search_bar(search_bar: &SearchBar, search_button: &ToggleButton) {
+    fn setup_search_bar(search_bar: &SearchBar, search_button: &ToggleButton, search_entry: &SearchEntry) {
+        search_bar.connect_entry(search_entry);
         let search_button = search_button.clone();
         search_bar.connect_property_search_mode_enabled_notify(move |bar| {
             if !bar.get_search_mode() {
