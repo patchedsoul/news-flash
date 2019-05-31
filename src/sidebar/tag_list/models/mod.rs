@@ -1,13 +1,13 @@
 mod change_set;
 mod tag;
 
+use crate::sidebar::SidebarIterateItem;
 pub use change_set::TagListChangeSet;
 use failure::format_err;
 use failure::Error;
 use news_flash::models::{Tag, TagID};
 use std::collections::HashSet;
 pub use tag::TagListTagModel;
-use crate::sidebar::SidebarIterateItem;
 
 #[derive(Clone, Debug)]
 pub struct TagListModel {

@@ -1,13 +1,13 @@
-use serde_derive::{Deserialize, Serialize};
-use gtk::{Box, Cast, ContainerExt, Window, GtkWindowExt, ShortcutsWindow, Stack, StackExt, BinExt, WidgetExt};
-use glib::{object::IsA};
-use gdk::{ModifierType, enums::key};
-use crate::util::{BuilderHelper, GtkHandle, GTK_RESOURCE_FILE_ERROR};
 use crate::settings::Settings;
+use crate::util::{BuilderHelper, GtkHandle, GTK_RESOURCE_FILE_ERROR};
 use crate::Resources;
-use std::str;
+use failure::{format_err, Error};
+use gdk::{enums::key, ModifierType};
+use glib::object::IsA;
+use gtk::{BinExt, Box, Cast, ContainerExt, GtkWindowExt, ShortcutsWindow, Stack, StackExt, WidgetExt, Window};
 use log::warn;
-use failure::{Error, format_err};
+use serde_derive::{Deserialize, Serialize};
+use std::str;
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct Keybindings {
@@ -37,14 +37,12 @@ impl Keybindings {
         let modifier = Self::parse_modifiers(modifier);
         match keyval {
             None => None,
-            Some(keyval) => {
-                match modifier {
-                    Some(mut modifier) => {
-                        modifier.push_str(&keyval);
-                        Some(modifier)
-                    },
-                    None => Some(keyval),
+            Some(keyval) => match modifier {
+                Some(mut modifier) => {
+                    modifier.push_str(&keyval);
+                    Some(modifier)
                 }
+                None => Some(keyval),
             },
         }
     }
@@ -53,8 +51,18 @@ impl Keybindings {
         let keyval = gdk::keyval_to_upper(keyval);
 
         let manual_parsed = match keyval {
-            key::Shift_L | key::Control_L | key::Alt_L | key::Meta_L | key::Super_L | key::Hyper_L |
-            key::Shift_R | key::Control_R | key::Alt_R | key::Meta_R | key::Super_R | key::Hyper_R => Self::get_modifier_label(keyval),
+            key::Shift_L
+            | key::Control_L
+            | key::Alt_L
+            | key::Meta_L
+            | key::Super_L
+            | key::Hyper_L
+            | key::Shift_R
+            | key::Control_R
+            | key::Alt_R
+            | key::Meta_R
+            | key::Super_R
+            | key::Hyper_R => Self::get_modifier_label(keyval),
             key::Left => Some("←".to_owned()),
             key::Right => Some("→".to_owned()),
             key::Down => Some("↓".to_owned()),
@@ -86,9 +94,9 @@ impl Keybindings {
 
         match gdk::keyval_to_unicode(keyval) {
             Some(keyval) => {
-                let mut buffer : [u8; 4] = [0; 4];
+                let mut buffer: [u8; 4] = [0; 4];
                 Some(keyval.encode_utf8(&mut buffer).to_owned())
-            },
+            }
             None => None,
         }
     }
@@ -96,17 +104,21 @@ impl Keybindings {
     fn get_modifier_label(keyval: u32) -> Option<String> {
         let mut mod_string = String::new();
         match keyval {
-            key::Shift_L | key::Control_L | key::Alt_L | key::Meta_L | key::Super_L | key::Hyper_L => { mod_string.push('L') },
-            key::Shift_R | key::Control_R | key::Alt_R | key::Meta_R | key::Super_R | key::Hyper_R => { mod_string.push('R') },
+            key::Shift_L | key::Control_L | key::Alt_L | key::Meta_L | key::Super_L | key::Hyper_L => {
+                mod_string.push('L')
+            }
+            key::Shift_R | key::Control_R | key::Alt_R | key::Meta_R | key::Super_R | key::Hyper_R => {
+                mod_string.push('R')
+            }
             _ => return None,
         }
 
         match keyval {
-            key::Shift_L | key::Shift_R => { mod_string.push_str("Shift") },
-            key::Control_L | key::Control_R => { mod_string.push_str("Ctrl") },
-            key::Meta_L | key::Meta_R => { mod_string.push_str("Meta") },
-            key::Super_L | key::Super_R => { mod_string.push_str("Super") },
-            key::Hyper_L | key::Hyper_R => { mod_string.push_str("Hyper") },
+            key::Shift_L | key::Shift_R => mod_string.push_str("Shift"),
+            key::Control_L | key::Control_R => mod_string.push_str("Ctrl"),
+            key::Meta_L | key::Meta_R => mod_string.push_str("Meta"),
+            key::Super_L | key::Super_R => mod_string.push_str("Super"),
+            key::Hyper_L | key::Hyper_R => mod_string.push_str("Hyper"),
             _ => return None,
         }
 
@@ -136,7 +148,7 @@ impl Keybindings {
         }
 
         if mod_string.is_empty() {
-            return None
+            return None;
         }
 
         Some(mod_string)
@@ -197,7 +209,7 @@ impl Keybindings {
             _ => {
                 warn!("unexpected keybind id: {}", id);
                 Err(format_err!("some err"))
-            },
+            }
         }
     }
 
@@ -224,7 +236,7 @@ impl Keybindings {
             _ => {
                 warn!("unexpected keybind id: {}", id);
                 Err(format_err!("some err"))
-            },
+            }
         }
     }
 }
@@ -371,12 +383,11 @@ pub struct NewsFlashShortcutWindow {
 
 impl NewsFlashShortcutWindow {
     pub fn new<D: IsA<Window> + GtkWindowExt>(settings_dialog: &D, settings: &GtkHandle<Settings>) -> Self {
-        let ui_data = Resources::get("ui/shorcuts_window.ui")
-            .expect(GTK_RESOURCE_FILE_ERROR);
+        let ui_data = Resources::get("ui/shorcuts_window.ui").expect(GTK_RESOURCE_FILE_ERROR);
         let mut ui_xml = str::from_utf8(ui_data.as_ref())
             .expect(GTK_RESOURCE_FILE_ERROR)
             .to_owned();
-        
+
         ui_xml = Self::setup_shortcut(&ui_xml, "$SHORTCUT", settings.borrow().get_keybind_shortcut());
         ui_xml = Self::setup_shortcut(&ui_xml, "$REFRESH", settings.borrow().get_keybind_refresh());
         ui_xml = Self::setup_shortcut(&ui_xml, "$SEARCH", settings.borrow().get_keybind_search());
@@ -386,16 +397,35 @@ impl NewsFlashShortcutWindow {
         ui_xml = Self::setup_shortcut(&ui_xml, "$ONLYSTARRED", settings.borrow().get_keybind_only_starred());
         ui_xml = Self::setup_shortcut(&ui_xml, "$NEXTART", settings.borrow().get_keybind_article_list_next());
         ui_xml = Self::setup_shortcut(&ui_xml, "$PREVART", settings.borrow().get_keybind_article_list_prev());
-        ui_xml = Self::setup_shortcut(&ui_xml, "$TOGGLEREAD", settings.borrow().get_keybind_article_list_read());
-        ui_xml = Self::setup_shortcut(&ui_xml, "$TOGGLEMARKED", settings.borrow().get_keybind_article_list_mark());
-        ui_xml = Self::setup_shortcut(&ui_xml, "$OPENBROWSER", settings.borrow().get_keybind_article_list_open());
+        ui_xml = Self::setup_shortcut(
+            &ui_xml,
+            "$TOGGLEREAD",
+            settings.borrow().get_keybind_article_list_read(),
+        );
+        ui_xml = Self::setup_shortcut(
+            &ui_xml,
+            "$TOGGLEMARKED",
+            settings.borrow().get_keybind_article_list_mark(),
+        );
+        ui_xml = Self::setup_shortcut(
+            &ui_xml,
+            "$OPENBROWSER",
+            settings.borrow().get_keybind_article_list_open(),
+        );
         ui_xml = Self::setup_shortcut(&ui_xml, "$SCROLLUP", settings.borrow().get_keybind_article_view_up());
-        ui_xml = Self::setup_shortcut(&ui_xml, "$SCROLLDOWN", settings.borrow().get_keybind_article_view_down());
+        ui_xml = Self::setup_shortcut(
+            &ui_xml,
+            "$SCROLLDOWN",
+            settings.borrow().get_keybind_article_view_down(),
+        );
         ui_xml = Self::setup_shortcut(&ui_xml, "$NEXTFEED", settings.borrow().get_keybind_feed_list_next());
         ui_xml = Self::setup_shortcut(&ui_xml, "$PREVFEED", settings.borrow().get_keybind_feed_list_prev());
-        ui_xml = Self::setup_shortcut(&ui_xml, "$TOGGLEEXPAND", settings.borrow().get_keybind_feed_list_toggle_expanded());
+        ui_xml = Self::setup_shortcut(
+            &ui_xml,
+            "$TOGGLEEXPAND",
+            settings.borrow().get_keybind_feed_list_toggle_expanded(),
+        );
         ui_xml = Self::setup_shortcut(&ui_xml, "$ITEMREAD", settings.borrow().get_keybind_sidebar_set_read());
-        
 
         let builder = BuilderHelper::new_from_xml(&ui_xml);
         let widget = builder.get::<ShortcutsWindow>("shortcuts-window");
@@ -414,9 +444,7 @@ impl NewsFlashShortcutWindow {
             }
         }
 
-        NewsFlashShortcutWindow {
-            widget: widget,
-        }
+        NewsFlashShortcutWindow { widget: widget }
     }
 
     pub fn widget(&self) -> ShortcutsWindow {
@@ -430,7 +458,7 @@ impl NewsFlashShortcutWindow {
                 let shortcut = shortcut.replace("<", "&lt;");
                 let shortcut = shortcut.replace(">", "&gt;");
                 xml.replacen(needle, &shortcut, 1)
-            },
+            }
             None => xml.replacen(needle, "", 1),
         }
     }

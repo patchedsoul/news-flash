@@ -1,19 +1,21 @@
-use crate::article_list::{ReadUpdate, MarkUpdate};
+use crate::about_dialog::NewsFlashAbout;
+use crate::article_list::{MarkUpdate, ReadUpdate};
 use crate::content_page::HeaderSelection;
 use crate::content_page::{ContentHeader, ContentPage};
 use crate::error_dialog::ErrorDialog;
 use crate::login_screen::{PasswordLogin, WebLogin};
 use crate::main_window::DATA_DIR;
 use crate::main_window_state::MainWindowState;
-use crate::sidebar::models::SidebarSelection;
-use crate::util::{GtkHandle, FileUtil};
-use crate::about_dialog::NewsFlashAbout;
-use crate::settings::{Settings, SettingsDialog, NewsFlashShortcutWindow};
 use crate::responsive::ResponsiveLayout;
+use crate::settings::{NewsFlashShortcutWindow, Settings, SettingsDialog};
+use crate::sidebar::models::SidebarSelection;
+use crate::util::{FileUtil, GtkHandle};
 use gio::{ActionExt, ActionMapExt, ApplicationExt, SimpleAction};
-use gtk::{self, Application, ApplicationWindow, GtkWindowExt, GtkWindowExtManual, Stack, StackExt, StackTransitionType,
-    FileChooserDialog, FileChooserAction, FileFilter, FileChooserExt, DialogExt, ResponseType};
-use log::{error, debug};
+use gtk::{
+    self, Application, ApplicationWindow, DialogExt, FileChooserAction, FileChooserDialog, FileChooserExt, FileFilter,
+    GtkWindowExt, GtkWindowExtManual, ResponseType, Stack, StackExt, StackTransitionType,
+};
+use log::{debug, error};
 use news_flash::models::{ArticleID, LoginData, PluginID};
 use news_flash::{NewsFlash, NewsFlashError};
 
@@ -176,7 +178,7 @@ impl MainWindowActions {
                                 }
                                 LoginData::None(_) => {
                                     // NOTHING
-                                },
+                                }
                             }
                         }
                     }
@@ -197,7 +199,7 @@ impl MainWindowActions {
         let news_flash = news_flash.clone();
         let sync_action = SimpleAction::new("sync", None);
         sync_action.connect_activate(move |_action, _data| {
-            let mut result : Result<(), NewsFlashError> = Ok(());
+            let mut result: Result<(), NewsFlashError> = Ok(());
             if let Some(news_flash) = news_flash.borrow_mut().as_mut() {
                 result = news_flash.sync();
             }
@@ -241,7 +243,8 @@ impl MainWindowActions {
     pub fn setup_sidebar_selection_action(
         window: &ApplicationWindow,
         state: &GtkHandle<MainWindowState>,
-        responsive_layout: &GtkHandle<ResponsiveLayout>) {
+        responsive_layout: &GtkHandle<ResponsiveLayout>,
+    ) {
         let state = state.clone();
         let main_window = window.clone();
         let responsive_layout = responsive_layout.clone();
@@ -266,7 +269,7 @@ impl MainWindowActions {
     pub fn setup_headerbar_selection_action(
         window: &ApplicationWindow,
         header: &GtkHandle<ContentHeader>,
-        state: &GtkHandle<MainWindowState>
+        state: &GtkHandle<MainWindowState>,
     ) {
         let state = state.clone();
         let main_window = window.clone();
@@ -287,17 +290,13 @@ impl MainWindowActions {
                         action.activate(None);
                     }
                     let update_sidebar = match old_selection {
-                        HeaderSelection::All | HeaderSelection::Unread => {
-                            match new_selection {
-                                HeaderSelection::All | HeaderSelection::Unread => false,
-                                HeaderSelection::Marked => true,
-                            }
+                        HeaderSelection::All | HeaderSelection::Unread => match new_selection {
+                            HeaderSelection::All | HeaderSelection::Unread => false,
+                            HeaderSelection::Marked => true,
                         },
-                        HeaderSelection::Marked => {
-                            match new_selection {
-                                HeaderSelection::All | HeaderSelection::Unread => true,
-                                HeaderSelection::Marked => false,
-                            }
+                        HeaderSelection::Marked => match new_selection {
+                            HeaderSelection::All | HeaderSelection::Unread => true,
+                            HeaderSelection::Marked => false,
                         },
                     };
                     if update_sidebar {
@@ -393,9 +392,7 @@ impl MainWindowActions {
                         .borrow_mut()
                         .article_view_show(&article_id, &news_flash)
                         .unwrap();
-                    content_header
-                        .borrow()
-                        .set_article_header_sensitive(true);
+                    content_header.borrow().set_article_header_sensitive(true);
                     responsive_layout.borrow().state.borrow_mut().major_leaflet_selected = true;
                     ResponsiveLayout::process_state_change(&*responsive_layout.borrow());
                 }
@@ -405,10 +402,7 @@ impl MainWindowActions {
         window.add_action(&show_article_action);
     }
 
-    pub fn setup_redraw_article_action(
-        window: &ApplicationWindow,
-        content_page: &GtkHandle<ContentPage>,
-    ) {
+    pub fn setup_redraw_article_action(window: &ApplicationWindow, content_page: &GtkHandle<ContentPage>) {
         let content_page = content_page.clone();
         let redraw_article_action = SimpleAction::new("redraw-article", None);
         redraw_article_action.connect_activate(move |_action, _data| {
@@ -427,22 +421,14 @@ impl MainWindowActions {
         let content_header = content_header.clone();
         let close_article_action = SimpleAction::new("close-article", None);
         close_article_action.connect_activate(move |_action, _data| {
-            content_page
-                .borrow_mut()
-                .article_view_close()
-                .unwrap();
-            content_header
-                .borrow()
-                .set_article_header_sensitive(false);
+            content_page.borrow_mut().article_view_close().unwrap();
+            content_header.borrow().set_article_header_sensitive(false);
         });
         close_article_action.set_enabled(true);
         window.add_action(&close_article_action);
     }
 
-    pub fn setup_mark_article_read_action(
-        window: &ApplicationWindow,
-        news_flash: &GtkHandle<Option<NewsFlash>>,
-    ) {
+    pub fn setup_mark_article_read_action(window: &ApplicationWindow, news_flash: &GtkHandle<Option<NewsFlash>>) {
         let news_flash = news_flash.clone();
         let main_window = window.clone();
         let mark_article_read_action = SimpleAction::new("mark-article-read", glib::VariantTy::new("s").ok());
@@ -464,10 +450,7 @@ impl MainWindowActions {
         window.add_action(&mark_article_read_action);
     }
 
-    pub fn setup_mark_article_action(
-        window: &ApplicationWindow,
-        news_flash: &GtkHandle<Option<NewsFlash>>,
-    ) {
+    pub fn setup_mark_article_action(window: &ApplicationWindow, news_flash: &GtkHandle<Option<NewsFlash>>) {
         let news_flash = news_flash.clone();
         let main_window = window.clone();
         let mark_article_action = SimpleAction::new("mark-article", glib::VariantTy::new("s").ok());
@@ -477,7 +460,9 @@ impl MainWindowActions {
                     let update: MarkUpdate = serde_json::from_str(&data).unwrap();
 
                     if let Some(news_flash) = news_flash.borrow_mut().as_mut() {
-                        news_flash.set_article_marked(&[update.article_id], update.marked).unwrap();
+                        news_flash
+                            .set_article_marked(&[update.article_id], update.marked)
+                            .unwrap();
                     }
                     if let Some(action) = main_window.lookup_action("update-sidebar") {
                         action.activate(None);
@@ -489,10 +474,7 @@ impl MainWindowActions {
         window.add_action(&mark_article_action);
     }
 
-    pub fn setup_select_next_article_action(
-        window: &ApplicationWindow,
-        content_page: &GtkHandle<ContentPage>,
-    ) {
+    pub fn setup_select_next_article_action(window: &ApplicationWindow, content_page: &GtkHandle<ContentPage>) {
         let content_page = content_page.clone();
         let next_article_action = SimpleAction::new("next-article", None);
         next_article_action.connect_activate(move |_action, _data| {
@@ -502,10 +484,7 @@ impl MainWindowActions {
         window.add_action(&next_article_action);
     }
 
-    pub fn setup_select_prev_article_action(
-        window: &ApplicationWindow,
-        content_page: &GtkHandle<ContentPage>,
-    ) {
+    pub fn setup_select_prev_article_action(window: &ApplicationWindow, content_page: &GtkHandle<ContentPage>) {
         let content_page = content_page.clone();
         let prev_article_action = SimpleAction::new("prev-article", None);
         prev_article_action.connect_activate(move |_action, _data| {
@@ -572,10 +551,7 @@ impl MainWindowActions {
                 "Export OPML",
                 Some(&main_window),
                 FileChooserAction::Save,
-                &vec![
-                    ("Cancel", ResponseType::Cancel),
-                    ("Save", ResponseType::Ok)
-                ]
+                &vec![("Cancel", ResponseType::Cancel), ("Save", ResponseType::Ok)],
             );
 
             let filter = FileFilter::new();
@@ -597,12 +573,11 @@ impl MainWindowActions {
                             FileUtil::write_text_file(&filename, &opml).unwrap();
                         }
                     }
-                },
-                _ => {},
+                }
+                _ => {}
             }
 
             dialog.emit_close();
-            
         });
         export_action.set_enabled(true);
         window.add_action(&export_action);

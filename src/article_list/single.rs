@@ -4,13 +4,13 @@ use super::models::ArticleListModel;
 use crate::gtk_handle;
 use crate::util::{BuilderHelper, GtkHandle, GtkUtil, Util};
 use failure::Error;
+use gdk::FrameClockExt;
 use gio::{ActionExt, ActionMapExt};
-use glib::{
-    translate::ToGlib,
-    object::Cast,
+use glib::{object::Cast, translate::ToGlib};
+use gtk::{
+    AdjustmentExt, ContainerExt, Continue, ListBox, ListBoxExt, ListBoxRowExt, ScrolledWindow, ScrolledWindowExt,
+    SettingsExt, WidgetExt,
 };
-use gdk::{FrameClockExt};
-use gtk::{AdjustmentExt, Continue, ContainerExt, ListBox, ListBoxExt, ListBoxRowExt, ScrolledWindow, ScrolledWindowExt, SettingsExt, WidgetExt};
 use news_flash::models::{
     article::{Marked, Read},
     ArticleID,
@@ -84,7 +84,7 @@ impl SingleArticleList {
                 scroll_callback_id: gtk_handle!(None),
                 transition_start_value: gtk_handle!(None),
                 transition_diff: gtk_handle!(None),
-            }
+            },
         })
     }
 
@@ -139,7 +139,9 @@ impl SingleArticleList {
     }
 
     pub fn get_allocated_row_height(&self, id: &ArticleID) -> Option<i32> {
-        self.articles.get(id).map(|row| row.borrow().widget().get_allocated_height())
+        self.articles
+            .get(id)
+            .map(|row| row.borrow().widget().get_allocated_height())
     }
 
     pub fn select_after(&self, id: &ArticleID, time: u32) {
@@ -152,14 +154,17 @@ impl SingleArticleList {
 
             let select_after_signal = self.select_after_signal.clone();
             let article_widget = article_handle.borrow().widget();
-            *self.select_after_signal.borrow_mut() = Some(gtk::timeout_add(time, move || {
-                // FIXME: if search entry is not selected
-                
-                article_widget.activate();
+            *self.select_after_signal.borrow_mut() = Some(
+                gtk::timeout_add(time, move || {
+                    // FIXME: if search entry is not selected
 
-                *select_after_signal.borrow_mut() = None;
-                Continue(false)
-            }).to_glib());
+                    article_widget.activate();
+
+                    *select_after_signal.borrow_mut() = None;
+                    Continue(false)
+                })
+                .to_glib(),
+            );
         }
     }
 
@@ -175,22 +180,27 @@ impl SingleArticleList {
         };
 
         if !self.widget().get_mapped() || !animate {
-            return self.set_scroll_value(pos)
+            return self.set_scroll_value(pos);
         }
 
-        *self.scroll_animation_data.start_time.borrow_mut() = self.widget().get_frame_clock().map(|clock| clock.get_frame_time());
-        *self.scroll_animation_data.end_time.borrow_mut() = self.widget().get_frame_clock().map(|clock| clock.get_frame_time() + SCROLL_TRANSITION_DURATION);
+        *self.scroll_animation_data.start_time.borrow_mut() =
+            self.widget().get_frame_clock().map(|clock| clock.get_frame_time());
+        *self.scroll_animation_data.end_time.borrow_mut() = self
+            .widget()
+            .get_frame_clock()
+            .map(|clock| clock.get_frame_time() + SCROLL_TRANSITION_DURATION);
 
         let callback_id = *self.scroll_animation_data.scroll_callback_id.borrow();
         let leftover_scroll = match callback_id {
             Some(callback_id) => {
-                let start_value = Util::some_or_default(*self.scroll_animation_data.transition_start_value.borrow(), 0.0);
+                let start_value =
+                    Util::some_or_default(*self.scroll_animation_data.transition_start_value.borrow(), 0.0);
                 let diff_value = Util::some_or_default(*self.scroll_animation_data.transition_diff.borrow(), 0.0);
-                
+
                 self.widget().remove_tick_callback(callback_id);
                 *self.scroll_animation_data.scroll_callback_id.borrow_mut() = None;
                 start_value + diff_value - self.get_scroll_value()
-            },
+            }
             None => 0.0,
         };
 
@@ -207,46 +217,50 @@ impl SingleArticleList {
         let end_time = self.scroll_animation_data.end_time.clone();
         let start_time = self.scroll_animation_data.start_time.clone();
         let callback_id = self.scroll_animation_data.scroll_callback_id.clone();
-        *self.scroll_animation_data.scroll_callback_id.borrow_mut() = Some(self.scroll.add_tick_callback(move |widget, clock| {
-            let scroll = widget.clone().downcast::<ScrolledWindow>().expect("Scroll tick not on ScrolledWindow");
+        *self.scroll_animation_data.scroll_callback_id.borrow_mut() =
+            Some(self.scroll.add_tick_callback(move |widget, clock| {
+                let scroll = widget
+                    .clone()
+                    .downcast::<ScrolledWindow>()
+                    .expect("Scroll tick not on ScrolledWindow");
 
-            let start_value = Util::some_or_default(*transition_start_value.borrow(), 0.0);
-            let diff_value = Util::some_or_default(*transition_diff.borrow(), 0.0);
-            let now = clock.get_frame_time();
-            let end_time_value = Util::some_or_default(*end_time.borrow(), 0);
-            let start_time_value = Util::some_or_default(*start_time.borrow(), 0);
+                let start_value = Util::some_or_default(*transition_start_value.borrow(), 0.0);
+                let diff_value = Util::some_or_default(*transition_diff.borrow(), 0.0);
+                let now = clock.get_frame_time();
+                let end_time_value = Util::some_or_default(*end_time.borrow(), 0);
+                let start_time_value = Util::some_or_default(*start_time.borrow(), 0);
 
-            if !widget.get_mapped() {
-                Self::set_scroll_value_static(&scroll, start_value + diff_value);
-                return false
-            }
+                if !widget.get_mapped() {
+                    Self::set_scroll_value_static(&scroll, start_value + diff_value);
+                    return false;
+                }
 
-            if end_time.borrow().is_none() {
-                return false
-            }
+                if end_time.borrow().is_none() {
+                    return false;
+                }
 
-            let t = if now < end_time_value {
-                (now - start_time_value) as f64 / (end_time_value - start_time_value) as f64
-            } else {
-                1.0
-            };
+                let t = if now < end_time_value {
+                    (now - start_time_value) as f64 / (end_time_value - start_time_value) as f64
+                } else {
+                    1.0
+                };
 
-            let t = Util::ease_out_cubic(t);
+                let t = Util::ease_out_cubic(t);
 
-            Self::set_scroll_value_static(&scroll, start_value + (t * diff_value));
+                Self::set_scroll_value_static(&scroll, start_value + (t * diff_value));
 
-            if Self::get_scroll_value_static(&scroll) <= 0.0 || now >= end_time_value {
-                scroll.queue_draw();
-                *transition_start_value.borrow_mut() = None;
-                *transition_diff.borrow_mut() = None;
-                *start_time.borrow_mut() = None;
-                *end_time.borrow_mut() = None;
-                *callback_id.borrow_mut() = None;
-                return false
-            }
+                if Self::get_scroll_value_static(&scroll) <= 0.0 || now >= end_time_value {
+                    scroll.queue_draw();
+                    *transition_start_value.borrow_mut() = None;
+                    *transition_diff.borrow_mut() = None;
+                    *start_time.borrow_mut() = None;
+                    *end_time.borrow_mut() = None;
+                    *callback_id.borrow_mut() = None;
+                    return false;
+                }
 
-            true
-        }));
+                true
+            }));
     }
 
     fn set_scroll_value(&self, pos: f64) {
@@ -265,36 +279,36 @@ impl SingleArticleList {
     }
 
     fn get_scroll_value(&self) -> f64 {
-       Self::get_scroll_value_static(&self.scroll)
+        Self::get_scroll_value_static(&self.scroll)
     }
 
     fn get_scroll_value_static(scroll: &ScrolledWindow) -> f64 {
-       match scroll.get_vadjustment() {
-           Some(adj) => adj.get_value(),
-           None => 0.0,
-       }
+        match scroll.get_vadjustment() {
+            Some(adj) => adj.get_value(),
+            None => 0.0,
+        }
     }
 
     fn get_scroll_upper(&self) -> f64 {
-       Self::get_scroll_upper_static(&self.scroll)
+        Self::get_scroll_upper_static(&self.scroll)
     }
 
     fn get_scroll_upper_static(scroll: &ScrolledWindow) -> f64 {
-       match scroll.get_vadjustment() {
-           Some(adj) => adj.get_upper(),
-           None => 0.0,
-       }
+        match scroll.get_vadjustment() {
+            Some(adj) => adj.get_upper(),
+            None => 0.0,
+        }
     }
 
     fn get_scroll_page_size(&self) -> f64 {
-       Self::get_scroll_page_size_static(&self.scroll)
+        Self::get_scroll_page_size_static(&self.scroll)
     }
 
     fn get_scroll_page_size_static(scroll: &ScrolledWindow) -> f64 {
-       match scroll.get_vadjustment() {
-           Some(adj) => adj.get_page_size(),
-           None => 0.0,
-       }
+        match scroll.get_vadjustment() {
+            Some(adj) => adj.get_page_size(),
+            None => 0.0,
+        }
     }
 
     pub fn get_selected_index(&self) -> Option<i32> {

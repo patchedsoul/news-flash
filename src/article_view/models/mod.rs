@@ -1,5 +1,5 @@
-use serde_derive::{Deserialize, Serialize};
 use gtk::{Settings, SettingsExt};
+use serde_derive::{Deserialize, Serialize};
 
 #[derive(Clone, Debug)]
 pub enum InternalState {
@@ -40,15 +40,17 @@ pub enum ArticleTheme {
 impl ArticleTheme {
     pub fn to_str(&self) -> &str {
         match self {
-            ArticleTheme::Default => if let Some(settings) = Settings::get_default() {
-                if settings.get_property_gtk_application_prefer_dark_theme() {
-                    "theme dark"
+            ArticleTheme::Default => {
+                if let Some(settings) = Settings::get_default() {
+                    if settings.get_property_gtk_application_prefer_dark_theme() {
+                        "theme dark"
+                    } else {
+                        "theme default"
+                    }
                 } else {
                     "theme default"
                 }
-            } else {
-                "theme default"
-            },
+            }
             ArticleTheme::Spring => "theme spring",
             ArticleTheme::Midnight => "theme midnight",
             ArticleTheme::Parchment => "theme parchment",

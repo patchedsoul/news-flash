@@ -1,7 +1,7 @@
-use gtk::{Box, Button, ButtonExt, MenuButton, HeaderBar, WidgetExt};
-use libhandy::{Leaflet, LeafletExt};
-use crate::util::{BuilderHelper, GtkHandle};
 use crate::gtk_handle;
+use crate::util::{BuilderHelper, GtkHandle};
+use gtk::{Box, Button, ButtonExt, HeaderBar, MenuButton, WidgetExt};
+use libhandy::{Leaflet, LeafletExt};
 use std::cell::RefCell;
 use std::rc::Rc;
 
@@ -83,9 +83,7 @@ impl ResponsiveLayout {
         });
     }
 
-    pub fn process_state_change(
-        layout: &ResponsiveLayout,
-    ) {
+    pub fn process_state_change(layout: &ResponsiveLayout) {
         if layout.state.borrow().major_leaflet_folded {
             // article view (dis)appeared
             if !layout.major_leaflet.get_property_folded() {
@@ -98,7 +96,7 @@ impl ResponsiveLayout {
                 layout.mode_switch_box.set_visible(false);
                 layout.mode_switch_button.set_visible(true);
             }
-            
+
             layout.state.borrow_mut().major_leaflet_folded = false;
             return;
         }

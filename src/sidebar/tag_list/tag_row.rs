@@ -4,7 +4,10 @@ use crate::sidebar::tag_list::models::TagListTagModel;
 use crate::util::{BuilderHelper, GtkHandle};
 use cairo::{Context, FillRule};
 use gdk::WindowExt;
-use gtk::{Box, ContainerExt, EventBox, Image, ImageExt, Label, LabelExt, ListBoxRow, ListBoxRowExt, StyleContextExt, WidgetExt};
+use gtk::{
+    Box, ContainerExt, EventBox, Image, ImageExt, Label, LabelExt, ListBoxRow, ListBoxRowExt, StyleContextExt,
+    WidgetExt,
+};
 use news_flash::models::TagID;
 use std::cell::RefCell;
 use std::rc::Rc;

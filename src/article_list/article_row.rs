@@ -1,15 +1,15 @@
-use super::models::{ArticleListArticleModel, ArticleListModel, ReadUpdate, MarkUpdate};
+use super::models::{ArticleListArticleModel, ArticleListModel, MarkUpdate, ReadUpdate};
 use crate::gtk_handle;
-use crate::util::GTK_RESOURCE_FILE_ERROR;
-use crate::util::{BuilderHelper, DateUtil, GtkHandle, GtkUtil};
+use crate::util::{BuilderHelper, DateUtil, GtkHandle, GtkUtil, GTK_RESOURCE_FILE_ERROR};
 use crate::Resources;
+
 use failure::Error;
 use gdk::{EventType, NotifyType};
 use gio::{ActionExt, ActionMapExt};
 use glib::Variant;
 use gtk::{
-    ContainerExt, EventBox, Image, ImageExt, Inhibit, Label, LabelExt, ListBoxRowExt, Stack, StackExt, StyleContextExt,
-    WidgetExt, ListBoxRow,
+    ContainerExt, EventBox, Image, ImageExt, Inhibit, Label, LabelExt, ListBoxRow, ListBoxRowExt, Stack, StackExt,
+    StyleContextExt, WidgetExt,
 };
 use news_flash::models::{ArticleID, Marked, Read};
 use std::cell::RefCell;
@@ -97,13 +97,7 @@ impl ArticleRow {
             &article.id,
             list_model,
         );
-        Self::setup_marked_eventbox(
-            &marked_eventbox,
-            &marked_handle,
-            &marked_stack,
-            &article.id,
-            list_model
-        );
+        Self::setup_marked_eventbox(&marked_eventbox, &marked_handle, &marked_stack, &article.id, list_model);
 
         Ok(ArticleRow {
             widget: row,

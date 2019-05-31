@@ -4,18 +4,18 @@ mod header_selection;
 pub use self::content_header::ContentHeader;
 pub use self::header_selection::HeaderSelection;
 
-use crate::article_list::{ArticleList, ArticleListModel, ArticleListArticleModel};
+use crate::article_list::{ArticleList, ArticleListArticleModel, ArticleListModel};
 use crate::article_view::ArticleView;
 use crate::main_window_state::MainWindowState;
+use crate::settings::Settings;
 use crate::sidebar::models::SidebarSelection;
 use crate::sidebar::{FeedListTree, SideBar, TagListModel};
 use crate::util::{BuilderHelper, GtkHandle};
-use crate::settings::Settings;
 use failure::format_err;
 use failure::Error;
 use gtk::{Box, BoxExt, WidgetExt};
-use libhandy::{Leaflet};
-use news_flash::models::{Article, ArticleFilter, ArticleID, Marked, PluginID, PluginCapabilities, Read};
+use libhandy::Leaflet;
+use news_flash::models::{Article, ArticleFilter, ArticleID, Marked, PluginCapabilities, PluginID, Read};
 use news_flash::NewsFlash;
 
 pub struct ContentPage {
@@ -68,12 +68,10 @@ impl ContentPage {
         }
     }
 
-    fn update_article_list_from_ref(
-        &mut self,
-        news_flash: &mut NewsFlash,
-        window_state: &mut MainWindowState,
-    ) {
-        let relevant_articles_loaded = self.article_list.get_relevant_article_count(window_state.get_header_selection());
+    fn update_article_list_from_ref(&mut self, news_flash: &mut NewsFlash, window_state: &mut MainWindowState) {
+        let relevant_articles_loaded = self
+            .article_list
+            .get_relevant_article_count(window_state.get_header_selection());
         let limit = if window_state.reset_article_list() {
             MainWindowState::page_size()
         } else if relevant_articles_loaded as i64 >= MainWindowState::page_size() {
@@ -105,7 +103,9 @@ impl ContentPage {
         window_state: &GtkHandle<MainWindowState>,
     ) -> Result<(), Error> {
         let window_state = window_state.borrow().clone();
-        let relevant_articles_loaded = self.article_list.get_relevant_article_count(window_state.get_header_selection());
+        let relevant_articles_loaded = self
+            .article_list
+            .get_relevant_article_count(window_state.get_header_selection());
         let mut list_model = ArticleListModel::new(&self.settings.borrow().get_article_list_order());
         if let Some(news_flash) = news_flash_handle.borrow_mut().as_mut() {
             let mut articles = Self::load_articles(
@@ -113,7 +113,7 @@ impl ContentPage {
                 &window_state,
                 &self.settings,
                 MainWindowState::page_size(),
-                Some(relevant_articles_loaded as i64)
+                Some(relevant_articles_loaded as i64),
             );
             let (feeds, _) = news_flash.get_feeds().unwrap();
             let _: Vec<_> = articles
@@ -137,7 +137,7 @@ impl ContentPage {
         window_state: &MainWindowState,
         settings: &GtkHandle<Settings>,
         limit: i64,
-        offset: Option<i64>
+        offset: Option<i64>,
     ) -> Vec<Article> {
         let unread = match window_state.get_header_selection() {
             HeaderSelection::All | HeaderSelection::Marked => None,
@@ -161,25 +161,27 @@ impl ContentPage {
         };
 
         news_flash
-            .get_articles(
-                ArticleFilter {
-                    limit: Some(limit),
-                    offset,
-                    order: Some(settings.borrow().get_article_list_order()),
-                    unread,
-                    marked,
-                    feed,
-                    category,
-                    tag,
-                    ids: None,
-                    newer_than: None,
-                    older_than: None,
-                }
-            )
+            .get_articles(ArticleFilter {
+                limit: Some(limit),
+                offset,
+                order: Some(settings.borrow().get_article_list_order()),
+                unread,
+                marked,
+                feed,
+                category,
+                tag,
+                ids: None,
+                newer_than: None,
+                older_than: None,
+            })
             .unwrap()
     }
 
-    pub fn update_sidebar(&mut self, news_flash_handle: &GtkHandle<Option<NewsFlash>>, state: &GtkHandle<MainWindowState>) {
+    pub fn update_sidebar(
+        &mut self,
+        news_flash_handle: &GtkHandle<Option<NewsFlash>>,
+        state: &GtkHandle<MainWindowState>,
+    ) {
         if let Some(news_flash) = news_flash_handle.borrow_mut().as_mut() {
             self.update_sidebar_from_ref(news_flash, &*state.borrow());
         }
@@ -192,8 +194,9 @@ impl ContentPage {
         for category in categories {
             let count = match state.get_header_selection() {
                 HeaderSelection::Marked => news_flash.marked_count_category(&category.category_id).unwrap(),
-                HeaderSelection::All |
-                HeaderSelection::Unread => news_flash.unread_count_category(&category.category_id).unwrap(),
+                HeaderSelection::All | HeaderSelection::Unread => {
+                    news_flash.unread_count_category(&category.category_id).unwrap()
+                }
             };
             tree.add_category(&category, count as i32).unwrap();
         }
@@ -201,8 +204,9 @@ impl ContentPage {
         for mapping in mappings {
             let count = match state.get_header_selection() {
                 HeaderSelection::Marked => news_flash.marked_count_feed(&mapping.feed_id).unwrap(),
-                HeaderSelection::All |
-                HeaderSelection::Unread => news_flash.unread_count_feed(&mapping.feed_id).unwrap(),
+                HeaderSelection::All | HeaderSelection::Unread => {
+                    news_flash.unread_count_feed(&mapping.feed_id).unwrap()
+                }
             };
             let feed = feeds.iter().find(|feed| feed.feed_id == mapping.feed_id).unwrap();
             let favicon = match news_flash.get_icon_info(&feed) {
@@ -227,8 +231,9 @@ impl ContentPage {
             } else {
                 for tag in tags {
                     let count = match state.get_header_selection() {
-                        HeaderSelection::All |
-                        HeaderSelection::Unread => news_flash.unread_count_tag(&tag.tag_id).unwrap(),
+                        HeaderSelection::All | HeaderSelection::Unread => {
+                            news_flash.unread_count_tag(&tag.tag_id).unwrap()
+                        }
                         HeaderSelection::Marked => news_flash.marked_count_tag(&tag.tag_id).unwrap(),
                     };
                     list.add(&tag, count as i32).unwrap();
@@ -240,8 +245,7 @@ impl ContentPage {
         }
 
         let total_count = match state.get_header_selection() {
-            HeaderSelection::All |
-            HeaderSelection::Unread => news_flash.unread_count_all().unwrap(),
+            HeaderSelection::All | HeaderSelection::Unread => news_flash.unread_count_all().unwrap(),
             HeaderSelection::Marked => news_flash.marked_count_all().unwrap(),
         };
 

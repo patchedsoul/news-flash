@@ -1,0 +1,41 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- Bilal Elmoussaoui 2019 <bilal.elmoussaoui@gnome.org> -->
+<component type="desktop-application">
+  <id>@appid@</id>
+  <metadata_license>CC0</metadata_license>
+  <project_license>GPL-3.0+</project_license>
+  <name>News Flash</name>
+  <summary>Faster than flash to deliver you the latest news from your subscribed feeds.</summary>
+  <description>
+		<p>
+			News Flash is a program designed to complement an already existing web-based RSS reader account.
+		</p>
+
+		<p>
+			It combines all the advantages of web based services like syncing across all your devices with everything you expect
+			from a modern desktop program: Desktop notifications, fast search and filtering, tagging, sharing to "read-it-later"
+			services like Pocket and Instapaper, handy keyboard shortcuts and a database that keeps all your old articles as long as you
+			like.
+		</p>
+  </description>
+  <screenshots>
+      <screenshot type="default">
+      </screenshot>
+
+  </screenshots>
+  <url type="homepage">https://gitlab.com/news-flash/</url>
+  <url type="bugtracker">https://gitlab.com/news-flash/news_flash_gtk/issues</url>
+  <content_rating type="oars-1.0" />
+  <releases>
+    <release version="0.0.0" />
+  </releases>
+  <kudos>
+      <kudo>ModernToolkit</kudo>
+      <kudo>HiDpiIcon</kudo>
+  </kudos>
+  <translation type="gettext">newsflash</translation>
+  <launchable type="desktop-id">@appid@.desktop</launchable>
+	<developer_name>Jan Lukas Gernert</developer_name>
+	<project_group>GNOME</project_group>
+</component>
+

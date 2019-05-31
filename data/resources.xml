@@ -1,0 +1,52 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<gresources>
+  <gresource prefix="/com/gitlab/newsflash/">
+      <file compressed="true" preprocess="xml-stripblanks">resources/ui/article_list_single.ui</file>
+      <file compressed="true" preprocess="xml-stripblanks">resources/ui/article_list.ui</file>
+      <file compressed="true" preprocess="xml-stripblanks">resources/ui/article_view_progress.ui</file>
+      <file compressed="true" preprocess="xml-stripblanks">resources/ui/article_view_url.ui</file>
+      <file compressed="true" preprocess="xml-stripblanks">resources/ui/article_view.ui</file>
+      <file compressed="true" preprocess="xml-stripblanks">resources/ui/article.ui</file>
+      <file compressed="true" preprocess="xml-stripblanks">resources/ui/category.ui</file>
+      <file compressed="true" preprocess="xml-stripblanks">resources/ui/content_page_header.ui</file>
+      <file compressed="true" preprocess="xml-stripblanks">resources/ui/content_page.ui</file>
+      <file compressed="true" preprocess="xml-stripblanks">resources/ui/error_detail_dialog.ui</file>
+      <file compressed="true" preprocess="xml-stripblanks">resources/ui/feed.ui</file>
+      <file compressed="true" preprocess="xml-stripblanks">resources/ui/keybind_editor.ui</file>
+      <file compressed="true" preprocess="xml-stripblanks">resources/ui/login_headerbar.ui</file>
+      <file compressed="true" preprocess="xml-stripblanks">resources/ui/main_window.ui</file>
+      <file compressed="true" preprocess="xml-stripblanks">resources/ui/oauth_login.ui</file>
+      <file compressed="true" preprocess="xml-stripblanks">resources/ui/password_login.ui</file>
+      <file compressed="true" preprocess="xml-stripblanks">resources/ui/service_row.ui</file>
+      <file compressed="true" preprocess="xml-stripblanks">resources/ui/settings.ui</file>
+      <file compressed="true" preprocess="xml-stripblanks">resources/ui/shortcuts_window.ui</file>
+      <file compressed="true" preprocess="xml-stripblanks">resources/ui/sidebar_list.ui</file>
+      <file compressed="true" preprocess="xml-stripblanks">resources/ui/sidebar.ui</file>
+      <file compressed="true" preprocess="xml-stripblanks">resources/ui/tag.ui</file>
+      <file compressed="true" preprocess="xml-stripblanks">resources/ui/theme_chooser.ui</file>
+      <file compressed="true" preprocess="xml-stripblanks">resources/ui/welcome_headerbar.ui</file>
+      <file compressed="true" preprocess="xml-stripblanks">resources/ui/welcome_page.ui</file>
+
+      <file compressed="true">resources/css/app_dark.css</file>
+      <file compressed="true">resources/css/app.css</file>
+
+      <file compressed="true">resources/article_view/article.html</file>
+      <file compressed="true">resources/article_view/style.css</file>
+      <file compressed="true">resources/article_view/theme_preview.html</file>
+
+
+
+
+      <file compressed="true" preprocess="xml-stripblanks">resources/icons/feed-service-generic-symbolic.svg</file>
+      <file compressed="true" preprocess="xml-stripblanks">resources/icons/feed-service-generic.svg</file>
+      <file compressed="true" preprocess="xml-stripblanks">resources/icons/marked-symbolic.svg</file>
+      <file compressed="true" preprocess="xml-stripblanks">resources/icons/marked.svg</file>
+      <file compressed="true" preprocess="xml-stripblanks">resources/icons/read-symbolic.svg</file>
+      <file compressed="true" preprocess="xml-stripblanks">resources/icons/read.svg</file>
+      <file compressed="true" preprocess="xml-stripblanks">resources/icons/unmarked-symbolic.svg</file>
+      <file compressed="true" preprocess="xml-stripblanks">resources/icons/unmarked.svg</file>
+      <file compressed="true" preprocess="xml-stripblanks">resources/icons/unread-symbolic.svg</file>
+      <file compressed="true" preprocess="xml-stripblanks">resources/icons/unread.svg</file>
+  </gresource>
+</gresources>
+

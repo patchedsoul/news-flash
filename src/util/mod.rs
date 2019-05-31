@@ -14,7 +14,6 @@ pub use gtk_util::GTK_BUILDER_ERROR;
 pub use gtk_util::GTK_CSS_ERROR;
 pub use gtk_util::GTK_RESOURCE_FILE_ERROR;
 
-
 pub struct Util;
 
 impl Util {

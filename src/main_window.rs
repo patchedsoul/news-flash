@@ -1,33 +1,36 @@
+use crate::about_dialog::APP_NAME;
+use crate::article_list::{MarkUpdate, ReadUpdate};
+use crate::config::{APP_ID, PROFILE};
 use crate::content_page::{ContentHeader, ContentPage};
 use crate::gtk_handle;
 use crate::login_screen::{LoginHeaderbar, PasswordLogin, WebLogin};
 use crate::main_window_actions::MainWindowActions;
 use crate::main_window_state::MainWindowState;
-use crate::util::{BuilderHelper, GtkUtil, GTK_CSS_ERROR, GTK_RESOURCE_FILE_ERROR, GtkHandle};
+use crate::responsive::ResponsiveLayout;
+use crate::settings::{Keybindings, Settings};
+use crate::sidebar::models::SidebarSelection;
+use crate::util::{BuilderHelper, GtkHandle, GtkUtil, GTK_CSS_ERROR, GTK_RESOURCE_FILE_ERROR};
 use crate::welcome_screen::{WelcomeHeaderbar, WelcomePage};
 use crate::Resources;
-use crate::settings::{Settings, Keybindings};
-use crate::about_dialog::{ICON_NAME, APP_NAME};
-use crate::article_list::{ReadUpdate, MarkUpdate};
-use crate::sidebar::models::SidebarSelection;
-use crate::responsive::{ResponsiveLayout};
 use failure::Error;
-use gtk::{
-    self, Application, ApplicationWindow, CssProvider, CssProviderExt, GtkWindowExt, GtkWindowExtManual, Inhibit,
-    Settings as GtkSettings, SettingsExt, Stack, StackExt, StyleContext, WidgetExt,
-};
-use glib::Variant;
 use gdk::EventKey;
 use gio::{ActionExt, ActionMapExt};
+use glib::{self, Variant};
+use gtk::{
+    self, Application, ApplicationWindow, CssProvider, CssProviderExt, GtkWindowExt, GtkWindowExtManual, Inhibit,
+    Settings as GtkSettings, SettingsExt, Stack, StackExt, StyleContext, StyleContextExt, WidgetExt,
+};
+use lazy_static::lazy_static;
 use log::{info, warn};
 use news_flash::NewsFlash;
 use std::cell::RefCell;
-use std::rc::Rc;
-use lazy_static::lazy_static;
 use std::path::PathBuf;
+use std::rc::Rc;
 
 lazy_static! {
-    pub static ref DATA_DIR: PathBuf = dirs::home_dir().expect("$HOME not available").join(".news-flash");
+    pub static ref DATA_DIR: PathBuf = glib::get_user_config_dir()
+        .expect("Failed to find the config dir")
+        .join("news-flash");
 }
 
 const CONTENT_PAGE: &str = "content";
@@ -61,8 +64,11 @@ impl MainWindow {
         let content_header = ContentHeader::new(&builder);
 
         window.set_application(app);
-        window.set_icon_name(ICON_NAME);
+        window.set_icon_name(APP_ID);
         window.set_title(APP_NAME);
+        if PROFILE == "Devel" {
+            window.get_style_context().add_class("devel");
+        }
         window.connect_delete_event(move |win, _| {
             win.destroy();
             Inhibit(false)
@@ -107,7 +113,13 @@ impl MainWindow {
         MainWindowActions::setup_search_action(&window, &state);
         MainWindowActions::setup_update_article_list_action(&window, &state, &content_page_handle, &news_flash_handle);
         MainWindowActions::setup_show_more_articles_action(&window, &state, &content_page_handle, &news_flash_handle);
-        MainWindowActions::setup_show_article_action(&window, &content_page_handle, &content_header_handle, &news_flash_handle, &responsive_layout);
+        MainWindowActions::setup_show_article_action(
+            &window,
+            &content_page_handle,
+            &content_header_handle,
+            &news_flash_handle,
+            &responsive_layout,
+        );
         MainWindowActions::setup_close_article_action(&window, &content_page_handle, &content_header_handle);
         MainWindowActions::setup_redraw_article_action(&window, &content_page_handle);
         MainWindowActions::setup_mark_article_read_action(&window, &news_flash_handle);
@@ -120,7 +132,14 @@ impl MainWindow {
         MainWindowActions::setup_select_next_article_action(&window, &content_page_handle);
         MainWindowActions::setup_select_prev_article_action(&window, &content_page_handle);
 
-        Self::setup_shortcuts(&window, &content_page_handle, &stack, &settings, &news_flash_handle, &content_header_handle);
+        Self::setup_shortcuts(
+            &window,
+            &content_page_handle,
+            &stack,
+            &settings,
+            &news_flash_handle,
+            &content_header_handle,
+        );
 
         if let Ok(news_flash_lib) = NewsFlash::try_load(&DATA_DIR) {
             info!("Successful load from config");
@@ -133,7 +152,9 @@ impl MainWindow {
             *news_flash_handle.borrow_mut() = Some(news_flash_lib);
 
             // try to fill content page with data
-            content_page_handle.borrow_mut().update_sidebar(&news_flash_handle, &state);
+            content_page_handle
+                .borrow_mut()
+                .update_sidebar(&news_flash_handle, &state);
             content_page_handle
                 .borrow_mut()
                 .update_article_list(&news_flash_handle, &state);
@@ -182,17 +203,16 @@ impl MainWindow {
         let news_flash = news_flash.clone();
         let content_header = content_header.clone();
         window.connect_key_press_event(move |widget, event| {
-
             // ignore shortcuts when not on content page
             if let Some(visible_child) = main_stack.get_visible_child_name() {
                 if visible_child != CONTENT_PAGE {
-                    return Inhibit(false)
+                    return Inhibit(false);
                 }
             }
 
             // ignore shortcuts when typing in search entry
             if content_header.borrow().is_search_focused() {
-                return Inhibit(false)
+                return Inhibit(false);
             }
 
             if Self::check_shortcut("shortcuts", &settings, event) {
@@ -320,7 +340,9 @@ impl MainWindow {
                 if let Some(news_flash) = news_flash.borrow_mut().as_mut() {
                     match content_page.borrow().sidebar_get_selection() {
                         SidebarSelection::All => news_flash.set_all_read().unwrap(),
-                        SidebarSelection::Cateogry((category_id, _title)) => news_flash.set_category_read(&vec![category_id]).unwrap(),
+                        SidebarSelection::Cateogry((category_id, _title)) => {
+                            news_flash.set_category_read(&vec![category_id]).unwrap()
+                        }
                         SidebarSelection::Feed((feed_id, _title)) => news_flash.set_feed_read(&vec![feed_id]).unwrap(),
                         SidebarSelection::Tag((tag_id, _title)) => news_flash.set_tag_read(&vec![tag_id]).unwrap(),
                     }
@@ -346,10 +368,10 @@ impl MainWindow {
                 if gdk::keyval_to_lower(keyval) == gdk::keyval_to_lower(event.get_keyval()) {
                     if modifier.is_empty() {
                         if Keybindings::clean_modifier(&event.get_state()).is_empty() {
-                            return true
+                            return true;
                         }
                     } else if event.get_state().contains(modifier) {
-                        return true
+                        return true;
                     }
                 }
             }

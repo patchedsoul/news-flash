@@ -1,0 +1,13 @@
+[Desktop Entry]
+Name=News Flash
+GenericName=RSS Reader
+Comment=Faster than flash to deliver you the latest news from your subscribed feeds
+Type=Application
+Exec=newsflash
+Terminal=false
+Categories=GNOME;GTK;Network;Feed;
+Keywords=Gnome;GTK;RSS;Feed;
+# Translators: Do NOT translate or transliterate this text (this is an icon file name)!
+Icon=@icon@
+StartupNotify=true
+

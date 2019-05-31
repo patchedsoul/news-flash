@@ -1,14 +1,14 @@
 mod article;
+mod article_update_msg;
 mod change_set;
 mod error;
-mod article_update_msg;
 
+use crate::content_page::HeaderSelection;
 pub use article::ArticleListArticleModel;
+pub use article_update_msg::{MarkUpdate, ReadUpdate};
 pub use change_set::ArticleListChangeSet;
 use error::{ArticleListModelError, ArticleListModelErrorKind};
 use log::warn;
-pub use article_update_msg::{MarkUpdate, ReadUpdate};
-use crate::content_page::HeaderSelection;
 use news_flash::models::{Article, ArticleID, ArticleOrder, FavIcon, Marked, Read};
 use std::collections::HashSet;
 
@@ -186,9 +186,7 @@ impl ArticleListModel {
 
     pub fn first(&mut self) -> Option<&ArticleListArticleModel> {
         self.sort();
-        self.models
-            .iter()
-            .next()
+        self.models.iter().next()
     }
 
     pub fn calculate_selection(&mut self, selected_index: i32) -> Option<&ArticleListArticleModel> {
