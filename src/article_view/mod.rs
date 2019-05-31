@@ -334,11 +334,14 @@ impl ArticleView {
                     match event {
                         LoadEvent::Started => {
                             if let Some(uri) = closure_webivew.get_uri() {
-                                if let Some(default_screen) = gdk::Screen::get_default() {
-                                    if gtk::show_uri(&default_screen, &uri, glib::get_current_time().tv_sec as u32)
-                                        .is_err()
-                                    {
-                                        // log smth
+                                if "about:blank" != uri {
+                                    println!("uri: {}", uri);
+                                    if let Some(default_screen) = gdk::Screen::get_default() {
+                                        if gtk::show_uri(&default_screen, &uri, glib::get_current_time().tv_sec as u32)
+                                            .is_err()
+                                        {
+                                            // log smth
+                                        }
                                     }
                                 }
                             }

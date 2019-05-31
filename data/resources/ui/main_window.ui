@@ -439,7 +439,7 @@
             </child>
             <child>
               <object class="GtkScrolledWindow">
-                <property name="width_request">200</property>
+                <property name="width_request">350</property>
                 <property name="visible">True</property>
                 <property name="can_focus">False</property>
                 <property name="halign">center</property>
@@ -574,6 +574,7 @@
                     <property name="visible">True</property>
                     <property name="can_focus">False</property>
                     <property name="label" translatable="yes">Headline</property>
+                    <property name="ellipsize">end</property>
                     <style>
                       <class name="h2"/>
                     </style>
@@ -1035,6 +1036,11 @@
                               </object>
                             </child>
                           </object>
+                          <packing>
+                            <property name="expand">False</property>
+                            <property name="fill">True</property>
+                            <property name="position">0</property>
+                          </packing>
                         </child>
                         <child>
                           <placeholder/>
