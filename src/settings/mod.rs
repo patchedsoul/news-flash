@@ -1,23 +1,23 @@
 mod article_list;
 mod article_view;
 mod dialog;
-mod theme_chooser;
-mod keybindings;
-mod keybinding_editor;
 mod general;
+mod keybinding_editor;
+mod keybindings;
+mod theme_chooser;
 
-pub use dialog::SettingsDialog;
-pub use keybindings::{NewsFlashShortcutWindow, Keybindings};
-use serde_derive::{Deserialize, Serialize};
+use crate::article_view::ArticleTheme;
+use crate::main_window::DATA_DIR;
 use article_list::ArticleListSettings;
 use article_view::ArticleViewSettings;
-use general::GeneralSettings;
+pub use dialog::SettingsDialog;
 use failure::Error;
-use crate::main_window::DATA_DIR;
+use general::GeneralSettings;
+pub use keybindings::{Keybindings, NewsFlashShortcutWindow};
+use news_flash::models::ArticleOrder;
+use serde_derive::{Deserialize, Serialize};
 use std::fs;
 use std::path::PathBuf;
-use news_flash::models::ArticleOrder;
-use crate::article_view::ArticleTheme;
 
 static CONFIG_NAME: &'static str = "newflash_gtk.json";
 
@@ -35,13 +35,14 @@ pub struct Settings {
 impl Settings {
     pub fn open() -> Result<Self, Error> {
         let path = DATA_DIR.join(CONFIG_NAME);
-
         if path.as_path().exists() {
             let data = fs::read_to_string(&path)?;
             let mut settings: Self = serde_json::from_str(&data)?;
             settings.path = path.clone();
             return Ok(settings);
         }
+
+        fs::create_dir_all(DATA_DIR.as_path())?;
 
         let settings = Settings {
             general: GeneralSettings::default(),

@@ -3,8 +3,8 @@ use crate::sidebar::feed_list::models::FeedListCategoryModel;
 use crate::util::BuilderHelper;
 use gdk::{EventMask, EventType};
 use gtk::{
-    self, BinExt, Box, Cast, ContainerExt, EventBox, Label, LabelExt, ListBoxRow, ListBoxRowExt,
-    Image, Revealer, RevealerExt, StyleContextExt, WidgetExt, WidgetExtManual,
+    self, BinExt, Box, Cast, ContainerExt, EventBox, Image, Label, LabelExt, ListBoxRow, ListBoxRowExt, Revealer,
+    RevealerExt, StyleContextExt, WidgetExt, WidgetExtManual,
 };
 use news_flash::models::CategoryID;
 use std::cell::RefCell;

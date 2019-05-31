@@ -7,24 +7,23 @@ use self::models::InternalState;
 use self::progress_overlay::ProgressOverlay;
 use self::url_overlay::UrlOverlay;
 use crate::gtk_handle;
-use crate::util::GTK_RESOURCE_FILE_ERROR;
-use crate::util::{BuilderHelper, DateUtil, FileUtil, GtkHandle, GtkUtil, Util};
-use crate::Resources;
 use crate::settings::Settings;
+use crate::util::{BuilderHelper, DateUtil, FileUtil, GtkHandle, GtkUtil, Util, GTK_RESOURCE_FILE_ERROR};
+use crate::Resources;
 use failure::{format_err, Error};
 use gdk::{
     enums::key::KP_Add as KP_ADD, enums::key::KP_Subtract as KP_SUBTRACT, enums::key::KP_0, Cursor, CursorType,
-    Display, EventMask, ModifierType, ScrollDirection, FrameClockExt,
+    Display, EventMask, FrameClockExt, ModifierType, ScrollDirection,
 };
 use gio::{Cancellable, Settings as GSettings, SettingsExt as GSettingsExt};
 use glib::{object::Cast, translate::ToGlib, MainLoop};
 use gtk::{
-    Button, ButtonExt, ContainerExt, Continue, Inhibit, Overlay, OverlayExt, Stack, StackExt, WidgetExt,
-    WidgetExtManual, SettingsExt as GtkSettingsExt,
+    Button, ButtonExt, ContainerExt, Continue, Inhibit, Overlay, OverlayExt, SettingsExt as GtkSettingsExt, Stack,
+    StackExt, WidgetExt, WidgetExtManual,
 };
-use pango::FontDescription;
-use log::{warn, error};
+use log::{error, warn};
 use news_flash::models::FatArticle;
+use pango::FontDescription;
 use std::cell::RefCell;
 use std::rc::Rc;
 use std::str;
@@ -32,7 +31,8 @@ use std::sync::Arc;
 use std::sync::Mutex;
 use webkit2gtk::{
     ContextMenuAction, ContextMenuExt, ContextMenuItemExt, HitTestResultExt, LoadEvent, NavigationPolicyDecision,
-    NavigationPolicyDecisionExt, PolicyDecisionType, Settings as WebkitSettings, SettingsExt, URIRequestExt, WebView, WebViewExt,
+    NavigationPolicyDecisionExt, PolicyDecisionType, Settings as WebkitSettings, SettingsExt, URIRequestExt, WebView,
+    WebViewExt,
 };
 
 const MIDDLE_MOUSE_BUTTON: u32 = 2;
@@ -153,7 +153,7 @@ impl ArticleView {
                 scroll_callback_id: gtk_handle!(None),
                 transition_start_value: gtk_handle!(None),
                 transition_diff: gtk_handle!(None),
-            }
+            },
         };
 
         article_view.stack.show_all();
@@ -186,7 +186,7 @@ impl ArticleView {
 
         if !success {
             warn!("Can't redraw article view. No article is on display.");
-            return Ok(())
+            return Ok(());
         }
 
         let webview = self.switch_view()?;
@@ -638,7 +638,8 @@ impl ArticleView {
                                 let page_size = f64::from(view.get_allocated_height());
                                 let adjust_value = page_size * *drag_momentum.borrow() / f64::from(allocation.height);
                                 let old_adjust = f64::from(Self::get_scroll_pos_static(&view).unwrap());
-                                let upper = f64::from(Self::get_scroll_upper_static(&view).unwrap()) * view.get_zoom_level();
+                                let upper =
+                                    f64::from(Self::get_scroll_upper_static(&view).unwrap()) * view.get_zoom_level();
 
                                 if (old_adjust + adjust_value) > (upper - page_size)
                                     || (old_adjust + adjust_value) < 0.0
@@ -750,9 +751,9 @@ impl ArticleView {
 
         // A list of fonts we should try to use in order of preference
         // We will pass all of these to CSS in order
-        let mut font_options : Vec<String> = Vec::new();
-        let mut font_families : Vec<String> = Vec::new();
-        let mut font_size : Option<i32> = None;
+        let mut font_options: Vec<String> = Vec::new();
+        let mut font_families: Vec<String> = Vec::new();
+        let mut font_size: Option<i32> = None;
 
         // Try to use the configured font if it exists
         if let Some(font_setting) = settings.borrow().get_article_view_font() {
@@ -782,14 +783,12 @@ impl ArticleView {
         // if font size configured use it, otherwise use 12 as default
         let font_size = match font_size_override {
             Some(fsize_override) => fsize_override,
-            None => {
-                match font_size {
-                    Some(size) => size,
-                    None => 12,
-                }
+            None => match font_size {
+                Some(size) => size,
+                None => 12,
             },
         };
-        
+
         let font_size = font_size / pango::SCALE;
         let font_family = font_families.join(", ");
 
@@ -920,7 +919,7 @@ impl ArticleView {
             if let Some(view) = self.stack.get_child_by_name(&view_name) {
                 if let Ok(view) = view.downcast::<WebView>() {
                     Self::set_scroll_pos_static(&view, scroll)?;
-                    return Ok(())
+                    return Ok(());
                 }
             }
         }
@@ -932,7 +931,7 @@ impl ArticleView {
         if let Some(view_name) = view_name {
             if let Some(view) = self.stack.get_child_by_name(&view_name) {
                 if let Ok(view) = view.downcast::<WebView>() {
-                    return Self::get_scroll_pos_static(&view)
+                    return Self::get_scroll_pos_static(&view);
                 }
             }
         }
@@ -944,7 +943,7 @@ impl ArticleView {
         if let Some(view_name) = view_name {
             if let Some(view) = self.stack.get_child_by_name(&view_name) {
                 if let Ok(view) = view.downcast::<WebView>() {
-                    return Self::get_scroll_window_height_static(&view)
+                    return Self::get_scroll_window_height_static(&view);
                 }
             }
         }
@@ -956,7 +955,7 @@ impl ArticleView {
         if let Some(view_name) = view_name {
             if let Some(view) = self.stack.get_child_by_name(&view_name) {
                 if let Ok(view) = view.downcast::<WebView>() {
-                    return Self::get_scroll_upper_static(&view)
+                    return Self::get_scroll_upper_static(&view);
                 }
             }
         }
@@ -969,9 +968,9 @@ impl ArticleView {
         let window_height = self.get_scroll_window_height()?;
 
         if pos <= 0.0 && diff.is_sign_negative() {
-            return Ok(())
+            return Ok(());
         } else if pos >= (upper - window_height) && diff.is_sign_positive() {
-            return Ok(())
+            return Ok(());
         }
 
         self.animate_scroll_absolute(pos + diff, pos)
@@ -984,23 +983,27 @@ impl ArticleView {
         };
 
         if !self.widget().get_mapped() || !animate {
-            return self.set_scroll_abs(pos)
+            return self.set_scroll_abs(pos);
         }
 
-
-        *self.scroll_animation_data.start_time.borrow_mut() = self.widget().get_frame_clock().map(|clock| clock.get_frame_time());
-        *self.scroll_animation_data.end_time.borrow_mut() = self.widget().get_frame_clock().map(|clock| clock.get_frame_time() + SCROLL_TRANSITION_DURATION);
+        *self.scroll_animation_data.start_time.borrow_mut() =
+            self.widget().get_frame_clock().map(|clock| clock.get_frame_time());
+        *self.scroll_animation_data.end_time.borrow_mut() = self
+            .widget()
+            .get_frame_clock()
+            .map(|clock| clock.get_frame_time() + SCROLL_TRANSITION_DURATION);
 
         let callback_id = *self.scroll_animation_data.scroll_callback_id.borrow();
         let leftover_scroll = match callback_id {
             Some(callback_id) => {
                 self.widget().remove_tick_callback(callback_id);
-                let start_value = Util::some_or_default(*self.scroll_animation_data.transition_start_value.borrow(), 0.0);
+                let start_value =
+                    Util::some_or_default(*self.scroll_animation_data.transition_start_value.borrow(), 0.0);
                 let diff_value = Util::some_or_default(*self.scroll_animation_data.transition_diff.borrow(), 0.0);
-                
+
                 *self.scroll_animation_data.scroll_callback_id.borrow_mut() = None;
                 start_value + diff_value - current_pos
-            },
+            }
             None => 0.0,
         };
 
@@ -1012,47 +1015,57 @@ impl ArticleView {
 
         *self.scroll_animation_data.transition_start_value.borrow_mut() = Some(current_pos);
 
-        let view_name = (*self.internal_state.borrow()).to_str().map(|s| s.to_owned()).ok_or(format_err!("some err"))?;
-        let view = self.stack.get_child_by_name(&view_name).ok_or(format_err!("some err"))?;
+        let view_name = (*self.internal_state.borrow())
+            .to_str()
+            .map(|s| s.to_owned())
+            .ok_or(format_err!("some err"))?;
+        let view = self
+            .stack
+            .get_child_by_name(&view_name)
+            .ok_or(format_err!("some err"))?;
 
         let scroll_animation_data = self.scroll_animation_data.clone();
-        *self.scroll_animation_data.scroll_callback_id.borrow_mut() = Some(view.add_tick_callback(move |widget, clock| {
-            let view = widget.clone().downcast::<WebView>().expect("Scroll tick not on WebView");
+        *self.scroll_animation_data.scroll_callback_id.borrow_mut() =
+            Some(view.add_tick_callback(move |widget, clock| {
+                let view = widget
+                    .clone()
+                    .downcast::<WebView>()
+                    .expect("Scroll tick not on WebView");
 
-            let start_value = Util::some_or_default(*scroll_animation_data.transition_start_value.borrow(), 0.0);
-            let diff_value = Util::some_or_default(*scroll_animation_data.transition_diff.borrow(), 0.0);
-            let now = clock.get_frame_time();
-            let end_time_value = Util::some_or_default(*scroll_animation_data.end_time.borrow(), 0);
-            let start_time_value = Util::some_or_default(*scroll_animation_data.start_time.borrow(), 0);
+                let start_value = Util::some_or_default(*scroll_animation_data.transition_start_value.borrow(), 0.0);
+                let diff_value = Util::some_or_default(*scroll_animation_data.transition_diff.borrow(), 0.0);
+                let now = clock.get_frame_time();
+                let end_time_value = Util::some_or_default(*scroll_animation_data.end_time.borrow(), 0);
+                let start_time_value = Util::some_or_default(*scroll_animation_data.start_time.borrow(), 0);
 
-            if !widget.get_mapped() {
-                Self::set_scroll_pos_static(&view, start_value + diff_value).unwrap();
-                return false
-            }
+                if !widget.get_mapped() {
+                    Self::set_scroll_pos_static(&view, start_value + diff_value).unwrap();
+                    return false;
+                }
 
-            if scroll_animation_data.end_time.borrow().is_none() {
-                return false
-            }
+                if scroll_animation_data.end_time.borrow().is_none() {
+                    return false;
+                }
 
-            let t = if now < end_time_value {
-                (now - start_time_value) as f64 / (end_time_value - start_time_value) as f64
-            } else {
-                1.0
-            };
+                let t = if now < end_time_value {
+                    (now - start_time_value) as f64 / (end_time_value - start_time_value) as f64
+                } else {
+                    1.0
+                };
 
-            let t = Util::ease_out_cubic(t);
+                let t = Util::ease_out_cubic(t);
 
-            Self::set_scroll_pos_static(&view, start_value + (t * diff_value)).unwrap();
+                Self::set_scroll_pos_static(&view, start_value + (t * diff_value)).unwrap();
 
-            let pos = Self::get_scroll_pos_static(&view).unwrap();
-            let upper = Self::get_scroll_upper_static(&view).unwrap();
-            if pos <= 0.0 || pos >= upper || now >= end_time_value {
-                Self::stop_scroll_animation(&view, &scroll_animation_data);
-                return false
-            }
+                let pos = Self::get_scroll_pos_static(&view).unwrap();
+                let upper = Self::get_scroll_upper_static(&view).unwrap();
+                if pos <= 0.0 || pos >= upper || now >= end_time_value {
+                    Self::stop_scroll_animation(&view, &scroll_animation_data);
+                    return false;
+                }
 
-            true
-        }));
+                true
+            }));
 
         Ok(())
     }

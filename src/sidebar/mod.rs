@@ -3,8 +3,7 @@ pub mod models;
 mod tag_list;
 
 use crate::gtk_handle;
-use crate::util::GTK_RESOURCE_FILE_ERROR;
-use crate::util::{BuilderHelper, GtkHandle, GtkUtil};
+use crate::util::{BuilderHelper, GtkHandle, GtkUtil, GTK_RESOURCE_FILE_ERROR};
 use crate::Resources;
 use failure::format_err;
 use failure::Error;
@@ -12,18 +11,18 @@ pub use feed_list::models::{FeedListItemID, FeedListTree};
 use feed_list::FeedList;
 use gdk::{EventMask, EventType};
 use gio::{ActionExt, ActionMapExt};
-use glib::{Variant, translate::ToGlib};
+use glib::{translate::ToGlib, Variant};
 use gtk::{
-    Box, BoxExt, Continue, EventBox, Image, ImageExt, Label, LabelExt, ListBoxExt, Revealer, RevealerExt, StyleContextExt,
-    WidgetExt, WidgetExtManual, Inhibit,
+    Box, BoxExt, Continue, EventBox, Image, ImageExt, Inhibit, Label, LabelExt, ListBoxExt, Revealer, RevealerExt,
+    StyleContextExt, WidgetExt, WidgetExtManual,
 };
+pub use models::SidebarIterateItem;
 use models::SidebarSelection;
 use news_flash::models::{PluginID, PluginIcon};
 use news_flash::NewsFlash;
 use std::cell::RefCell;
 use std::rc::Rc;
 pub use tag_list::models::TagListModel;
-pub use models::SidebarIterateItem;
 use tag_list::TagList;
 
 #[derive(Clone, Debug)]
@@ -158,9 +157,20 @@ impl SideBar {
         let expanded_categories = gtk_handle!(true);
         let expanded_tags = gtk_handle!(false);
 
-        Self::setup_expander(&categories_event_box, &categories_expander, &categories_revealer, &expanded_categories);
+        Self::setup_expander(
+            &categories_event_box,
+            &categories_expander,
+            &categories_revealer,
+            &expanded_categories,
+        );
         Self::setup_expander(&tags_event_box, &tags_expander, &tags_revealer, &expanded_tags);
-        Self::setup_all_button(&all_event_box, feed_list_handle.clone(), tag_list_handle.clone(), selection_handle.clone(), &delayed_all_selection);
+        Self::setup_all_button(
+            &all_event_box,
+            feed_list_handle.clone(),
+            tag_list_handle.clone(),
+            selection_handle.clone(),
+            &delayed_all_selection,
+        );
 
         Ok(SideBar {
             sidebar,
@@ -236,12 +246,7 @@ impl SideBar {
         Ok(())
     }
 
-    fn setup_expander(
-        event_box: &EventBox,
-        expander: &Image,
-        revealer: &Revealer,
-        expanded: &GtkHandle<bool>,
-    ) {
+    fn setup_expander(event_box: &EventBox, expander: &Image, revealer: &Revealer, expanded: &GtkHandle<bool>) {
         let expander = expander.clone();
         let expanded = expanded.clone();
         let revealer = revealer.clone();
@@ -294,7 +299,7 @@ impl SideBar {
         feed_list_handle: GtkHandle<FeedList>,
         tag_list_handle: GtkHandle<TagList>,
         selection_handle: GtkHandle<SidebarSelection>,
-        delayed_selection: &GtkHandle<Option<u32>>
+        delayed_selection: &GtkHandle<Option<u32>>,
     ) {
         let context = event_box.get_style_context();
         context.add_class("selected");
@@ -333,7 +338,7 @@ impl SideBar {
     fn select_all_button(
         all_event_box: &EventBox,
         selection_handle: &GtkHandle<SidebarSelection>,
-        delayed_selection: &GtkHandle<Option<u32>>
+        delayed_selection: &GtkHandle<Option<u32>>,
     ) {
         *selection_handle.borrow_mut() = SidebarSelection::All;
         let context = all_event_box.get_style_context();
@@ -342,21 +347,24 @@ impl SideBar {
         GtkUtil::remove_source(*delayed_selection.borrow());
         let source_id = delayed_selection.clone();
         let all_event_box = all_event_box.clone();
-        *delayed_selection.borrow_mut() = Some(gtk::timeout_add(300, move || {
-            if let Ok(selection_json) = serde_json::to_string(&SidebarSelection::All) {
-                if let Ok(main_window) = GtkUtil::get_main_window(&all_event_box) {
-                    if let Some(action) = main_window.lookup_action("sidebar-selection") {
-                        let selection = Variant::from(&selection_json);
-                        gtk::idle_add(move || {
-                            action.activate(Some(&selection));
-                            Continue(false)
-                        });
+        *delayed_selection.borrow_mut() = Some(
+            gtk::timeout_add(300, move || {
+                if let Ok(selection_json) = serde_json::to_string(&SidebarSelection::All) {
+                    if let Ok(main_window) = GtkUtil::get_main_window(&all_event_box) {
+                        if let Some(action) = main_window.lookup_action("sidebar-selection") {
+                            let selection = Variant::from(&selection_json);
+                            gtk::idle_add(move || {
+                                action.activate(Some(&selection));
+                                Continue(false)
+                            });
+                        }
                     }
                 }
-            }
-            *source_id.borrow_mut() = None;
-            Continue(false)
-        }).to_glib());
+                *source_id.borrow_mut() = None;
+                Continue(false)
+            })
+            .to_glib(),
+        );
     }
 
     fn deselect_all_button(all_event_box: &EventBox, delayed_selection: &GtkHandle<Option<u32>>) {
@@ -369,8 +377,7 @@ impl SideBar {
     pub fn select_next_item(&self) -> Result<(), Error> {
         let select_next = match *self.selection.borrow() {
             SidebarSelection::All => SidebarIterateItem::FeedListSelectFirstItem,
-            SidebarSelection::Cateogry(_) |
-            SidebarSelection::Feed(_) => self.feed_list.borrow().select_next_item(),
+            SidebarSelection::Cateogry(_) | SidebarSelection::Feed(_) => self.feed_list.borrow().select_next_item(),
             SidebarSelection::Tag(_) => self.tag_list.borrow().get_next_item(),
         };
         self.select_item(select_next)
@@ -379,8 +386,7 @@ impl SideBar {
     pub fn select_prev_item(&self) -> Result<(), Error> {
         let select_next = match *self.selection.borrow() {
             SidebarSelection::All => SidebarIterateItem::TagListSelectLastItem,
-            SidebarSelection::Cateogry(_) |
-            SidebarSelection::Feed(_) => self.feed_list.borrow().select_prev_item(),
+            SidebarSelection::Cateogry(_) | SidebarSelection::Feed(_) => self.feed_list.borrow().select_prev_item(),
             SidebarSelection::Tag(_) => self.tag_list.borrow().get_prev_item(),
         };
         self.select_item(select_next)
@@ -392,49 +398,59 @@ impl SideBar {
         match selection {
             SidebarIterateItem::SelectAll => {
                 Self::select_all_button(&self.all_event_box, &self.selection, &self.delayed_all_selection);
-            },
+            }
             SidebarIterateItem::SelectFeedListFeed(id) => {
                 self.feed_list.borrow().set_selection(FeedListItemID::Feed(id))?;
-            },
+            }
             SidebarIterateItem::SelectFeedListCategory(id) => {
                 self.feed_list.borrow().set_selection(FeedListItemID::Category(id))?;
-            },
+            }
             SidebarIterateItem::FeedListSelectFirstItem => {
-                Self::expand_list(true, &self.categories_revealer, &self.categories_expander, &self.expanded_categories);
+                Self::expand_list(
+                    true,
+                    &self.categories_revealer,
+                    &self.categories_expander,
+                    &self.expanded_categories,
+                );
                 if let Some(item) = self.feed_list.borrow().get_first_item() {
                     self.feed_list.borrow().set_selection(item)?;
                 }
-            },
+            }
             SidebarIterateItem::FeedListSelectLastItem => {
-                Self::expand_list(true, &self.categories_revealer, &self.categories_expander, &self.expanded_categories);
+                Self::expand_list(
+                    true,
+                    &self.categories_revealer,
+                    &self.categories_expander,
+                    &self.expanded_categories,
+                );
                 if let Some(item) = self.feed_list.borrow().get_last_item(None) {
                     self.feed_list.borrow().set_selection(item)?;
                 }
-            },
+            }
             SidebarIterateItem::SelectTagList(id) => {
                 self.tag_list.borrow().set_selection(id);
-            },
+            }
             SidebarIterateItem::TagListSelectFirstItem => {
                 // if tags not supported or not available jump back to "All Articles"
                 if !self.tags_box.is_visible() {
-                    return self.select_item(SidebarIterateItem::SelectAll)
+                    return self.select_item(SidebarIterateItem::SelectAll);
                 }
                 Self::expand_list(true, &self.tags_revealer, &self.tags_expander, &self.expanded_tags);
                 if let Some(item) = self.tag_list.borrow().get_first_item() {
                     self.tag_list.borrow().set_selection(item);
                 }
-            },
+            }
             SidebarIterateItem::TagListSelectLastItem => {
                 // if tags not supported or not available jump back to "All Articles"
                 if !self.tags_box.is_visible() {
-                    return self.select_item(SidebarIterateItem::FeedListSelectLastItem)
+                    return self.select_item(SidebarIterateItem::FeedListSelectLastItem);
                 }
                 Self::expand_list(true, &self.tags_revealer, &self.tags_expander, &self.expanded_tags);
                 if let Some(item) = self.tag_list.borrow().get_last_item() {
                     self.tag_list.borrow().set_selection(item);
                 }
-            },
-            SidebarIterateItem::NothingSelected => { /* nothing */ },
+            }
+            SidebarIterateItem::NothingSelected => { /* nothing */ }
         }
         Ok(())
     }

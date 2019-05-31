@@ -1,5 +1,5 @@
-use serde_derive::{Deserialize, Serialize};
 use crate::article_view::ArticleTheme;
+use serde_derive::{Deserialize, Serialize};
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct ArticleViewSettings {

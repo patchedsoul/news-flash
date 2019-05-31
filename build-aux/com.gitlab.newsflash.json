@@ -1,0 +1,73 @@
+{
+    "app-id" : "com.gitlab.newsflashDevel",
+    "runtime" : "org.gnome.Platform",
+    "runtime-version" : "master",
+    "sdk" : "org.gnome.Sdk",
+    "sdk-extensions" : [
+        "org.freedesktop.Sdk.Extension.rust-stable"
+    ],
+    "command" : "newsflash",
+    "tags" : [
+        "nightly"
+    ],
+    "desktop-file-name-suffix" : " ☢️",
+    "finish-args" : [
+        "--share=network",
+        "--share=ipc",
+        "--socket=x11",
+        "--socket=wayland",
+        "--device=dri"
+    ],
+    "build-options" : {
+        "append-path" : "/usr/lib/sdk/rust-stable/bin",
+        "build-args" : [
+            "--share=network"
+        ],
+        "env" : {
+            "CARGO_HOME" : "/run/build/newsflash/cargo",
+            "RUSTFLAGS" : "--error-format=short --remap-path-prefix =../",
+            "RUST_BACKTRACE" : "1"
+        }
+    },
+    "modules" : [
+        {
+            "name" : "libhandy",
+            "buildsystem" : "meson",
+            "config-opts" : [
+                "-Dintrospection=disabled",
+                "-Dgtk_doc=false",
+                "-Dtests=false",
+                "-Dexamples=false",
+                "-Dvapi=false",
+                "-Dglade_catalog=disabled"
+            ],
+            "cleanup" : [
+              "/include",
+              "/lib/pkgconfig"
+            ],
+            "sources" : [
+                {
+                    "type" : "git",
+                    "url" : "https://source.puri.sm/Librem5/libhandy",
+                    "commit": "56b0aa62f6251ee19a88fc208b7ca8dcf9c9633c"
+
+                }
+            ]
+        },
+        {
+            "name" : "newsflash",
+            "buildsystem" : "meson",
+            "config-opts": [
+		        "-Dprofile=development"
+            ],
+            "sources" : [
+                {
+                    "type" : "git",
+                    "url" : "https://gitlab.com/news-flash/news_flash_gtk.git"
+                }
+            ]
+        }
+    ]
+}
+
+

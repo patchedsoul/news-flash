@@ -1,11 +1,13 @@
-use gtk::{Inhibit, Button, ButtonExt, Dialog, DialogExt, Label, LabelExt, Window, GtkWindowExt, WidgetExt, Stack, StackExt};
-use glib::{object::IsA};
-use gdk::enums::key;
-use crate::util::{BuilderHelper, GtkHandle};
-use crate::gtk_handle;
-use std::rc::Rc;
-use std::cell::RefCell;
 use super::keybindings::Keybindings;
+use crate::gtk_handle;
+use crate::util::{BuilderHelper, GtkHandle};
+use gdk::enums::key;
+use glib::object::IsA;
+use gtk::{
+    Button, ButtonExt, Dialog, DialogExt, GtkWindowExt, Inhibit, Label, LabelExt, Stack, StackExt, WidgetExt, Window,
+};
+use std::cell::RefCell;
+use std::rc::Rc;
 
 #[derive(Debug, Clone)]
 pub enum KeybindState {
@@ -23,8 +25,8 @@ pub struct KeybindingEditor {
 
 impl KeybindingEditor {
     pub fn new<D: IsA<Window> + GtkWindowExt>(settings_dialog: &D, setting_name: &str) -> Self {
-        let keybinding_public : GtkHandle<KeybindState> = gtk_handle!(KeybindState::Disabled);
-        let keybinding_internal : GtkHandle<KeybindState> = gtk_handle!(KeybindState::Disabled);
+        let keybinding_public: GtkHandle<KeybindState> = gtk_handle!(KeybindState::Disabled);
+        let keybinding_internal: GtkHandle<KeybindState> = gtk_handle!(KeybindState::Disabled);
         let builder = BuilderHelper::new("keybind_editor");
         let set_button = builder.get::<Button>("set_button");
         let cancel_button = builder.get::<Button>("cancel_button");
@@ -46,7 +48,7 @@ impl KeybindingEditor {
             if keyval == key::Escape {
                 *keybinding_public_clone.borrow_mut() = KeybindState::Canceled;
                 widget.emit_close();
-                return Inhibit(true)
+                return Inhibit(true);
             }
 
             if keyval == key::BackSpace {
@@ -54,14 +56,14 @@ impl KeybindingEditor {
                 set_button_clone.set_visible(true);
                 cancel_button_clone.set_visible(true);
                 *keybinding_internal_clone.borrow_mut() = KeybindState::Disabled;
-                return Inhibit(false)
+                return Inhibit(false);
             }
 
             let printable_shortcut = Keybindings::parse_shortcut(keyval, &modifier);
             let internal_shortcut = gtk::accelerator_name(keyval, modifier)
                 .expect("Shortcut not convertable. This should never happen!")
                 .to_string();
-            
+
             if let Some(printable_shortcut) = printable_shortcut {
                 shortcut_label.set_label(&printable_shortcut);
                 set_button_clone.set_visible(true);
@@ -72,7 +74,7 @@ impl KeybindingEditor {
                 shortcut_label.set_label("Illegal Keybinding");
                 *keybinding_internal_clone.borrow_mut() = KeybindState::Illegal;
             }
-            
+
             Inhibit(false)
         });
 

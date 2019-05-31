@@ -4,8 +4,8 @@ mod tag_row;
 use crate::gtk_handle;
 use crate::sidebar::SidebarIterateItem;
 use crate::util::{BuilderHelper, GtkHandle, GtkUtil};
-use gtk::{Continue, ContainerExt, ListBox, ListBoxExt, ListBoxRowExt, SelectionMode, WidgetExt};
 use glib::translate::ToGlib;
+use gtk::{ContainerExt, Continue, ListBox, ListBoxExt, ListBoxRowExt, SelectionMode, WidgetExt};
 use models::{TagListChangeSet, TagListModel, TagListTagModel};
 use news_flash::models::TagID;
 use std::cell::RefCell;
@@ -100,7 +100,7 @@ impl TagList {
     pub fn get_next_item(&self) -> SidebarIterateItem {
         if let Some(row) = self.list.get_selected_row() {
             let index = row.get_index();
-            return self.list_model.borrow().calculate_next_item(index)
+            return self.list_model.borrow().calculate_next_item(index);
         }
         SidebarIterateItem::NothingSelected
     }
@@ -108,23 +108,17 @@ impl TagList {
     pub fn get_prev_item(&self) -> SidebarIterateItem {
         if let Some(row) = self.list.get_selected_row() {
             let index = row.get_index();
-            return self.list_model.borrow().calculate_prev_item(index)
+            return self.list_model.borrow().calculate_prev_item(index);
         }
         SidebarIterateItem::NothingSelected
     }
 
     pub fn get_first_item(&self) -> Option<TagID> {
-        self.list_model
-            .borrow_mut()
-            .first()
-            .map(|model| model.id.clone())
+        self.list_model.borrow_mut().first().map(|model| model.id.clone())
     }
 
     pub fn get_last_item(&self) -> Option<TagID> {
-        self.list_model
-            .borrow_mut()
-            .last()
-            .map(|model| model.id.clone())
+        self.list_model.borrow_mut().last().map(|model| model.id.clone())
     }
 
     pub fn set_selection(&self, selection: TagID) {
@@ -139,11 +133,14 @@ impl TagList {
 
                 let active_row = row.clone();
                 let source_id = delayed_selection.clone();
-                *delayed_selection.borrow_mut() = Some(gtk::timeout_add(300, move || {
-                    active_row.emit_activate();
-                    *source_id.borrow_mut() = None;
-                    Continue(false)
-                }).to_glib());
+                *delayed_selection.borrow_mut() = Some(
+                    gtk::timeout_add(300, move || {
+                        active_row.emit_activate();
+                        *source_id.borrow_mut() = None;
+                        Continue(false)
+                    })
+                    .to_glib(),
+                );
 
                 row.emit_activate();
                 Continue(false)

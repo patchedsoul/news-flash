@@ -1,4 +1,4 @@
-use news_flash::models::{ArticleID, Read, Marked};
+use news_flash::models::{ArticleID, Marked, Read};
 use serde_derive::{Deserialize, Serialize};
 
 #[derive(Debug, Serialize, Deserialize)]

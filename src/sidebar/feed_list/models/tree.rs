@@ -416,7 +416,6 @@ impl FeedListTree {
         index: &mut i32,
         selected_found: &mut bool,
     ) -> SidebarIterateItem {
-        
         for item in items {
             *index += 1;
             match item {
@@ -424,10 +423,10 @@ impl FeedListTree {
                     if !*selected_found {
                         if *index == selected_index {
                             *selected_found = true;
-                            continue
+                            continue;
                         }
                     } else {
-                        return SidebarIterateItem::SelectFeedListFeed(feed.id.clone())
+                        return SidebarIterateItem::SelectFeedListFeed(feed.id.clone());
                     }
                 }
                 FeedListItem::Category(category) => {
@@ -435,16 +434,20 @@ impl FeedListTree {
                         if *index == selected_index {
                             *selected_found = true;
                             if !category.expanded {
-                                continue
+                                continue;
                             }
                         }
                     } else {
-                        return SidebarIterateItem::SelectFeedListCategory(category.id.clone())
+                        return SidebarIterateItem::SelectFeedListCategory(category.id.clone());
                     }
 
                     match Self::iterate_next_internal(selected_index, &category.children, index, selected_found) {
-                        SidebarIterateItem::SelectFeedListCategory(category) => return SidebarIterateItem::SelectFeedListCategory(category),
-                        SidebarIterateItem::SelectFeedListFeed(feed) => return SidebarIterateItem::SelectFeedListFeed(feed),
+                        SidebarIterateItem::SelectFeedListCategory(category) => {
+                            return SidebarIterateItem::SelectFeedListCategory(category)
+                        }
+                        SidebarIterateItem::SelectFeedListFeed(feed) => {
+                            return SidebarIterateItem::SelectFeedListFeed(feed)
+                        }
                         _ => {}
                     }
                 }
@@ -466,7 +469,6 @@ impl FeedListTree {
         index: &mut i32,
         selected_found: &mut bool,
     ) -> SidebarIterateItem {
-        
         for item in items.iter().rev() {
             match item {
                 FeedListItem::Feed(feed) => {
@@ -474,35 +476,37 @@ impl FeedListTree {
                     if !*selected_found {
                         if *index == selected_index {
                             *selected_found = true;
-                            continue
+                            continue;
                         }
                     } else {
-                        return SidebarIterateItem::SelectFeedListFeed(feed.id.clone())
+                        return SidebarIterateItem::SelectFeedListFeed(feed.id.clone());
                     }
                 }
                 FeedListItem::Category(category) => {
-
                     if category.expanded {
                         match Self::iterate_prev_internal(selected_index, &category.children, index, selected_found) {
-                            SidebarIterateItem::SelectFeedListCategory(category) => return SidebarIterateItem::SelectFeedListCategory(category),
-                            SidebarIterateItem::SelectFeedListFeed(feed) => return SidebarIterateItem::SelectFeedListFeed(feed),
+                            SidebarIterateItem::SelectFeedListCategory(category) => {
+                                return SidebarIterateItem::SelectFeedListCategory(category)
+                            }
+                            SidebarIterateItem::SelectFeedListFeed(feed) => {
+                                return SidebarIterateItem::SelectFeedListFeed(feed)
+                            }
                             _ => {}
                         }
                     } else {
                         *index -= category.len();
                     }
-                    
 
                     *index -= 1;
                     if !*selected_found {
                         if *index == selected_index {
                             *selected_found = true;
                             if !category.expanded {
-                                continue
+                                continue;
                             }
                         }
                     } else {
-                        return SidebarIterateItem::SelectFeedListCategory(category.id.clone())
+                        return SidebarIterateItem::SelectFeedListCategory(category.id.clone());
                     }
                 }
             }

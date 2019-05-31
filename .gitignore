@@ -2,3 +2,8 @@ Cargo.lock
 .vscode/
 .idea/
 target/
+_build/
+*.ui~
+config.rs
+.flatpak-builder
+.buildconfig

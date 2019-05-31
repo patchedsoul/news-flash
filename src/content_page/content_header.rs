@@ -1,11 +1,11 @@
 use super::header_selection::HeaderSelection;
 use crate::util::{BuilderHelper, GtkUtil};
+use gdk::EventType;
 use gio::{ActionExt, ActionMapExt, Menu, MenuItem};
 use glib::Variant;
-use gdk::EventType;
 use gtk::{
-    Button, ButtonExt, EntryExt, Stack, StackExt, SearchEntry, SearchEntryExt, ToggleButton,
-    ToggleButtonExt, WidgetExt, MenuButton, MenuButtonExt, Inhibit,
+    Button, ButtonExt, EntryExt, Inhibit, MenuButton, MenuButtonExt, SearchEntry, SearchEntryExt, Stack, StackExt,
+    ToggleButton, ToggleButtonExt, WidgetExt,
 };
 use libhandy::{SearchBar, SearchBarExt};
 
@@ -35,7 +35,6 @@ impl ContentHeader {
         let search_entry = builder.get::<SearchEntry>("search_entry");
         let mode_button = builder.get::<MenuButton>("mode_switch_button");
         let mode_switch_stack = builder.get::<Stack>("mode_switch_stack");
-
 
         Self::setup_linked_button(&all_button, &unread_button, &marked_button, HeaderSelection::All);
         Self::setup_linked_button(&unread_button, &all_button, &marked_button, HeaderSelection::Unread);
@@ -107,9 +106,8 @@ impl ContentHeader {
         let other_button_1_1 = other_button_1.clone();
         let other_button_2_1 = other_button_2.clone();
         button.connect_button_press_event(move |button, event| {
-            if button.get_active()
-            || event.get_button() != 1 {
-                return Inhibit(true)
+            if button.get_active() || event.get_button() != 1 {
+                return Inhibit(true);
             }
             match event.get_event_type() {
                 EventType::ButtonPress => (),
@@ -125,7 +123,7 @@ impl ContentHeader {
                 // ignore deactivating toggle-button
                 return;
             }
-            
+
             if let Ok(main_window) = GtkUtil::get_main_window(button) {
                 if let Some(action) = main_window.lookup_action("headerbar-selection") {
                     if let Ok(json) = serde_json::to_string(&mode) {
@@ -194,7 +192,7 @@ impl ContentHeader {
         main_model.append("Export OPML", "win.export");
         main_model.append("Settings", "win.settings");
         main_model.append_section("", &about_model);
-        
+
         button.set_menu_model(&main_model);
     }
 
@@ -220,7 +218,7 @@ impl ContentHeader {
             marked_item.set_action_and_target_value("win.headerbar-selection", &variant);
             model.append_item(&marked_item);
         }
-        
+
         button.set_menu_model(&model);
     }
 

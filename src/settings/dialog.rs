@@ -1,15 +1,16 @@
+use super::keybinding_editor::{KeybindState, KeybindingEditor};
+use super::keybindings::Keybindings;
+use super::theme_chooser::ThemeChooser;
 use crate::settings::Settings;
 use crate::util::{BuilderHelper, GtkHandle, GTK_BUILDER_ERROR};
-use super::theme_chooser::ThemeChooser;
-use super::keybindings::Keybindings;
-use super::keybinding_editor::{KeybindingEditor, KeybindState};
-use gtk::{Dialog, DialogExt, Window, GtkWindowExt, GtkWindowExtManual, Inhibit, FontButton, FontButtonExt, FontChooserExt,
-    Label, LabelExt, ListBox, ListBoxExt, Settings as GtkSettings, SettingsExt as GtkSettingsExt, Stack, StackExt,
-    Switch, SwitchExt, WidgetExt};
-use glib::{object::IsA};
 use gio::{ActionExt, ActionMapExt};
+use glib::object::IsA;
+use gtk::{
+    Dialog, DialogExt, FontButton, FontButtonExt, FontChooserExt, GtkWindowExt, GtkWindowExtManual, Inhibit, Label,
+    LabelExt, ListBox, ListBoxExt, Settings as GtkSettings, SettingsExt as GtkSettingsExt, Stack, StackExt, Switch,
+    SwitchExt, WidgetExt, Window,
+};
 use news_flash::models::ArticleOrder;
-
 
 pub struct SettingsDialog {
     widget: Dialog,
@@ -43,7 +44,7 @@ impl SettingsDialog {
     fn setup_ui_section<W: IsA<Window> + GtkWindowExt + ActionMapExt>(&self, window: &W) {
         let article_list_order_stack = self.builder.get::<Stack>("article_list_order_stack");
         Self::set_article_list_order_stack(&self.settings, &article_list_order_stack);
-        
+
         let settings_1 = self.settings.clone();
         let settings_2 = self.settings.clone();
         let settings_3 = self.settings.clone();
@@ -125,7 +126,7 @@ impl SettingsDialog {
             font_button.set_font(&font);
         }
         font_button.connect_font_set(move |button| {
-            let font =  match button.get_font() {
+            let font = match button.get_font() {
                 Some(font) => Some(font.to_string()),
                 None => None,
             };
@@ -134,7 +135,6 @@ impl SettingsDialog {
                 action.activate(None);
             }
         });
-
 
         let main_window = window.clone();
         let use_system_font_switch = self.builder.get::<Switch>("use_system_font_switch");
@@ -174,38 +174,101 @@ impl SettingsDialog {
 
     fn setup_keybindings_section(&self) {
         let article_keys_list = self.builder.get::<ListBox>("article_keys_list");
-        self.setup_keybinding_row(&article_keys_list, "next_article", self.settings.borrow().get_keybind_article_list_next());
-        self.setup_keybinding_row(&article_keys_list, "previous_article", self.settings.borrow().get_keybind_article_list_prev());
-        self.setup_keybinding_row(&article_keys_list, "toggle_read", self.settings.borrow().get_keybind_article_list_read());
-        self.setup_keybinding_row(&article_keys_list, "toggle_marked", self.settings.borrow().get_keybind_article_list_mark());
-        self.setup_keybinding_row(&article_keys_list, "open_browser", self.settings.borrow().get_keybind_article_list_open());
-        
+        self.setup_keybinding_row(
+            &article_keys_list,
+            "next_article",
+            self.settings.borrow().get_keybind_article_list_next(),
+        );
+        self.setup_keybinding_row(
+            &article_keys_list,
+            "previous_article",
+            self.settings.borrow().get_keybind_article_list_prev(),
+        );
+        self.setup_keybinding_row(
+            &article_keys_list,
+            "toggle_read",
+            self.settings.borrow().get_keybind_article_list_read(),
+        );
+        self.setup_keybinding_row(
+            &article_keys_list,
+            "toggle_marked",
+            self.settings.borrow().get_keybind_article_list_mark(),
+        );
+        self.setup_keybinding_row(
+            &article_keys_list,
+            "open_browser",
+            self.settings.borrow().get_keybind_article_list_open(),
+        );
+
         let feed_keys_list = self.builder.get::<ListBox>("feed_keys_list");
-        self.setup_keybinding_row(&feed_keys_list, "next_item", self.settings.borrow().get_keybind_feed_list_next());
-        self.setup_keybinding_row(&feed_keys_list, "previous_item", self.settings.borrow().get_keybind_feed_list_prev());
-        self.setup_keybinding_row(&feed_keys_list, "toggle_category_expanded", self.settings.borrow().get_keybind_feed_list_toggle_expanded());
-        self.setup_keybinding_row(&feed_keys_list, "sidebar_set_read", self.settings.borrow().get_keybind_sidebar_set_read());
-        
+        self.setup_keybinding_row(
+            &feed_keys_list,
+            "next_item",
+            self.settings.borrow().get_keybind_feed_list_next(),
+        );
+        self.setup_keybinding_row(
+            &feed_keys_list,
+            "previous_item",
+            self.settings.borrow().get_keybind_feed_list_prev(),
+        );
+        self.setup_keybinding_row(
+            &feed_keys_list,
+            "toggle_category_expanded",
+            self.settings.borrow().get_keybind_feed_list_toggle_expanded(),
+        );
+        self.setup_keybinding_row(
+            &feed_keys_list,
+            "sidebar_set_read",
+            self.settings.borrow().get_keybind_sidebar_set_read(),
+        );
+
         let general_keys_list = self.builder.get::<ListBox>("general_keys_list");
-        self.setup_keybinding_row(&general_keys_list, "shortcuts", self.settings.borrow().get_keybind_shortcut());
-        self.setup_keybinding_row(&general_keys_list, "refresh", self.settings.borrow().get_keybind_refresh());
-        self.setup_keybinding_row(&general_keys_list, "search", self.settings.borrow().get_keybind_search());
+        self.setup_keybinding_row(
+            &general_keys_list,
+            "shortcuts",
+            self.settings.borrow().get_keybind_shortcut(),
+        );
+        self.setup_keybinding_row(
+            &general_keys_list,
+            "refresh",
+            self.settings.borrow().get_keybind_refresh(),
+        );
+        self.setup_keybinding_row(
+            &general_keys_list,
+            "search",
+            self.settings.borrow().get_keybind_search(),
+        );
         self.setup_keybinding_row(&general_keys_list, "quit", self.settings.borrow().get_keybind_quit());
-        self.setup_keybinding_row(&general_keys_list, "all_articles", self.settings.borrow().get_keybind_all_articles());
-        self.setup_keybinding_row(&general_keys_list, "only_unread", self.settings.borrow().get_keybind_only_unread());
-        self.setup_keybinding_row(&general_keys_list, "only_starred", self.settings.borrow().get_keybind_only_starred());
+        self.setup_keybinding_row(
+            &general_keys_list,
+            "all_articles",
+            self.settings.borrow().get_keybind_all_articles(),
+        );
+        self.setup_keybinding_row(
+            &general_keys_list,
+            "only_unread",
+            self.settings.borrow().get_keybind_only_unread(),
+        );
+        self.setup_keybinding_row(
+            &general_keys_list,
+            "only_starred",
+            self.settings.borrow().get_keybind_only_starred(),
+        );
 
         let article_view_keys_list = self.builder.get::<ListBox>("article_view_keys_list");
-        self.setup_keybinding_row(&article_view_keys_list, "scroll_up", self.settings.borrow().get_keybind_article_view_up());
-        self.setup_keybinding_row(&article_view_keys_list, "scroll_down", self.settings.borrow().get_keybind_article_view_down());
+        self.setup_keybinding_row(
+            &article_view_keys_list,
+            "scroll_up",
+            self.settings.borrow().get_keybind_article_view_up(),
+        );
+        self.setup_keybinding_row(
+            &article_view_keys_list,
+            "scroll_down",
+            self.settings.borrow().get_keybind_article_view_down(),
+        );
     }
 
-    fn setup_keybinding_row(
-        &self,
-        list: &ListBox,
-        id: &str,
-        keybinding: Option<String>,
-    ) {
+    fn setup_keybinding_row(&self, list: &ListBox, id: &str, keybinding: Option<String>) {
         let label = self.builder.get::<Label>(&format!("{}_label", id));
         Self::keybind_label_text(keybinding, &label);
 
@@ -225,15 +288,15 @@ impl SettingsDialog {
                     editor.widget().connect_close(move |_dialog| {
                         let _settings = settings.clone();
                         match &*editor.keybinding.borrow() {
-                            KeybindState::Canceled | KeybindState::Illegal => {},
-                            KeybindState::Disabled => { 
+                            KeybindState::Canceled | KeybindState::Illegal => {}
+                            KeybindState::Disabled => {
                                 Keybindings::write_keybinding(&id, None, &settings).unwrap();
                                 Self::keybind_label_text(None, &label);
-                            },
+                            }
                             KeybindState::Enabled(keybind) => {
                                 Keybindings::write_keybinding(&id, Some(keybind.clone()), &settings).unwrap();
                                 Self::keybind_label_text(Some(keybind.clone()), &label);
-                            },
+                            }
                         }
                     });
                 }
@@ -247,11 +310,11 @@ impl SettingsDialog {
                 label.set_sensitive(true);
                 Keybindings::parse_shortcut_string(&keybinding)
                     .expect("Failed parsing saved shortcut. This should never happen!")
-            },
+            }
             None => {
                 label.set_sensitive(false);
                 "Disabled".to_owned()
-            },
+            }
         };
         label.set_label(&label_text);
     }

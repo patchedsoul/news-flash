@@ -4,22 +4,23 @@ pub mod feed_row;
 pub mod models;
 
 use crate::gtk_handle;
-use crate::sidebar::SidebarIterateItem;
 use crate::sidebar::feed_list::error::{FeedListError, FeedListErrorKind};
 use crate::sidebar::feed_list::{
     category_row::CategoryRow,
     feed_row::FeedRow,
     models::{
-        FeedListCategoryModel, FeedListChangeSet, FeedListDndAction, FeedListFeedModel, FeedListItem, FeedListItemID, FeedListTree,
+        FeedListCategoryModel, FeedListChangeSet, FeedListDndAction, FeedListFeedModel, FeedListItem, FeedListItemID,
+        FeedListTree,
     },
 };
-use crate::util::{GtkHandle, GtkHandleMap, GtkUtil, BuilderHelper};
+use crate::sidebar::SidebarIterateItem;
+use crate::util::{BuilderHelper, GtkHandle, GtkHandleMap, GtkUtil};
 use gdk::{DragAction, EventType};
-use gtk::{
-    self, ContainerExt, DestDefaults, Inhibit, ListBox, ListBoxExt, ListBoxRowExt, SelectionMode, StyleContextExt, TargetEntry,
-    TargetFlags, WidgetExt, WidgetExtManual, Continue,
-};
 use glib::translate::ToGlib;
+use gtk::{
+    self, ContainerExt, Continue, DestDefaults, Inhibit, ListBox, ListBoxExt, ListBoxRowExt, SelectionMode,
+    StyleContextExt, TargetEntry, TargetFlags, WidgetExt, WidgetExtManual,
+};
 use log::debug;
 use news_flash::models::{CategoryID, FeedID};
 use std::cell::RefCell;
@@ -293,11 +294,9 @@ impl FeedList {
     }
 
     pub fn get_first_item(&self) -> Option<FeedListItemID> {
-        self.tree.borrow().top_level.first().map(|item| {
-            match item {
-                FeedListItem::Feed(item) => FeedListItemID::Feed(item.id.clone()),
-                FeedListItem::Category(item) => FeedListItemID::Category(item.id.clone()),
-            }
+        self.tree.borrow().top_level.first().map(|item| match item {
+            FeedListItem::Feed(item) => FeedListItemID::Feed(item.id.clone()),
+            FeedListItem::Category(item) => FeedListItemID::Category(item.id.clone()),
         })
     }
 
@@ -314,14 +313,14 @@ impl FeedList {
                 FeedListItem::Category(item) => {
                     if item.expanded {
                         if item.children.is_empty() {
-                            return Some(FeedListItemID::Category(item.id.clone()))
+                            return Some(FeedListItemID::Category(item.id.clone()));
                         } else {
-                            return self.get_last_item(item.children.last().cloned())
+                            return self.get_last_item(item.children.last().cloned());
                         }
                     } else {
-                        return Some(FeedListItemID::Category(item.id.clone()))
+                        return Some(FeedListItemID::Category(item.id.clone()));
                     }
-                },
+                }
             }
         }
         None
@@ -331,16 +330,14 @@ impl FeedList {
         self.cancel_selection();
 
         let row = match selection {
-            FeedListItemID::Category(category) => 
-                match self.categories.borrow().get(&category) {
-                    Some(category_row) => category_row.borrow().widget(),
-                    None => return Err(FeedListErrorKind::CategoryNotFound)?,
-                },
-            FeedListItemID::Feed(feed) => 
-                match self.feeds.borrow().get(&feed) {
-                    Some(feed_row) => feed_row.borrow().widget(),
-                    None => return Err(FeedListErrorKind::FeedNotFound)?,
-                },
+            FeedListItemID::Category(category) => match self.categories.borrow().get(&category) {
+                Some(category_row) => category_row.borrow().widget(),
+                None => return Err(FeedListErrorKind::CategoryNotFound)?,
+            },
+            FeedListItemID::Feed(feed) => match self.feeds.borrow().get(&feed) {
+                Some(feed_row) => feed_row.borrow().widget(),
+                None => return Err(FeedListErrorKind::FeedNotFound)?,
+            },
         };
 
         let list = self.list.clone();
@@ -351,11 +348,14 @@ impl FeedList {
 
             let row = row.clone();
             let source_id = delayed_selection.clone();
-            *delayed_selection.borrow_mut() = Some(gtk::timeout_add(300, move || {
-                row.emit_activate();
-                *source_id.borrow_mut() = None;
-                Continue(false)
-            }).to_glib());
+            *delayed_selection.borrow_mut() = Some(
+                gtk::timeout_add(300, move || {
+                    row.emit_activate();
+                    *source_id.borrow_mut() = None;
+                    Continue(false)
+                })
+                .to_glib(),
+            );
 
             Continue(false)
         });
@@ -371,7 +371,7 @@ impl FeedList {
     pub fn select_next_item(&self) -> SidebarIterateItem {
         if let Some(row) = self.list.get_selected_row() {
             let index = row.get_index();
-            return self.tree.borrow_mut().calculate_next_item(index)
+            return self.tree.borrow_mut().calculate_next_item(index);
         }
         SidebarIterateItem::NothingSelected
     }
@@ -379,7 +379,7 @@ impl FeedList {
     pub fn select_prev_item(&self) -> SidebarIterateItem {
         if let Some(row) = self.list.get_selected_row() {
             let index = row.get_index();
-            return self.tree.borrow_mut().calculate_prev_item(index)
+            return self.tree.borrow_mut().calculate_prev_item(index);
         }
         SidebarIterateItem::NothingSelected
     }

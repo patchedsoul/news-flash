@@ -1,12 +1,14 @@
+use crate::article_view::{ArticleTheme, ArticleView};
 use crate::settings::Settings;
-use crate::article_view::{ArticleView, ArticleTheme};
 use crate::util::{BuilderHelper, GtkHandle};
-use gtk::{Dialog, DialogExt, Inhibit, ListBox, ListBoxExt, ListBoxRow, ListBoxRowExt, GtkWindowExt, Window, WidgetExt};
-use glib::{object::IsA};
-use webkit2gtk::{WebView, WebViewExt};
-use news_flash::models::{ArticleID, FeedID, FatArticle, Read, Marked};
 use chrono::Utc;
 use failure::Error;
+use glib::object::IsA;
+use gtk::{
+    Dialog, DialogExt, GtkWindowExt, Inhibit, ListBox, ListBoxExt, ListBoxRow, ListBoxRowExt, WidgetExt, Window,
+};
+use news_flash::models::{ArticleID, FatArticle, FeedID, Marked, Read};
+use webkit2gtk::{WebView, WebViewExt};
 
 pub struct ThemeChooser {
     widget: Dialog,
@@ -33,10 +35,42 @@ impl ThemeChooser {
             html: None,
         };
 
-        Self::prepare_theme_selection(&builder, settings, &mut demo_article, ArticleTheme::Default, "default", "Default").unwrap();
-        Self::prepare_theme_selection(&builder, settings, &mut demo_article, ArticleTheme::Spring, "spring", "Spring").unwrap();
-        Self::prepare_theme_selection(&builder, settings, &mut demo_article, ArticleTheme::Midnight, "midnight", "Midnight").unwrap();
-        Self::prepare_theme_selection(&builder, settings, &mut demo_article, ArticleTheme::Parchment, "parchment", "Parchment").unwrap();
+        Self::prepare_theme_selection(
+            &builder,
+            settings,
+            &mut demo_article,
+            ArticleTheme::Default,
+            "default",
+            "Default",
+        )
+        .unwrap();
+        Self::prepare_theme_selection(
+            &builder,
+            settings,
+            &mut demo_article,
+            ArticleTheme::Spring,
+            "spring",
+            "Spring",
+        )
+        .unwrap();
+        Self::prepare_theme_selection(
+            &builder,
+            settings,
+            &mut demo_article,
+            ArticleTheme::Midnight,
+            "midnight",
+            "Midnight",
+        )
+        .unwrap();
+        Self::prepare_theme_selection(
+            &builder,
+            settings,
+            &mut demo_article,
+            ArticleTheme::Parchment,
+            "parchment",
+            "Parchment",
+        )
+        .unwrap();
 
         let dialog_clone = dialog.clone();
         let settings = settings.clone();
@@ -44,21 +78,31 @@ impl ThemeChooser {
         theme_list.connect_row_activated(move |_list, row| {
             if let Some(row_name) = row.get_name() {
                 if "default" == row_name {
-                    settings.borrow_mut().set_article_view_theme(ArticleTheme::Default).unwrap();
+                    settings
+                        .borrow_mut()
+                        .set_article_view_theme(ArticleTheme::Default)
+                        .unwrap();
                 } else if "spring" == row_name {
-                    settings.borrow_mut().set_article_view_theme(ArticleTheme::Spring).unwrap();
+                    settings
+                        .borrow_mut()
+                        .set_article_view_theme(ArticleTheme::Spring)
+                        .unwrap();
                 } else if "midnight" == row_name {
-                    settings.borrow_mut().set_article_view_theme(ArticleTheme::Midnight).unwrap();
+                    settings
+                        .borrow_mut()
+                        .set_article_view_theme(ArticleTheme::Midnight)
+                        .unwrap();
                 } else if "parchment" == row_name {
-                    settings.borrow_mut().set_article_view_theme(ArticleTheme::Parchment).unwrap();
+                    settings
+                        .borrow_mut()
+                        .set_article_view_theme(ArticleTheme::Parchment)
+                        .unwrap();
                 }
                 dialog_clone.emit_close();
             }
         });
 
-        ThemeChooser {
-            widget: dialog,
-        }
+        ThemeChooser { widget: dialog }
     }
 
     pub fn widget(&self) -> Dialog {
@@ -71,16 +115,23 @@ impl ThemeChooser {
         article: &mut FatArticle,
         theme: ArticleTheme,
         id: &str,
-        name: &str
+        name: &str,
     ) -> Result<(), Error> {
         let view = builder.get::<WebView>(&format!("{}_view", id));
         let row = builder.get::<ListBoxRow>(&format!("{}_row", id));
-        view.connect_button_press_event(move |_view, _event| { 
+        view.connect_button_press_event(move |_view, _event| {
             row.emit_activate();
             Inhibit(true)
         });
         article.title = Some(name.to_owned());
-        let html = ArticleView::build_article_static("theme_preview", article, "Feed Name", settings, Some(theme), Some(10240))?;
+        let html = ArticleView::build_article_static(
+            "theme_preview",
+            article,
+            "Feed Name",
+            settings,
+            Some(theme),
+            Some(10240),
+        )?;
         view.load_html(&html, None);
         Ok(())
     }

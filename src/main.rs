@@ -1,19 +1,21 @@
+mod about_dialog;
 mod article_list;
 mod article_view;
 mod color;
+mod config;
 mod content_page;
 mod error_dialog;
 mod login_screen;
 mod main_window;
 mod main_window_actions;
 mod main_window_state;
+mod responsive;
+mod settings;
 mod sidebar;
 mod util;
 mod welcome_screen;
-mod settings;
-mod about_dialog;
-mod responsive;
 
+use crate::config::APP_ID;
 use crate::main_window::MainWindow;
 use gio::{self, ApplicationExt, ApplicationExtManual};
 use gtk::{self, Application};
@@ -26,7 +28,7 @@ use std::env::args;
 use std::str;
 
 #[derive(RustEmbed)]
-#[folder = "resources/"]
+#[folder = "data/resources/"]
 struct Resources;
 
 fn main() {
@@ -35,8 +37,7 @@ fn main() {
 
     gtk::init().expect("Error initializing gtk.");
 
-    let application = Application::new("com.gitlab.newsflash", gio::ApplicationFlags::empty())
-        .expect("Initialization gtk-app failed");
+    let application = Application::new(APP_ID, gio::ApplicationFlags::empty()).expect("Initialization gtk-app failed");
 
     let encoder = PatternEncoder::new("{d(%H:%M:%S)} - {h({({l}):5.5})} - {m:<35.} (({M}:{L}))\n");
 

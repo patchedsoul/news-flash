@@ -1,14 +1,14 @@
 use crate::gtk_handle;
 use crate::sidebar::feed_list::models::FeedListFeedModel;
+use crate::util::BuilderHelper;
 use crate::util::GtkHandle;
 use crate::util::GtkUtil;
-use crate::util::BuilderHelper;
 use cairo::{self, Format, ImageSurface};
 use gdk::{DragAction, ModifierType};
 use glib::{source::SourceId, translate::FromGlib, translate::ToGlib, Source};
 use gtk::{
-    self, Box, ContainerExt, Continue, DragContextExtManual, EventBox, Image, ImageExt, Label, LabelExt, ListBoxRow, ListBoxRowExt,
-    Revealer, RevealerExt, StyleContextExt, TargetEntry, TargetFlags, WidgetExt, WidgetExtManual,
+    self, Box, ContainerExt, Continue, DragContextExtManual, EventBox, Image, ImageExt, Label, LabelExt, ListBoxRow,
+    ListBoxRowExt, Revealer, RevealerExt, StyleContextExt, TargetEntry, TargetFlags, WidgetExt, WidgetExtManual,
 };
 use news_flash::models::{FavIcon, FeedID};
 use std::cell::RefCell;
