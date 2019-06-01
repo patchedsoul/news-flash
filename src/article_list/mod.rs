@@ -249,7 +249,7 @@ impl ArticleList {
     }
 
     fn require_new_list(&self, new_state: &MainWindowState) -> bool {
-        if  &self.window_state == new_state
+        if &self.window_state == new_state
             && self.settings.borrow().get_article_list_order() == self.list_model.borrow().order()
             && *self.current_list.borrow() != CurrentList::Empty
         {
