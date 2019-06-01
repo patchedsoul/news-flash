@@ -95,7 +95,7 @@ impl ColorRGBA {
         let c_min = Self::min_3(red_normalized, green_normalized, blue_normalized);
         let delta = c_max - c_min;
 
-        let hue;
+        let mut hue;
         if delta.abs() < MAX_COLOR_DIFF {
             hue = 0.0;
         } else if (c_max - red_normalized).abs() < MAX_COLOR_DIFF {
@@ -107,6 +107,10 @@ impl ColorRGBA {
         } else {
             error!("c_max matches neither R, G or B");
             return Err(ColorErrorKind::RgbToHsla)?;
+        }
+
+        if hue < 0.0 {
+            hue = 360.0 - hue.abs();
         }
 
         let lightness = (c_max + c_min) / 2.0;
