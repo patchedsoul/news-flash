@@ -214,6 +214,7 @@ impl SideBar {
     pub fn show_taglist(&self) {
         self.tags_box.show_all();
         self.tag_list.borrow().widget().show_all();
+        self.tags_box.show();
     }
 
     pub fn update_unread_all(&mut self, count: i64) {
