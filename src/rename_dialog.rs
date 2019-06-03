@@ -53,4 +53,11 @@ impl RenameDialog {
         self.rename_button.clone()
     }
 
+    pub fn new_label(&self) -> Option<String> {
+        self.rename_entry.get_text().map(|label| label.to_owned())
+    }
+
+    pub fn close(&self) {
+        self.dialog.emit_close()
+    }
 }

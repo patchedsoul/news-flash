@@ -11,12 +11,15 @@ use crate::settings::{NewsFlashShortcutWindow, Settings, SettingsDialog};
 use crate::sidebar::models::SidebarSelection;
 use crate::rename_dialog::RenameDialog;
 use crate::util::{FileUtil, GtkHandle};
+use crate::gtk_handle;
 use gio::{ActionExt, ActionMapExt, ApplicationExt, SimpleAction};
 use gtk::{
     self, Application, ApplicationWindow, ButtonExt, DialogExt, FileChooserAction, FileChooserDialog, FileChooserExt, FileFilter,
     GtkWindowExt, GtkWindowExtManual, ResponseType, Stack, StackExt, StackTransitionType,
 };
 use log::{debug, error};
+use std::rc::Rc;
+use std::cell::RefCell;
 use news_flash::models::{ArticleID, FeedID, LoginData, PluginID};
 use news_flash::{NewsFlash, NewsFlashError};
 
@@ -483,12 +486,26 @@ impl MainWindowActions {
             if let Some(data) = data {
                 if let Some(data) = data.get_str() {
                     let feed_id = FeedID::new(&data);
+                    let dialog_news_flash = news_flash.clone();
                     if let Some(news_flash) = news_flash.borrow_mut().as_mut() {
                         let (feeds, _mappings) = news_flash.get_feeds().unwrap();
-                        let feed = feeds.iter().find(|f| f.feed_id == feed_id).unwrap();
+                        let feed = feeds.iter().find(|f| f.feed_id == feed_id).map(|f| f.clone()).unwrap();
                         let dialog = RenameDialog::new(&main_window, &SidebarSelection::Feed((feed_id, feed.label.clone())));
-                        dialog.rename_button().connect_clicked(|_button| {
-
+                        let rename_button = dialog.rename_button();
+                        let dialog_handle = gtk_handle!(dialog);
+                        let main_window = main_window.clone();
+                        rename_button.connect_clicked(move |_button| {
+                            if let Some(news_flash) = dialog_news_flash.borrow_mut().as_mut() {
+                                let new_label = dialog_handle.borrow().new_label().unwrap();
+                                news_flash.rename_feed(&feed, &new_label).unwrap();
+                                dialog_handle.borrow().close();
+                            }
+                            if let Some(action) = main_window.lookup_action("update-sidebar") {
+                                action.activate(None);
+                            }
+                            if let Some(action) = main_window.lookup_action("update-article-list") {
+                                action.activate(None);
+                            }
                         });
                     }
                 }
