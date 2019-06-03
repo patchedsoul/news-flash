@@ -4,13 +4,13 @@ use crate::util::BuilderHelper;
 use crate::util::GtkHandle;
 use crate::util::GtkUtil;
 use cairo::{self, Format, ImageSurface};
+use gdk::{DragAction, EventType, ModifierType};
 use gio::{Menu, MenuItem};
-use gdk::{DragAction, ModifierType, EventType};
 use glib::{source::SourceId, translate::FromGlib, translate::ToGlib, Source, Variant};
 use gtk::{
-    self, Box, ContainerExt, Continue, DragContextExtManual, EventBox, Image, ImageExt, Inhibit, Label, LabelExt, ListBoxRow,
-    ListBoxRowExt, Revealer, RevealerExt, StateFlags, StyleContextExt, TargetEntry, TargetFlags, WidgetExt, WidgetExtManual,
-    Popover, PopoverExt,
+    self, Box, ContainerExt, Continue, DragContextExtManual, EventBox, Image, ImageExt, Inhibit, Label, LabelExt,
+    ListBoxRow, ListBoxRowExt, Popover, PopoverExt, Revealer, RevealerExt, StateFlags, StyleContextExt, TargetEntry,
+    TargetFlags, WidgetExt, WidgetExtManual,
 };
 use news_flash::models::{FavIcon, FeedID};
 use std::cell::RefCell;
@@ -92,16 +92,15 @@ impl FeedRow {
 
         let feed_id = id.clone();
         row.connect_button_press_event(move |row, event| {
-
             if event.get_button() != 3 {
-                return Inhibit(false)
+                return Inhibit(false);
             }
 
             match event.get_event_type() {
-                EventType::ButtonRelease |
-                EventType::DoubleButtonPress |
-                EventType::TripleButtonPress => return Inhibit(false),
-                _ => {},
+                EventType::ButtonRelease | EventType::DoubleButtonPress | EventType::TripleButtonPress => {
+                    return Inhibit(false)
+                }
+                _ => {}
             }
 
             let model = Menu::new();
@@ -122,7 +121,6 @@ impl FeedRow {
                 row_clone.unset_state_flags(StateFlags::PRELIGHT);
             });
             row.set_state_flags(StateFlags::PRELIGHT, false);
-            
 
             Inhibit(true)
         });

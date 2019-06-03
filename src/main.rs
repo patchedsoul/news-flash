@@ -9,12 +9,12 @@ mod login_screen;
 mod main_window;
 mod main_window_actions;
 mod main_window_state;
+mod rename_dialog;
 mod responsive;
 mod settings;
 mod sidebar;
 mod util;
 mod welcome_screen;
-mod rename_dialog;
 
 use crate::config::APP_ID;
 use crate::main_window::MainWindow;

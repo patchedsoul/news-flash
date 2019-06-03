@@ -3,25 +3,25 @@ use crate::article_list::{MarkUpdate, ReadUpdate};
 use crate::content_page::HeaderSelection;
 use crate::content_page::{ContentHeader, ContentPage};
 use crate::error_dialog::ErrorDialog;
+use crate::gtk_handle;
 use crate::login_screen::{PasswordLogin, WebLogin};
 use crate::main_window::DATA_DIR;
 use crate::main_window_state::MainWindowState;
+use crate::rename_dialog::RenameDialog;
 use crate::responsive::ResponsiveLayout;
 use crate::settings::{NewsFlashShortcutWindow, Settings, SettingsDialog};
 use crate::sidebar::models::SidebarSelection;
-use crate::rename_dialog::RenameDialog;
 use crate::util::{FileUtil, GtkHandle};
-use crate::gtk_handle;
 use gio::{ActionExt, ActionMapExt, ApplicationExt, SimpleAction};
 use gtk::{
-    self, Application, ApplicationWindow, ButtonExt, DialogExt, FileChooserAction, FileChooserDialog, FileChooserExt, FileFilter,
-    GtkWindowExt, GtkWindowExtManual, ResponseType, Stack, StackExt, StackTransitionType,
+    self, Application, ApplicationWindow, ButtonExt, DialogExt, FileChooserAction, FileChooserDialog, FileChooserExt,
+    FileFilter, GtkWindowExt, GtkWindowExtManual, ResponseType, Stack, StackExt, StackTransitionType,
 };
 use log::{debug, error};
-use std::rc::Rc;
-use std::cell::RefCell;
 use news_flash::models::{ArticleID, FeedID, LoginData, PluginID};
 use news_flash::{NewsFlash, NewsFlashError};
+use std::cell::RefCell;
+use std::rc::Rc;
 
 pub struct MainWindowActions;
 
@@ -490,7 +490,8 @@ impl MainWindowActions {
                     if let Some(news_flash) = news_flash.borrow_mut().as_mut() {
                         let (feeds, _mappings) = news_flash.get_feeds().unwrap();
                         let feed = feeds.iter().find(|f| f.feed_id == feed_id).map(|f| f.clone()).unwrap();
-                        let dialog = RenameDialog::new(&main_window, &SidebarSelection::Feed((feed_id, feed.label.clone())));
+                        let dialog =
+                            RenameDialog::new(&main_window, &SidebarSelection::Feed((feed_id, feed.label.clone())));
                         let rename_button = dialog.rename_button();
                         let dialog_handle = gtk_handle!(dialog);
                         let main_window = main_window.clone();

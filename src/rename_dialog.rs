@@ -1,6 +1,6 @@
-use gtk::{Button, ButtonExt, Dialog, DialogExt, Entry, EntryExt, HeaderBar, HeaderBarExt, GtkWindowExt, WidgetExt};
-use crate::util::{BuilderHelper};
 use crate::sidebar::models::SidebarSelection;
+use crate::util::BuilderHelper;
+use gtk::{Button, ButtonExt, Dialog, DialogExt, Entry, EntryExt, GtkWindowExt, HeaderBar, HeaderBarExt, WidgetExt};
 
 #[derive(Clone, Debug)]
 pub struct RenameDialog {
@@ -20,7 +20,7 @@ impl RenameDialog {
         let dialog = builder.get::<Dialog>("rename_dialog");
 
         match item {
-            SidebarSelection::All => {},
+            SidebarSelection::All => {}
             SidebarSelection::Cateogry(_) => header.set_title("Rename Category"),
             SidebarSelection::Feed(_) => header.set_title("Rename Feed"),
             SidebarSelection::Tag(_) => header.set_title("Rename Feed"),
