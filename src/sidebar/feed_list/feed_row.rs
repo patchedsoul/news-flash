@@ -111,7 +111,10 @@ impl FeedRow {
             rename_feed_item.set_action_and_target_value("rename-feed", &variant);
             model.append_item(&rename_feed_item);
 
-            model.append("Delete", "remove-feed");
+            let variant = Variant::from(feed_id.to_str());
+            let delete_feed_item = MenuItem::new("Delete", None);
+            delete_feed_item.set_action_and_target_value("delete-feed", &variant);
+            model.append_item(&delete_feed_item);
 
             let popover = Popover::new(row);
             popover.bind_model(&model, "win");

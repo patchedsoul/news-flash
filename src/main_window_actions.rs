@@ -516,6 +516,33 @@ impl MainWindowActions {
         window.add_action(&rename_feed_action);
     }
 
+    pub fn setup_delete_feed_action(window: &ApplicationWindow, news_flash: &GtkHandle<Option<NewsFlash>>) {
+        let news_flash = news_flash.clone();
+        let main_window = window.clone();
+        let delete_feed_action = SimpleAction::new("delete-feed", glib::VariantTy::new("s").ok());
+        delete_feed_action.connect_activate(move |_action, data| {
+            if let Some(data) = data {
+                if let Some(data) = data.get_str() {
+                    let feed_id = FeedID::new(&data);
+                    if let Some(news_flash) = news_flash.borrow_mut().as_mut() {
+                        let (feeds, _mappings) = news_flash.get_feeds().unwrap();
+                        let feed = feeds.iter().find(|f| f.feed_id == feed_id).map(|f| f.clone()).unwrap();
+                        news_flash.remove_feed(&feed).unwrap();
+                        // FIXME: info bar with undo
+                    }
+                    if let Some(action) = main_window.lookup_action("update-sidebar") {
+                        action.activate(None);
+                    }
+                    if let Some(action) = main_window.lookup_action("update-article-list") {
+                        action.activate(None);
+                    }
+                }
+            }
+        });
+        delete_feed_action.set_enabled(true);
+        window.add_action(&delete_feed_action);
+    }
+
     pub fn setup_select_next_article_action(window: &ApplicationWindow, content_page: &GtkHandle<ContentPage>) {
         let content_page = content_page.clone();
         let next_article_action = SimpleAction::new("next-article", None);
