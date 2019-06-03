@@ -102,7 +102,7 @@ impl FeedList {
                 }
             }
 
-            Inhibit(true)
+            Inhibit(false)
         });
         self.list.connect_drag_leave(|widget, _drag_context, _time| {
             let children = widget.get_children();
@@ -225,11 +225,11 @@ impl FeedList {
             .expander_event()
             .connect_button_press_event(move |_widget, event| {
                 if event.get_button() != 1 {
-                    return Inhibit(true);
+                    return Inhibit(false);
                 }
                 match event.get_event_type() {
                     EventType::ButtonPress => (),
-                    _ => return Inhibit(true),
+                    _ => return Inhibit(false),
                 }
                 Self::expand_collapse_category(&category_id, &tree, &categories, &feeds);
                 Inhibit(true)

@@ -4,11 +4,13 @@ use crate::util::BuilderHelper;
 use crate::util::GtkHandle;
 use crate::util::GtkUtil;
 use cairo::{self, Format, ImageSurface};
-use gdk::{DragAction, ModifierType};
-use glib::{source::SourceId, translate::FromGlib, translate::ToGlib, Source};
+use gio::{Menu, MenuItem};
+use gdk::{DragAction, ModifierType, EventType};
+use glib::{source::SourceId, translate::FromGlib, translate::ToGlib, Source, Variant};
 use gtk::{
-    self, Box, ContainerExt, Continue, DragContextExtManual, EventBox, Image, ImageExt, Label, LabelExt, ListBoxRow,
-    ListBoxRowExt, Revealer, RevealerExt, StyleContextExt, TargetEntry, TargetFlags, WidgetExt, WidgetExtManual,
+    self, Box, ContainerExt, Continue, DragContextExtManual, EventBox, Image, ImageExt, Inhibit, Label, LabelExt, ListBoxRow,
+    ListBoxRowExt, Revealer, RevealerExt, StateFlags, StyleContextExt, TargetEntry, TargetFlags, WidgetExt, WidgetExtManual,
+    Popover, PopoverExt,
 };
 use news_flash::models::{FavIcon, FeedID};
 use std::cell::RefCell;
@@ -63,33 +65,69 @@ impl FeedRow {
         row.set_activatable(true);
         row.set_can_focus(false);
         row.add(widget);
-        let context = row.get_style_context();
-        context.remove_class("activatable");
-        let row_2nd_handle = row.clone();
-        let id = id.clone();
+        row.get_style_context().remove_class("activatable");
 
         let entry = TargetEntry::new("FeedRow", TargetFlags::SAME_APP, 0);
         widget.drag_source_set(ModifierType::BUTTON1_MASK, &[entry], DragAction::MOVE);
         widget.drag_source_add_text_targets();
+        let feed_id = id.clone();
         widget.connect_drag_data_get(move |_widget, _ctx, selection_data, _info, _time| {
-            if let Ok(json) = serde_json::to_string(&id.clone()) {
+            if let Ok(json) = serde_json::to_string(&feed_id.clone()) {
                 let mut data = String::from("FeedID ");
                 data.push_str(&json);
                 selection_data.set_text(&data);
             }
         });
+        let row_clone = row.clone();
         widget.connect_drag_begin(move |_widget, drag_context| {
-            let alloc = row.get_allocation();
+            let alloc = row_clone.get_allocation();
             let surface = ImageSurface::create(Format::ARgb32, alloc.width, alloc.height).unwrap();
             let cairo_context = cairo::Context::new(&surface);
-            let style_context = row.get_style_context();
+            let style_context = row_clone.get_style_context();
             style_context.add_class("drag-icon");
-            row.draw(&cairo_context);
+            row_clone.draw(&cairo_context);
             style_context.remove_class("drag-icon");
             drag_context.drag_set_icon_surface(&surface);
         });
 
-        row_2nd_handle
+        let feed_id = id.clone();
+        row.connect_button_press_event(move |row, event| {
+
+            if event.get_button() != 3 {
+                return Inhibit(false)
+            }
+
+            match event.get_event_type() {
+                EventType::ButtonRelease |
+                EventType::DoubleButtonPress |
+                EventType::TripleButtonPress => return Inhibit(false),
+                _ => {},
+            }
+
+            let model = Menu::new();
+            model.append("Move", "move-feed");
+
+            let variant = Variant::from(feed_id.to_str());
+            let rename_feed_item = MenuItem::new("Rename", None);
+            rename_feed_item.set_action_and_target_value("rename-feed", &variant);
+            model.append_item(&rename_feed_item);
+
+            model.append("Delete", "remove-feed");
+
+            let popover = Popover::new(row);
+            popover.bind_model(&model, "win");
+            popover.show();
+            let row_clone = row.clone();
+            popover.connect_closed(move |_popover| {
+                row_clone.unset_state_flags(StateFlags::PRELIGHT);
+            });
+            row.set_state_flags(StateFlags::PRELIGHT, false);
+            
+
+            Inhibit(true)
+        });
+
+        row
     }
 
     pub fn widget(&self) -> ListBoxRow {

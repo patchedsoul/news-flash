@@ -9,14 +9,15 @@ use crate::main_window_state::MainWindowState;
 use crate::responsive::ResponsiveLayout;
 use crate::settings::{NewsFlashShortcutWindow, Settings, SettingsDialog};
 use crate::sidebar::models::SidebarSelection;
+use crate::rename_dialog::RenameDialog;
 use crate::util::{FileUtil, GtkHandle};
 use gio::{ActionExt, ActionMapExt, ApplicationExt, SimpleAction};
 use gtk::{
-    self, Application, ApplicationWindow, DialogExt, FileChooserAction, FileChooserDialog, FileChooserExt, FileFilter,
+    self, Application, ApplicationWindow, ButtonExt, DialogExt, FileChooserAction, FileChooserDialog, FileChooserExt, FileFilter,
     GtkWindowExt, GtkWindowExtManual, ResponseType, Stack, StackExt, StackTransitionType,
 };
 use log::{debug, error};
-use news_flash::models::{ArticleID, LoginData, PluginID};
+use news_flash::models::{ArticleID, FeedID, LoginData, PluginID};
 use news_flash::{NewsFlash, NewsFlashError};
 
 pub struct MainWindowActions;
@@ -472,6 +473,29 @@ impl MainWindowActions {
         });
         mark_article_action.set_enabled(true);
         window.add_action(&mark_article_action);
+    }
+
+    pub fn setup_rename_feed_action(window: &ApplicationWindow, news_flash: &GtkHandle<Option<NewsFlash>>) {
+        let news_flash = news_flash.clone();
+        let main_window = window.clone();
+        let rename_feed_action = SimpleAction::new("rename-feed", glib::VariantTy::new("s").ok());
+        rename_feed_action.connect_activate(move |_action, data| {
+            if let Some(data) = data {
+                if let Some(data) = data.get_str() {
+                    let feed_id = FeedID::new(&data);
+                    if let Some(news_flash) = news_flash.borrow_mut().as_mut() {
+                        let (feeds, _mappings) = news_flash.get_feeds().unwrap();
+                        let feed = feeds.iter().find(|f| f.feed_id == feed_id).unwrap();
+                        let dialog = RenameDialog::new(&main_window, &SidebarSelection::Feed((feed_id, feed.label.clone())));
+                        dialog.rename_button().connect_clicked(|_button| {
+
+                        });
+                    }
+                }
+            }
+        });
+        rename_feed_action.set_enabled(true);
+        window.add_action(&rename_feed_action);
     }
 
     pub fn setup_select_next_article_action(window: &ApplicationWindow, content_page: &GtkHandle<ContentPage>) {

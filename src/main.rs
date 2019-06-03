@@ -14,6 +14,7 @@ mod settings;
 mod sidebar;
 mod util;
 mod welcome_screen;
+mod rename_dialog;
 
 use crate::config::APP_ID;
 use crate::main_window::MainWindow;

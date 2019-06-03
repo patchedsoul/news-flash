@@ -280,7 +280,7 @@ impl ArticleRow {
         let row_hovered_1 = row_hovered.clone();
         eventbox.connect_enter_notify_event(move |_widget, event| {
             if event.get_detail() == NotifyType::Inferior {
-                return Inhibit(true);
+                return Inhibit(false);
             }
             *row_hovered_1.borrow_mut() = true;
             match *read_1.borrow() {
@@ -301,7 +301,7 @@ impl ArticleRow {
         let row_hovered_2 = row_hovered.clone();
         eventbox.connect_leave_notify_event(move |_widget, event| {
             if event.get_detail() == NotifyType::Inferior {
-                return Inhibit(true);
+                return Inhibit(false);
             }
             *row_hovered_2.borrow_mut() = false;
             match *read_2.borrow() {
