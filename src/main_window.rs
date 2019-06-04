@@ -17,7 +17,7 @@ use gdk::EventKey;
 use gio::{ActionExt, ActionMapExt};
 use glib::{self, Variant};
 use gtk::{
-    self, Application, ApplicationWindow, CssProvider, CssProviderExt, GtkWindowExt, GtkWindowExtManual, Inhibit,
+    self, Application, ApplicationWindow, CssProvider, CssProviderExt, GtkWindowExt, GtkWindowExtManual, Inhibit, InfoBar,
     Settings as GtkSettings, SettingsExt, Stack, StackExt, StyleContext, StyleContextExt, WidgetExt,
 };
 use lazy_static::lazy_static;
@@ -56,6 +56,7 @@ impl MainWindow {
         let window = builder.get::<ApplicationWindow>("main_window");
         let stack = builder.get::<Stack>("main_stack");
         let header_stack = builder.get::<Stack>("header_stack");
+        let undo_bar = builder.get::<InfoBar>("undo_bar");
 
         let responsive_layout = gtk_handle!(ResponsiveLayout::new(&builder));
 
@@ -125,7 +126,7 @@ impl MainWindow {
         MainWindowActions::setup_mark_article_read_action(&window, &news_flash_handle);
         MainWindowActions::setup_mark_article_action(&window, &news_flash_handle);
         MainWindowActions::setup_rename_feed_action(&window, &news_flash_handle);
-        MainWindowActions::setup_delete_feed_action(&window, &news_flash_handle);
+        MainWindowActions::setup_delete_feed_action(&window, &news_flash_handle, &undo_bar);
         MainWindowActions::setup_about_action(&window);
         MainWindowActions::setup_settings_action(&window, &settings);
         MainWindowActions::setup_shortcut_window_action(&window, &settings);

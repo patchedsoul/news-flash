@@ -11,11 +11,14 @@ use crate::rename_dialog::RenameDialog;
 use crate::responsive::ResponsiveLayout;
 use crate::settings::{NewsFlashShortcutWindow, Settings, SettingsDialog};
 use crate::sidebar::models::SidebarSelection;
-use crate::util::{FileUtil, GtkHandle};
+use crate::util::{FileUtil, GtkHandle, GtkUtil};
 use gio::{ActionExt, ActionMapExt, ApplicationExt, SimpleAction};
 use gtk::{
-    self, Application, ApplicationWindow, ButtonExt, DialogExt, FileChooserAction, FileChooserDialog, FileChooserExt,
-    FileFilter, GtkWindowExt, GtkWindowExtManual, ResponseType, Stack, StackExt, StackTransitionType,
+    self, Application, ApplicationWindow, ButtonExt, Continue, DialogExt, InfoBar, InfoBarExt, FileChooserAction, FileChooserDialog, FileChooserExt,
+    FileFilter, GtkWindowExt, GtkWindowExtManual, ResponseType, Stack, StackExt, StackTransitionType, WidgetExt,
+};
+use glib::{
+    translate::ToGlib, Variant, VariantTy,
 };
 use log::{debug, error};
 use news_flash::models::{ArticleID, FeedID, LoginData, PluginID};
@@ -34,7 +37,7 @@ impl MainWindowActions {
     ) {
         let stack = stack.clone();
         let header_stack = header_stack.clone();
-        let show_pw_page = SimpleAction::new("show-pw-page", glib::VariantTy::new("s").ok());
+        let show_pw_page = SimpleAction::new("show-pw-page", VariantTy::new("s").ok());
         let pw_page = pw_page.clone();
         show_pw_page.connect_activate(move |_action, data| {
             if let Some(data) = data {
@@ -63,7 +66,7 @@ impl MainWindowActions {
         let stack = stack.clone();
         let header_stack = header_stack.clone();
         let oauth_page = oauth_page.clone();
-        let show_pw_page = SimpleAction::new("show-oauth-page", glib::VariantTy::new("s").ok());
+        let show_pw_page = SimpleAction::new("show-oauth-page", VariantTy::new("s").ok());
         show_pw_page.connect_activate(move |_action, data| {
             if let Some(data) = data {
                 if let Some(id_string) = data.get_str() {
@@ -118,7 +121,7 @@ impl MainWindowActions {
         let header_stack = header_stack.clone();
         let content_page = content_page.clone();
         let state = state.clone();
-        let show_content_page = SimpleAction::new("show-content-page", glib::VariantTy::new("s").ok());
+        let show_content_page = SimpleAction::new("show-content-page", VariantTy::new("s").ok());
         show_content_page.connect_activate(move |_action, data| {
             if let Some(data) = data {
                 if let Some(id_string) = data.get_str() {
@@ -149,7 +152,7 @@ impl MainWindowActions {
         let main_window = window.clone();
         let pw_page = pw_page.clone();
         let oauth_page = oauth_page.clone();
-        let login_action = SimpleAction::new("login", glib::VariantTy::new("s").ok());
+        let login_action = SimpleAction::new("login", VariantTy::new("s").ok());
         login_action.connect_activate(move |_action, data| {
             if let Some(data) = data {
                 if let Some(data) = data.get_str() {
@@ -167,7 +170,7 @@ impl MainWindowActions {
 
                             // show content page
                             if let Some(action) = main_window.lookup_action("show-content-page") {
-                                let id = glib::Variant::from(id.to_str());
+                                let id = Variant::from(id.to_str());
                                 action.activate(Some(&id));
                             }
                         }
@@ -252,7 +255,7 @@ impl MainWindowActions {
         let state = state.clone();
         let main_window = window.clone();
         let responsive_layout = responsive_layout.clone();
-        let sidebar_selection_action = SimpleAction::new("sidebar-selection", glib::VariantTy::new("s").ok());
+        let sidebar_selection_action = SimpleAction::new("sidebar-selection", VariantTy::new("s").ok());
         sidebar_selection_action.connect_activate(move |_action, data| {
             if let Some(data) = data {
                 if let Some(data) = data.get_str() {
@@ -278,7 +281,7 @@ impl MainWindowActions {
         let state = state.clone();
         let main_window = window.clone();
         let header = header.clone();
-        let headerbar_selection_action = SimpleAction::new("headerbar-selection", glib::VariantTy::new("s").ok());
+        let headerbar_selection_action = SimpleAction::new("headerbar-selection", VariantTy::new("s").ok());
         headerbar_selection_action.connect_activate(move |_action, data| {
             if let Some(data) = data {
                 if let Some(data) = data.get_str() {
@@ -318,7 +321,7 @@ impl MainWindowActions {
     pub fn setup_search_action(window: &ApplicationWindow, state: &GtkHandle<MainWindowState>) {
         let state = state.clone();
         let main_window = window.clone();
-        let search_action = SimpleAction::new("search-term", glib::VariantTy::new("s").ok());
+        let search_action = SimpleAction::new("search-term", VariantTy::new("s").ok());
         search_action.connect_activate(move |_action, data| {
             if let Some(data) = data {
                 if let Some(data) = data.get_str() {
@@ -387,7 +390,7 @@ impl MainWindowActions {
         let content_header = content_header.clone();
         let news_flash = news_flash.clone();
         let responsive_layout = responsive_layout.clone();
-        let show_article_action = SimpleAction::new("show-article", glib::VariantTy::new("s").ok());
+        let show_article_action = SimpleAction::new("show-article", VariantTy::new("s").ok());
         show_article_action.connect_activate(move |_action, data| {
             if let Some(data) = data {
                 if let Some(data) = data.get_str() {
@@ -435,7 +438,7 @@ impl MainWindowActions {
     pub fn setup_mark_article_read_action(window: &ApplicationWindow, news_flash: &GtkHandle<Option<NewsFlash>>) {
         let news_flash = news_flash.clone();
         let main_window = window.clone();
-        let mark_article_read_action = SimpleAction::new("mark-article-read", glib::VariantTy::new("s").ok());
+        let mark_article_read_action = SimpleAction::new("mark-article-read", VariantTy::new("s").ok());
         mark_article_read_action.connect_activate(move |_action, data| {
             if let Some(data) = data {
                 if let Some(data) = data.get_str() {
@@ -457,7 +460,7 @@ impl MainWindowActions {
     pub fn setup_mark_article_action(window: &ApplicationWindow, news_flash: &GtkHandle<Option<NewsFlash>>) {
         let news_flash = news_flash.clone();
         let main_window = window.clone();
-        let mark_article_action = SimpleAction::new("mark-article", glib::VariantTy::new("s").ok());
+        let mark_article_action = SimpleAction::new("mark-article", VariantTy::new("s").ok());
         mark_article_action.connect_activate(move |_action, data| {
             if let Some(data) = data {
                 if let Some(data) = data.get_str() {
@@ -481,7 +484,7 @@ impl MainWindowActions {
     pub fn setup_rename_feed_action(window: &ApplicationWindow, news_flash: &GtkHandle<Option<NewsFlash>>) {
         let news_flash = news_flash.clone();
         let main_window = window.clone();
-        let rename_feed_action = SimpleAction::new("rename-feed", glib::VariantTy::new("s").ok());
+        let rename_feed_action = SimpleAction::new("rename-feed", VariantTy::new("s").ok());
         rename_feed_action.connect_activate(move |_action, data| {
             if let Some(data) = data {
                 if let Some(data) = data.get_str() {
@@ -516,10 +519,11 @@ impl MainWindowActions {
         window.add_action(&rename_feed_action);
     }
 
-    pub fn setup_delete_feed_action(window: &ApplicationWindow, news_flash: &GtkHandle<Option<NewsFlash>>) {
+    pub fn setup_delete_feed_action(window: &ApplicationWindow, news_flash: &GtkHandle<Option<NewsFlash>>, undo_bar: &InfoBar) {
         let news_flash = news_flash.clone();
         let main_window = window.clone();
-        let delete_feed_action = SimpleAction::new("delete-feed", glib::VariantTy::new("s").ok());
+        let undo_bar = undo_bar.clone();
+        let delete_feed_action = SimpleAction::new("delete-feed", VariantTy::new("s").ok());
         delete_feed_action.connect_activate(move |_action, data| {
             if let Some(data) = data {
                 if let Some(data) = data.get_str() {
@@ -527,14 +531,35 @@ impl MainWindowActions {
                     if let Some(news_flash) = news_flash.borrow_mut().as_mut() {
                         let (feeds, _mappings) = news_flash.get_feeds().unwrap();
                         let feed = feeds.iter().find(|f| f.feed_id == feed_id).map(|f| f.clone()).unwrap();
-                        news_flash.remove_feed(&feed).unwrap();
-                        // FIXME: info bar with undo
-                    }
-                    if let Some(action) = main_window.lookup_action("update-sidebar") {
-                        action.activate(None);
-                    }
-                    if let Some(action) = main_window.lookup_action("update-article-list") {
-                        action.activate(None);
+                        
+                        undo_bar.set_visible(true);
+                        undo_bar.set_revealed(true);
+                        undo_bar.set_show_close_button(false);
+                        let source_id_handle : GtkHandle<Option<u32>> = gtk_handle!(None);
+
+                        let source_id = source_id_handle.clone();
+                        undo_bar.connect_close(move |_bar| {
+                            GtkUtil::remove_source(*source_id.borrow());
+                        });
+                        
+                        let source_id = source_id_handle.clone();
+                        let undo_bar = undo_bar.clone();
+                        let main_window = main_window.clone();
+                        *source_id_handle.borrow_mut() = Some(gtk::timeout_add(5000, move || {
+                            *source_id.borrow_mut() = None;
+                            undo_bar.set_revealed(false);
+                            undo_bar.set_visible(false);
+                            undo_bar.emit_close();
+                            // FIXME: actually delete feed
+                            // news_flash.remove_feed(&feed).unwrap();
+                            if let Some(action) = main_window.lookup_action("update-sidebar") {
+                                action.activate(None);
+                            }
+                            if let Some(action) = main_window.lookup_action("update-article-list") {
+                                action.activate(None);
+                            }
+                            Continue(false)
+                        }).to_glib());
                     }
                 }
             }
