@@ -17,8 +17,8 @@ use gdk::EventKey;
 use gio::{ActionExt, ActionMapExt};
 use glib::{self, Variant};
 use gtk::{
-    self, Application, ApplicationWindow, CssProvider, CssProviderExt, GtkWindowExt, GtkWindowExtManual, Inhibit, InfoBar,
-    Settings as GtkSettings, SettingsExt, Stack, StackExt, StyleContext, StyleContextExt, WidgetExt,
+    self, Application, ApplicationWindow, CssProvider, CssProviderExt, GtkWindowExt, GtkWindowExtManual, InfoBar,
+    Inhibit, Settings as GtkSettings, SettingsExt, Stack, StackExt, StyleContext, StyleContextExt, WidgetExt,
 };
 use lazy_static::lazy_static;
 use log::{info, warn};

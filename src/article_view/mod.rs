@@ -19,7 +19,7 @@ use gio::{Cancellable, Settings as GSettings, SettingsExt as GSettingsExt};
 use glib::{object::Cast, translate::ToGlib, MainLoop};
 use gtk::{
     Button, ButtonExt, ContainerExt, Continue, Inhibit, Overlay, OverlayExt, SettingsExt as GtkSettingsExt, Stack,
-    StackExt, WidgetExt, WidgetExtManual, TickCallbackId,
+    StackExt, TickCallbackId, WidgetExt, WidgetExtManual,
 };
 use log::{error, warn};
 use news_flash::models::FatArticle;
@@ -102,7 +102,8 @@ impl ArticleView {
                         if let Some(default_screen) = gdk::Screen::get_default() {
                             if let Some(path) = path.to_str() {
                                 let uri = format!("file://{}", path);
-                                if gtk::show_uri(Some(&default_screen), &uri, glib::get_current_time().tv_sec as u32).is_err()
+                                if gtk::show_uri(Some(&default_screen), &uri, glib::get_current_time().tv_sec as u32)
+                                    .is_err()
                                 {
                                     // log smth
                                 }
@@ -337,8 +338,12 @@ impl ArticleView {
                                 if "about:blank" != uri {
                                     println!("uri: {}", uri);
                                     if let Some(default_screen) = gdk::Screen::get_default() {
-                                        if gtk::show_uri(Some(&default_screen), &uri, glib::get_current_time().tv_sec as u32)
-                                            .is_err()
+                                        if gtk::show_uri(
+                                            Some(&default_screen),
+                                            &uri,
+                                            glib::get_current_time().tv_sec as u32,
+                                        )
+                                        .is_err()
                                         {
                                             // log smth
                                         }

@@ -40,7 +40,7 @@ impl GtkUtil {
         scale_factor: i32,
     ) -> Result<Surface, UtilError> {
         let pixbuf = Self::create_pixbuf_from_bytes(data, width, height, scale_factor)?;
-        let window : Option<&Window> = None;
+        let window: Option<&Window> = None;
         match Context::cairo_surface_create_from_pixbuf(&pixbuf, scale_factor, window) {
             Some(surface) => return Ok(surface),
             None => return Err(UtilErrorKind::CairoSurface)?,
