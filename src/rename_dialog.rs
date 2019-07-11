@@ -21,9 +21,9 @@ impl RenameDialog {
 
         match item {
             SidebarSelection::All => {}
-            SidebarSelection::Cateogry(_) => header.set_title("Rename Category"),
-            SidebarSelection::Feed(_) => header.set_title("Rename Feed"),
-            SidebarSelection::Tag(_) => header.set_title("Rename Feed"),
+            SidebarSelection::Cateogry(_) => header.set_title(Some("Rename Category")),
+            SidebarSelection::Feed(_) => header.set_title(Some("Rename Feed")),
+            SidebarSelection::Tag(_) => header.set_title(Some("Rename Feed")),
         }
 
         rename_entry.set_text(match item {
@@ -38,7 +38,7 @@ impl RenameDialog {
             dialog_clone.emit_close();
         });
 
-        dialog.set_transient_for(parent);
+        dialog.set_transient_for(Some(parent));
         dialog.show_all();
 
         RenameDialog {

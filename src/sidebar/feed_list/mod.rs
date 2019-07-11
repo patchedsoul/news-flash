@@ -344,7 +344,7 @@ impl FeedList {
         let selected_row = row.clone();
         let delayed_selection = self.delayed_selection.clone();
         gtk::idle_add(move || {
-            list.select_row(&selected_row);
+            list.select_row(Some(&selected_row));
 
             let row = row.clone();
             let source_id = delayed_selection.clone();

@@ -47,22 +47,22 @@ impl ArticleRow {
         let marked = builder.get::<Image>("marked");
         let marked_icon = Resources::get("icons/marked.svg").expect(GTK_RESOURCE_FILE_ERROR);
         let surface = GtkUtil::create_surface_from_bytes(&marked_icon, 16, 16, scale)?;
-        marked.set_from_surface(&surface);
+        marked.set_from_surface(Some(&surface));
 
         let unmarked = builder.get::<Image>("unmarked");
         let unmarked_icon = Resources::get("icons/unmarked.svg").expect(GTK_RESOURCE_FILE_ERROR);
         let surface = GtkUtil::create_surface_from_bytes(&unmarked_icon, 16, 16, scale)?;
-        unmarked.set_from_surface(&surface);
+        unmarked.set_from_surface(Some(&surface));
 
         let read = builder.get::<Image>("read");
         let read_icon = Resources::get("icons/read.svg").expect(GTK_RESOURCE_FILE_ERROR);
         let surface = GtkUtil::create_surface_from_bytes(&read_icon, 16, 16, scale)?;
-        read.set_from_surface(&surface);
+        read.set_from_surface(Some(&surface));
 
         let unread = builder.get::<Image>("unread");
         let unread_icon = Resources::get("icons/unread.svg").expect(GTK_RESOURCE_FILE_ERROR);
         let surface = GtkUtil::create_surface_from_bytes(&unread_icon, 16, 16, scale)?;
-        unread.set_from_surface(&surface);
+        unread.set_from_surface(Some(&surface));
 
         title_label.set_text(&article.title);
         summary_label.set_text(&article.summary);
@@ -72,7 +72,7 @@ impl ArticleRow {
         if let Some(icon) = &article.favicon {
             if let Some(data) = &icon.data {
                 let surface = GtkUtil::create_surface_from_bytes(data, 16, 16, scale).unwrap();
-                favicon.set_from_surface(&surface);
+                favicon.set_from_surface(Some(&surface));
             }
         }
 

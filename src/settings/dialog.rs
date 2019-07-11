@@ -23,7 +23,7 @@ impl SettingsDialog {
         let builder = BuilderHelper::new("settings");
 
         let dialog = builder.get::<Dialog>("dialog");
-        dialog.set_transient_for(window);
+        dialog.set_transient_for(Some(window));
 
         let settings_dialog = SettingsDialog {
             widget: dialog,

@@ -429,7 +429,7 @@ impl NewsFlashShortcutWindow {
 
         let builder = BuilderHelper::new_from_xml(&ui_xml);
         let widget = builder.get::<ShortcutsWindow>("shortcuts-window");
-        widget.set_transient_for(settings_dialog);
+        widget.set_transient_for(Some(settings_dialog));
 
         // WORKAROUND: actually show the shortcuts and not "internal-search" view
         widget.show_all();

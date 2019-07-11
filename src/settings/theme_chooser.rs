@@ -19,7 +19,7 @@ impl ThemeChooser {
         let builder = BuilderHelper::new("theme_chooser");
 
         let dialog = builder.get::<Dialog>("dialog");
-        dialog.set_transient_for(settings_dialog);
+        dialog.set_transient_for(Some(settings_dialog));
 
         let mut demo_article = FatArticle {
             article_id: ArticleID::new("demo"),

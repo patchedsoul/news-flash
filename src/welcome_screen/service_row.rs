@@ -90,7 +90,7 @@ impl ServiceRow {
                 PluginIcon::Vector(icon) => GtkUtil::create_surface_from_bytes(&icon.data, 64, 64, scale)?,
                 PluginIcon::Pixel(icon) => GtkUtil::create_surface_from_pixelicon(&icon, scale)?,
             };
-            image.set_from_surface(&surface);
+            image.set_from_surface(Some(&surface));
         } else {
             // FIXME: default Icon
         }

@@ -129,7 +129,7 @@ impl TagList {
             let delayed_selection = self.delayed_selection.clone();
             let row = tag_row.borrow().widget();
             gtk::idle_add(move || {
-                list.select_row(&row);
+                list.select_row(Some(&row));
 
                 let active_row = row.clone();
                 let source_id = delayed_selection.clone();

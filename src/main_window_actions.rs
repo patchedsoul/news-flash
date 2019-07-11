@@ -530,7 +530,9 @@ impl MainWindowActions {
                     let feed_id = FeedID::new(&data);
                     if let Some(news_flash) = news_flash.borrow_mut().as_mut() {
                         let (feeds, _mappings) = news_flash.get_feeds().unwrap();
-                        let feed = feeds.iter().find(|f| f.feed_id == feed_id).map(|f| f.clone()).unwrap();
+
+                        // FIXME: unused
+                        let _feed = feeds.iter().find(|f| f.feed_id == feed_id).map(|f| f.clone()).unwrap();
                         
                         undo_bar.set_visible(true);
                         undo_bar.set_revealed(true);
@@ -642,7 +644,7 @@ impl MainWindowActions {
         let export_action = SimpleAction::new("export", None);
         export_action.connect_activate(move |_action, _data| {
             let dialog = FileChooserDialog::with_buttons(
-                "Export OPML",
+                Some("Export OPML"),
                 Some(&main_window),
                 FileChooserAction::Save,
                 &vec![("Cancel", ResponseType::Cancel), ("Save", ResponseType::Ok)],
@@ -654,7 +656,7 @@ impl MainWindowActions {
             filter.add_mime_type("application/xml");
             filter.add_mime_type("text/xml");
             filter.add_mime_type("text/x-opml");
-            filter.set_name("OPML");
+            filter.set_name(Some("OPML"));
             dialog.add_filter(&filter);
             dialog.set_filter(&filter);
             dialog.set_current_name("NewsFlash.OPML");

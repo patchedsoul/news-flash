@@ -114,7 +114,7 @@ impl TagRow {
                 );
                 cairo_ctx.fill_preserve();
 
-                tag_color_circle.set_from_surface(&surface);
+                tag_color_circle.set_from_surface(Some(&surface));
             }
         }
     }

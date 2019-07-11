@@ -46,7 +46,7 @@ impl ErrorDialog {
             list_box.pack_start(&separator, false, true, 0);
         }
 
-        error_dialog.set_transient_for(parent);
+        error_dialog.set_transient_for(Some(parent));
         error_dialog.show_all();
 
         ErrorDialog { error_dialog, list_box }

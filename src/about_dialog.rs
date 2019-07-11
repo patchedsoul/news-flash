@@ -18,11 +18,11 @@ impl NewsFlashAbout {
         widget.set_transient_for(window);
         widget.set_modal(true);
         widget.set_authors(AUTHORS);
-        widget.set_comments(DESCRIPTION);
-        widget.set_copyright(COPYRIGHT);
-        widget.set_logo_icon_name(APP_ID);
+        widget.set_comments(Some(DESCRIPTION));
+        widget.set_copyright(Some(COPYRIGHT));
+        widget.set_logo_icon_name(Some(APP_ID));
         widget.set_program_name(APP_NAME);
-        widget.set_version(VERSION);
+        widget.set_version(Some(VERSION));
         widget.set_license_type(License::Gpl30);
         widget.set_wrap_license(true);
 

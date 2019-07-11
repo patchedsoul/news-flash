@@ -104,20 +104,20 @@ impl FeedRow {
             }
 
             let model = Menu::new();
-            model.append("Move", "move-feed");
+            model.append(Some("Move"), Some("move-feed"));
 
             let variant = Variant::from(feed_id.to_str());
-            let rename_feed_item = MenuItem::new("Rename", None);
-            rename_feed_item.set_action_and_target_value("rename-feed", &variant);
+            let rename_feed_item = MenuItem::new(Some("Rename"), None);
+            rename_feed_item.set_action_and_target_value(Some("rename-feed"), Some(&variant));
             model.append_item(&rename_feed_item);
 
             let variant = Variant::from(feed_id.to_str());
-            let delete_feed_item = MenuItem::new("Delete", None);
-            delete_feed_item.set_action_and_target_value("delete-feed", &variant);
+            let delete_feed_item = MenuItem::new(Some("Delete"), None);
+            delete_feed_item.set_action_and_target_value(Some("delete-feed"), Some(&variant));
             model.append_item(&delete_feed_item);
 
-            let popover = Popover::new(row);
-            popover.bind_model(&model, "win");
+            let popover = Popover::new(Some(row));
+            popover.bind_model(Some(&model), Some("win"));
             popover.show();
             let row_clone = row.clone();
             popover.connect_closed(move |_popover| {
@@ -149,7 +149,7 @@ impl FeedRow {
             if let Some(data) = &icon.data {
                 let scale = self.widget.get_style_context().get_scale();
                 let surface = GtkUtil::create_surface_from_bytes(data, 16, 16, scale).unwrap();
-                self.favicon.set_from_surface(&surface);
+                self.favicon.set_from_surface(Some(&surface));
             }
         }
     }

@@ -185,48 +185,48 @@ impl ContentHeader {
 
     fn setup_menu_button(button: &MenuButton) {
         let about_model = Menu::new();
-        about_model.append("Shortcuts", "win.shortcuts");
-        about_model.append("About", "win.about");
+        about_model.append(Some("Shortcuts"), Some("win.shortcuts"));
+        about_model.append(Some("About"), Some("win.about"));
 
         let main_model = Menu::new();
-        main_model.append("Export OPML", "win.export");
-        main_model.append("Settings", "win.settings");
-        main_model.append_section("", &about_model);
+        main_model.append(Some("Export OPML"), Some("win.export"));
+        main_model.append(Some("Settings"), Some("win.settings"));
+        main_model.append_section(Some(""), &about_model);
 
-        button.set_menu_model(&main_model);
+        button.set_menu_model(Some(&main_model));
     }
 
     fn setup_mode_button(button: &MenuButton) {
         let model = Menu::new();
         if let Ok(json) = serde_json::to_string(&HeaderSelection::All) {
             let variant = Variant::from(&json);
-            let all_item = MenuItem::new("All", None);
-            all_item.set_action_and_target_value("win.headerbar-selection", &variant);
+            let all_item = MenuItem::new(Some("All"), None);
+            all_item.set_action_and_target_value(Some("win.headerbar-selection"), Some(&variant));
             model.append_item(&all_item);
         }
 
         if let Ok(json) = serde_json::to_string(&HeaderSelection::Unread) {
             let variant = Variant::from(&json);
-            let unread_item = MenuItem::new("Unread", None);
-            unread_item.set_action_and_target_value("win.headerbar-selection", &variant);
+            let unread_item = MenuItem::new(Some("Unread"), None);
+            unread_item.set_action_and_target_value(Some("win.headerbar-selection"), Some(&variant));
             model.append_item(&unread_item);
         }
 
         if let Ok(json) = serde_json::to_string(&HeaderSelection::Marked) {
             let variant = Variant::from(&json);
-            let marked_item = MenuItem::new("Starred", None);
-            marked_item.set_action_and_target_value("win.headerbar-selection", &variant);
+            let marked_item = MenuItem::new(Some("Starred"), None);
+            marked_item.set_action_and_target_value(Some("win.headerbar-selection"), Some(&variant));
             model.append_item(&marked_item);
         }
 
-        button.set_menu_model(&model);
+        button.set_menu_model(Some(&model));
     }
 
     fn setup_more_actions_button(button: &MenuButton) {
         let model = Menu::new();
-        model.append("Export Article", "win.export-article");
-        model.append("Close Article", "win.close-article");
-        button.set_menu_model(&model);
+        model.append(Some("Export Article"), Some("win.export-article"));
+        model.append(Some("Close Article"), Some("win.close-article"));
+        button.set_menu_model(Some(&model));
         button.set_sensitive(false);
     }
 

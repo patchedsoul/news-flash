@@ -4,12 +4,11 @@ use super::models::ArticleListModel;
 use crate::gtk_handle;
 use crate::util::{BuilderHelper, GtkHandle, GtkUtil, Util};
 use failure::Error;
-use gdk::FrameClockExt;
 use gio::{ActionExt, ActionMapExt};
 use glib::{object::Cast, translate::ToGlib};
 use gtk::{
     AdjustmentExt, ContainerExt, Continue, ListBox, ListBoxExt, ListBoxRowExt, ScrolledWindow, ScrolledWindowExt,
-    SettingsExt, WidgetExt,
+    SettingsExt, TickCallbackId, WidgetExt, WidgetExtManual,
 };
 use news_flash::models::{
     article::{Marked, Read},
@@ -22,11 +21,11 @@ use std::rc::Rc;
 const LIST_BOTTOM_THREASHOLD: f64 = 200.0;
 const SCROLL_TRANSITION_DURATION: i64 = 500 * 1000;
 
-#[derive(Clone, Debug)]
+#[derive(Clone)]
 struct ScrollAnimationProperties {
     pub start_time: GtkHandle<Option<i64>>,
     pub end_time: GtkHandle<Option<i64>>,
-    pub scroll_callback_id: GtkHandle<Option<u32>>,
+    pub scroll_callback_id: GtkHandle<Option<TickCallbackId>>,
     pub transition_start_value: GtkHandle<Option<f64>>,
     pub transition_diff: GtkHandle<Option<f64>>,
 }
@@ -146,7 +145,7 @@ impl SingleArticleList {
 
     pub fn select_after(&self, id: &ArticleID, time: u32) {
         if let Some(article_handle) = self.articles.get(id) {
-            self.list.select_row(&article_handle.borrow().widget());
+            self.list.select_row(Some(&article_handle.borrow().widget()));
             // FIXME: set as read
 
             GtkUtil::remove_source(*self.select_after_signal.borrow());
@@ -190,15 +189,14 @@ impl SingleArticleList {
             .get_frame_clock()
             .map(|clock| clock.get_frame_time() + SCROLL_TRANSITION_DURATION);
 
-        let callback_id = *self.scroll_animation_data.scroll_callback_id.borrow();
+        let callback_id = self.scroll_animation_data.scroll_callback_id.replace(None);
         let leftover_scroll = match callback_id {
             Some(callback_id) => {
                 let start_value =
                     Util::some_or_default(*self.scroll_animation_data.transition_start_value.borrow(), 0.0);
                 let diff_value = Util::some_or_default(*self.scroll_animation_data.transition_diff.borrow(), 0.0);
 
-                self.widget().remove_tick_callback(callback_id);
-                *self.scroll_animation_data.scroll_callback_id.borrow_mut() = None;
+                callback_id.remove();
                 start_value + diff_value - self.get_scroll_value()
             }
             None => 0.0,
@@ -232,11 +230,11 @@ impl SingleArticleList {
 
                 if !widget.get_mapped() {
                     Self::set_scroll_value_static(&scroll, start_value + diff_value);
-                    return false;
+                    return Continue(false);
                 }
 
                 if end_time.borrow().is_none() {
-                    return false;
+                    return Continue(false);
                 }
 
                 let t = if now < end_time_value {
@@ -256,10 +254,10 @@ impl SingleArticleList {
                     *start_time.borrow_mut() = None;
                     *end_time.borrow_mut() = None;
                     *callback_id.borrow_mut() = None;
-                    return false;
+                    return Continue(false);
                 }
 
-                true
+                Continue(true)
             }));
     }
 

@@ -1,7 +1,7 @@
 use super::error::{UtilError, UtilErrorKind};
 use cairo::{Context, Surface};
 use failure::ResultExt;
-use gdk::ContextExt;
+use gdk::{ContextExt, Window};
 use gdk_pixbuf::Pixbuf;
 use gio::{Cancellable, MemoryInputStream};
 use glib::{object::IsA, object::ObjectExt, signal::SignalHandlerId, source::SourceId, translate::FromGlib, Bytes};
@@ -40,7 +40,8 @@ impl GtkUtil {
         scale_factor: i32,
     ) -> Result<Surface, UtilError> {
         let pixbuf = Self::create_pixbuf_from_bytes(data, width, height, scale_factor)?;
-        match Context::cairo_surface_create_from_pixbuf(&pixbuf, scale_factor, None) {
+        let window : Option<&Window> = None;
+        match Context::cairo_surface_create_from_pixbuf(&pixbuf, scale_factor, window) {
             Some(surface) => return Ok(surface),
             None => return Err(UtilErrorKind::CairoSurface)?,
         }

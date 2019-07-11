@@ -231,11 +231,11 @@ impl SideBar {
                 }
                 PluginIcon::Pixel(icon) => GtkUtil::create_surface_from_pixelicon(icon, self.scale_factor)?,
             };
-            self.logo.set_from_surface(&surface);
+            self.logo.set_from_surface(Some(&surface));
         } else {
             let generic_logo_data = Resources::get("icons/feed-service-generic.svg").expect(GTK_RESOURCE_FILE_ERROR);
             let surface = GtkUtil::create_surface_from_bytes(&generic_logo_data, 64, 64, self.scale_factor)?;
-            self.logo.set_from_surface(&surface);
+            self.logo.set_from_surface(Some(&surface));
         }
 
         if let Some(user_name) = user_name {

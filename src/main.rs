@@ -38,7 +38,7 @@ fn main() {
 
     gtk::init().expect("Error initializing gtk.");
 
-    let application = Application::new(APP_ID, gio::ApplicationFlags::empty()).expect("Initialization gtk-app failed");
+    let application = Application::new(Some(APP_ID), gio::ApplicationFlags::empty()).expect("Initialization gtk-app failed");
 
     let encoder = PatternEncoder::new("{d(%H:%M:%S)} - {h({({l}):5.5})} - {m:<35.} (({M}:{L}))\n");
 

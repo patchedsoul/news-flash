@@ -66,7 +66,7 @@ impl PasswordLogin {
         let generic_logo_data = Resources::get("icons/feed-service-generic.svg").expect(GTK_RESOURCE_FILE_ERROR);
         let surface = GtkUtil::create_surface_from_bytes(&generic_logo_data, 64, 64, scale_factor)
             .expect(GTK_RESOURCE_FILE_ERROR);
-        logo.set_from_surface(&surface);
+        logo.set_from_surface(Some(&surface));
 
         PasswordLogin {
             page,
@@ -107,7 +107,7 @@ impl PasswordLogin {
                 }
                 PluginIcon::Pixel(icon) => GtkUtil::create_surface_from_pixelicon(&icon, self.scale_factor)?,
             };
-            self.logo.set_from_surface(&surface);
+            self.logo.set_from_surface(Some(&surface));
         }
 
         // set headline

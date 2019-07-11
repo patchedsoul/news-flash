@@ -13,13 +13,13 @@ use crate::Resources;
 use failure::{format_err, Error};
 use gdk::{
     enums::key::KP_Add as KP_ADD, enums::key::KP_Subtract as KP_SUBTRACT, enums::key::KP_0, Cursor, CursorType,
-    Display, EventMask, FrameClockExt, ModifierType, ScrollDirection,
+    Display, EventMask, ModifierType, ScrollDirection,
 };
 use gio::{Cancellable, Settings as GSettings, SettingsExt as GSettingsExt};
 use glib::{object::Cast, translate::ToGlib, MainLoop};
 use gtk::{
     Button, ButtonExt, ContainerExt, Continue, Inhibit, Overlay, OverlayExt, SettingsExt as GtkSettingsExt, Stack,
-    StackExt, WidgetExt, WidgetExtManual,
+    StackExt, WidgetExt, WidgetExtManual, TickCallbackId,
 };
 use log::{error, warn};
 use news_flash::models::FatArticle;
@@ -38,16 +38,16 @@ use webkit2gtk::{
 const MIDDLE_MOUSE_BUTTON: u32 = 2;
 const SCROLL_TRANSITION_DURATION: i64 = 500 * 1000;
 
-#[derive(Clone, Debug)]
+#[derive(Clone)]
 struct ScrollAnimationProperties {
     pub start_time: GtkHandle<Option<i64>>,
     pub end_time: GtkHandle<Option<i64>>,
-    pub scroll_callback_id: GtkHandle<Option<u32>>,
+    pub scroll_callback_id: GtkHandle<Option<TickCallbackId>>,
     pub transition_start_value: GtkHandle<Option<f64>>,
     pub transition_diff: GtkHandle<Option<f64>>,
 }
 
-#[derive(Clone, Debug)]
+#[derive(Clone)]
 pub struct ArticleView {
     settings: GtkHandle<Settings>,
     stack: Stack,
@@ -102,7 +102,7 @@ impl ArticleView {
                         if let Some(default_screen) = gdk::Screen::get_default() {
                             if let Some(path) = path.to_str() {
                                 let uri = format!("file://{}", path);
-                                if gtk::show_uri(&default_screen, &uri, glib::get_current_time().tv_sec as u32).is_err()
+                                if gtk::show_uri(Some(&default_screen), &uri, glib::get_current_time().tv_sec as u32).is_err()
                                 {
                                     // log smth
                                 }
@@ -337,7 +337,7 @@ impl ArticleView {
                                 if "about:blank" != uri {
                                     println!("uri: {}", uri);
                                     if let Some(default_screen) = gdk::Screen::get_default() {
-                                        if gtk::show_uri(&default_screen, &uri, glib::get_current_time().tv_sec as u32)
+                                        if gtk::show_uri(Some(&default_screen), &uri, glib::get_current_time().tv_sec as u32)
                                             .is_err()
                                         {
                                             // log smth
@@ -367,7 +367,7 @@ impl ArticleView {
                                             if let Some(uri) = uri_req.get_uri() {
                                                 if let Some(default_screen) = gdk::Screen::get_default() {
                                                     if gtk::show_uri(
-                                                        &default_screen,
+                                                        Some(&default_screen),
                                                         &uri,
                                                         glib::get_current_time().tv_sec as u32,
                                                     )
@@ -996,15 +996,13 @@ impl ArticleView {
             .get_frame_clock()
             .map(|clock| clock.get_frame_time() + SCROLL_TRANSITION_DURATION);
 
-        let callback_id = *self.scroll_animation_data.scroll_callback_id.borrow();
+        let callback_id = self.scroll_animation_data.scroll_callback_id.replace(None);
         let leftover_scroll = match callback_id {
             Some(callback_id) => {
-                self.widget().remove_tick_callback(callback_id);
+                callback_id.remove();
                 let start_value =
                     Util::some_or_default(*self.scroll_animation_data.transition_start_value.borrow(), 0.0);
                 let diff_value = Util::some_or_default(*self.scroll_animation_data.transition_diff.borrow(), 0.0);
-
-                *self.scroll_animation_data.scroll_callback_id.borrow_mut() = None;
                 start_value + diff_value - current_pos
             }
             None => 0.0,
@@ -1043,11 +1041,11 @@ impl ArticleView {
 
                 if !widget.get_mapped() {
                     Self::set_scroll_pos_static(&view, start_value + diff_value).unwrap();
-                    return false;
+                    return Continue(false);
                 }
 
                 if scroll_animation_data.end_time.borrow().is_none() {
-                    return false;
+                    return Continue(false);
                 }
 
                 let t = if now < end_time_value {
@@ -1064,24 +1062,23 @@ impl ArticleView {
                 let upper = Self::get_scroll_upper_static(&view).unwrap();
                 if pos <= 0.0 || pos >= upper || now >= end_time_value {
                     Self::stop_scroll_animation(&view, &scroll_animation_data);
-                    return false;
+                    return Continue(false);
                 }
 
-                true
+                Continue(true)
             }));
 
         Ok(())
     }
 
     fn stop_scroll_animation(view: &WebView, properties: &ScrollAnimationProperties) {
-        if let Some(callback_id) = *properties.scroll_callback_id.borrow() {
-            view.remove_tick_callback(callback_id);
+        if let Some(callback_id) = properties.scroll_callback_id.replace(None) {
+            callback_id.remove();
         }
         view.queue_draw();
         *properties.transition_start_value.borrow_mut() = None;
         *properties.transition_diff.borrow_mut() = None;
         *properties.start_time.borrow_mut() = None;
         *properties.end_time.borrow_mut() = None;
-        *properties.scroll_callback_id.borrow_mut() = None;
     }
 }

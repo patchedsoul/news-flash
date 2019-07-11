@@ -64,8 +64,8 @@ impl MainWindow {
         let _welcome_header = WelcomeHeaderbar::new(&builder);
         let content_header = ContentHeader::new(&builder);
 
-        window.set_application(app);
-        window.set_icon_name(APP_ID);
+        window.set_application(Some(app));
+        window.set_icon_name(Some(APP_ID));
         window.set_title(APP_NAME);
         if PROFILE == "Devel" {
             window.get_style_context().add_class("devel");
@@ -314,7 +314,7 @@ impl MainWindow {
                 let article_model = content_page.borrow().get_selected_article_model();
                 if let Some(article_model) = article_model {
                     if let Some(url) = article_model.url {
-                        gtk::show_uri_on_window(&main_window, url.get().as_str(), 0).unwrap();
+                        gtk::show_uri_on_window(Some(&main_window), url.get().as_str(), 0).unwrap();
                     } else {
                         warn!("Open selected article in browser: No url available.")
                     }

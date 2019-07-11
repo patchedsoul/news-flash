@@ -38,7 +38,7 @@ impl KeybindingEditor {
         let set_button_clone = set_button.clone();
         let cancel_button_clone = cancel_button.clone();
         let dialog = builder.get::<Dialog>("dialog");
-        dialog.set_transient_for(settings_dialog);
+        dialog.set_transient_for(Some(settings_dialog));
         dialog.connect_key_press_event(move |widget, event| {
             let keyval = event.get_keyval();
             let modifier = Keybindings::clean_modifier(&event.get_state());
