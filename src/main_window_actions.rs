@@ -11,13 +11,14 @@ use crate::rename_dialog::RenameDialog;
 use crate::responsive::ResponsiveLayout;
 use crate::settings::{NewsFlashShortcutWindow, Settings, SettingsDialog};
 use crate::sidebar::models::SidebarSelection;
-use crate::util::{FileUtil, GtkHandle, GtkUtil};
+use crate::util::{FileUtil, GtkHandle};
+use crate::undo_bar::UndoBar;
 use gio::{ActionExt, ActionMapExt, ApplicationExt, SimpleAction};
-use glib::{translate::ToGlib, Variant, VariantTy};
+use glib::{Variant, VariantTy};
 use gtk::{
-    self, Application, ApplicationWindow, ButtonExt, Continue, DialogExt, FileChooserAction, FileChooserDialog,
-    FileChooserExt, FileFilter, GtkWindowExt, GtkWindowExtManual, InfoBar, InfoBarExt, ResponseType, Stack, StackExt,
-    StackTransitionType, WidgetExt,
+    self, Application, ApplicationWindow, ButtonExt, DialogExt, FileChooserAction, FileChooserDialog,
+    FileChooserExt, FileFilter, GtkWindowExt, GtkWindowExtManual, ResponseType, Stack, StackExt,
+    StackTransitionType,
 };
 use log::{debug, error};
 use news_flash::models::{ArticleID, FeedID, LoginData, PluginID};
@@ -521,10 +522,9 @@ impl MainWindowActions {
     pub fn setup_delete_feed_action(
         window: &ApplicationWindow,
         news_flash: &GtkHandle<Option<NewsFlash>>,
-        undo_bar: &InfoBar,
+        undo_bar: &GtkHandle<UndoBar>,
     ) {
         let news_flash = news_flash.clone();
-        let main_window = window.clone();
         let undo_bar = undo_bar.clone();
         let delete_feed_action = SimpleAction::new("delete-feed", VariantTy::new("s").ok());
         delete_feed_action.connect_activate(move |_action, data| {
@@ -536,38 +536,6 @@ impl MainWindowActions {
 
                         // FIXME: unused
                         let _feed = feeds.iter().find(|f| f.feed_id == feed_id).map(|f| f.clone()).unwrap();
-
-                        undo_bar.set_visible(true);
-                        undo_bar.set_revealed(true);
-                        undo_bar.set_show_close_button(false);
-                        let source_id_handle: GtkHandle<Option<u32>> = gtk_handle!(None);
-
-                        let source_id = source_id_handle.clone();
-                        undo_bar.connect_close(move |_bar| {
-                            GtkUtil::remove_source(*source_id.borrow());
-                        });
-
-                        let source_id = source_id_handle.clone();
-                        let undo_bar = undo_bar.clone();
-                        let main_window = main_window.clone();
-                        *source_id_handle.borrow_mut() = Some(
-                            gtk::timeout_add(5000, move || {
-                                *source_id.borrow_mut() = None;
-                                undo_bar.set_revealed(false);
-                                undo_bar.set_visible(false);
-                                undo_bar.emit_close();
-                                // FIXME: actually delete feed
-                                // news_flash.remove_feed(&feed).unwrap();
-                                if let Some(action) = main_window.lookup_action("update-sidebar") {
-                                    action.activate(None);
-                                }
-                                if let Some(action) = main_window.lookup_action("update-article-list") {
-                                    action.activate(None);
-                                }
-                                Continue(false)
-                            })
-                            .to_glib(),
-                        );
                     }
                 }
             }

@@ -12,12 +12,13 @@ use crate::sidebar::models::SidebarSelection;
 use crate::util::{BuilderHelper, GtkHandle, GtkUtil, GTK_CSS_ERROR, GTK_RESOURCE_FILE_ERROR};
 use crate::welcome_screen::{WelcomeHeaderbar, WelcomePage};
 use crate::Resources;
+use crate::undo_bar::UndoBar;
 use failure::Error;
 use gdk::EventKey;
 use gio::{ActionExt, ActionMapExt};
 use glib::{self, Variant};
 use gtk::{
-    self, Application, ApplicationWindow, CssProvider, CssProviderExt, GtkWindowExt, GtkWindowExtManual, InfoBar,
+    self, Application, ApplicationWindow, CssProvider, CssProviderExt, GtkWindowExt, GtkWindowExtManual,
     Inhibit, Settings as GtkSettings, SettingsExt, Stack, StackExt, StyleContext, StyleContextExt, WidgetExt,
 };
 use lazy_static::lazy_static;
@@ -56,7 +57,7 @@ impl MainWindow {
         let window = builder.get::<ApplicationWindow>("main_window");
         let stack = builder.get::<Stack>("main_stack");
         let header_stack = builder.get::<Stack>("header_stack");
-        let undo_bar = builder.get::<InfoBar>("undo_bar");
+        let undo_bar = UndoBar::new(&builder);
 
         let responsive_layout = gtk_handle!(ResponsiveLayout::new(&builder));
 
@@ -86,6 +87,7 @@ impl MainWindow {
         let content_page_handle = gtk_handle!(content);
         let content_header_handle = gtk_handle!(content_header);
         let news_flash_handle = gtk_handle!(None);
+        let undo_bar_handle = gtk_handle!(undo_bar);
 
         let state = gtk_handle!(MainWindowState::new());
 
@@ -126,7 +128,7 @@ impl MainWindow {
         MainWindowActions::setup_mark_article_read_action(&window, &news_flash_handle);
         MainWindowActions::setup_mark_article_action(&window, &news_flash_handle);
         MainWindowActions::setup_rename_feed_action(&window, &news_flash_handle);
-        MainWindowActions::setup_delete_feed_action(&window, &news_flash_handle, &undo_bar);
+        MainWindowActions::setup_delete_feed_action(&window, &news_flash_handle, &undo_bar_handle);
         MainWindowActions::setup_about_action(&window);
         MainWindowActions::setup_settings_action(&window, &settings);
         MainWindowActions::setup_shortcut_window_action(&window, &settings);

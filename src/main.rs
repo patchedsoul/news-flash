@@ -15,6 +15,7 @@ mod settings;
 mod sidebar;
 mod util;
 mod welcome_screen;
+mod undo_bar;
 
 use crate::config::APP_ID;
 use crate::main_window::MainWindow;
