@@ -1,4 +1,4 @@
-use news_flash::models::{FeedID, CategoryID};
+use news_flash::models::{CategoryID, FeedID};
 use serde_derive::{Deserialize, Serialize};
 
 #[derive(Clone, Debug)]

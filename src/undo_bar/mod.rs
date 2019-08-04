@@ -1,11 +1,11 @@
 mod models;
 
-pub use models::UndoAction;
-use crate::util::{BuilderHelper, GtkUtil, GtkHandle};
 use crate::gtk_handle;
-use gtk::{InfoBar};
+use crate::util::{BuilderHelper, GtkHandle, GtkUtil};
 use gio::{ActionExt, ActionMapExt};
-use glib::{Variant};
+use glib::Variant;
+use gtk::InfoBar;
+pub use models::UndoAction;
 use std::cell::RefCell;
 use std::rc::Rc;
 
@@ -34,7 +34,7 @@ impl UndoBar {
                         action.activate(Some(&variant));
                     }
                 }
-            },
+            }
             UndoAction::DeleteCategory(category_id) => {
                 if let Ok(main_window) = GtkUtil::get_main_window(&bar) {
                     if let Some(action) = main_window.lookup_action("delete-category") {
@@ -42,7 +42,7 @@ impl UndoBar {
                         action.activate(Some(&variant));
                     }
                 }
-            },
+            }
         }
     }
 
