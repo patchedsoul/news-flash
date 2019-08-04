@@ -9,17 +9,17 @@ use crate::main_window_state::MainWindowState;
 use crate::responsive::ResponsiveLayout;
 use crate::settings::{Keybindings, Settings};
 use crate::sidebar::models::SidebarSelection;
+use crate::undo_bar::UndoBar;
 use crate::util::{BuilderHelper, GtkHandle, GtkUtil, GTK_CSS_ERROR, GTK_RESOURCE_FILE_ERROR};
 use crate::welcome_screen::{WelcomeHeaderbar, WelcomePage};
 use crate::Resources;
-use crate::undo_bar::UndoBar;
 use failure::Error;
 use gdk::EventKey;
 use gio::{ActionExt, ActionMapExt};
 use glib::{self, Variant};
 use gtk::{
-    self, Application, ApplicationWindow, CssProvider, CssProviderExt, GtkWindowExt, GtkWindowExtManual,
-    Inhibit, Settings as GtkSettings, SettingsExt, Stack, StackExt, StyleContext, StyleContextExt, WidgetExt,
+    self, Application, ApplicationWindow, CssProvider, CssProviderExt, GtkWindowExt, GtkWindowExtManual, Inhibit,
+    Settings as GtkSettings, SettingsExt, Stack, StackExt, StyleContext, StyleContextExt, WidgetExt,
 };
 use lazy_static::lazy_static;
 use log::{info, warn};
