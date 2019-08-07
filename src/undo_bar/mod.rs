@@ -3,9 +3,15 @@ mod models;
 use crate::gtk_handle;
 use crate::util::{BuilderHelper, GtkHandle, GtkUtil};
 use gio::{ActionExt, ActionMapExt};
+<<<<<<< HEAD
 use glib::{translate::ToGlib, Variant};
 use gtk::{Continue, InfoBar};
 pub use models::{UndoAction, UndoActionType};
+=======
+use glib::Variant;
+use gtk::InfoBar;
+pub use models::UndoAction;
+>>>>>>> de322131953ad3023ea39a9aabc55674c6ce4430
 use std::cell::RefCell;
 use std::rc::Rc;
 

@@ -1,11 +1,16 @@
 use news_flash::models::{CategoryID, FeedID};
+<<<<<<< HEAD
 //use serde_derive::{Deserialize, Serialize};
+=======
+use serde_derive::{Deserialize, Serialize};
+>>>>>>> de322131953ad3023ea39a9aabc55674c6ce4430
 
 #[derive(Clone, Debug)]
 pub enum UndoActionType {
     DeleteFeed(FeedID),
     DeleteCategory(CategoryID),
 }
+<<<<<<< HEAD
 
 #[derive(Clone, Debug)]
 pub struct UndoAction {
@@ -29,3 +34,5 @@ impl UndoAction {
         self.timeout
     }
 }
+=======
+>>>>>>> de322131953ad3023ea39a9aabc55674c6ce4430

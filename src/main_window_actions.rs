@@ -11,7 +11,11 @@ use crate::rename_dialog::RenameDialog;
 use crate::responsive::ResponsiveLayout;
 use crate::settings::{NewsFlashShortcutWindow, Settings, SettingsDialog};
 use crate::sidebar::models::SidebarSelection;
+<<<<<<< HEAD
 use crate::undo_bar::{UndoActionType, UndoBar};
+=======
+use crate::undo_bar::{UndoAction, UndoBar};
+>>>>>>> de322131953ad3023ea39a9aabc55674c6ce4430
 use crate::util::{FileUtil, GtkHandle};
 use gio::{ActionExt, ActionMapExt, ApplicationExt, SimpleAction};
 use glib::{Variant, VariantTy};
