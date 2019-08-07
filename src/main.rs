@@ -13,9 +13,9 @@ mod rename_dialog;
 mod responsive;
 mod settings;
 mod sidebar;
+mod undo_bar;
 mod util;
 mod welcome_screen;
-mod undo_bar;
 
 use crate::config::APP_ID;
 use crate::main_window::MainWindow;

@@ -11,14 +11,13 @@ use crate::rename_dialog::RenameDialog;
 use crate::responsive::ResponsiveLayout;
 use crate::settings::{NewsFlashShortcutWindow, Settings, SettingsDialog};
 use crate::sidebar::models::SidebarSelection;
+use crate::undo_bar::{UndoActionType, UndoBar};
 use crate::util::{FileUtil, GtkHandle};
-use crate::undo_bar::{UndoBar, UndoAction};
 use gio::{ActionExt, ActionMapExt, ApplicationExt, SimpleAction};
 use glib::{Variant, VariantTy};
 use gtk::{
-    self, Application, ApplicationWindow, ButtonExt, DialogExt, FileChooserAction, FileChooserDialog,
-    FileChooserExt, FileFilter, GtkWindowExt, GtkWindowExtManual, ResponseType, Stack, StackExt,
-    StackTransitionType,
+    self, Application, ApplicationWindow, ButtonExt, DialogExt, FileChooserAction, FileChooserDialog, FileChooserExt,
+    FileFilter, GtkWindowExt, GtkWindowExtManual, ResponseType, Stack, StackExt, StackTransitionType,
 };
 use log::{debug, error};
 use news_flash::models::{ArticleID, FeedID, LoginData, PluginID};
@@ -519,17 +518,14 @@ impl MainWindowActions {
         window.add_action(&rename_feed_action);
     }
 
-    pub fn setup_enqueue_delete_feed_action(
-        window: &ApplicationWindow,
-        undo_bar: &GtkHandle<UndoBar>,
-    ) {
+    pub fn setup_enqueue_delete_feed_action(window: &ApplicationWindow, undo_bar: &GtkHandle<UndoBar>) {
         let undo_bar = undo_bar.clone();
         let enqueue_delete_feed_action = SimpleAction::new("enqueue-delete-feed", VariantTy::new("s").ok());
         enqueue_delete_feed_action.connect_activate(move |_action, data| {
             if let Some(data) = data {
                 if let Some(data) = data.get_str() {
                     let feed_id = FeedID::new(&data);
-                    undo_bar.borrow().add_action(UndoAction::DeleteFeed(feed_id));
+                    undo_bar.borrow().add_action(UndoActionType::DeleteFeed(feed_id));
                 }
             }
         });
@@ -537,10 +533,7 @@ impl MainWindowActions {
         window.add_action(&enqueue_delete_feed_action);
     }
 
-    pub fn setup_delete_feed_action(
-        window: &ApplicationWindow,
-        news_flash: &GtkHandle<Option<NewsFlash>>,
-    ) {
+    pub fn setup_delete_feed_action(window: &ApplicationWindow, news_flash: &GtkHandle<Option<NewsFlash>>) {
         let news_flash = news_flash.clone();
         let delete_feed_action = SimpleAction::new("delete-feed", VariantTy::new("s").ok());
         delete_feed_action.connect_activate(move |_action, data| {
