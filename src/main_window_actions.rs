@@ -11,7 +11,7 @@ use crate::rename_dialog::RenameDialog;
 use crate::responsive::ResponsiveLayout;
 use crate::settings::{NewsFlashShortcutWindow, Settings, SettingsDialog};
 use crate::sidebar::models::SidebarSelection;
-use crate::undo_bar::{UndoActionType, UndoBar};
+use crate::undo_bar::{UndoActionModel, UndoBar};
 use crate::util::{FileUtil, GtkHandle};
 use gio::{ActionExt, ActionMapExt, ApplicationExt, SimpleAction};
 use glib::{Variant, VariantTy};
@@ -19,7 +19,7 @@ use gtk::{
     self, Application, ApplicationWindow, ButtonExt, DialogExt, FileChooserAction, FileChooserDialog, FileChooserExt,
     FileFilter, GtkWindowExt, GtkWindowExtManual, ResponseType, Stack, StackExt, StackTransitionType,
 };
-use log::{debug, error};
+use log::{debug, error, info};
 use news_flash::models::{ArticleID, FeedID, LoginData, PluginID};
 use news_flash::{NewsFlash, NewsFlashError};
 use std::cell::RefCell;
@@ -530,7 +530,8 @@ impl MainWindowActions {
         enqueue_undoable_action.connect_activate(move |_action, data| {
             if let Some(data) = data {
                 if let Some(data) = data.get_str() {
-                    let action: UndoActionType = serde_json::from_str(&data).unwrap();
+                    let action: UndoActionModel = serde_json::from_str(&data).unwrap();
+                    info!("enque new undoable action: {}", action);
                     undo_bar.borrow().add_action(action);
                 }
             }
@@ -550,7 +551,11 @@ impl MainWindowActions {
                         let (feeds, _mappings) = news_flash.get_feeds().unwrap();
 
                         // FIXME: unused
-                        let _feed = feeds.iter().find(|f| f.feed_id == feed_id).map(|f| f.clone()).unwrap();
+                        if let Some(feed) = feeds.iter().find(|f| f.feed_id == feed_id).map(|f| f.clone()) {
+                            info!("delete feed '{}' (id: {})", feed.label, feed.feed_id);
+                        } else {
+                            error!("feed not found: {}", feed_id);
+                        }
                     }
                 }
             }

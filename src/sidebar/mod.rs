@@ -1,7 +1,9 @@
 mod feed_list;
+mod footer;
 pub mod models;
 mod tag_list;
 
+use self::footer::SidebarFooter;
 use crate::gtk_handle;
 use crate::util::{BuilderHelper, GtkHandle, GtkUtil, GTK_RESOURCE_FILE_ERROR};
 use crate::Resources;
@@ -44,6 +46,7 @@ pub struct SideBar {
     expanded_categories: GtkHandle<bool>,
     expanded_tags: GtkHandle<bool>,
     delayed_all_selection: GtkHandle<Option<u32>>,
+    footer: SidebarFooter,
 }
 
 impl SideBar {
@@ -67,6 +70,7 @@ impl SideBar {
 
         let feed_list = FeedList::new();
         let tag_list = TagList::new();
+        let footer = SidebarFooter::new(&builder);
 
         let feed_list_handle = gtk_handle!(feed_list);
         let tag_list_handle = gtk_handle!(tag_list);
@@ -190,6 +194,7 @@ impl SideBar {
             expanded_categories,
             expanded_tags,
             delayed_all_selection,
+            footer,
         })
     }
 

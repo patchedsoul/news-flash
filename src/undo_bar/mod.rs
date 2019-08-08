@@ -4,12 +4,13 @@ use crate::gtk_handle;
 use crate::util::{BuilderHelper, GtkHandle, GtkUtil};
 use gio::{ActionExt, ActionMapExt};
 use glib::{translate::ToGlib, Variant};
-use gtk::{Button, ButtonExt, Continue, InfoBar, InfoBarExt, Label, LabelExt};
-pub use models::{UndoAction, UndoActionType};
+use gtk::{Button, ButtonExt, Continue, InfoBar, InfoBarExt, Label, LabelExt, WidgetExt};
+use log::debug;
+pub use models::{UndoAction, UndoActionModel};
 use std::cell::RefCell;
 use std::rc::Rc;
 
-static ACTION_DELAY: u32 = 5000;
+static ACTION_DELAY: u32 = 10000;
 
 #[derive(Clone, Debug)]
 pub struct UndoBar {
@@ -42,11 +43,13 @@ impl UndoBar {
             button_current_action.replace(None);
             button_info_bar.set_revealed(false);
         });
+
+        self.widget.show();
     }
 
-    fn execute_action(action: &UndoActionType, bar: &InfoBar) {
+    fn execute_action(action: &UndoActionModel, bar: &InfoBar) {
         match action {
-            UndoActionType::DeleteFeed((feed_id, _label)) => {
+            UndoActionModel::DeleteFeed((feed_id, _label)) => {
                 if let Ok(main_window) = GtkUtil::get_main_window(bar) {
                     if let Some(action) = main_window.lookup_action("delete-feed") {
                         let variant = Variant::from(feed_id.to_str());
@@ -54,7 +57,7 @@ impl UndoBar {
                     }
                 }
             }
-            UndoActionType::DeleteCategory((category_id, _label)) => {
+            UndoActionModel::DeleteCategory((category_id, _label)) => {
                 if let Ok(main_window) = GtkUtil::get_main_window(bar) {
                     if let Some(action) = main_window.lookup_action("delete-category") {
                         let variant = Variant::from(category_id.to_str());
@@ -65,17 +68,18 @@ impl UndoBar {
         }
     }
 
-    pub fn add_action(&self, action: UndoActionType) {
+    pub fn add_action(&self, action: UndoActionModel) {
         if let Some(current_action) = self.current_action.borrow().as_ref() {
+            debug!("remove current action: {}", current_action.get_model());
             GtkUtil::remove_source(Some(current_action.get_timeout()));
-            Self::execute_action(current_action.get_type(), &self.widget);
+            Self::execute_action(current_action.get_model(), &self.widget);
         }
 
         match &action {
-            UndoActionType::DeleteCategory((_id, label)) => {
-                self.label.set_label(&format!("Delted Category'{}'", label))
+            UndoActionModel::DeleteCategory((_id, label)) => {
+                self.label.set_label(&format!("Deleted Category '{}'", label))
             }
-            UndoActionType::DeleteFeed((_id, label)) => self.label.set_label(&format!("Delted Feed'{}'", label)),
+            UndoActionModel::DeleteFeed((_id, label)) => self.label.set_label(&format!("Deleted Feed '{}'", label)),
         }
 
         self.widget.set_revealed(true);
@@ -103,5 +107,12 @@ impl UndoBar {
                 action.activate(None);
             }
         }
+    }
+
+    pub fn get_current_action(&self) -> Option<UndoActionModel> {
+        if let Some(current_action) = self.current_action.borrow().as_ref() {
+            return Some(current_action.get_model().clone());
+        }
+        None
     }
 }

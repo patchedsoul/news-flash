@@ -10,7 +10,7 @@ use crate::main_window_state::MainWindowState;
 use crate::settings::Settings;
 use crate::sidebar::models::SidebarSelection;
 use crate::sidebar::{FeedListTree, SideBar, TagListModel};
-use crate::undo_bar::UndoBar;
+use crate::undo_bar::{UndoActionModel, UndoBar};
 use crate::util::{BuilderHelper, GtkHandle};
 use failure::format_err;
 use failure::Error;
@@ -169,6 +169,13 @@ impl ContentPage {
             SidebarSelection::All | SidebarSelection::Feed(_) | SidebarSelection::Cateogry(_) => None,
             SidebarSelection::Tag((id, _title)) => Some(id.clone()),
         };
+        let (feed_blacklist, category_blacklist) = match undo_bar.borrow().get_current_action() {
+            Some(action) => match action {
+                UndoActionModel::DeleteFeed((feed_id, _label)) => (Some(vec![feed_id]), None),
+                UndoActionModel::DeleteCategory((category_id, _label)) => (None, Some(vec![category_id])),
+            },
+            None => (None, None),
+        };
 
         news_flash
             .get_articles(ArticleFilter {
@@ -178,7 +185,9 @@ impl ContentPage {
                 unread,
                 marked,
                 feed,
+                feed_blacklist,
                 category,
+                category_blacklist,
                 tag,
                 ids: None,
                 newer_than: None,
