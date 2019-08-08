@@ -354,7 +354,9 @@ impl MainWindowActions {
         let undo_bar = undo_bar.clone();
         let update_article_list_action = SimpleAction::new("update-article-list", None);
         update_article_list_action.connect_activate(move |_action, _data| {
-            content_page.borrow_mut().update_article_list(&news_flash, &state, &undo_bar);
+            content_page
+                .borrow_mut()
+                .update_article_list(&news_flash, &state, &undo_bar);
         });
         update_article_list_action.set_enabled(true);
         window.add_action(&update_article_list_action);
