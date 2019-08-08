@@ -10,6 +10,7 @@ use crate::main_window_state::MainWindowState;
 use crate::settings::Settings;
 use crate::sidebar::models::SidebarSelection;
 use crate::sidebar::{FeedListTree, SideBar, TagListModel};
+use crate::undo_bar::UndoBar;
 use crate::util::{BuilderHelper, GtkHandle};
 use failure::format_err;
 use failure::Error;
@@ -62,13 +63,19 @@ impl ContentPage {
         &mut self,
         news_flash_handle: &GtkHandle<Option<NewsFlash>>,
         window_state: &GtkHandle<MainWindowState>,
+        undo_bar: &GtkHandle<UndoBar>,
     ) {
         if let Some(news_flash) = news_flash_handle.borrow_mut().as_mut() {
-            self.update_article_list_from_ref(news_flash, &mut *window_state.borrow_mut());
+            self.update_article_list_from_ref(news_flash, &mut *window_state.borrow_mut(), undo_bar);
         }
     }
 
-    fn update_article_list_from_ref(&mut self, news_flash: &mut NewsFlash, window_state: &mut MainWindowState) {
+    fn update_article_list_from_ref(
+        &mut self,
+        news_flash: &mut NewsFlash,
+        window_state: &mut MainWindowState,
+        undo_bar: &GtkHandle<UndoBar>,
+    ) {
         let relevant_articles_loaded = self
             .article_list
             .get_relevant_article_count(window_state.get_header_selection());
@@ -80,7 +87,7 @@ impl ContentPage {
             MainWindowState::page_size()
         };
         let mut list_model = ArticleListModel::new(&self.settings.borrow().get_article_list_order());
-        let mut articles = Self::load_articles(news_flash, &window_state, &self.settings, limit, None);
+        let mut articles = Self::load_articles(news_flash, &window_state, &self.settings, undo_bar, limit, None);
 
         let (feeds, _) = news_flash.get_feeds().unwrap();
         let _: Vec<_> = articles
@@ -101,6 +108,7 @@ impl ContentPage {
         &mut self,
         news_flash_handle: &GtkHandle<Option<NewsFlash>>,
         window_state: &GtkHandle<MainWindowState>,
+        undo_bar: &GtkHandle<UndoBar>,
     ) -> Result<(), Error> {
         let window_state = window_state.borrow().clone();
         let relevant_articles_loaded = self
@@ -112,6 +120,7 @@ impl ContentPage {
                 news_flash,
                 &window_state,
                 &self.settings,
+                undo_bar,
                 MainWindowState::page_size(),
                 Some(relevant_articles_loaded as i64),
             );
@@ -136,6 +145,7 @@ impl ContentPage {
         news_flash: &mut NewsFlash,
         window_state: &MainWindowState,
         settings: &GtkHandle<Settings>,
+        undo_bar: &GtkHandle<UndoBar>,
         limit: i64,
         offset: Option<i64>,
     ) -> Vec<Article> {

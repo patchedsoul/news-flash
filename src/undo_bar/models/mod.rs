@@ -1,10 +1,10 @@
 use news_flash::models::{CategoryID, FeedID};
-//use serde_derive::{Deserialize, Serialize};
+use serde_derive::{Deserialize, Serialize};
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, Serialize, Deserialize)]
 pub enum UndoActionType {
-    DeleteFeed(FeedID),
-    DeleteCategory(CategoryID),
+    DeleteFeed((FeedID, String)),
+    DeleteCategory((CategoryID, String)),
 }
 
 #[derive(Clone, Debug)]

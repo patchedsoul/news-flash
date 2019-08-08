@@ -921,7 +921,6 @@
               <object class="GtkInfoBar" id="undo_bar">
                 <property name="can_focus">False</property>
                 <property name="no_show_all">True</property>
-                <property name="show_close_button">True</property>
                 <property name="revealed">False</property>
                 <child internal-child="action_area">
                   <object class="GtkButtonBox">
@@ -929,8 +928,8 @@
                     <property name="spacing">6</property>
                     <property name="layout_style">end</property>
                     <child>
-                      <object class="GtkButton">
-                        <property name="label" translatable="yes">Cancel</property>
+                      <object class="GtkButton" id="undo_button">
+                        <property name="label" translatable="yes">Undo</property>
                         <property name="visible">True</property>
                         <property name="can_focus">True</property>
                         <property name="receives_default">True</property>
@@ -953,10 +952,10 @@
                     <property name="can_focus">False</property>
                     <property name="spacing">16</property>
                     <child>
-                      <object class="GtkLabel">
+                      <object class="GtkLabel" id="undo_label">
                         <property name="visible">True</property>
                         <property name="can_focus">False</property>
-                        <property name="label" translatable="yes">Remove X</property>
+                        <property name="label" translatable="yes">Delte Feed/Category</property>
                       </object>
                       <packing>
                         <property name="expand">False</property>

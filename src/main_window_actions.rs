@@ -346,13 +346,15 @@ impl MainWindowActions {
         state: &GtkHandle<MainWindowState>,
         content_page: &GtkHandle<ContentPage>,
         news_flash: &GtkHandle<Option<NewsFlash>>,
+        undo_bar: &GtkHandle<UndoBar>,
     ) {
         let state = state.clone();
         let content_page = content_page.clone();
         let news_flash = news_flash.clone();
+        let undo_bar = undo_bar.clone();
         let update_article_list_action = SimpleAction::new("update-article-list", None);
         update_article_list_action.connect_activate(move |_action, _data| {
-            content_page.borrow_mut().update_article_list(&news_flash, &state);
+            content_page.borrow_mut().update_article_list(&news_flash, &state, &undo_bar);
         });
         update_article_list_action.set_enabled(true);
         window.add_action(&update_article_list_action);
@@ -363,15 +365,17 @@ impl MainWindowActions {
         state: &GtkHandle<MainWindowState>,
         content_page: &GtkHandle<ContentPage>,
         news_flash: &GtkHandle<Option<NewsFlash>>,
+        undo_bar: &GtkHandle<UndoBar>,
     ) {
         let state = state.clone();
         let content_page = content_page.clone();
         let news_flash = news_flash.clone();
+        let undo_bar = undo_bar.clone();
         let show_more_articles_action = SimpleAction::new("show-more-articles", None);
         show_more_articles_action.connect_activate(move |_action, _data| {
             content_page
                 .borrow_mut()
-                .load_more_articles(&news_flash, &state)
+                .load_more_articles(&news_flash, &state, &undo_bar)
                 .unwrap();
         });
         show_more_articles_action.set_enabled(true);
@@ -518,19 +522,19 @@ impl MainWindowActions {
         window.add_action(&rename_feed_action);
     }
 
-    pub fn setup_enqueue_delete_feed_action(window: &ApplicationWindow, undo_bar: &GtkHandle<UndoBar>) {
+    pub fn setup_enqueue_undoable_action(window: &ApplicationWindow, undo_bar: &GtkHandle<UndoBar>) {
         let undo_bar = undo_bar.clone();
-        let enqueue_delete_feed_action = SimpleAction::new("enqueue-delete-feed", VariantTy::new("s").ok());
-        enqueue_delete_feed_action.connect_activate(move |_action, data| {
+        let enqueue_undoable_action = SimpleAction::new("enqueue-undoable-action", VariantTy::new("s").ok());
+        enqueue_undoable_action.connect_activate(move |_action, data| {
             if let Some(data) = data {
                 if let Some(data) = data.get_str() {
-                    let feed_id = FeedID::new(&data);
-                    undo_bar.borrow().add_action(UndoActionType::DeleteFeed(feed_id));
+                    let action: UndoActionType = serde_json::from_str(&data).unwrap();
+                    undo_bar.borrow().add_action(action);
                 }
             }
         });
-        enqueue_delete_feed_action.set_enabled(true);
-        window.add_action(&enqueue_delete_feed_action);
+        enqueue_undoable_action.set_enabled(true);
+        window.add_action(&enqueue_undoable_action);
     }
 
     pub fn setup_delete_feed_action(window: &ApplicationWindow, news_flash: &GtkHandle<Option<NewsFlash>>) {

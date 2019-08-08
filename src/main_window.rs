@@ -114,8 +114,8 @@ impl MainWindow {
         MainWindowActions::setup_update_sidebar_action(&window, &content_page_handle, &news_flash_handle, &state);
         MainWindowActions::setup_headerbar_selection_action(&window, &content_header_handle, &state);
         MainWindowActions::setup_search_action(&window, &state);
-        MainWindowActions::setup_update_article_list_action(&window, &state, &content_page_handle, &news_flash_handle);
-        MainWindowActions::setup_show_more_articles_action(&window, &state, &content_page_handle, &news_flash_handle);
+        MainWindowActions::setup_update_article_list_action(&window, &state, &content_page_handle, &news_flash_handle, &undo_bar_handle);
+        MainWindowActions::setup_show_more_articles_action(&window, &state, &content_page_handle, &news_flash_handle, &undo_bar_handle);
         MainWindowActions::setup_show_article_action(
             &window,
             &content_page_handle,
@@ -128,7 +128,7 @@ impl MainWindow {
         MainWindowActions::setup_mark_article_read_action(&window, &news_flash_handle);
         MainWindowActions::setup_mark_article_action(&window, &news_flash_handle);
         MainWindowActions::setup_rename_feed_action(&window, &news_flash_handle);
-        MainWindowActions::setup_enqueue_delete_feed_action(&window, &undo_bar_handle);
+        MainWindowActions::setup_enqueue_undoable_action(&window, &undo_bar_handle);
         MainWindowActions::setup_delete_feed_action(&window, &news_flash_handle);
         MainWindowActions::setup_about_action(&window);
         MainWindowActions::setup_settings_action(&window, &settings);
@@ -163,7 +163,7 @@ impl MainWindow {
                 .update_sidebar(&news_flash_handle, &state);
             content_page_handle
                 .borrow_mut()
-                .update_article_list(&news_flash_handle, &state);
+                .update_article_list(&news_flash_handle, &state, &undo_bar_handle);
 
             header_stack.set_visible_child_name(CONTENT_PAGE);
         } else {
