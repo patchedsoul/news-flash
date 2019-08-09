@@ -129,6 +129,12 @@ impl CategoryRow {
         self.arrow_event.clone()
     }
 
+    pub fn expand_collapse_arrow(&mut self) {
+        self.expanded = !self.expanded;
+        let arrow_image = self.arrow_event.get_child().unwrap();
+        Self::rotate_arrow(&arrow_image, self.expanded);
+    }
+
     pub fn collapse(&self) {
         self.revealer.set_reveal_child(false);
         self.revealer.get_style_context().add_class("hidden");

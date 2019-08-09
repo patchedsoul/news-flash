@@ -240,7 +240,10 @@ impl FeedList {
             let selection = self.tree.borrow().calculate_selection(row.get_index());
             if let Some(selected_item) = selection {
                 if let (FeedListItemID::Category(id), _title) = selected_item {
-                    Self::expand_collapse_category(&id, &self.tree, &self.categories, &self.feeds);
+                    if let Some(category_row) = self.categories.borrow().get(&id) {
+                        category_row.borrow_mut().expand_collapse_arrow();
+                        Self::expand_collapse_category(&id, &self.tree, &self.categories, &self.feeds);
+                    }
                 }
             }
         }
