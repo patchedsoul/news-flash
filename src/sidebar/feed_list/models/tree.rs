@@ -126,7 +126,10 @@ impl FeedListTree {
         None
     }
 
-    pub fn collapse_expand_category(&mut self, category_id: &CategoryID) -> Option<(Vec<FeedID>, Vec<CategoryID>, bool)> {
+    pub fn collapse_expand_category(
+        &mut self,
+        category_id: &CategoryID,
+    ) -> Option<(Vec<FeedID>, Vec<CategoryID>, bool)> {
         if let Some((category, _)) = self.find_category(category_id) {
             let expanded = category.expand_collapse();
             let (feed_ids, category_ids) = Self::category_child_ids(&category);

@@ -20,12 +20,22 @@ impl fmt::Display for FeedListChangeSet {
         match self {
             FeedListChangeSet::RemoveFeed(id) => write!(f, "RemoveFeed id='{}'", id),
             FeedListChangeSet::RemoveCategory(id) => write!(f, "RemoveCategory id='{}'", id),
-            FeedListChangeSet::AddFeed(model, pos, visible) => write!(f, "AddFeed id='{}' pos='{}' visible='{}'", model.id, pos, visible),
-            FeedListChangeSet::AddCategory(model, pos, visible) => write!(f, "AddCategory id='{}' pos='{}' visible='{}'", model.id, pos, visible),
-            FeedListChangeSet::FeedUpdateItemCount(id, count) => write!(f, "FeedUpdateItemCount id='{}' pos='{}'", id, count),
-            FeedListChangeSet::CategoryUpdateItemCount(id, count) => write!(f, "CategoryUpdateItemCount id='{}' pos='{}'", id, count),
+            FeedListChangeSet::AddFeed(model, pos, visible) => {
+                write!(f, "AddFeed id='{}' pos='{}' visible='{}'", model.id, pos, visible)
+            }
+            FeedListChangeSet::AddCategory(model, pos, visible) => {
+                write!(f, "AddCategory id='{}' pos='{}' visible='{}'", model.id, pos, visible)
+            }
+            FeedListChangeSet::FeedUpdateItemCount(id, count) => {
+                write!(f, "FeedUpdateItemCount id='{}' pos='{}'", id, count)
+            }
+            FeedListChangeSet::CategoryUpdateItemCount(id, count) => {
+                write!(f, "CategoryUpdateItemCount id='{}' pos='{}'", id, count)
+            }
             FeedListChangeSet::FeedUpdateLabel(id, label) => write!(f, "FeedUpdateLabel id='{}' label='{}'", id, label),
-            FeedListChangeSet::CategoryUpdateLabel(id, label) => write!(f, "CategoryUpdateLabel id='{}' label='{}'", id, label),
+            FeedListChangeSet::CategoryUpdateLabel(id, label) => {
+                write!(f, "CategoryUpdateLabel id='{}' label='{}'", id, label)
+            }
         }
     }
 }

@@ -528,10 +528,7 @@ impl MainWindowActions {
         window.add_action(&rename_feed_action);
     }
 
-    pub fn setup_delete_selection_action(
-        window: &ApplicationWindow,
-        content_page: &GtkHandle<ContentPage>,
-    ) {
+    pub fn setup_delete_selection_action(window: &ApplicationWindow, content_page: &GtkHandle<ContentPage>) {
         let content_page = content_page.clone();
         let main_window = window.clone();
         let delete_selection_action = SimpleAction::new("delete-selection-action", None);
@@ -578,41 +575,35 @@ impl MainWindowActions {
 
                     let select_all_button = match content_page.borrow().sidebar_get_selection() {
                         SidebarSelection::All => false,
-                        SidebarSelection::Cateogry((selected_id, _label)) => {
-                            match &action {
-                                UndoActionModel::DeleteCategory((delete_id, _label)) => {
-                                    if &selected_id == delete_id {
-                                        true
-                                    } else {
-                                        false
-                                    }
-                                },
-                                _ => false,
+                        SidebarSelection::Cateogry((selected_id, _label)) => match &action {
+                            UndoActionModel::DeleteCategory((delete_id, _label)) => {
+                                if &selected_id == delete_id {
+                                    true
+                                } else {
+                                    false
+                                }
                             }
+                            _ => false,
                         },
-                        SidebarSelection::Feed((selected_id, _label)) => {
-                            match &action {
-                                UndoActionModel::DeleteFeed((delete_id, _label)) => {
-                                    if &selected_id == delete_id {
-                                        true
-                                    } else {
-                                        false
-                                    }
-                                },
-                                _ => false,
+                        SidebarSelection::Feed((selected_id, _label)) => match &action {
+                            UndoActionModel::DeleteFeed((delete_id, _label)) => {
+                                if &selected_id == delete_id {
+                                    true
+                                } else {
+                                    false
+                                }
                             }
+                            _ => false,
                         },
-                        SidebarSelection::Tag((selected_id, _label)) => {
-                            match &action {
-                                UndoActionModel::DeleteTag((delete_id, _label)) => {
-                                    if &selected_id == delete_id {
-                                        true
-                                    } else {
-                                        false
-                                    }
-                                },
-                                _ => false,
+                        SidebarSelection::Tag((selected_id, _label)) => match &action {
+                            UndoActionModel::DeleteTag((delete_id, _label)) => {
+                                if &selected_id == delete_id {
+                                    true
+                                } else {
+                                    false
+                                }
                             }
+                            _ => false,
                         },
                     };
                     if select_all_button {

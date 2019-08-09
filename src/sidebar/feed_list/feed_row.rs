@@ -1,9 +1,9 @@
 use crate::gtk_handle;
 use crate::sidebar::feed_list::models::FeedListFeedModel;
+use crate::undo_bar::UndoActionModel;
 use crate::util::BuilderHelper;
 use crate::util::GtkHandle;
 use crate::util::GtkUtil;
-use crate::undo_bar::UndoActionModel;
 use cairo::{self, Format, ImageSurface};
 use gdk::{DragAction, EventType, ModifierType};
 use gio::{Menu, MenuItem};
