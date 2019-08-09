@@ -274,6 +274,7 @@ impl FeedListTree {
                         match new_item {
                             FeedListItem::Category(new_category) => match old_item {
                                 FeedListItem::Category(old_category) => {
+                                    new_category.expanded = old_category.expanded;
                                     if !old_category.children.is_empty() || !new_category.children.is_empty() {
                                         diff.append(&mut Self::diff_level(
                                             &old_category.children,
@@ -530,10 +531,11 @@ impl FeedListTree {
 
             match item {
                 FeedListItem::Category(model) => {
+                    println!("{} (id: {}) (exp: {})", model.label, model.id, model.expanded);
                     self.print_internal(&model.children, &mut new_level);
                 }
                 FeedListItem::Feed(model) => {
-                    println!("{}", model.label);
+                    println!("{} (id: {})", model.label, model.id);
                 }
             }
         }

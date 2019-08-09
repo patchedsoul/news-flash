@@ -162,9 +162,8 @@ impl FeedList {
     }
 
     pub fn update(&mut self, new_tree: FeedListTree) {
-        let old_tree = self.tree.clone();
-        self.tree = gtk_handle!(new_tree);
-        let tree_diff = old_tree.borrow().generate_diff(&mut self.tree.borrow_mut());
+        let old_tree = self.tree.replace(new_tree);
+        let tree_diff = old_tree.generate_diff(&mut self.tree.borrow_mut());
         for diff in tree_diff {
             match diff {
                 FeedListChangeSet::RemoveFeed(feed_id) => {

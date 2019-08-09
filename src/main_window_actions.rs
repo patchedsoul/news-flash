@@ -632,7 +632,7 @@ impl MainWindowActions {
 
                         if let Some(feed) = feeds.iter().find(|f| f.feed_id == feed_id).map(|f| f.clone()) {
                             info!("delete feed '{}' (id: {})", feed.label, feed.feed_id);
-                            news_flash.remove_feed(&feed).unwrap();
+                        //news_flash.remove_feed(&feed).unwrap();
                         } else {
                             // FIXME: error handling
                             error!("feed not found: {}", feed_id);

@@ -49,9 +49,8 @@ impl TagList {
     }
 
     pub fn update(&mut self, new_list: TagListModel) {
-        let old_list = self.list_model.clone();
-        self.list_model = gtk_handle!(new_list);
-        let list_diff = old_list.borrow_mut().generate_diff(&mut self.list_model.borrow_mut());
+        let mut old_list = self.list_model.replace(new_list);
+        let list_diff = old_list.generate_diff(&mut self.list_model.borrow_mut());
         for diff in list_diff {
             match diff {
                 TagListChangeSet::Remove(id) => {
