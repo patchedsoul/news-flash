@@ -173,6 +173,7 @@ impl ContentPage {
             Some(action) => match action {
                 UndoActionModel::DeleteFeed((feed_id, _label)) => (Some(vec![feed_id]), None),
                 UndoActionModel::DeleteCategory((category_id, _label)) => (None, Some(vec![category_id])),
+                UndoActionModel::DeleteTag((_tag_id, _label)) => (None, None),
             },
             None => (None, None),
         };
@@ -200,17 +201,28 @@ impl ContentPage {
         &mut self,
         news_flash_handle: &GtkHandle<Option<NewsFlash>>,
         state: &GtkHandle<MainWindowState>,
+        undo_bar: &GtkHandle<UndoBar>,
     ) {
         if let Some(news_flash) = news_flash_handle.borrow_mut().as_mut() {
-            self.update_sidebar_from_ref(news_flash, &*state.borrow());
+            self.update_sidebar_from_ref(news_flash, &*state.borrow(), undo_bar);
         }
     }
 
-    fn update_sidebar_from_ref(&mut self, news_flash: &mut NewsFlash, state: &MainWindowState) {
+    fn update_sidebar_from_ref(
+        &mut self,
+        news_flash: &mut NewsFlash,
+        state: &MainWindowState,
+        undo_bar: &GtkHandle<UndoBar>,
+    ) {
         // feedlist
         let mut tree = FeedListTree::new();
         let categories = news_flash.get_categories().unwrap();
         for category in categories {
+            if let Some(UndoActionModel::DeleteCategory((id, _label))) = undo_bar.borrow().get_current_action() {
+                if id == category.category_id {
+                    continue;
+                }
+            }
             let count = match state.get_header_selection() {
                 HeaderSelection::Marked => news_flash.marked_count_category(&category.category_id).unwrap(),
                 HeaderSelection::All | HeaderSelection::Unread => {
@@ -221,13 +233,19 @@ impl ContentPage {
         }
         let (feeds, mappings) = news_flash.get_feeds().unwrap();
         for mapping in mappings {
+            let feed = feeds.iter().find(|feed| feed.feed_id == mapping.feed_id).unwrap();
+            if let Some(UndoActionModel::DeleteFeed((id, _label))) = undo_bar.borrow().get_current_action() {
+                if id == feed.feed_id {
+                    continue;
+                }
+            }
+
             let count = match state.get_header_selection() {
                 HeaderSelection::Marked => news_flash.marked_count_feed(&mapping.feed_id).unwrap(),
                 HeaderSelection::All | HeaderSelection::Unread => {
                     news_flash.unread_count_feed(&mapping.feed_id).unwrap()
                 }
             };
-            let feed = feeds.iter().find(|feed| feed.feed_id == mapping.feed_id).unwrap();
             let favicon = match news_flash.get_icon_info(&feed) {
                 Ok(favicon) => Some(favicon),
                 Err(_) => None,
@@ -249,6 +267,11 @@ impl ContentPage {
                 self.sidebar.hide_taglist();
             } else {
                 for tag in tags {
+                    if let Some(UndoActionModel::DeleteTag((id, _label))) = undo_bar.borrow().get_current_action() {
+                        if id == tag.tag_id {
+                            continue;
+                        }
+                    }
                     let count = match state.get_header_selection() {
                         HeaderSelection::All | HeaderSelection::Unread => {
                             news_flash.unread_count_tag(&tag.tag_id).unwrap()
@@ -325,5 +348,9 @@ impl ContentPage {
 
     pub fn sidebar_get_selection(&self) -> SidebarSelection {
         self.sidebar.get_selection()
+    }
+
+    pub fn sidebar_select_all_button_no_update(&self) {
+        self.sidebar.select_all_button_no_update();
     }
 }

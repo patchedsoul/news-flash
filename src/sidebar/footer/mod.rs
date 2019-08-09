@@ -1,9 +1,6 @@
-use crate::undo_bar::UndoActionModel;
 use crate::util::{BuilderHelper, GtkUtil};
 use gio::{ActionExt, ActionMapExt};
-use glib::Variant;
-use gtk::{Button, ButtonExt};
-use news_flash::models::FeedID;
+use gtk::{Button, ButtonExt, WidgetExt};
 
 #[derive(Clone, Debug)]
 pub struct SidebarFooter {
@@ -18,13 +15,8 @@ impl SidebarFooter {
 
         remove_button.connect_clicked(|button| {
             if let Ok(main_window) = GtkUtil::get_main_window(button) {
-                if let Ok(selection_json) =
-                    serde_json::to_string(&UndoActionModel::DeleteFeed((FeedID::new("asdf"), "asdfa".to_owned())))
-                {
-                    if let Some(action) = main_window.lookup_action("enqueue-undoable-action") {
-                        let selection = Variant::from(&selection_json);
-                        action.activate(Some(&selection));
-                    }
+                if let Some(action) = main_window.lookup_action("delete-selection-action") {
+                    action.activate(None);
                 }
             }
         });
@@ -33,5 +25,9 @@ impl SidebarFooter {
             add_button,
             remove_button,
         }
+    }
+
+    pub fn set_remove_button_sensitive(&self, sensitive: bool) {
+        self.remove_button.set_sensitive(sensitive);
     }
 }

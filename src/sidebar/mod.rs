@@ -46,7 +46,7 @@ pub struct SideBar {
     expanded_categories: GtkHandle<bool>,
     expanded_tags: GtkHandle<bool>,
     delayed_all_selection: GtkHandle<Option<u32>>,
-    footer: SidebarFooter,
+    footer: GtkHandle<SidebarFooter>,
 }
 
 impl SideBar {
@@ -74,6 +74,7 @@ impl SideBar {
 
         let feed_list_handle = gtk_handle!(feed_list);
         let tag_list_handle = gtk_handle!(tag_list);
+        let footer_handle = gtk_handle!(footer);
         let selection_handle = gtk_handle!(SidebarSelection::All);
         let delayed_all_selection = gtk_handle!(None);
 
@@ -100,6 +101,7 @@ impl SideBar {
         let feed_list_feed_list_handle = feed_list_handle.clone();
         let feed_list_selection_handle = selection_handle.clone();
         let feed_list_delayed_all_selection = delayed_all_selection.clone();
+        let feed_list_footer_handle = footer_handle.clone();
         feed_list_handle
             .borrow()
             .widget()
@@ -110,6 +112,7 @@ impl SideBar {
                 }
                 // deselect 'all' & tag_list
                 Self::deselect_all_button(&feed_list_all_event_box, &feed_list_delayed_all_selection);
+                feed_list_footer_handle.borrow().set_remove_button_sensitive(true);
                 feed_list_tag_list_handle.borrow().deselect();
 
                 if let Some((item, title)) = feed_list_feed_list_handle.borrow().get_selection() {
@@ -138,6 +141,7 @@ impl SideBar {
         let tag_list_tag_list_handle = tag_list_handle.clone();
         let tag_list_selection_handle = selection_handle.clone();
         let tag_list_delayed_all_selection = delayed_all_selection.clone();
+        let tag_list_footer_handle = footer_handle.clone();
         tag_list_handle
             .borrow()
             .widget()
@@ -148,6 +152,7 @@ impl SideBar {
                 }
                 // deselect 'all' & tag_list
                 Self::deselect_all_button(&tag_list_all_event_box, &tag_list_delayed_all_selection);
+                tag_list_footer_handle.borrow().set_remove_button_sensitive(true);
                 tag_list_feed_list_handle.borrow().deselect();
 
                 if let Some(selected_id) = tag_list_tag_list_handle.borrow().get_selection() {
@@ -173,6 +178,7 @@ impl SideBar {
             feed_list_handle.clone(),
             tag_list_handle.clone(),
             selection_handle.clone(),
+            footer_handle.clone(),
             &delayed_all_selection,
         );
 
@@ -194,7 +200,7 @@ impl SideBar {
             expanded_categories,
             expanded_tags,
             delayed_all_selection,
-            footer,
+            footer: footer_handle,
         })
     }
 
@@ -305,6 +311,7 @@ impl SideBar {
         feed_list_handle: GtkHandle<FeedList>,
         tag_list_handle: GtkHandle<TagList>,
         selection_handle: GtkHandle<SidebarSelection>,
+        footer_handle: GtkHandle<SidebarFooter>,
         delayed_selection: &GtkHandle<Option<u32>>,
     ) {
         let context = event_box.get_style_context();
@@ -337,8 +344,16 @@ impl SideBar {
             tag_list_handle.borrow().deselect();
 
             Self::select_all_button(widget, &selection_handle, &delayed_selection);
+            footer_handle.borrow().set_remove_button_sensitive(false);
             Inhibit(false)
         });
+    }
+
+    pub fn select_all_button_no_update(&self) {
+        *self.selection.borrow_mut() = SidebarSelection::All;
+        GtkUtil::remove_source(*self.delayed_all_selection.borrow());
+        let context = self.all_event_box.get_style_context();
+        context.add_class("selected");
     }
 
     fn select_all_button(

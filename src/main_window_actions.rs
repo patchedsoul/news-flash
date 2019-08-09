@@ -19,7 +19,7 @@ use gtk::{
     self, Application, ApplicationWindow, ButtonExt, DialogExt, FileChooserAction, FileChooserDialog, FileChooserExt,
     FileFilter, GtkWindowExt, GtkWindowExtManual, ResponseType, Stack, StackExt, StackTransitionType,
 };
-use log::{debug, error, info};
+use log::{debug, error, info, warn};
 use news_flash::models::{ArticleID, FeedID, LoginData, PluginID};
 use news_flash::{NewsFlash, NewsFlashError};
 use std::cell::RefCell;
@@ -114,12 +114,14 @@ impl MainWindowActions {
         header_stack: &Stack,
         content_page: &GtkHandle<ContentPage>,
         state: &GtkHandle<MainWindowState>,
+        undo_bar: &GtkHandle<UndoBar>,
     ) {
         let news_flash = news_flash.clone();
         let stack = stack.clone();
         let header_stack = header_stack.clone();
         let content_page = content_page.clone();
         let state = state.clone();
+        let undo_bar = undo_bar.clone();
         let show_content_page = SimpleAction::new("show-content-page", VariantTy::new("s").ok());
         show_content_page.connect_activate(move |_action, data| {
             if let Some(data) = data {
@@ -129,7 +131,7 @@ impl MainWindowActions {
                     if let Some(api) = &*news_flash.borrow() {
                         user_name = api.user_name();
                     }
-                    content_page.borrow_mut().update_sidebar(&news_flash, &state);
+                    content_page.borrow_mut().update_sidebar(&news_flash, &state, &undo_bar);
                     content_page.borrow().set_service(&id, user_name).unwrap();
                     header_stack.set_visible_child_name("content");
                     stack.set_transition_type(StackTransitionType::SlideLeft);
@@ -234,13 +236,15 @@ impl MainWindowActions {
         content_page: &GtkHandle<ContentPage>,
         news_flash: &GtkHandle<Option<NewsFlash>>,
         state: &GtkHandle<MainWindowState>,
+        undo_bar: &GtkHandle<UndoBar>,
     ) {
         let state = state.clone();
         let content_page = content_page.clone();
         let news_flash = news_flash.clone();
+        let undo_bar = undo_bar.clone();
         let sync_action = SimpleAction::new("update-sidebar", None);
         sync_action.connect_activate(move |_action, _data| {
-            content_page.borrow_mut().update_sidebar(&news_flash, &state);
+            content_page.borrow_mut().update_sidebar(&news_flash, &state, &undo_bar);
         });
         sync_action.set_enabled(true);
         window.add_action(&sync_action);
@@ -524,13 +528,98 @@ impl MainWindowActions {
         window.add_action(&rename_feed_action);
     }
 
-    pub fn setup_enqueue_undoable_action(window: &ApplicationWindow, undo_bar: &GtkHandle<UndoBar>) {
+    pub fn setup_delete_selection_action(
+        window: &ApplicationWindow,
+        content_page: &GtkHandle<ContentPage>,
+    ) {
+        let content_page = content_page.clone();
+        let main_window = window.clone();
+        let delete_selection_action = SimpleAction::new("delete-selection-action", None);
+        delete_selection_action.connect_activate(move |_action, _data| {
+            let selection = content_page.borrow().sidebar_get_selection();
+            let undo_action = match selection {
+                SidebarSelection::All => {
+                    warn!("Trying to delete item while 'All Articles' is selected");
+                    None
+                }
+                SidebarSelection::Feed((feed_id, label)) => Some(UndoActionModel::DeleteFeed((feed_id, label))),
+                SidebarSelection::Cateogry((category_id, label)) => {
+                    Some(UndoActionModel::DeleteCategory((category_id, label)))
+                }
+                SidebarSelection::Tag((tag_id, label)) => Some(UndoActionModel::DeleteTag((tag_id, label))),
+            };
+            if let Some(undo_action) = undo_action {
+                if let Some(action) = main_window.lookup_action("enqueue-undoable-action") {
+                    if let Ok(json) = serde_json::to_string(&undo_action) {
+                        let json = Variant::from(&json);
+                        action.activate(Some(&json));
+                    }
+                }
+            }
+        });
+        delete_selection_action.set_enabled(true);
+        window.add_action(&delete_selection_action);
+    }
+
+    pub fn setup_enqueue_undoable_action(
+        window: &ApplicationWindow,
+        undo_bar: &GtkHandle<UndoBar>,
+        content_page: &GtkHandle<ContentPage>,
+        state: &GtkHandle<MainWindowState>,
+    ) {
         let undo_bar = undo_bar.clone();
+        let state = state.clone();
+        let content_page = content_page.clone();
         let enqueue_undoable_action = SimpleAction::new("enqueue-undoable-action", VariantTy::new("s").ok());
         enqueue_undoable_action.connect_activate(move |_action, data| {
             if let Some(data) = data {
                 if let Some(data) = data.get_str() {
                     let action: UndoActionModel = serde_json::from_str(&data).unwrap();
+
+                    let select_all_button = match content_page.borrow().sidebar_get_selection() {
+                        SidebarSelection::All => false,
+                        SidebarSelection::Cateogry((selected_id, _label)) => {
+                            match &action {
+                                UndoActionModel::DeleteCategory((delete_id, _label)) => {
+                                    if &selected_id == delete_id {
+                                        true
+                                    } else {
+                                        false
+                                    }
+                                },
+                                _ => false,
+                            }
+                        },
+                        SidebarSelection::Feed((selected_id, _label)) => {
+                            match &action {
+                                UndoActionModel::DeleteFeed((delete_id, _label)) => {
+                                    if &selected_id == delete_id {
+                                        true
+                                    } else {
+                                        false
+                                    }
+                                },
+                                _ => false,
+                            }
+                        },
+                        SidebarSelection::Tag((selected_id, _label)) => {
+                            match &action {
+                                UndoActionModel::DeleteTag((delete_id, _label)) => {
+                                    if &selected_id == delete_id {
+                                        true
+                                    } else {
+                                        false
+                                    }
+                                },
+                                _ => false,
+                            }
+                        },
+                    };
+                    if select_all_button {
+                        state.borrow_mut().set_sidebar_selection(SidebarSelection::All);
+                        content_page.borrow().sidebar_select_all_button_no_update();
+                    }
+
                     info!("enque new undoable action: {}", action);
                     undo_bar.borrow().add_action(action);
                 }
@@ -550,10 +639,11 @@ impl MainWindowActions {
                     if let Some(news_flash) = news_flash.borrow_mut().as_mut() {
                         let (feeds, _mappings) = news_flash.get_feeds().unwrap();
 
-                        // FIXME: unused
                         if let Some(feed) = feeds.iter().find(|f| f.feed_id == feed_id).map(|f| f.clone()) {
                             info!("delete feed '{}' (id: {})", feed.label, feed.feed_id);
+                            news_flash.remove_feed(&feed).unwrap();
                         } else {
+                            // FIXME: error handling
                             error!("feed not found: {}", feed_id);
                         }
                     }

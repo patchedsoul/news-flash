@@ -126,8 +126,8 @@ impl FeedListTree {
         None
     }
 
-    pub fn collapse_expand_ids(&mut self, category: &CategoryID) -> Option<(Vec<FeedID>, Vec<CategoryID>, bool)> {
-        if let Some((category, _)) = self.find_category(category) {
+    pub fn collapse_expand_category(&mut self, category_id: &CategoryID) -> Option<(Vec<FeedID>, Vec<CategoryID>, bool)> {
+        if let Some((category, _)) = self.find_category(category_id) {
             let expanded = category.expand_collapse();
             let (feed_ids, category_ids) = Self::category_child_ids(&category);
             return Some((feed_ids, category_ids, expanded));
@@ -154,14 +154,14 @@ impl FeedListTree {
         (feed_ids, category_ids)
     }
 
-    pub fn generate_diff(&self, other: &FeedListTree) -> Vec<FeedListChangeSet> {
+    pub fn generate_diff(&self, other: &mut FeedListTree) -> Vec<FeedListChangeSet> {
         let mut list_pos = 0;
-        Self::diff_level(&self.top_level, &other.top_level, &mut list_pos, true)
+        Self::diff_level(&self.top_level, &mut other.top_level, &mut list_pos, true)
     }
 
     fn diff_level(
         old_items: &[FeedListItem],
-        new_items: &[FeedListItem],
+        new_items: &mut [FeedListItem],
         list_pos: &mut i32,
         visible: bool,
     ) -> Vec<FeedListChangeSet> {
@@ -170,38 +170,11 @@ impl FeedListTree {
         let mut new_index = 0;
         loop {
             let old_item = old_items.get(old_index);
-            let new_item = new_items.get(new_index);
+            let new_item = new_items.get_mut(new_index);
 
             // iterated through both lists -> done
             if old_item.is_none() && new_item.is_none() {
                 break;
-            }
-
-            // add all items after old_items ran out of items to compare
-            if let Some(new_item) = new_item {
-                if old_item.is_none() {
-                    new_index += 1;
-                    match new_item {
-                        FeedListItem::Feed(new_feed) => {
-                            diff.push(FeedListChangeSet::AddFeed(new_feed.clone(), *list_pos, visible));
-                            *list_pos += 1;
-                        }
-                        FeedListItem::Category(new_category) => {
-                            diff.push(FeedListChangeSet::AddCategory(new_category.clone(), *list_pos, visible));
-                            *list_pos += 1;
-                            if !new_category.children.is_empty() {
-                                diff.append(&mut Self::diff_level(
-                                    &Vec::new(),
-                                    &new_category.children,
-                                    list_pos,
-                                    new_category.expanded,
-                                ));
-                            }
-                        }
-                    }
-
-                    continue;
-                }
             }
 
             // remove all items after new_items ran out of items to compare
@@ -214,7 +187,7 @@ impl FeedListTree {
                             if !old_category.children.is_empty() {
                                 diff.append(&mut Self::diff_level(
                                     &old_category.children,
-                                    &Vec::new(),
+                                    &mut Vec::new(),
                                     list_pos,
                                     false,
                                 ));
@@ -226,8 +199,33 @@ impl FeedListTree {
                 }
             }
 
-            if let Some(old_item) = old_item {
-                if let Some(new_item) = new_item {
+            if let Some(new_item) = new_item {
+                // add all items after old_items ran out of items to compare
+                if old_item.is_none() {
+                    new_index += 1;
+                    match new_item {
+                        FeedListItem::Feed(new_feed) => {
+                            diff.push(FeedListChangeSet::AddFeed(new_feed.clone(), *list_pos, visible));
+                            *list_pos += 1;
+                        }
+                        FeedListItem::Category(ref mut new_category) => {
+                            diff.push(FeedListChangeSet::AddCategory(new_category.clone(), *list_pos, visible));
+                            *list_pos += 1;
+                            if !new_category.children.is_empty() {
+                                diff.append(&mut Self::diff_level(
+                                    &Vec::new(),
+                                    &mut new_category.children,
+                                    list_pos,
+                                    new_category.expanded,
+                                ));
+                            }
+                        }
+                    }
+
+                    continue;
+                }
+
+                if let Some(old_item) = old_item {
                     // still the same item -> check for
                     if new_item == old_item {
                         match new_item {
@@ -249,6 +247,7 @@ impl FeedListTree {
                             }
                             FeedListItem::Category(new_category) => {
                                 if let FeedListItem::Category(old_category) = old_item {
+                                    new_category.expanded = old_category.expanded;
                                     if new_category.item_count != old_category.item_count {
                                         diff.push(FeedListChangeSet::CategoryUpdateItemCount(
                                             new_category.id.clone(),
@@ -275,9 +274,9 @@ impl FeedListTree {
                                     if !old_category.children.is_empty() || !new_category.children.is_empty() {
                                         diff.append(&mut Self::diff_level(
                                             &old_category.children,
-                                            &new_category.children,
+                                            &mut new_category.children,
                                             list_pos,
-                                            new_category.expanded,
+                                            old_category.expanded,
                                         ));
                                     }
                                 }
@@ -285,7 +284,7 @@ impl FeedListTree {
                                     if !new_category.children.is_empty() {
                                         diff.append(&mut Self::diff_level(
                                             &Vec::new(),
-                                            &new_category.children,
+                                            &mut new_category.children,
                                             list_pos,
                                             new_category.expanded,
                                         ));
@@ -297,7 +296,7 @@ impl FeedListTree {
                                     if !old_category.children.is_empty() {
                                         diff.append(&mut Self::diff_level(
                                             &old_category.children,
-                                            &Vec::new(),
+                                            &mut Vec::new(),
                                             list_pos,
                                             false,
                                         ));
@@ -317,7 +316,7 @@ impl FeedListTree {
                             if !old_category.children.is_empty() {
                                 diff.append(&mut Self::diff_level(
                                     &old_category.children,
-                                    &Vec::new(),
+                                    &mut Vec::new(),
                                     list_pos,
                                     false,
                                 ));
@@ -626,7 +625,7 @@ mod tests {
         new_tree.add_category(&category_3, 1).unwrap();
         new_tree.add_feed(&feed_1, &mapping_2, 2, None).unwrap();
 
-        let diff = old_tree.generate_diff(&new_tree);
+        let diff = old_tree.generate_diff(&mut new_tree);
 
         assert_eq!(diff.len(), 7);
         assert_eq!(

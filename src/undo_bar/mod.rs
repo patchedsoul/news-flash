@@ -36,12 +36,22 @@ impl UndoBar {
     fn init(&self) {
         let button_info_bar = self.widget.clone();
         let button_current_action = self.current_action.clone();
-        self.button.connect_clicked(move |_button| {
+        self.button.connect_clicked(move |button| {
             if let Some(current_action) = button_current_action.borrow().as_ref() {
                 GtkUtil::remove_source(Some(current_action.get_timeout()));
             }
             button_current_action.replace(None);
             button_info_bar.set_revealed(false);
+
+            // update lists
+            if let Ok(main_window) = GtkUtil::get_main_window(button) {
+                if let Some(action) = main_window.lookup_action("update-sidebar") {
+                    action.activate(None);
+                }
+                if let Some(action) = main_window.lookup_action("update-article-list") {
+                    action.activate(None);
+                }
+            }
         });
 
         self.widget.show();
@@ -65,6 +75,14 @@ impl UndoBar {
                     }
                 }
             }
+            UndoActionModel::DeleteTag((tag_id, _label)) => {
+                if let Ok(main_window) = GtkUtil::get_main_window(bar) {
+                    if let Some(action) = main_window.lookup_action("delete-tag") {
+                        let variant = Variant::from(tag_id.to_str());
+                        action.activate(Some(&variant));
+                    }
+                }
+            }
         }
     }
 
@@ -80,6 +98,7 @@ impl UndoBar {
                 self.label.set_label(&format!("Deleted Category '{}'", label))
             }
             UndoActionModel::DeleteFeed((_id, label)) => self.label.set_label(&format!("Deleted Feed '{}'", label)),
+            UndoActionModel::DeleteTag((_id, label)) => self.label.set_label(&format!("Deleted Tag '{}'", label)),
         }
 
         self.widget.set_revealed(true);

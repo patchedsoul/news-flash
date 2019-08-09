@@ -107,11 +107,18 @@ impl MainWindow {
             &header_stack,
             &content_page_handle,
             &state,
+            &undo_bar_handle,
         );
         MainWindowActions::setup_login_action(&window, &news_flash_handle, &oauht_login_handle, &pw_login_handle);
         MainWindowActions::setup_sync_action(&window, &content_header_handle, &news_flash_handle);
         MainWindowActions::setup_sidebar_selection_action(&window, &state, &responsive_layout);
-        MainWindowActions::setup_update_sidebar_action(&window, &content_page_handle, &news_flash_handle, &state);
+        MainWindowActions::setup_update_sidebar_action(
+            &window,
+            &content_page_handle,
+            &news_flash_handle,
+            &state,
+            &undo_bar_handle,
+        );
         MainWindowActions::setup_headerbar_selection_action(&window, &content_header_handle, &state);
         MainWindowActions::setup_search_action(&window, &state);
         MainWindowActions::setup_update_article_list_action(
@@ -140,7 +147,8 @@ impl MainWindow {
         MainWindowActions::setup_mark_article_read_action(&window, &news_flash_handle);
         MainWindowActions::setup_mark_article_action(&window, &news_flash_handle);
         MainWindowActions::setup_rename_feed_action(&window, &news_flash_handle);
-        MainWindowActions::setup_enqueue_undoable_action(&window, &undo_bar_handle);
+        MainWindowActions::setup_delete_selection_action(&window, &content_page_handle);
+        MainWindowActions::setup_enqueue_undoable_action(&window, &undo_bar_handle, &content_page_handle, &state);
         MainWindowActions::setup_delete_feed_action(&window, &news_flash_handle);
         MainWindowActions::setup_about_action(&window);
         MainWindowActions::setup_settings_action(&window, &settings);
@@ -172,7 +180,7 @@ impl MainWindow {
             // try to fill content page with data
             content_page_handle
                 .borrow_mut()
-                .update_sidebar(&news_flash_handle, &state);
+                .update_sidebar(&news_flash_handle, &state, &undo_bar_handle);
             content_page_handle
                 .borrow_mut()
                 .update_article_list(&news_flash_handle, &state, &undo_bar_handle);

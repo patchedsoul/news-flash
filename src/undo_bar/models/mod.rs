@@ -1,4 +1,4 @@
-use news_flash::models::{CategoryID, FeedID};
+use news_flash::models::{CategoryID, FeedID, TagID};
 use serde_derive::{Deserialize, Serialize};
 use std::fmt;
 
@@ -6,13 +6,15 @@ use std::fmt;
 pub enum UndoActionModel {
     DeleteFeed((FeedID, String)),
     DeleteCategory((CategoryID, String)),
+    DeleteTag((TagID, String)),
 }
 
 impl fmt::Display for UndoActionModel {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
-            UndoActionModel::DeleteFeed((id, label)) => write!(f, "Delete Feed '{}' (id: {})", id, label),
-            UndoActionModel::DeleteCategory((id, label)) => write!(f, "Delete Category '{}' (id: {})", id, label),
+            UndoActionModel::DeleteFeed((id, label)) => write!(f, "Delete Feed '{}' (id: {})", label, id),
+            UndoActionModel::DeleteCategory((id, label)) => write!(f, "Delete Category '{}' (id: {})", label, id),
+            UndoActionModel::DeleteTag((id, label)) => write!(f, "Delete Tag '{}' (id: {})", label, id),
         }
     }
 }

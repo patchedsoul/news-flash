@@ -3,6 +3,7 @@ use crate::sidebar::feed_list::models::FeedListFeedModel;
 use crate::util::BuilderHelper;
 use crate::util::GtkHandle;
 use crate::util::GtkUtil;
+use crate::undo_bar::UndoActionModel;
 use cairo::{self, Format, ImageSurface};
 use gdk::{DragAction, EventType, ModifierType};
 use gio::{Menu, MenuItem};
@@ -43,7 +44,7 @@ impl FeedRow {
 
         let mut feed = FeedRow {
             id: model.id.clone(),
-            widget: Self::create_row(&revealer, &model.id),
+            widget: Self::create_row(&revealer, &model.id, &title_label),
             item_count: item_count_label,
             title: title_label,
             revealer,
@@ -60,7 +61,7 @@ impl FeedRow {
         gtk_handle!(feed)
     }
 
-    fn create_row(widget: &gtk::Revealer, id: &FeedID) -> ListBoxRow {
+    fn create_row(widget: &gtk::Revealer, id: &FeedID, label: &Label) -> ListBoxRow {
         let row = gtk::ListBoxRow::new();
         row.set_activatable(true);
         row.set_can_focus(false);
@@ -91,6 +92,7 @@ impl FeedRow {
         });
 
         let feed_id = id.clone();
+        let label = label.clone();
         row.connect_button_press_event(move |row, event| {
             if event.get_button() != 3 {
                 return Inhibit(false);
@@ -111,10 +113,17 @@ impl FeedRow {
             rename_feed_item.set_action_and_target_value(Some("rename-feed"), Some(&variant));
             model.append_item(&rename_feed_item);
 
-            let variant = Variant::from(feed_id.to_str());
-            let delete_feed_item = MenuItem::new(Some("Delete"), None);
-            delete_feed_item.set_action_and_target_value(Some("delete-feed"), Some(&variant));
-            model.append_item(&delete_feed_item);
+            let label = match label.get_text() {
+                Some(label) => label.as_str().to_owned(),
+                None => "".to_owned(),
+            };
+            let remove_action = UndoActionModel::DeleteFeed((feed_id.clone(), label));
+            if let Ok(json) = serde_json::to_string(&remove_action) {
+                let variant = Variant::from(json);
+                let delete_feed_item = MenuItem::new(Some("Delete"), None);
+                delete_feed_item.set_action_and_target_value(Some("enqueue-undoable-action"), Some(&variant));
+                model.append_item(&delete_feed_item);
+            }
 
             let popover = Popover::new(Some(row));
             popover.bind_model(Some(&model), Some("win"));
