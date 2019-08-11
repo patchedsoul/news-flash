@@ -1,6 +1,6 @@
 use crate::sidebar::FeedListItemID;
 use news_flash::models::{CategoryID, FeedID, TagID};
-use serde_derive::{Deserialize, Serialize};
+use serde::{Deserialize, Serialize};
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub enum SidebarSelection {

@@ -1,5 +1,5 @@
 use news_flash::models::ArticleOrder;
-use serde_derive::{Deserialize, Serialize};
+use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct ArticleListSettings {

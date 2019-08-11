@@ -15,7 +15,7 @@ use failure::Error;
 use general::GeneralSettings;
 pub use keybindings::{Keybindings, NewsFlashShortcutWindow};
 use news_flash::models::ArticleOrder;
-use serde_derive::{Deserialize, Serialize};
+use serde::{Deserialize, Serialize};
 use std::fs;
 use std::path::PathBuf;
 

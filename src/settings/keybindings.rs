@@ -6,7 +6,7 @@ use gdk::{enums::key, ModifierType};
 use glib::object::IsA;
 use gtk::{BinExt, Box, Cast, ContainerExt, GtkWindowExt, ShortcutsWindow, Stack, StackExt, WidgetExt, Window};
 use log::warn;
-use serde_derive::{Deserialize, Serialize};
+use serde::{Deserialize, Serialize};
 use std::str;
 
 #[derive(Debug, Serialize, Deserialize)]
