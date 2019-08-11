@@ -539,9 +539,15 @@ impl MainWindowActions {
                     let dialog_news_flash = news_flash.clone();
                     if let Some(news_flash) = news_flash.borrow_mut().as_mut() {
                         let categories = news_flash.get_categories().unwrap();
-                        let category = categories.iter().find(|c| c.category_id == category_id).map(|c| c.clone()).unwrap();
-                        let dialog =
-                            RenameDialog::new(&main_window, &SidebarSelection::Cateogry((category_id, category.label.clone())));
+                        let category = categories
+                            .iter()
+                            .find(|c| c.category_id == category_id)
+                            .map(|c| c.clone())
+                            .unwrap();
+                        let dialog = RenameDialog::new(
+                            &main_window,
+                            &SidebarSelection::Cateogry((category_id, category.label.clone())),
+                        );
                         let rename_button = dialog.rename_button();
                         let dialog_handle = gtk_handle!(dialog);
                         let main_window = main_window.clone();
