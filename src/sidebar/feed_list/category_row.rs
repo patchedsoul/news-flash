@@ -1,6 +1,6 @@
 use crate::gtk_handle;
 use crate::sidebar::feed_list::models::FeedListCategoryModel;
-use crate::util::BuilderHelper;
+use crate::util::{BuilderHelper, GtkHandle};
 use gdk::{EventMask, EventType};
 use gtk::{
     self, BinExt, Box, Cast, ContainerExt, EventBox, Image, Label, LabelExt, ListBoxRow, ListBoxRowExt, Revealer,
@@ -24,7 +24,7 @@ pub struct CategoryRow {
 }
 
 impl CategoryRow {
-    pub fn new(model: &FeedListCategoryModel, visible: bool) -> Rc<RefCell<CategoryRow>> {
+    pub fn new(model: &FeedListCategoryModel, visible: bool) -> GtkHandle<CategoryRow> {
         let builder = BuilderHelper::new("category");
         let revealer = builder.get::<Revealer>("category_row");
         let level_margin = builder.get::<Box>("level_margin");

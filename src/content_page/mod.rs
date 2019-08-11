@@ -233,12 +233,23 @@ impl ContentPage {
         }
         let (feeds, mappings) = news_flash.get_feeds().unwrap();
         for mapping in mappings {
-            let feed = feeds.iter().find(|feed| feed.feed_id == mapping.feed_id).unwrap();
-            if let Some(UndoActionModel::DeleteFeed((id, _label))) = undo_bar.borrow().get_current_action() {
-                if id == feed.feed_id {
-                    continue;
+            if let Some(undo_action) = undo_bar.borrow().get_current_action() {
+                match undo_action {
+                    UndoActionModel::DeleteFeed((id, _label)) => {
+                        if id == mapping.feed_id {
+                            continue;
+                        }
+                    }
+                    UndoActionModel::DeleteCategory((id, _label)) => {
+                        if id == mapping.category_id {
+                            continue;
+                        }
+                    }
+                    _ => {}
                 }
             }
+
+            let feed = feeds.iter().find(|feed| feed.feed_id == mapping.feed_id).unwrap();
 
             let count = match state.get_header_selection() {
                 HeaderSelection::Marked => news_flash.marked_count_feed(&mapping.feed_id).unwrap(),

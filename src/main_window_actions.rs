@@ -20,7 +20,7 @@ use gtk::{
     FileFilter, GtkWindowExt, GtkWindowExtManual, ResponseType, Stack, StackExt, StackTransitionType,
 };
 use log::{debug, error, info, warn};
-use news_flash::models::{ArticleID, FeedID, LoginData, PluginID};
+use news_flash::models::{ArticleID, CategoryID, FeedID, LoginData, PluginID};
 use news_flash::{NewsFlash, NewsFlashError};
 use std::cell::RefCell;
 use std::rc::Rc;
@@ -636,6 +636,35 @@ impl MainWindowActions {
                         } else {
                             // FIXME: error handling
                             error!("feed not found: {}", feed_id);
+                        }
+                    }
+                }
+            }
+        });
+        delete_feed_action.set_enabled(true);
+        window.add_action(&delete_feed_action);
+    }
+
+    pub fn setup_delete_category_action(window: &ApplicationWindow, news_flash: &GtkHandle<Option<NewsFlash>>) {
+        let news_flash = news_flash.clone();
+        let delete_feed_action = SimpleAction::new("delete-category", VariantTy::new("s").ok());
+        delete_feed_action.connect_activate(move |_action, data| {
+            if let Some(data) = data {
+                if let Some(data) = data.get_str() {
+                    let category_id = CategoryID::new(&data);
+                    if let Some(news_flash) = news_flash.borrow_mut().as_mut() {
+                        let categories = news_flash.get_categories().unwrap();
+
+                        if let Some(category) = categories
+                            .iter()
+                            .find(|c| c.category_id == category_id)
+                            .map(|c| c.clone())
+                        {
+                            info!("delete category '{}' (id: {})", category.label, category.category_id);
+                        //news_flash.remove_feed(&feed).unwrap();
+                        } else {
+                            // FIXME: error handling
+                            error!("category not found: {}", category_id);
                         }
                     }
                 }
