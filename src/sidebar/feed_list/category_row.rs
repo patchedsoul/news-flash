@@ -1,10 +1,13 @@
 use crate::gtk_handle;
 use crate::sidebar::feed_list::models::FeedListCategoryModel;
+use crate::undo_bar::UndoActionModel;
 use crate::util::{BuilderHelper, GtkHandle};
 use gdk::{EventMask, EventType};
+use gio::{Menu, MenuItem};
+use glib::Variant;
 use gtk::{
-    self, BinExt, Box, Cast, ContainerExt, EventBox, Image, Label, LabelExt, ListBoxRow, ListBoxRowExt, Revealer,
-    RevealerExt, StyleContextExt, WidgetExt, WidgetExtManual,
+    self, BinExt, Box, Cast, ContainerExt, EventBox, Image, Inhibit, Label, LabelExt, ListBoxRow, ListBoxRowExt,
+    Popover, PopoverExt, PositionType, Revealer, RevealerExt, StateFlags, StyleContextExt, WidgetExt, WidgetExtManual,
 };
 use news_flash::models::CategoryID;
 use std::cell::RefCell;
@@ -38,12 +41,12 @@ impl CategoryRow {
         let arrow_event = builder.get::<EventBox>("arrow_event");
         let category = CategoryRow {
             id: model.id.clone(),
-            widget: Self::create_row(&revealer),
+            widget: Self::create_row(&revealer, &model.id, &title_label),
             revealer,
             arrow_event: arrow_event.clone(),
             item_count: item_count_label,
             item_count_event,
-            title: title_label,
+            title: title_label.clone(),
             expanded: model.expanded,
         };
         category.update_title(&model.label);
@@ -97,14 +100,65 @@ impl CategoryRow {
         }
     }
 
-    fn create_row(widget: &Revealer) -> ListBoxRow {
+    fn create_row(widget: &Revealer, id: &CategoryID, label: &Label) -> ListBoxRow {
         let row = ListBoxRow::new();
         row.set_activatable(true);
         row.set_can_focus(false);
-        let context = row.get_style_context();
-        context.remove_class("activatable");
+        row.get_style_context().remove_class("activatable");
 
-        row.add(widget);
+        let eventbox = EventBox::new();
+        eventbox.set_events(EventMask::BUTTON_PRESS_MASK);
+
+        row.add(&eventbox);
+        eventbox.add(widget);
+
+        let category_id = id.clone();
+        let label = label.clone();
+        let listbox_row = row.clone();
+        eventbox.connect_button_press_event(move |_eventbox, event| {
+            if event.get_button() != 3 {
+                return Inhibit(false);
+            }
+
+            match event.get_event_type() {
+                EventType::ButtonRelease | EventType::DoubleButtonPress | EventType::TripleButtonPress => {
+                    return Inhibit(false)
+                }
+                _ => {}
+            }
+
+            let model = Menu::new();
+
+            let variant = Variant::from(category_id.to_str());
+            let rename_feed_item = MenuItem::new(Some("Rename"), None);
+            rename_feed_item.set_action_and_target_value(Some("rename-category"), Some(&variant));
+            model.append_item(&rename_feed_item);
+
+            let label = match label.get_text() {
+                Some(label) => label.as_str().to_owned(),
+                None => "".to_owned(),
+            };
+            let remove_action = UndoActionModel::DeleteCategory((category_id.clone(), label));
+            if let Ok(json) = serde_json::to_string(&remove_action) {
+                let variant = Variant::from(json);
+                let delete_feed_item = MenuItem::new(Some("Delete"), None);
+                delete_feed_item.set_action_and_target_value(Some("enqueue-undoable-action"), Some(&variant));
+                model.append_item(&delete_feed_item);
+            }
+
+            let popover = Popover::new(Some(&listbox_row));
+            popover.set_position(PositionType::Bottom);
+            popover.bind_model(Some(&model), Some("win"));
+            popover.show();
+            let row_clone = listbox_row.clone();
+            popover.connect_closed(move |_popover| {
+                row_clone.unset_state_flags(StateFlags::PRELIGHT);
+            });
+            listbox_row.set_state_flags(StateFlags::PRELIGHT, false);
+
+            Inhibit(true)
+        });
+
         row
     }
 

@@ -8,8 +8,8 @@ use gio::{Menu, MenuItem};
 use glib::{source::SourceId, translate::FromGlib, translate::ToGlib, Source, Variant};
 use gtk::{
     self, Box, ContainerExt, Continue, DragContextExtManual, EventBox, Image, ImageExt, Inhibit, Label, LabelExt,
-    ListBoxRow, ListBoxRowExt, Popover, PopoverExt, Revealer, RevealerExt, StateFlags, StyleContextExt, TargetEntry,
-    TargetFlags, WidgetExt, WidgetExtManual,
+    ListBoxRow, ListBoxRowExt, Popover, PopoverExt, PositionType, Revealer, RevealerExt, StateFlags, StyleContextExt,
+    TargetEntry, TargetFlags, WidgetExt, WidgetExtManual,
 };
 use news_flash::models::{FavIcon, FeedID};
 use std::cell::RefCell;
@@ -124,6 +124,7 @@ impl FeedRow {
             }
 
             let popover = Popover::new(Some(row));
+            popover.set_position(PositionType::Bottom);
             popover.bind_model(Some(&model), Some("win"));
             popover.show();
             let row_clone = row.clone();
