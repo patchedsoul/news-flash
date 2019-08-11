@@ -528,6 +528,41 @@ impl MainWindowActions {
         window.add_action(&rename_feed_action);
     }
 
+    pub fn setup_rename_category_action(window: &ApplicationWindow, news_flash: &GtkHandle<Option<NewsFlash>>) {
+        let news_flash = news_flash.clone();
+        let main_window = window.clone();
+        let rename_category_action = SimpleAction::new("rename-category", VariantTy::new("s").ok());
+        rename_category_action.connect_activate(move |_action, data| {
+            if let Some(data) = data {
+                if let Some(data) = data.get_str() {
+                    let category_id = CategoryID::new(&data);
+                    let dialog_news_flash = news_flash.clone();
+                    if let Some(news_flash) = news_flash.borrow_mut().as_mut() {
+                        let categories = news_flash.get_categories().unwrap();
+                        let category = categories.iter().find(|c| c.category_id == category_id).map(|c| c.clone()).unwrap();
+                        let dialog =
+                            RenameDialog::new(&main_window, &SidebarSelection::Cateogry((category_id, category.label.clone())));
+                        let rename_button = dialog.rename_button();
+                        let dialog_handle = gtk_handle!(dialog);
+                        let main_window = main_window.clone();
+                        rename_button.connect_clicked(move |_button| {
+                            if let Some(news_flash) = dialog_news_flash.borrow_mut().as_mut() {
+                                let new_label = dialog_handle.borrow().new_label().unwrap();
+                                news_flash.rename_category(&category, &new_label).unwrap();
+                                dialog_handle.borrow().close();
+                            }
+                            if let Some(action) = main_window.lookup_action("update-sidebar") {
+                                action.activate(None);
+                            }
+                        });
+                    }
+                }
+            }
+        });
+        rename_category_action.set_enabled(true);
+        window.add_action(&rename_category_action);
+    }
+
     pub fn setup_delete_selection_action(window: &ApplicationWindow, content_page: &GtkHandle<ContentPage>) {
         let content_page = content_page.clone();
         let main_window = window.clone();
