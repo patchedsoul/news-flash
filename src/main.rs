@@ -1,4 +1,5 @@
 mod about_dialog;
+mod add_dialog;
 mod article_list;
 mod article_view;
 mod color;

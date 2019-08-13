@@ -21,6 +21,14 @@ impl SidebarFooter {
             }
         });
 
+        add_button.connect_clicked(|button| {
+            if let Ok(main_window) = GtkUtil::get_main_window(button) {
+                if let Some(action) = main_window.lookup_action("add-feed") {
+                    action.activate(None);
+                }
+            }
+        });
+
         SidebarFooter {
             add_button,
             remove_button,

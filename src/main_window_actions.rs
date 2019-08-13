@@ -1,4 +1,5 @@
 use crate::about_dialog::NewsFlashAbout;
+use crate::add_dialog::AddDilaog;
 use crate::article_list::{MarkUpdate, ReadUpdate};
 use crate::content_page::HeaderSelection;
 use crate::content_page::{ContentHeader, ContentPage};
@@ -488,6 +489,17 @@ impl MainWindowActions {
         });
         mark_article_action.set_enabled(true);
         window.add_action(&mark_article_action);
+    }
+
+    pub fn setup_add_action(window: &ApplicationWindow, news_flash: &GtkHandle<Option<NewsFlash>>) {
+        let news_flash = news_flash.clone();
+        let main_window = window.clone();
+        let add_action = SimpleAction::new("add-feed", None);
+        add_action.connect_activate(move |_action, _data| {
+            let dialog = AddDilaog::new(&main_window);
+        });
+        add_action.set_enabled(true);
+        window.add_action(&add_action);
     }
 
     pub fn setup_rename_feed_action(window: &ApplicationWindow, news_flash: &GtkHandle<Option<NewsFlash>>) {
