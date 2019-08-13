@@ -20,8 +20,6 @@ impl AddDilaog {
         dialog.set_transient_for(Some(parent));
         dialog.show_all();
 
-        AddDilaog {
-            dialog,
-        }
+        AddDilaog { dialog }
     }
 }
