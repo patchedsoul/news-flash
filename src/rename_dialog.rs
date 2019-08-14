@@ -6,7 +6,6 @@ use gtk::{Button, ButtonExt, Dialog, DialogExt, Entry, EntryExt, GtkWindowExt, H
 pub struct RenameDialog {
     dialog: Dialog,
     rename_button: Button,
-    cancel_button: Button,
     rename_entry: Entry,
 }
 
@@ -15,7 +14,6 @@ impl RenameDialog {
         let builder = BuilderHelper::new("rename_dialog");
         let header = builder.get::<HeaderBar>("headerbar");
         let rename_button = builder.get::<Button>("rename_button");
-        let cancel_button = builder.get::<Button>("cancel_button");
         let rename_entry = builder.get::<Entry>("rename_entry");
         let dialog = builder.get::<Dialog>("rename_dialog");
 
@@ -33,18 +31,12 @@ impl RenameDialog {
             SidebarSelection::Tag((_, name)) => name,
         });
 
-        let dialog_clone = dialog.clone();
-        cancel_button.connect_clicked(move |_button| {
-            dialog_clone.emit_close();
-        });
-
         dialog.set_transient_for(Some(parent));
         dialog.show_all();
 
         RenameDialog {
             dialog,
             rename_button,
-            cancel_button,
             rename_entry,
         }
     }

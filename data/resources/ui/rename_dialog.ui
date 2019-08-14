@@ -5,35 +5,15 @@
   <object class="GtkDialog" id="rename_dialog">
     <property name="can_focus">False</property>
     <property name="modal">True</property>
+    <property name="default_width">-1</property>
+    <property name="default_height">100</property>
     <property name="type_hint">dialog</property>
     <child type="titlebar">
       <object class="GtkHeaderBar" id="headerbar">
         <property name="visible">True</property>
         <property name="can_focus">False</property>
         <property name="title" translatable="yes">Rename X</property>
-        <child>
-          <object class="GtkButton" id="cancel_button">
-            <property name="label" translatable="yes">Cancel</property>
-            <property name="visible">True</property>
-            <property name="can_focus">True</property>
-            <property name="receives_default">True</property>
-          </object>
-        </child>
-        <child>
-          <object class="GtkButton" id="rename_button">
-            <property name="label" translatable="yes">Rename</property>
-            <property name="visible">True</property>
-            <property name="can_focus">True</property>
-            <property name="receives_default">True</property>
-            <style>
-              <class name="suggested-action"/>
-            </style>
-          </object>
-          <packing>
-            <property name="pack_type">end</property>
-            <property name="position">1</property>
-          </packing>
-        </child>
+        <property name="show_close_button">True</property>
       </object>
     </child>
     <child internal-child="vbox">
@@ -44,12 +24,24 @@
         <child internal-child="action_area">
           <object class="GtkButtonBox">
             <property name="can_focus">False</property>
+            <property name="margin_right">10</property>
+            <property name="margin_bottom">10</property>
             <property name="layout_style">end</property>
             <child>
-              <placeholder/>
-            </child>
-            <child>
-              <placeholder/>
+              <object class="GtkButton" id="rename_button">
+                <property name="label" translatable="yes">Rename</property>
+                <property name="visible">True</property>
+                <property name="can_focus">True</property>
+                <property name="receives_default">True</property>
+                <style>
+                  <class name="suggested-action"/>
+                </style>
+              </object>
+              <packing>
+                <property name="expand">True</property>
+                <property name="fill">True</property>
+                <property name="position">1</property>
+              </packing>
             </child>
           </object>
           <packing>
@@ -63,10 +55,10 @@
             <property name="visible">True</property>
             <property name="can_focus">True</property>
             <property name="valign">center</property>
-            <property name="margin_left">20</property>
-            <property name="margin_right">20</property>
-            <property name="margin_top">20</property>
-            <property name="margin_bottom">20</property>
+            <property name="margin_left">10</property>
+            <property name="margin_right">10</property>
+            <property name="margin_top">10</property>
+            <property name="margin_bottom">10</property>
             <property name="hexpand">True</property>
             <property name="vexpand">True</property>
             <property name="secondary_icon_tooltip_text" translatable="yes">Invalid Name</property>
