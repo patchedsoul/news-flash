@@ -1,6 +1,6 @@
 use crate::sidebar::models::SidebarSelection;
 use crate::util::BuilderHelper;
-use gtk::{Button, ButtonExt, Dialog, DialogExt, Entry, EntryExt, GtkWindowExt, HeaderBar, HeaderBarExt, WidgetExt};
+use gtk::{Button, Dialog, DialogExt, Entry, EntryExt, GtkWindowExt, HeaderBar, HeaderBarExt, WidgetExt};
 
 #[derive(Clone, Debug)]
 pub struct RenameDialog {

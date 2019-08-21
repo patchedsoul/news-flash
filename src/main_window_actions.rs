@@ -496,7 +496,10 @@ impl MainWindowActions {
         let main_window = window.clone();
         let add_action = SimpleAction::new("add-feed", None);
         add_action.connect_activate(move |_action, _data| {
-            let dialog = AddDilaog::new(&main_window);
+            if let Some(news_flash) = news_flash.borrow_mut().as_mut() {
+                let categories = news_flash.get_categories().unwrap();
+                let _dialog = AddDilaog::new(&main_window, &categories);
+            }
         });
         add_action.set_enabled(true);
         window.add_action(&add_action);
