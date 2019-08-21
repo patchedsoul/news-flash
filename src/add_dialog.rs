@@ -1,8 +1,8 @@
 use crate::util::{BuilderHelper, GtkUtil};
 use gtk::{
-    Button, ButtonExt, ComboBoxText, ComboBoxExt, ComboBoxTextExt, ContainerExt, Dialog, EditableSignals, Entry, EntryExt, GtkWindowExt,
-    Image, ImageExt, Label, LabelExt, ListBox, ListBoxExt, ListBoxRow, ListBoxRowExt, Orientation, Separator, Stack,
-    StackExt, StyleContextExt, WidgetExt,
+    Button, ButtonExt, ComboBoxExt, ComboBoxText, ComboBoxTextExt, ContainerExt, Dialog, EditableSignals, Entry,
+    EntryExt, GtkWindowExt, Image, ImageExt, Label, LabelExt, ListBox, ListBoxExt, ListBoxRow, ListBoxRowExt,
+    Orientation, Separator, Stack, StackExt, StyleContextExt, WidgetExt,
 };
 use news_flash::models::{Category, Feed, FeedID, Url};
 use news_flash::ParsedUrl;
