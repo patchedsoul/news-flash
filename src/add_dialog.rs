@@ -188,7 +188,13 @@ impl AddDilaog {
         }
     }
 
-    fn fill_mupliple_feed_list(feed_vec: Vec<(String, Url)>, list: &ListBox, stack: &Stack, title_entry: &Entry, favicon: &Image) {
+    fn fill_mupliple_feed_list(
+        feed_vec: Vec<(String, Url)>,
+        list: &ListBox,
+        stack: &Stack,
+        title_entry: &Entry,
+        favicon: &Image,
+    ) {
         for (title, url) in feed_vec {
             let label = Label::new(Some(&title));
             label.set_size_request(0, 50);
@@ -204,7 +210,9 @@ impl AddDilaog {
             let favicon = favicon.clone();
             row.connect_activate(move |_row| {
                 let feed_id = FeedID::new(url.get().as_str());
-                if let Ok(ParsedUrl::SingleFeed(feed)) = news_flash::feed_parser::download_and_parse_feed(&url, &feed_id, None, None) {
+                if let Ok(ParsedUrl::SingleFeed(feed)) =
+                    news_flash::feed_parser::download_and_parse_feed(&url, &feed_id, None, None)
+                {
                     Self::fill_feed_page(feed, &title_entry, &favicon);
                     add_feed_stack.set_visible_child_name("feed_page");
                 }
