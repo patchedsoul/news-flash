@@ -195,6 +195,22 @@ impl AddDilaog {
         title_entry: &Entry,
         favicon: &Image,
     ) {
+        let add_feed_stack = stack.clone();
+        let title_entry = title_entry.clone();
+        let favicon = favicon.clone();
+        list.connect_row_activated(move |_list, row| {
+            if let Some(name) = row.get_name() {
+                // should never fail since it comes from `url.as_str()`
+                let url = Url::parse(name.as_str()).unwrap();
+                let feed_id = FeedID::new(url.get().as_str());
+                if let Ok(ParsedUrl::SingleFeed(feed)) =
+                    news_flash::feed_parser::download_and_parse_feed(&url, &feed_id, None, None)
+                {
+                    Self::fill_feed_page(feed, &title_entry, &favicon);
+                    add_feed_stack.set_visible_child_name("feed_page");
+                }
+            }
+        });
         for (title, url) in feed_vec {
             let label = Label::new(Some(&title));
             label.set_size_request(0, 50);
@@ -204,19 +220,9 @@ impl AddDilaog {
             label.set_margin_end(20);
             let row = ListBoxRow::new();
             row.set_selectable(false);
+            row.set_activatable(true);
+            row.set_name(url.get().as_str());
             row.add(&label);
-            let add_feed_stack = stack.clone();
-            let title_entry = title_entry.clone();
-            let favicon = favicon.clone();
-            row.connect_activate(move |_row| {
-                let feed_id = FeedID::new(url.get().as_str());
-                if let Ok(ParsedUrl::SingleFeed(feed)) =
-                    news_flash::feed_parser::download_and_parse_feed(&url, &feed_id, None, None)
-                {
-                    Self::fill_feed_page(feed, &title_entry, &favicon);
-                    add_feed_stack.set_visible_child_name("feed_page");
-                }
-            });
             row.show_all();
             list.insert(&row, -1);
 
