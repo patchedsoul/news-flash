@@ -82,6 +82,8 @@ impl AddDilaog {
                                     feed_vec,
                                     &parse_button_feed_list,
                                     &parse_button_add_feed_stack,
+                                    &parse_button_feed_title_entry,
+                                    &parse_button_favicon_image,
                                 );
                             }
                             ParsedUrl::SingleFeed(feed) => {
@@ -186,8 +188,8 @@ impl AddDilaog {
         }
     }
 
-    fn fill_mupliple_feed_list(feed_vec: Vec<(String, Url)>, list: &ListBox, stack: &Stack) {
-        for (title, _url) in feed_vec {
+    fn fill_mupliple_feed_list(feed_vec: Vec<(String, Url)>, list: &ListBox, stack: &Stack, title_entry: &Entry, favicon: &Image) {
+        for (title, url) in feed_vec {
             let label = Label::new(Some(&title));
             label.set_size_request(0, 50);
             label.set_ellipsize(EllipsizeMode::End);
@@ -198,8 +200,14 @@ impl AddDilaog {
             row.set_selectable(false);
             row.add(&label);
             let add_feed_stack = stack.clone();
+            let title_entry = title_entry.clone();
+            let favicon = favicon.clone();
             row.connect_activate(move |_row| {
-                add_feed_stack.set_visible_child_name("feed_page");
+                let feed_id = FeedID::new(url.get().as_str());
+                if let Ok(ParsedUrl::SingleFeed(feed)) = news_flash::feed_parser::download_and_parse_feed(&url, &feed_id, None, None) {
+                    Self::fill_feed_page(feed, &title_entry, &favicon);
+                    add_feed_stack.set_visible_child_name("feed_page");
+                }
             });
             row.show_all();
             list.insert(&row, -1);
