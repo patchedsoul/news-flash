@@ -14,7 +14,7 @@ use crate::undo_bar::{UndoActionModel, UndoBar};
 use crate::util::{BuilderHelper, GtkHandle};
 use failure::format_err;
 use failure::Error;
-use gtk::{Box, BoxExt, WidgetExt};
+use gtk::{Box, BoxExt, Button, WidgetExt};
 use libhandy::Leaflet;
 use news_flash::models::{Article, ArticleFilter, ArticleID, Marked, PluginCapabilities, PluginID, Read};
 use news_flash::NewsFlash;
@@ -363,5 +363,9 @@ impl ContentPage {
 
     pub fn sidebar_select_all_button_no_update(&self) {
         self.sidebar.select_all_button_no_update();
+    }
+
+    pub fn sidebar_get_add_button(&self) -> Button {
+        self.sidebar.get_add_button()
     }
 }

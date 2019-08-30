@@ -147,7 +147,7 @@ impl MainWindow {
         MainWindowActions::setup_mark_article_read_action(&window, &news_flash_handle);
         MainWindowActions::setup_mark_article_action(&window, &news_flash_handle);
         MainWindowActions::setup_rename_feed_action(&window, &news_flash_handle);
-        MainWindowActions::setup_add_action(&window, &news_flash_handle);
+        MainWindowActions::setup_add_action(&window, &news_flash_handle, &content_page_handle);
         MainWindowActions::setup_rename_category_action(&window, &news_flash_handle);
         MainWindowActions::setup_delete_selection_action(&window, &content_page_handle);
         MainWindowActions::setup_enqueue_undoable_action(&window, &undo_bar_handle, &content_page_handle, &state);

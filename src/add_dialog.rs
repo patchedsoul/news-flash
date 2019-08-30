@@ -1,22 +1,22 @@
 use crate::util::{BuilderHelper, GtkUtil};
 use gtk::{
-    Button, ButtonExt, ComboBoxExt, ComboBoxText, ComboBoxTextExt, ContainerExt, Dialog, EditableSignals, Entry,
-    EntryExt, GtkWindowExt, Image, ImageExt, Label, LabelExt, ListBox, ListBoxExt, ListBoxRow, ListBoxRowExt,
-    Orientation, Separator, Stack, StackExt, StyleContextExt, WidgetExt,
+    Button, ButtonExt, ComboBoxExt, ComboBoxText, ComboBoxTextExt, ContainerExt, EditableSignals, Entry,
+    EntryExt, Image, ImageExt, Label, LabelExt, ListBox, ListBoxExt, ListBoxRow, ListBoxRowExt,
+    Orientation, Separator, Stack, StackExt, StyleContextExt, WidgetExt, Popover, PopoverExt,
 };
 use news_flash::models::{Category, Feed, FeedID, Url};
 use news_flash::ParsedUrl;
 use pango::EllipsizeMode;
 
 #[derive(Clone, Debug)]
-pub struct AddDilaog {
-    dialog: Dialog,
+pub struct AddPopover {
+    popover: Popover,
 }
 
-impl AddDilaog {
-    pub fn new(parent: &gtk::ApplicationWindow, categories: &[Category]) -> Self {
+impl AddPopover {
+    pub fn new(parent: &Button, categories: &[Category]) -> Self {
         let builder = BuilderHelper::new("add_dialog");
-        let dialog = builder.get::<Dialog>("add_dialog");
+        let popover = builder.get::<Popover>("add_pop");
         let url_entry = builder.get::<Entry>("url_entry");
         let parse_button = builder.get::<Button>("parse_button");
         let add_feed_stack = builder.get::<Stack>("add_feed_stack");
@@ -161,10 +161,10 @@ impl AddDilaog {
             title_entry_add_button.set_sensitive(sensitive);
         });
 
-        dialog.set_transient_for(Some(parent));
-        dialog.show_all();
+        popover.set_relative_to(Some(parent));
+        popover.show_all();
 
-        AddDilaog { dialog }
+        AddPopover { popover }
     }
 
     fn fill_feed_page(feed: Feed, title_entry: &Entry, favicon_image: &Image) {

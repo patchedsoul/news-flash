@@ -38,4 +38,8 @@ impl SidebarFooter {
     pub fn set_remove_button_sensitive(&self, sensitive: bool) {
         self.remove_button.set_sensitive(sensitive);
     }
+
+    pub fn get_add_button(&self) -> Button {
+        self.add_button.clone()
+    }
 }

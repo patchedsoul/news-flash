@@ -1,5 +1,5 @@
 use crate::about_dialog::NewsFlashAbout;
-use crate::add_dialog::AddDilaog;
+use crate::add_dialog::AddPopover;
 use crate::article_list::{MarkUpdate, ReadUpdate};
 use crate::content_page::HeaderSelection;
 use crate::content_page::{ContentHeader, ContentPage};
@@ -491,14 +491,14 @@ impl MainWindowActions {
         window.add_action(&mark_article_action);
     }
 
-    pub fn setup_add_action(window: &ApplicationWindow, news_flash: &GtkHandle<Option<NewsFlash>>) {
+    pub fn setup_add_action(window: &ApplicationWindow, news_flash: &GtkHandle<Option<NewsFlash>>, content: &GtkHandle<ContentPage>) {
         let news_flash = news_flash.clone();
-        let main_window = window.clone();
+        let add_button = content.borrow().sidebar_get_add_button();
         let add_action = SimpleAction::new("add-feed", None);
         add_action.connect_activate(move |_action, _data| {
             if let Some(news_flash) = news_flash.borrow_mut().as_mut() {
                 let categories = news_flash.get_categories().unwrap();
-                let _dialog = AddDilaog::new(&main_window, &categories);
+                let _dialog = AddPopover::new(&add_button, &categories);
             }
         });
         add_action.set_enabled(true);

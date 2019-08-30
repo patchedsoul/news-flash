@@ -15,7 +15,7 @@ use gdk::{EventMask, EventType};
 use gio::{ActionExt, ActionMapExt};
 use glib::{translate::ToGlib, Variant};
 use gtk::{
-    Box, BoxExt, Continue, EventBox, Image, ImageExt, Inhibit, Label, LabelExt, ListBoxExt, Revealer, RevealerExt,
+    Box, BoxExt, Button, Continue, EventBox, Image, ImageExt, Inhibit, Label, LabelExt, ListBoxExt, Revealer, RevealerExt,
     StyleContextExt, WidgetExt, WidgetExtManual,
 };
 pub use models::SidebarIterateItem;
@@ -490,5 +490,9 @@ impl SideBar {
 
     pub fn expand_collapse_selected_category(&self) {
         self.feed_list.borrow().expand_collapse_selected_category()
+    }
+
+    pub fn get_add_button(&self) -> Button {
+        self.footer.borrow().get_add_button()
     }
 }
