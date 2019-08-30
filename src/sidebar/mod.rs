@@ -15,8 +15,8 @@ use gdk::{EventMask, EventType};
 use gio::{ActionExt, ActionMapExt};
 use glib::{translate::ToGlib, Variant};
 use gtk::{
-    Box, BoxExt, Button, Continue, EventBox, Image, ImageExt, Inhibit, Label, LabelExt, ListBoxExt, Revealer, RevealerExt,
-    StyleContextExt, WidgetExt, WidgetExtManual,
+    Box, BoxExt, Button, Continue, EventBox, Image, ImageExt, Inhibit, Label, LabelExt, ListBoxExt, Revealer,
+    RevealerExt, StyleContextExt, WidgetExt, WidgetExtManual,
 };
 pub use models::SidebarIterateItem;
 use models::SidebarSelection;

@@ -1,6 +1,6 @@
 use crate::gtk_handle;
 use crate::util::{BuilderHelper, GtkHandle};
-use gtk::{Box, Button, ButtonExt, HeaderBar, MenuButton, WidgetExt};
+use gtk::{Box, Button, ButtonExt, HeaderBar, MenuButton, ToggleButton, WidgetExt};
 use libhandy::{Leaflet, LeafletExt};
 use std::cell::RefCell;
 use std::rc::Rc;
@@ -9,6 +9,7 @@ use std::rc::Rc;
 pub struct ResponsiveLayout {
     pub state: GtkHandle<ResponsiveState>,
     pub left_button: Button,
+    pub search_button: ToggleButton,
     pub right_button: Button,
     pub major_leaflet: Leaflet,
     pub minor_leaflet: Leaflet,
@@ -29,6 +30,7 @@ impl ResponsiveLayout {
         let minor_leaflet = builder.get::<Leaflet>("minor_leaflet");
         let major_leaflet = builder.get::<Leaflet>("major_leaflet");
         let left_button = builder.get::<Button>("left_back_button");
+        let search_button = builder.get::<ToggleButton>("search_button");
         let right_button = builder.get::<Button>("right_back_button");
         let sidebar_box = builder.get::<Box>("feedlist_box");
         let article_list_box = builder.get::<Box>("articlelist_box");
@@ -41,6 +43,7 @@ impl ResponsiveLayout {
         let layout = ResponsiveLayout {
             state,
             left_button,
+            search_button,
             right_button,
             major_leaflet,
             minor_leaflet,
@@ -105,7 +108,12 @@ impl ResponsiveLayout {
             // article list (dis)appeared
             if !layout.minor_leaflet.get_property_folded() {
                 layout.left_button.set_visible(false);
+                layout.search_button.set_visible(true);
+                layout.mode_switch_button.set_visible(true);
                 layout.minor_leaflet.set_visible_child(&layout.sidebar_box);
+            } else {
+                layout.search_button.set_visible(false);
+                layout.mode_switch_button.set_visible(false);
             }
 
             layout.state.borrow_mut().minor_leaflet_folded = false;
@@ -116,6 +124,8 @@ impl ResponsiveLayout {
             // left back
             layout.minor_leaflet.set_visible_child(&layout.sidebar_box);
             layout.left_button.set_visible(false);
+            layout.search_button.set_visible(false);
+            layout.mode_switch_button.set_visible(false);
 
             layout.state.borrow_mut().left_button_clicked = false;
             return;
@@ -148,6 +158,8 @@ impl ResponsiveLayout {
             if layout.minor_leaflet.get_property_folded() {
                 layout.minor_leaflet.set_visible_child(&layout.article_list_box);
                 layout.left_button.set_visible(true);
+                layout.search_button.set_visible(true);
+                layout.mode_switch_button.set_visible(true);
             }
 
             layout.state.borrow_mut().minor_leaflet_selected = false;

@@ -491,7 +491,11 @@ impl MainWindowActions {
         window.add_action(&mark_article_action);
     }
 
-    pub fn setup_add_action(window: &ApplicationWindow, news_flash: &GtkHandle<Option<NewsFlash>>, content: &GtkHandle<ContentPage>) {
+    pub fn setup_add_action(
+        window: &ApplicationWindow,
+        news_flash: &GtkHandle<Option<NewsFlash>>,
+        content: &GtkHandle<ContentPage>,
+    ) {
         let news_flash = news_flash.clone();
         let add_button = content.borrow().sidebar_get_add_button();
         let add_action = SimpleAction::new("add-feed", None);
