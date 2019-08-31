@@ -292,8 +292,8 @@ impl SettingsDialog {
     }
 
     fn setup_keybinding_row(&self, id: &str, keybinding: Option<String>) {
-        //let shortcut_label = self.builder.get::<ShortcutLabel>(&format!("{}_label", id));
-        //shortcut_label.accelerator(keybinding);
+        let label = self.builder.get::<Label>(&format!("{}_label", id));
+        Self::keybind_label_text(keybinding.clone(), &label);
         let row_name = format!("{}_row", id);
         let row = self.builder.get::<ActionRow>(&row_name);
         if let Some(listbox) = row.get_parent() {
@@ -306,7 +306,7 @@ impl SettingsDialog {
                     if let Some(name) = row.get_name() {
                         if name.as_str() == &row_name {
                             let id = id.clone();
-                            //let shortcut_label = shortcut_label.clone();
+                            let label = label.clone();
                             let settings = settings.clone();
                             let editor = KeybindingEditor::new(&dialog, &info_text);
                             editor.widget().present();
@@ -316,11 +316,11 @@ impl SettingsDialog {
                                     KeybindState::Canceled | KeybindState::Illegal => {}
                                     KeybindState::Disabled => {
                                         Keybindings::write_keybinding(&id, None, &settings).unwrap();
-                                        //Self::keybind_label_text(None, &label);
+                                        Self::keybind_label_text(None, &label);
                                     }
                                     KeybindState::Enabled(keybind) => {
                                         Keybindings::write_keybinding(&id, Some(keybind.clone()), &settings).unwrap();
-                                        //Self::keybind_label_text(Some(keybind.clone()), &label);
+                                        Self::keybind_label_text(Some(keybind.clone()), &label);
                                     }
                                 }
                             });
@@ -330,4 +330,22 @@ impl SettingsDialog {
             }
         }
     }
+
+    fn keybind_label_text(keybinding: Option<String>, label: &Label) {
+        let label_text = match keybinding {
+            Some(keybinding) => {
+                label.set_sensitive(true);
+                Keybindings::parse_shortcut_string(&keybinding)
+                    .expect("Failed parsing saved shortcut. This should never happen!")
+            }
+            None => {
+                label.set_sensitive(false);
+                "Disabled".to_owned()
+            }
+        };
+        label.set_label(&label_text);
+    }
+
+
+
 }

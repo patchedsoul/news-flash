@@ -221,10 +221,12 @@
                 <property name="name">next_article_row</property>
                 <property name="visible">True</property>
                 <child type="action">
-                  <object id="next_article_label" class="GtkShortcutLabel">
-                    <property name="disabled_text">Disabled</property>
+                  <object id="next_article_label" class="GtkLabel">
                     <property name="margin">12</property>
                     <property name="visible">True</property>
+                    <style>
+                      <class name="dim-label"/>
+                    </style>
                   </object>
                 </child>
               </object>
@@ -235,10 +237,12 @@
                 <property name="name">previous_article_row</property>
                 <property name="visible">True</property>
                 <child type="action">
-                  <object id="previous_article_label" class="GtkShortcutLabel">
-                    <property name="disabled_text">Disabled</property>
+                  <object id="previous_article_label" class="GtkLabel">
                     <property name="margin">12</property>
                     <property name="visible">True</property>
+                    <style>
+                      <class name="dim-label"/>
+                    </style>
                   </object>
                 </child>
               </object>
@@ -249,10 +253,12 @@
                 <property name="name">toggle_read_row</property>
                 <property name="visible">True</property>
                 <child type="action">
-                  <object id="toggle_read_label" class="GtkShortcutLabel">
-                    <property name="disabled_text">Disabled</property>
+                  <object id="toggle_read_label" class="GtkLabel">
                     <property name="margin">12</property>
                     <property name="visible">True</property>
+                    <style>
+                      <class name="dim-label"/>
+                    </style>
                   </object>
                 </child>
               </object>
@@ -263,10 +269,12 @@
                 <property name="name">toggle_marked_row</property>
                 <property name="visible">True</property>
                 <child type="action">
-                  <object id="toggle_marked_label" class="GtkShortcutLabel">
-                    <property name="disabled_text">Disabled</property>
+                  <object id="toggle_marked_label" class="GtkLabel">
                     <property name="margin">12</property>
                     <property name="visible">True</property>
+                    <style>
+                      <class name="dim-label"/>
+                    </style>
                   </object>
                 </child>
               </object>
@@ -277,10 +285,12 @@
                 <property name="name">open_browser_row</property>
                 <property name="visible">True</property>
                 <child type="action">
-                  <object id="open_browser_label" class="GtkShortcutLabel">
-                    <property name="disabled_text">Disabled</property>
+                  <object id="open_browser_label" class="GtkLabel">
                     <property name="margin">12</property>
                     <property name="visible">True</property>
+                    <style>
+                      <class name="dim-label"/>
+                    </style>
                   </object>
                 </child>
               </object>
@@ -297,10 +307,12 @@
                 <property name="name">next_item_row</property>
                 <property name="visible">True</property>
                 <child type="action">
-                  <object id="next_item_label" class="GtkShortcutLabel">
-                    <property name="disabled_text">Disabled</property>
+                  <object id="next_item_label" class="GtkLabel">
                     <property name="margin">12</property>
                     <property name="visible">True</property>
+                    <style>
+                      <class name="dim-label"/>
+                    </style>
                   </object>
                 </child>
               </object>
@@ -311,10 +323,12 @@
                 <property name="name">previous_item_row</property>
                 <property name="visible">True</property>
                 <child type="action">
-                  <object id="previous_item_label" class="GtkShortcutLabel">
-                    <property name="disabled_text">Disabled</property>
+                  <object id="previous_item_label" class="GtkLabel">
                     <property name="margin">12</property>
                     <property name="visible">True</property>
+                    <style>
+                      <class name="dim-label"/>
+                    </style>
                   </object>
                 </child>
               </object>
@@ -325,10 +339,12 @@
                 <property name="name">toggle_category_expanded_row</property>
                 <property name="visible">True</property>
                 <child type="action">
-                  <object id="toggle_category_expanded_label" class="GtkShortcutLabel">
-                    <property name="disabled_text">Disabled</property>
+                  <object id="toggle_category_expanded_label" class="GtkLabel">
                     <property name="margin">12</property>
                     <property name="visible">True</property>
+                    <style>
+                      <class name="dim-label"/>
+                    </style>
                   </object>
                 </child>
               </object>
@@ -339,10 +355,12 @@
                 <property name="name">sidebar_set_read_row</property>
                 <property name="visible">True</property>
                 <child type="action">
-                  <object id="sidebar_set_read_label" class="GtkShortcutLabel">
-                    <property name="disabled_text">Disabled</property>
+                  <object id="sidebar_set_read_label" class="GtkLabel">
                     <property name="margin">12</property>
                     <property name="visible">True</property>
+                    <style>
+                      <class name="dim-label"/>
+                    </style>
                   </object>
                 </child>
               </object>
@@ -359,10 +377,12 @@
                 <property name="name">shortcuts_row</property>
                 <property name="visible">True</property>
                 <child type="action">
-                  <object id="shortcuts_label" class="GtkShortcutLabel">
-                    <property name="disabled_text">Disabled</property>
+                  <object id="shortcuts_label" class="GtkLabel">
                     <property name="margin">12</property>
                     <property name="visible">True</property>
+                    <style>
+                      <class name="dim-label"/>
+                    </style>
                   </object>
                 </child>
               </object>
@@ -373,10 +393,12 @@
                 <property name="name">refresh_row</property>
                 <property name="visible">True</property>
                 <child type="action">
-                  <object id="refresh_label" class="GtkShortcutLabel">
-                    <property name="disabled_text">Disabled</property>
+                  <object id="refresh_label" class="GtkLabel">
                     <property name="margin">12</property>
                     <property name="visible">True</property>
+                    <style>
+                      <class name="dim-label"/>
+                    </style>
                   </object>
                 </child>
               </object>
@@ -387,10 +409,12 @@
                 <property name="name">search_row</property>
                 <property name="visible">True</property>
                 <child type="action">
-                  <object id="search_label" class="GtkShortcutLabel">
-                    <property name="disabled_text">Disabled</property>
+                  <object id="search_label" class="GtkLabel">
                     <property name="margin">12</property>
                     <property name="visible">True</property>
+                    <style>
+                      <class name="dim-label"/>
+                    </style>
                   </object>
                 </child>
               </object>
@@ -401,10 +425,12 @@
                 <property name="name">quit_row</property>
                 <property name="visible">True</property>
                 <child type="action">
-                  <object id="quit_label" class="GtkShortcutLabel">
-                    <property name="disabled_text">Disabled</property>
+                  <object id="quit_label" class="GtkLabel">
                     <property name="margin">12</property>
                     <property name="visible">True</property>
+                    <style>
+                      <class name="dim-label"/>
+                    </style>
                   </object>
                 </child>
               </object>
@@ -415,10 +441,12 @@
                 <property name="name">all_articles_row</property>
                 <property name="visible">True</property>
                 <child type="action">
-                  <object id="all_articles_label" class="GtkShortcutLabel">
-                    <property name="disabled_text">Disabled</property>
+                  <object id="all_articles_label" class="GtkLabel">
                     <property name="margin">12</property>
                     <property name="visible">True</property>
+                    <style>
+                      <class name="dim-label"/>
+                    </style>
                   </object>
                 </child>
               </object>
@@ -429,10 +457,12 @@
                 <property name="name">only_unread_row</property>
                 <property name="visible">True</property>
                 <child type="action">
-                  <object id="only_unread_label" class="GtkShortcutLabel">
-                    <property name="disabled_text">Disabled</property>
+                  <object id="only_unread_label" class="GtkLabel">
                     <property name="margin">12</property>
                     <property name="visible">True</property>
+                    <style>
+                      <class name="dim-label"/>
+                    </style>
                   </object>
                 </child>
               </object>
@@ -443,10 +473,12 @@
                 <property name="name">only_starred_row</property>
                 <property name="visible">True</property>
                 <child type="action">
-                  <object id="only_starred_label" class="GtkShortcutLabel">
-                    <property name="disabled_text">Disabled</property>
+                  <object id="only_starred_label" class="GtkLabel">
                     <property name="margin">12</property>
                     <property name="visible">True</property>
+                    <style>
+                      <class name="dim-label"/>
+                    </style>
                   </object>
                 </child>
               </object>
@@ -463,10 +495,12 @@
                 <property name="name">scroll_up_row</property>
                 <property name="visible">True</property>
                 <child type="action">
-                  <object id="scroll_up_label" class="GtkShortcutLabel">
-                    <property name="disabled_text">Disabled</property>
+                  <object id="scroll_up_label" class="GtkLabel">
                     <property name="margin">12</property>
                     <property name="visible">True</property>
+                    <style>
+                      <class name="dim-label"/>
+                    </style>
                   </object>
                 </child>
               </object>
@@ -477,10 +511,12 @@
                 <property name="name">scroll_down_row</property>
                 <property name="visible">True</property>
                 <child type="action">
-                  <object id="scroll_down_label" class="GtkShortcutLabel">
-                    <property name="disabled_text">Disabled</property>
+                  <object id="scroll_down_label" class="GtkLabel">
                     <property name="margin">12</property>
                     <property name="visible">True</property>
+                    <style>
+                      <class name="dim-label"/>
+                    </style>
                   </object>
                 </child>
               </object>
