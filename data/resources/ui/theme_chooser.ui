@@ -23,46 +23,20 @@
     <property name="enable_mediasource">False</property>
     <property name="enable_javascript_markup">False</property>
   </object>
-  <object class="GtkDialog" id="dialog">
-    <property name="width_request">500</property>
+  <object class="GtkPopover" id="popover">
     <property name="can_focus">False</property>
-    <property name="resizable">False</property>
-    <property name="modal">True</property>
-    <property name="type_hint">dialog</property>
-    <child type="titlebar">
-      <object class="GtkHeaderBar">
-        <property name="visible">True</property>
-        <property name="can_focus">False</property>
-        <property name="title" translatable="yes">Choose Article Theme</property>
-        <property name="show_close_button">True</property>
-      </object>
-    </child>
-    <child internal-child="vbox">
+    <child>
       <object class="GtkBox">
         <property name="width_request">400</property>
+        <property name="visible">True</property>
         <property name="can_focus">False</property>
         <property name="halign">center</property>
+        <property name="margin_left">10</property>
+        <property name="margin_right">10</property>
         <property name="margin_top">10</property>
-        <property name="margin_bottom">20</property>
+        <property name="margin_bottom">10</property>
         <property name="orientation">vertical</property>
         <property name="spacing">2</property>
-        <child internal-child="action_area">
-          <object class="GtkButtonBox">
-            <property name="can_focus">False</property>
-            <property name="layout_style">end</property>
-            <child>
-              <placeholder/>
-            </child>
-            <child>
-              <placeholder/>
-            </child>
-          </object>
-          <packing>
-            <property name="expand">False</property>
-            <property name="fill">False</property>
-            <property name="position">0</property>
-          </packing>
-        </child>
         <child>
           <object class="GtkFrame">
             <property name="visible">True</property>
@@ -79,7 +53,7 @@
                     <property name="name">default</property>
                     <property name="height_request">80</property>
                     <property name="visible">True</property>
-                    <property name="can_focus">False</property>
+                    <property name="can_focus">True</property>
                     <property name="vexpand">True</property>
                     <child>
                       <object class="WebKitWebView" id="default_view">
@@ -96,7 +70,7 @@
                 <child>
                   <object class="GtkListBoxRow">
                     <property name="visible">True</property>
-                    <property name="can_focus">False</property>
+                    <property name="can_focus">True</property>
                     <property name="activatable">False</property>
                     <property name="selectable">False</property>
                     <child>
@@ -115,7 +89,7 @@
                     <property name="name">spring</property>
                     <property name="height_request">80</property>
                     <property name="visible">True</property>
-                    <property name="can_focus">False</property>
+                    <property name="can_focus">True</property>
                     <child>
                       <object class="WebKitWebView" id="spring_view">
                         <property name="visible">True</property>
@@ -131,7 +105,7 @@
                 <child>
                   <object class="GtkListBoxRow">
                     <property name="visible">True</property>
-                    <property name="can_focus">False</property>
+                    <property name="can_focus">True</property>
                     <property name="activatable">False</property>
                     <property name="selectable">False</property>
                     <child>
@@ -150,7 +124,7 @@
                     <property name="name">midnight</property>
                     <property name="height_request">80</property>
                     <property name="visible">True</property>
-                    <property name="can_focus">False</property>
+                    <property name="can_focus">True</property>
                     <child>
                       <object class="WebKitWebView" id="midnight_view">
                         <property name="visible">True</property>
@@ -166,7 +140,7 @@
                 <child>
                   <object class="GtkListBoxRow">
                     <property name="visible">True</property>
-                    <property name="can_focus">False</property>
+                    <property name="can_focus">True</property>
                     <property name="activatable">False</property>
                     <property name="selectable">False</property>
                     <child>
@@ -185,7 +159,7 @@
                     <property name="name">parchment</property>
                     <property name="height_request">80</property>
                     <property name="visible">True</property>
-                    <property name="can_focus">False</property>
+                    <property name="can_focus">True</property>
                     <child>
                       <object class="WebKitWebView" id="parchment_view">
                         <property name="visible">True</property>

@@ -188,10 +188,13 @@ impl ContentHeader {
         about_model.append(Some("Shortcuts"), Some("win.shortcuts"));
         about_model.append(Some("About"), Some("win.about"));
 
+        let im_export_model = Menu::new();
+        im_export_model.append(Some("Import OPML"), Some("win.import"));
+        im_export_model.append(Some("Export OPML"), Some("win.export"));
+
         let main_model = Menu::new();
-        main_model.append(Some("Import OPML"), Some("win.import"));
-        main_model.append(Some("Export OPML"), Some("win.export"));
         main_model.append(Some("Settings"), Some("win.settings"));
+        main_model.append_section(Some(""), &im_export_model);
         main_model.append_section(Some(""), &about_model);
 
         button.set_menu_model(Some(&main_model));
