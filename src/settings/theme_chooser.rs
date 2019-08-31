@@ -4,22 +4,20 @@ use crate::util::{BuilderHelper, GtkHandle};
 use chrono::Utc;
 use failure::Error;
 use glib::object::IsA;
-use gtk::{
-    Dialog, DialogExt, GtkWindowExt, Inhibit, ListBox, ListBoxExt, ListBoxRow, ListBoxRowExt, WidgetExt, Window,
-};
+use gtk::{Inhibit, ListBox, ListBoxExt, ListBoxRow, ListBoxRowExt, Popover, PopoverExt, Widget, WidgetExt};
 use news_flash::models::{ArticleID, FatArticle, FeedID, Marked, Read};
 use webkit2gtk::{WebView, WebViewExt};
 
 pub struct ThemeChooser {
-    widget: Dialog,
+    widget: Popover,
 }
 
 impl ThemeChooser {
-    pub fn new<D: IsA<Window> + GtkWindowExt>(settings_dialog: &D, settings: &GtkHandle<Settings>) -> Self {
+    pub fn new<D: IsA<Widget>>(parent: &D, settings: &GtkHandle<Settings>) -> Self {
         let builder = BuilderHelper::new("theme_chooser");
 
-        let dialog = builder.get::<Dialog>("dialog");
-        dialog.set_transient_for(Some(settings_dialog));
+        let pop = builder.get::<Popover>("popover");
+        pop.set_relative_to(Some(parent));
 
         let mut demo_article = FatArticle {
             article_id: ArticleID::new("demo"),
@@ -72,7 +70,7 @@ impl ThemeChooser {
         )
         .unwrap();
 
-        let dialog_clone = dialog.clone();
+        let pop_clone = pop.clone();
         let settings = settings.clone();
         let theme_list = builder.get::<ListBox>("theme_list");
         theme_list.connect_row_activated(move |_list, row| {
@@ -98,14 +96,14 @@ impl ThemeChooser {
                         .set_article_view_theme(ArticleTheme::Parchment)
                         .unwrap();
                 }
-                dialog_clone.emit_close();
+                pop_clone.popdown();
             }
         });
 
-        ThemeChooser { widget: dialog }
+        ThemeChooser { widget: pop }
     }
 
-    pub fn widget(&self) -> Dialog {
+    pub fn widget(&self) -> Popover {
         self.widget.clone()
     }
 
