@@ -9,12 +9,11 @@ pub struct TagListTagModel {
     pub id: TagID,
     pub label: String,
     pub color: String,
-    pub item_count: i32,
     pub sort_index: i32,
 }
 
 impl TagListTagModel {
-    pub fn new(tag: &Tag, item_count: i32) -> Self {
+    pub fn new(tag: &Tag) -> Self {
         TagListTagModel {
             id: tag.tag_id.clone(),
             label: tag.label.clone(),
@@ -22,7 +21,6 @@ impl TagListTagModel {
                 Some(colour) => colour.clone(),
                 None => DEFAULT_COLOUR.to_owned(),
             },
-            item_count,
             sort_index: match tag.sort_index {
                 Some(index) => index,
                 None => std::i32::MAX,

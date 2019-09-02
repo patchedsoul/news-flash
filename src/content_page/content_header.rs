@@ -1,13 +1,16 @@
 use super::header_selection::HeaderSelection;
-use crate::util::{BuilderHelper, GtkUtil};
+use crate::gtk_handle;
+use crate::util::{BuilderHelper, GtkHandle, GtkUtil};
 use gdk::EventType;
 use gio::{ActionExt, ActionMapExt, Menu, MenuItem};
-use glib::Variant;
+use glib::{translate::ToGlib, Variant};
 use gtk::{
-    Button, ButtonExt, EntryExt, Inhibit, MenuButton, MenuButtonExt, SearchEntry, SearchEntryExt, Stack, StackExt,
-    ToggleButton, ToggleButtonExt, WidgetExt,
+    Button, ButtonExt, Continue, EntryExt, Inhibit, MenuButton, MenuButtonExt, SearchEntry, SearchEntryExt, Stack,
+    StackExt, ToggleButton, ToggleButtonExt, WidgetExt,
 };
 use libhandy::{SearchBar, SearchBarExt};
+use std::cell::RefCell;
+use std::rc::Rc;
 
 pub struct ContentHeader {
     update_stack: Stack,
@@ -36,9 +39,33 @@ impl ContentHeader {
         let mode_button = builder.get::<MenuButton>("mode_switch_button");
         let mode_switch_stack = builder.get::<Stack>("mode_switch_stack");
 
-        Self::setup_linked_button(&all_button, &unread_button, &marked_button, HeaderSelection::All);
-        Self::setup_linked_button(&unread_button, &all_button, &marked_button, HeaderSelection::Unread);
-        Self::setup_linked_button(&marked_button, &unread_button, &all_button, HeaderSelection::Marked);
+        let linked_button_timeout: GtkHandle<Option<u32>> = gtk_handle!(None);
+        let header_selection = gtk_handle!(HeaderSelection::All);
+
+        Self::setup_linked_button(
+            &all_button,
+            &unread_button,
+            &marked_button,
+            &header_selection,
+            &linked_button_timeout,
+            HeaderSelection::All,
+        );
+        Self::setup_linked_button(
+            &unread_button,
+            &all_button,
+            &marked_button,
+            &header_selection,
+            &linked_button_timeout,
+            HeaderSelection::Unread,
+        );
+        Self::setup_linked_button(
+            &marked_button,
+            &unread_button,
+            &all_button,
+            &header_selection,
+            &linked_button_timeout,
+            HeaderSelection::Marked,
+        );
         Self::setup_update_button(&update_button, &update_stack);
         Self::setup_search_button(&search_button, &search_bar);
         Self::setup_search_bar(&search_bar, &search_button, &search_entry);
@@ -101,6 +128,8 @@ impl ContentHeader {
         button: &ToggleButton,
         other_button_1: &ToggleButton,
         other_button_2: &ToggleButton,
+        header_selection: &GtkHandle<HeaderSelection>,
+        linked_button_timeout: &GtkHandle<Option<u32>>,
         mode: HeaderSelection,
     ) {
         let other_button_1_1 = other_button_1.clone();
@@ -118,21 +147,56 @@ impl ContentHeader {
             Inhibit(false)
         });
 
+        let header_selection = header_selection.clone();
+        let linked_button_timeout = linked_button_timeout.clone();
         button.connect_toggled(move |button| {
             if !button.get_active() {
                 // ignore deactivating toggle-button
                 return;
             }
 
-            if let Ok(main_window) = GtkUtil::get_main_window(button) {
-                if let Some(action) = main_window.lookup_action("headerbar-selection") {
-                    if let Ok(json) = serde_json::to_string(&mode) {
-                        let json = Variant::from(&json);
-                        action.activate(Some(&json));
-                    }
+            *header_selection.borrow_mut() = mode.clone();
+
+            if linked_button_timeout.borrow().is_some() {
+                return;
+            }
+
+            Self::linked_button_toggled(button, &header_selection, &linked_button_timeout);
+        });
+    }
+
+    fn linked_button_toggled(
+        button: &ToggleButton,
+        header_selection: &GtkHandle<HeaderSelection>,
+        linked_button_timeout: &GtkHandle<Option<u32>>,
+    ) {
+        if let Ok(main_window) = GtkUtil::get_main_window(button) {
+            if let Some(action) = main_window.lookup_action("headerbar-selection") {
+                if let Ok(json) = serde_json::to_string(&*header_selection.borrow()) {
+                    let json = Variant::from(&json);
+                    action.activate(Some(&json));
                 }
             }
-        });
+        }
+
+        if linked_button_timeout.borrow().is_some() {
+            return;
+        }
+
+        let toggle_button = button.clone();
+        let mode_before_cooldown = (*header_selection.borrow()).clone();
+        let header_selection = header_selection.clone();
+        let linked_button_timeout_clone = linked_button_timeout.clone();
+        *linked_button_timeout.borrow_mut() = Some(
+            gtk::timeout_add(250, move || {
+                *linked_button_timeout_clone.borrow_mut() = None;
+                if mode_before_cooldown != *header_selection.borrow() {
+                    Self::linked_button_toggled(&toggle_button, &header_selection, &linked_button_timeout_clone);
+                }
+                Continue(false)
+            })
+            .to_glib(),
+        );
     }
 
     fn setup_update_button(button: &Button, stack: &Stack) {
