@@ -14,6 +14,9 @@ pub use gtk_util::GTK_BUILDER_ERROR;
 pub use gtk_util::GTK_CSS_ERROR;
 pub use gtk_util::GTK_RESOURCE_FILE_ERROR;
 
+use news_flash::models::{Category, CategoryID, FeedID, FeedMapping};
+use std::collections::HashMap;
+
 pub struct Util;
 
 impl Util {
@@ -27,5 +30,43 @@ impl Util {
     pub fn ease_out_cubic(p: f64) -> f64 {
         let p = p - 1.0;
         p * p * p + 1.0
+    }
+
+    pub fn calculate_item_count_for_category(
+        category_id: &CategoryID,
+        categories: &Vec<Category>,
+        feed_mappings: &Vec<FeedMapping>,
+        item_count_map: &HashMap<FeedID, i64>,
+    ) -> i64 {
+        let mut count = 0;
+
+        count += feed_mappings
+            .iter()
+            .filter_map(|m| {
+                if &m.category_id == category_id {
+                    item_count_map.get(&m.feed_id)
+                } else {
+                    None
+                }
+            })
+            .sum::<i64>();
+
+        count += categories
+            .iter()
+            .filter_map(|c| {
+                if &c.parent_id == category_id {
+                    Some(Self::calculate_item_count_for_category(
+                        &c.category_id,
+                        categories,
+                        feed_mappings,
+                        item_count_map,
+                    ))
+                } else {
+                    None
+                }
+            })
+            .sum::<i64>();
+
+        count
     }
 }

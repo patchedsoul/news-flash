@@ -9,7 +9,7 @@ use crate::util::{BuilderHelper, GtkHandle, GtkUtil, GTK_RESOURCE_FILE_ERROR};
 use crate::Resources;
 use failure::format_err;
 use failure::Error;
-pub use feed_list::models::{FeedListItemID, FeedListTree};
+pub use feed_list::models::{FeedListCountType, FeedListItemID, FeedListTree};
 use feed_list::FeedList;
 use gdk::{EventMask, EventType};
 use gio::{ActionExt, ActionMapExt};
@@ -33,7 +33,9 @@ pub struct SideBar {
     tags_box: Box,
     logo: Image,
     all_event_box: EventBox,
-    unread_label: Label,
+    all_label: Label,
+    unread_count: i64,
+    marked_count: i64,
     service_label: Label,
     scale_factor: i32,
     feed_list: GtkHandle<FeedList>,
@@ -56,7 +58,9 @@ impl SideBar {
         let sidebar = builder.get::<Box>("toplevel");
         let tags_box = builder.get::<Box>("tags");
         let logo = builder.get::<Image>("logo");
-        let unread_label = builder.get::<Label>("unread_count_all");
+        let all_label = builder.get::<Label>("unread_count_all");
+        let unread_count = 0;
+        let marked_count = 0;
         let service_label = builder.get::<Label>("service_label");
         let categories_event_box = builder.get::<EventBox>("categories_event_box");
         let categories_expander = builder.get::<Image>("categories_expander");
@@ -187,7 +191,9 @@ impl SideBar {
             tags_box,
             logo,
             all_event_box,
-            unread_label,
+            all_label,
+            unread_count,
+            marked_count,
             service_label,
             scale_factor: scale,
             feed_list: feed_list_handle,
@@ -213,6 +219,14 @@ impl SideBar {
         self.sidebar.show_all();
     }
 
+    pub fn clone_feedlist_tree(&self) -> FeedListTree {
+        self.feed_list.borrow().clone_tree()
+    }
+
+    pub fn clone_feedlist_tree_with_new_count_type(&self, new_type: &FeedListCountType) -> FeedListTree {
+        self.feed_list.borrow().clone_tree_with_new_count_type(new_type)
+    }
+
     pub fn update_taglist(&mut self, list: TagListModel) {
         self.tag_list.borrow_mut().update(list);
         self.sidebar.show_all();
@@ -228,8 +242,42 @@ impl SideBar {
         self.tags_box.show();
     }
 
-    pub fn update_unread_all(&mut self, count: i64) {
-        self.unread_label.set_text(&format!("{}", count));
+    pub fn update_all(&mut self, unread_count: i64, marked_count: i64) {
+        self.unread_count = unread_count;
+        self.marked_count = marked_count;
+        self.update_all_label();
+    }
+
+    pub fn update_all_for_type(&mut self, count: i64, count_type: &FeedListCountType) {
+        match count_type {
+            FeedListCountType::Unread => self.unread_count = count,
+            FeedListCountType::Marked => self.marked_count = count,
+        }
+        if count_type == &self.get_count_type() {
+            self.update_all_label();
+        }
+    }
+
+    pub fn get_count_type(&self) -> FeedListCountType {
+        self.feed_list.borrow().get_count_type()
+    }
+
+    pub fn update_all_label(&self) {
+        self.all_label.set_text(&format!("{}", self.get_unread_all()));
+    }
+
+    pub fn get_unread_all(&self) -> i64 {
+        match self.get_count_type() {
+            FeedListCountType::Unread => self.unread_count,
+            FeedListCountType::Marked => self.marked_count,
+        }
+    }
+
+    pub fn get_unread_all_for_type(&self, count_type: &FeedListCountType) -> i64 {
+        match count_type {
+            FeedListCountType::Unread => self.unread_count,
+            FeedListCountType::Marked => self.marked_count,
+        }
     }
 
     pub fn set_service(&self, id: &PluginID, user_name: Option<String>) -> Result<(), Error> {

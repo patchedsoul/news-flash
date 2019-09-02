@@ -4,10 +4,7 @@ use crate::sidebar::tag_list::models::TagListTagModel;
 use crate::util::{BuilderHelper, GtkHandle};
 use cairo::{Context, FillRule};
 use gdk::WindowExt;
-use gtk::{
-    Box, ContainerExt, EventBox, Image, ImageExt, Label, LabelExt, ListBoxRow, ListBoxRowExt, StyleContextExt,
-    WidgetExt,
-};
+use gtk::{Box, ContainerExt, Image, ImageExt, Label, LabelExt, ListBoxRow, ListBoxRowExt, StyleContextExt, WidgetExt};
 use news_flash::models::TagID;
 use std::cell::RefCell;
 use std::rc::Rc;
@@ -17,8 +14,6 @@ use std::str;
 pub struct TagRow {
     pub id: TagID,
     widget: ListBoxRow,
-    item_count: Label,
-    item_count_event: EventBox,
     title: Label,
     tag_color_circle: Image,
 }
@@ -28,8 +23,6 @@ impl TagRow {
         let builder = BuilderHelper::new("tag");
         let tag_box = builder.get::<Box>("tag_row");
         let title_label = builder.get::<Label>("tag_title");
-        let item_count_label = builder.get::<Label>("item_count");
-        let item_count_event = builder.get::<EventBox>("item_count_event");
         let tag_color_circle = builder.get::<Image>("tag_color");
 
         let tag_image_update = tag_color_circle.clone();
@@ -41,12 +34,9 @@ impl TagRow {
         let tag = TagRow {
             id: model.id.clone(),
             widget: Self::create_row(&tag_box, &model.id),
-            item_count: item_count_label,
-            item_count_event,
             title: title_label,
             tag_color_circle,
         };
-        tag.update_item_count(model.item_count);
         tag.update_title(&model.label);
 
         gtk_handle!(tag)
@@ -65,15 +55,6 @@ impl TagRow {
 
     pub fn widget(&self) -> ListBoxRow {
         self.widget.clone()
-    }
-
-    pub fn update_item_count(&self, count: i32) {
-        if count > 0 {
-            self.item_count.set_label(&count.to_string());
-            self.item_count_event.set_visible(true);
-        } else {
-            self.item_count_event.set_visible(false);
-        }
     }
 
     fn update_color_cirlce_internal(tag_color_circle: &Image, color: &str) {

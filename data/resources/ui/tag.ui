@@ -48,53 +48,5 @@
         <property name="position">1</property>
       </packing>
     </child>
-    <child>
-      <object class="GtkEventBox" id="item_count_event">
-        <property name="width_request">24</property>
-        <property name="visible">True</property>
-        <property name="can_focus">False</property>
-        <property name="no_show_all">True</property>
-        <property name="margin_right">10</property>
-        <child>
-          <object class="GtkStack" id="item_count_stack">
-            <property name="visible">True</property>
-            <property name="can_focus">False</property>
-            <child>
-              <object class="GtkLabel" id="item_count">
-                <property name="name">item_count</property>
-                <property name="visible">True</property>
-                <property name="can_focus">False</property>
-                <property name="valign">center</property>
-                <property name="label" translatable="yes">0</property>
-                <style>
-                  <class name="item-count"/>
-                </style>
-              </object>
-              <packing>
-                <property name="name">page0</property>
-                <property name="title" translatable="yes">page0</property>
-              </packing>
-            </child>
-            <child>
-              <object class="GtkImage">
-                <property name="visible">True</property>
-                <property name="can_focus">False</property>
-                <property name="stock">gtk-missing-image</property>
-              </object>
-              <packing>
-                <property name="name">page1</property>
-                <property name="title" translatable="yes">page1</property>
-                <property name="position">1</property>
-              </packing>
-            </child>
-          </object>
-        </child>
-      </object>
-      <packing>
-        <property name="expand">False</property>
-        <property name="fill">True</property>
-        <property name="position">2</property>
-      </packing>
-    </child>
   </object>
 </interface>

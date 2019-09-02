@@ -345,7 +345,4 @@ impl SettingsDialog {
         };
         label.set_label(&label_text);
     }
-
-
-
 }

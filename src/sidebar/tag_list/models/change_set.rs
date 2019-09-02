@@ -4,9 +4,8 @@ use news_flash::models::TagID;
 #[derive(Debug)]
 pub enum TagListChangeSet {
     Remove(TagID),
-    Add(TagListTagModel, i32),   // pos
-    UpdateItemCount(TagID, i32), // Item count
-    UpdateLabel(TagID, String),  // label
+    Add(TagListTagModel, i32),  // pos
+    UpdateLabel(TagID, String), // label
 }
 
 impl PartialEq for TagListChangeSet {
@@ -18,10 +17,6 @@ impl PartialEq for TagListChangeSet {
             },
             TagListChangeSet::Add(model, pos) => match other {
                 TagListChangeSet::Add(other_model, other_pos) => model.id == other_model.id && pos == other_pos,
-                _ => false,
-            },
-            TagListChangeSet::UpdateItemCount(id, count) => match other {
-                TagListChangeSet::UpdateItemCount(other_id, other_count) => id == other_id && count == other_count,
                 _ => false,
             },
             TagListChangeSet::UpdateLabel(id, label) => match other {

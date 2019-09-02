@@ -23,11 +23,11 @@ impl TagListModel {
         }
     }
 
-    pub fn add(&mut self, tag: &Tag, item_count: i32) -> Result<(), Error> {
+    pub fn add(&mut self, tag: &Tag) -> Result<(), Error> {
         if self.tags.contains(&tag.tag_id) {
             return Err(format_err!("some err"));
         }
-        let model = TagListTagModel::new(tag, item_count);
+        let model = TagListTagModel::new(tag);
         self.tags.insert(model.id.clone());
         self.models.push(model);
         Ok(())
@@ -72,14 +72,8 @@ impl TagListModel {
 
             if let Some(old_item) = old_item {
                 if let Some(new_item) = new_item {
-                    // still the same item -> check for item count
+                    // still the same item -> check for item label
                     if new_item == old_item {
-                        if new_item.item_count != old_item.item_count {
-                            diff.push(TagListChangeSet::UpdateItemCount(
-                                new_item.id.clone(),
-                                new_item.item_count,
-                            ));
-                        }
                         if new_item.label != old_item.label {
                             diff.push(TagListChangeSet::UpdateLabel(
                                 new_item.id.clone(),
@@ -166,16 +160,16 @@ mod tests {
         };
 
         let mut old_list = TagListModel::new();
-        old_list.add(&tag_1, 2).unwrap();
-        old_list.add(&tag_2, 0).unwrap();
-        old_list.add(&tag_3, 4).unwrap();
+        old_list.add(&tag_1).unwrap();
+        old_list.add(&tag_2).unwrap();
+        old_list.add(&tag_3).unwrap();
 
         let mut new_list = TagListModel::new();
         tag_1.sort_index = Some(1);
         tag_2.sort_index = Some(0);
-        new_list.add(&tag_1, 1).unwrap();
-        new_list.add(&tag_2, 1).unwrap();
-        new_list.add(&tag_3, 0).unwrap();
+        new_list.add(&tag_1).unwrap();
+        new_list.add(&tag_2).unwrap();
+        new_list.add(&tag_3).unwrap();
 
         let diff = old_list.generate_diff(&mut new_list);
         assert_eq!(diff.len(), 5);

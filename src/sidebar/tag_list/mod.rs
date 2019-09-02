@@ -62,11 +62,6 @@ impl TagList {
                 TagListChangeSet::Add(model, pos) => {
                     self.add_tag(&model, pos);
                 }
-                TagListChangeSet::UpdateItemCount(id, count) => {
-                    if let Some(tag_handle) = self.tags.get(&id) {
-                        tag_handle.borrow().update_item_count(count);
-                    }
-                }
                 TagListChangeSet::UpdateLabel(id, label) => {
                     if let Some(tag_handle) = self.tags.get(&id) {
                         tag_handle.borrow().update_title(&label);

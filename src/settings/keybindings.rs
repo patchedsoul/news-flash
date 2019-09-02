@@ -32,7 +32,6 @@ impl Keybindings {
         Self::parse_shortcut(keyval, &modifier)
     }
 
-
     pub fn parse_shortcut(keyval: u32, modifier: &ModifierType) -> Option<String> {
         let keyval = Self::parse_keyval(keyval);
         let modifier = Self::parse_modifiers(modifier);

@@ -8,7 +8,6 @@ use crate::main_window_actions::MainWindowActions;
 use crate::main_window_state::MainWindowState;
 use crate::responsive::ResponsiveLayout;
 use crate::settings::{Keybindings, Settings};
-use crate::sidebar::models::SidebarSelection;
 use crate::undo_bar::UndoBar;
 use crate::util::{BuilderHelper, GtkHandle, GtkUtil, GTK_CSS_ERROR, GTK_RESOURCE_FILE_ERROR};
 use crate::welcome_screen::{WelcomeHeaderbar, WelcomePage};
@@ -119,7 +118,12 @@ impl MainWindow {
             &state,
             &undo_bar_handle,
         );
-        MainWindowActions::setup_headerbar_selection_action(&window, &content_header_handle, &state);
+        MainWindowActions::setup_headerbar_selection_action(
+            &window,
+            &content_header_handle,
+            &state,
+            &content_page_handle,
+        );
         MainWindowActions::setup_search_action(&window, &state);
         MainWindowActions::setup_update_article_list_action(
             &window,
@@ -144,8 +148,8 @@ impl MainWindow {
         );
         MainWindowActions::setup_close_article_action(&window, &content_page_handle, &content_header_handle);
         MainWindowActions::setup_redraw_article_action(&window, &content_page_handle);
-        MainWindowActions::setup_mark_article_read_action(&window, &news_flash_handle);
-        MainWindowActions::setup_mark_article_action(&window, &news_flash_handle);
+        MainWindowActions::setup_mark_article_read_action(&window, &news_flash_handle, &content_page_handle);
+        MainWindowActions::setup_mark_article_action(&window, &news_flash_handle, &content_page_handle);
         MainWindowActions::setup_rename_feed_action(&window, &news_flash_handle);
         MainWindowActions::setup_add_action(&window, &news_flash_handle, &content_page_handle);
         MainWindowActions::setup_rename_category_action(&window, &news_flash_handle);
@@ -160,15 +164,9 @@ impl MainWindow {
         MainWindowActions::setup_export_action(&window, &news_flash_handle);
         MainWindowActions::setup_select_next_article_action(&window, &content_page_handle);
         MainWindowActions::setup_select_prev_article_action(&window, &content_page_handle);
+        MainWindowActions::setup_sidebar_set_read_action(&window, &news_flash_handle, &content_page_handle, &state);
 
-        Self::setup_shortcuts(
-            &window,
-            &content_page_handle,
-            &stack,
-            &settings,
-            &news_flash_handle,
-            &content_header_handle,
-        );
+        Self::setup_shortcuts(&window, &content_page_handle, &stack, &settings, &content_header_handle);
 
         if let Ok(news_flash_lib) = NewsFlash::try_load(&DATA_DIR) {
             info!("Successful load from config");
@@ -222,14 +220,12 @@ impl MainWindow {
         content_page: &GtkHandle<ContentPage>,
         main_stack: &Stack,
         settings: &GtkHandle<Settings>,
-        news_flash: &GtkHandle<Option<NewsFlash>>,
         content_header: &GtkHandle<ContentHeader>,
     ) {
         let main_stack = main_stack.clone();
         let settings = settings.clone();
         let content_page = content_page.clone();
         let main_window = window.clone();
-        let news_flash = news_flash.clone();
         let content_header = content_header.clone();
         window.connect_key_press_event(move |widget, event| {
             // ignore shortcuts when not on content page
@@ -366,21 +362,7 @@ impl MainWindow {
             }
 
             if Self::check_shortcut("sidebar_set_read", &settings, event) {
-                if let Some(news_flash) = news_flash.borrow_mut().as_mut() {
-                    match content_page.borrow().sidebar_get_selection() {
-                        SidebarSelection::All => news_flash.set_all_read().unwrap(),
-                        SidebarSelection::Cateogry((category_id, _title)) => {
-                            news_flash.set_category_read(&vec![category_id]).unwrap()
-                        }
-                        SidebarSelection::Feed((feed_id, _title)) => news_flash.set_feed_read(&vec![feed_id]).unwrap(),
-                        SidebarSelection::Tag((tag_id, _title)) => news_flash.set_tag_read(&vec![tag_id]).unwrap(),
-                    }
-                }
-
-                if let Some(action) = main_window.lookup_action("update-article-list") {
-                    action.activate(None);
-                }
-                if let Some(action) = main_window.lookup_action("update-sidebar") {
+                if let Some(action) = main_window.lookup_action("sidebar-set-read") {
                     action.activate(None);
                 }
             }

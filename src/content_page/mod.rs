@@ -9,15 +9,18 @@ use crate::article_view::ArticleView;
 use crate::main_window_state::MainWindowState;
 use crate::settings::Settings;
 use crate::sidebar::models::SidebarSelection;
-use crate::sidebar::{FeedListTree, SideBar, TagListModel};
+use crate::sidebar::{FeedListCountType, FeedListTree, SideBar, TagListModel};
 use crate::undo_bar::{UndoActionModel, UndoBar};
-use crate::util::{BuilderHelper, GtkHandle};
+use crate::util::{BuilderHelper, GtkHandle, Util};
 use failure::format_err;
 use failure::Error;
 use gtk::{Box, BoxExt, Button, WidgetExt};
 use libhandy::Leaflet;
-use news_flash::models::{Article, ArticleFilter, ArticleID, Marked, PluginCapabilities, PluginID, Read};
+use news_flash::models::{
+    Article, ArticleFilter, ArticleID, CategoryID, FeedID, Marked, PluginCapabilities, PluginID, Read,
+};
 use news_flash::NewsFlash;
+use std::collections::HashMap;
 
 pub struct ContentPage {
     sidebar: SideBar,
@@ -204,106 +207,173 @@ impl ContentPage {
         undo_bar: &GtkHandle<UndoBar>,
     ) {
         if let Some(news_flash) = news_flash_handle.borrow_mut().as_mut() {
-            self.update_sidebar_from_ref(news_flash, &*state.borrow(), undo_bar);
+            let feedlist_count_type = match state.borrow().get_header_selection() {
+                HeaderSelection::All | HeaderSelection::Unread => FeedListCountType::Unread,
+                HeaderSelection::Marked => FeedListCountType::Marked,
+            };
+
+            let mut tree = FeedListTree::new(&feedlist_count_type);
+            let categories = news_flash.get_categories().unwrap();
+            let (feeds, mappings) = news_flash.get_feeds().unwrap();
+
+            // collect unread and marked counts
+            let mut feed_unread_counts: HashMap<FeedID, i64> = HashMap::new();
+            let mut feed_marked_counts: HashMap<FeedID, i64> = HashMap::new();
+
+            for feed in &feeds {
+                let unread_count = news_flash.unread_count_feed(&feed.feed_id).unwrap();
+                let marked_count = news_flash.marked_count_feed(&feed.feed_id).unwrap();
+
+                feed_unread_counts.insert(feed.feed_id.clone(), unread_count);
+                feed_marked_counts.insert(feed.feed_id.clone(), marked_count);
+            }
+
+            // feedlist: Categories
+            for category in &categories {
+                if let Some(UndoActionModel::DeleteCategory((id, _label))) = undo_bar.borrow().get_current_action() {
+                    if id == category.category_id {
+                        continue;
+                    }
+                }
+
+                let unread_count = Util::calculate_item_count_for_category(
+                    &category.category_id,
+                    &categories,
+                    &mappings,
+                    &feed_unread_counts,
+                );
+                let marked_count = Util::calculate_item_count_for_category(
+                    &category.category_id,
+                    &categories,
+                    &mappings,
+                    &feed_marked_counts,
+                );
+
+                tree.add_category(category, unread_count as i32, marked_count as i32)
+                    .unwrap();
+            }
+
+            // feedlist: Feeds
+            for mapping in &mappings {
+                if let Some(undo_action) = undo_bar.borrow().get_current_action() {
+                    match undo_action {
+                        UndoActionModel::DeleteFeed((id, _label)) => {
+                            if id == mapping.feed_id {
+                                continue;
+                            }
+                        }
+                        UndoActionModel::DeleteCategory((id, _label)) => {
+                            if id == mapping.category_id {
+                                continue;
+                            }
+                        }
+                        _ => {}
+                    }
+                }
+
+                let feed = feeds.iter().find(|feed| feed.feed_id == mapping.feed_id).unwrap();
+
+                let unread_count = feed_unread_counts.get(&mapping.feed_id).unwrap();
+                let marked_count = feed_marked_counts.get(&mapping.feed_id).unwrap();
+                let favicon = match news_flash.get_icon_info(&feed) {
+                    Ok(favicon) => Some(favicon),
+                    Err(_) => None,
+                };
+                tree.add_feed(&feed, &mapping, *unread_count as i32, *marked_count as i32, favicon)
+                    .unwrap();
+            }
+
+            // tag list
+            let plugin_features = news_flash.features().unwrap();
+            let support_tags = plugin_features.contains(PluginCapabilities::SUPPORT_TAGS);
+
+            if !support_tags {
+                self.sidebar.hide_taglist();
+            } else {
+                let mut list = TagListModel::new();
+                let tags = news_flash.get_tags().unwrap();
+
+                if tags.is_empty() {
+                    self.sidebar.hide_taglist();
+                } else {
+                    for tag in tags {
+                        if let Some(UndoActionModel::DeleteTag((id, _label))) = undo_bar.borrow().get_current_action() {
+                            if id == tag.tag_id {
+                                continue;
+                            }
+                        }
+                        list.add(&tag).unwrap();
+                    }
+
+                    self.sidebar.update_taglist(list);
+                    self.sidebar.show_taglist();
+                }
+            }
+
+            let total_unread_count = feed_unread_counts.iter().map(|(_key, value)| value).sum();
+            let total_marked_count = feed_marked_counts.iter().map(|(_key, value)| value).sum();
+
+            self.sidebar.update_feedlist(tree);
+            self.sidebar.update_all(total_unread_count, total_marked_count);
         }
     }
 
-    fn update_sidebar_from_ref(
-        &mut self,
-        news_flash: &mut NewsFlash,
-        state: &MainWindowState,
-        undo_bar: &GtkHandle<UndoBar>,
-    ) {
-        // feedlist
-        let mut tree = FeedListTree::new();
-        let categories = news_flash.get_categories().unwrap();
-        for category in categories {
-            if let Some(UndoActionModel::DeleteCategory((id, _label))) = undo_bar.borrow().get_current_action() {
-                if id == category.category_id {
-                    continue;
-                }
-            }
-            let count = match state.get_header_selection() {
-                HeaderSelection::Marked => news_flash.marked_count_category(&category.category_id).unwrap(),
-                HeaderSelection::All | HeaderSelection::Unread => {
-                    news_flash.unread_count_category(&category.category_id).unwrap()
-                }
-            };
-            tree.add_category(&category, count as i32).unwrap();
-        }
-        let (feeds, mappings) = news_flash.get_feeds().unwrap();
-        for mapping in mappings {
-            if let Some(undo_action) = undo_bar.borrow().get_current_action() {
-                match undo_action {
-                    UndoActionModel::DeleteFeed((id, _label)) => {
-                        if id == mapping.feed_id {
-                            continue;
-                        }
-                    }
-                    UndoActionModel::DeleteCategory((id, _label)) => {
-                        if id == mapping.category_id {
-                            continue;
-                        }
-                    }
-                    _ => {}
-                }
-            }
-
-            let feed = feeds.iter().find(|feed| feed.feed_id == mapping.feed_id).unwrap();
-
-            let count = match state.get_header_selection() {
-                HeaderSelection::Marked => news_flash.marked_count_feed(&mapping.feed_id).unwrap(),
-                HeaderSelection::All | HeaderSelection::Unread => {
-                    news_flash.unread_count_feed(&mapping.feed_id).unwrap()
-                }
-            };
-            let favicon = match news_flash.get_icon_info(&feed) {
-                Ok(favicon) => Some(favicon),
-                Err(_) => None,
-            };
-            tree.add_feed(&feed, &mapping, count as i32, favicon).unwrap();
-        }
-
-        // tag list
-        let plugin_features = news_flash.features().unwrap();
-        let support_tags = plugin_features.contains(PluginCapabilities::SUPPORT_TAGS);
-
-        if !support_tags {
-            self.sidebar.hide_taglist();
-        } else {
-            let mut list = TagListModel::new();
-            let tags = news_flash.get_tags().unwrap();
-
-            if tags.is_empty() {
-                self.sidebar.hide_taglist();
-            } else {
-                for tag in tags {
-                    if let Some(UndoActionModel::DeleteTag((id, _label))) = undo_bar.borrow().get_current_action() {
-                        if id == tag.tag_id {
-                            continue;
-                        }
-                    }
-                    let count = match state.get_header_selection() {
-                        HeaderSelection::All | HeaderSelection::Unread => {
-                            news_flash.unread_count_tag(&tag.tag_id).unwrap()
-                        }
-                        HeaderSelection::Marked => news_flash.marked_count_tag(&tag.tag_id).unwrap(),
-                    };
-                    list.add(&tag, count as i32).unwrap();
-                }
-
-                self.sidebar.update_taglist(list);
-                self.sidebar.show_taglist();
-            }
-        }
-
-        let total_count = match state.get_header_selection() {
-            HeaderSelection::All | HeaderSelection::Unread => news_flash.unread_count_all().unwrap(),
-            HeaderSelection::Marked => news_flash.marked_count_all().unwrap(),
-        };
+    pub fn sidebar_change_count_type(&mut self, new_type: &FeedListCountType) {
+        let tree = self.sidebar.clone_feedlist_tree_with_new_count_type(new_type);
 
         self.sidebar.update_feedlist(tree);
-        self.sidebar.update_unread_all(total_count);
+        self.sidebar.update_all_label();
+    }
+
+    pub fn sidebar_decrease_feed_count(&mut self, id: &FeedID, count_type: &FeedListCountType) {
+        let mut tree = self.sidebar.clone_feedlist_tree();
+        tree.feed_decrease_count(id, count_type);
+
+        let total_count = self.sidebar.get_unread_all_for_type(count_type) - 1;
+
+        self.sidebar.update_feedlist(tree);
+        self.sidebar.update_all_for_type(total_count, count_type);
+    }
+
+    pub fn sidebar_increase_feed_count(&mut self, id: &FeedID, count_type: &FeedListCountType) {
+        let mut tree = self.sidebar.clone_feedlist_tree();
+        tree.feed_increase_count(id, count_type);
+
+        let total_count = self.sidebar.get_unread_all_for_type(count_type) + 1;
+
+        self.sidebar.update_feedlist(tree);
+        self.sidebar.update_all_for_type(total_count, count_type);
+    }
+
+    pub fn sidebar_reset_feed_count(&mut self, id: &FeedID, count_type: &FeedListCountType) {
+        let mut tree = self.sidebar.clone_feedlist_tree();
+        let old_count = tree.feed_reset_count(id, count_type) as i64;
+
+        let total_count = self.sidebar.get_unread_all_for_type(count_type) - old_count;
+
+        self.sidebar.update_feedlist(tree);
+        self.sidebar.update_all_for_type(total_count, count_type);
+    }
+
+    pub fn sidebar_reset_category_count(&mut self, id: &CategoryID, count_type: &FeedListCountType) {
+        let mut tree = self.sidebar.clone_feedlist_tree();
+        let old_count = tree.category_reset_count(id, count_type) as i64;
+
+        let total_count = self.sidebar.get_unread_all_for_type(count_type) - old_count;
+
+        if &self.sidebar.get_count_type() != count_type {
+            self.sidebar.update_feedlist(tree);
+        }
+        self.sidebar.update_all_for_type(total_count, count_type);
+    }
+
+    pub fn sidebar_reset_all_count(&mut self, count_type: &FeedListCountType) {
+        let mut tree = self.sidebar.clone_feedlist_tree();
+        tree.all_reset_count(count_type);
+
+        // FIXME: only update if necessary
+        self.sidebar.update_feedlist(tree);
+        self.sidebar.update_all_for_type(0, count_type);
     }
 
     pub fn article_view_show(
