@@ -24,34 +24,34 @@ impl AddPopover {
         let select_button = builder.get::<Button>("select_button");
         let feed_title_entry = builder.get::<Entry>("feed_title_entry");
         let favicon_image = builder.get::<Image>("favicon_image");
-        let category_stack = builder.get::<Stack>("category_stack");
+        //let category_stack = builder.get::<Stack>("category_stack");
+        //let category_entry = builder.get::<Entry>("category_entry");
+        //let category_combo = builder.get::<ComboBoxText>("category_combo");
+        //let category_type_combo = builder.get::<ComboBoxText>("category_type_combo");
         let add_button = builder.get::<Button>("add_button");
-        let category_entry = builder.get::<Entry>("category_entry");
-        let category_combo = builder.get::<ComboBoxText>("category_combo");
-        let category_type_combo = builder.get::<ComboBoxText>("category_type_combo");
 
-        let category_stack_clone = category_stack.clone();
-        category_type_combo.connect_changed(move |combo| {
-            if let Some(id) = combo.get_active_id() {
-                if id == "new" {
-                    category_stack_clone.set_visible_child_name("new_category");
-                } else {
-                    category_stack_clone.set_visible_child_name("existing_category");
-                }
-            }
-        });
+        // let category_stack_clone = category_stack.clone();
+        // category_type_combo.connect_changed(move |combo| {
+        //     if let Some(id) = combo.get_active_id() {
+        //         if id == "new" {
+        //             category_stack_clone.set_visible_child_name("new_category");
+        //         } else {
+        //             category_stack_clone.set_visible_child_name("existing_category");
+        //         }
+        //     }
+        // });
 
         // setup list of categories to add feed to
-        if categories.is_empty() {
-            category_combo.set_sensitive(false);
-        } else {
-            for category in categories {
-                category_combo.append(Some(category.category_id.to_str()), &category.label);
-            }
-            if let Some(first_category) = categories.get(0) {
-                category_combo.set_active_id(Some(first_category.category_id.to_str()));
-            }
-        }
+        // if categories.is_empty() {
+        //     category_combo.set_sensitive(false);
+        // } else {
+        //     for category in categories {
+        //         category_combo.append(Some(category.category_id.to_str()), &category.label);
+        //     }
+        //     if let Some(first_category) = categories.get(0) {
+        //         category_combo.set_active_id(Some(first_category.category_id.to_str()));
+        //     }
+        // }
 
         // make parse button sensitive if entry contains text and vice versa
         let url_entry_parse_button = parse_button.clone();
@@ -120,61 +120,61 @@ impl AddPopover {
         });
 
         // make add_button sensitive / insensitive
-        let category_stack_add_button = add_button.clone();
-        let category_stack_title_entry = feed_title_entry.clone();
-        let category_stack_category_entry = category_entry.clone();
-        let category_stack_category_combo = category_combo.clone();
-        category_stack.connect_property_visible_child_notify(move |stack| {
-            let sensitive = Self::calc_add_button_sensitice(
-                &stack,
-                &category_stack_title_entry,
-                &category_stack_category_entry,
-                &category_stack_category_combo,
-            );
-            category_stack_add_button.set_sensitive(sensitive);
-        });
+        // let category_stack_add_button = add_button.clone();
+        // let category_stack_title_entry = feed_title_entry.clone();
+        // let category_stack_category_entry = category_entry.clone();
+        // let category_stack_category_combo = category_combo.clone();
+        // category_stack.connect_property_visible_child_notify(move |stack| {
+        //     let sensitive = Self::calc_add_button_sensitice(
+        //         &stack,
+        //         &category_stack_title_entry,
+        //         &category_stack_category_entry,
+        //         &category_stack_category_combo,
+        //     );
+        //     category_stack_add_button.set_sensitive(sensitive);
+        // });
 
-        let category_entry_add_button = add_button.clone();
-        let category_entry_title_entry = feed_title_entry.clone();
-        let category_entry_category_stack = category_stack.clone();
-        let category_entry_category_combo = category_combo.clone();
-        category_entry.connect_changed(move |entry| {
-            let sensitive = Self::calc_add_button_sensitice(
-                &category_entry_category_stack,
-                &category_entry_title_entry,
-                &entry,
-                &category_entry_category_combo,
-            );
-            category_entry_add_button.set_sensitive(sensitive);
-        });
+        // let category_entry_add_button = add_button.clone();
+        // let category_entry_title_entry = feed_title_entry.clone();
+        // let category_entry_category_stack = category_stack.clone();
+        // let category_entry_category_combo = category_combo.clone();
+        // category_entry.connect_changed(move |entry| {
+        //     let sensitive = Self::calc_add_button_sensitice(
+        //         &category_entry_category_stack,
+        //         &category_entry_title_entry,
+        //         &entry,
+        //         &category_entry_category_combo,
+        //     );
+        //     category_entry_add_button.set_sensitive(sensitive);
+        // });
 
-        let category_combo_add_button = add_button.clone();
-        let category_combo_title_entry = feed_title_entry.clone();
-        let category_combo_category_entry = category_entry.clone();
-        let category_combo_category_stack = category_stack.clone();
-        category_combo.connect_changed(move |combo| {
-            let sensitive = Self::calc_add_button_sensitice(
-                &category_combo_category_stack,
-                &category_combo_title_entry,
-                &category_combo_category_entry,
-                &combo,
-            );
-            category_combo_add_button.set_sensitive(sensitive);
-        });
+        // let category_combo_add_button = add_button.clone();
+        // let category_combo_title_entry = feed_title_entry.clone();
+        // let category_combo_category_entry = category_entry.clone();
+        // let category_combo_category_stack = category_stack.clone();
+        // category_combo.connect_changed(move |combo| {
+        //     let sensitive = Self::calc_add_button_sensitice(
+        //         &category_combo_category_stack,
+        //         &category_combo_title_entry,
+        //         &category_combo_category_entry,
+        //         &combo,
+        //     );
+        //     category_combo_add_button.set_sensitive(sensitive);
+        // });
 
-        let title_entry_add_button = add_button.clone();
-        let title_entry_category_entry = category_entry.clone();
-        let title_entry_category_stack = category_stack.clone();
-        let title_entry_category_combo = category_combo.clone();
-        feed_title_entry.connect_changed(move |entry| {
-            let sensitive = Self::calc_add_button_sensitice(
-                &title_entry_category_stack,
-                &entry,
-                &title_entry_category_entry,
-                &title_entry_category_combo,
-            );
-            title_entry_add_button.set_sensitive(sensitive);
-        });
+        // let title_entry_add_button = add_button.clone();
+        // let title_entry_category_entry = category_entry.clone();
+        // let title_entry_category_stack = category_stack.clone();
+        // let title_entry_category_combo = category_combo.clone();
+        // feed_title_entry.connect_changed(move |entry| {
+        //     let sensitive = Self::calc_add_button_sensitice(
+        //         &title_entry_category_stack,
+        //         &entry,
+        //         &title_entry_category_entry,
+        //         &title_entry_category_combo,
+        //     );
+        //     title_entry_add_button.set_sensitive(sensitive);
+        // });
 
         popover.set_relative_to(Some(parent));
         popover.show_all();
@@ -188,14 +188,14 @@ impl AddPopover {
 
         if let Some(favicon) = news_flash::util::favicon_cache::FavIconCache::scrap(&feed) {
             if let Some(data) = &favicon.data {
-                let surface = GtkUtil::create_surface_from_bytes(data, 32, 32, scale).unwrap();
+                let surface = GtkUtil::create_surface_from_bytes(data, 64, 64, scale).unwrap();
                 favicon_image.set_from_surface(Some(&surface));
             }
         } else if let Some(icon_url) = feed.icon_url {
             if let Ok(mut response) = reqwest::get(icon_url.get()) {
                 let mut buf: Vec<u8> = vec![];
                 if let Ok(_bytes_written) = response.copy_to(&mut buf) {
-                    if let Ok(surface) = GtkUtil::create_surface_from_bytes(&buf, 32, 32, scale) {
+                    if let Ok(surface) = GtkUtil::create_surface_from_bytes(&buf, 64, 64, scale) {
                         favicon_image.set_from_surface(Some(&surface));
                     }
                 }

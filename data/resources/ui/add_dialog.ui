@@ -237,7 +237,7 @@
                   <object class="GtkLabel">
                     <property name="visible">True</property>
                     <property name="can_focus">False</property>
-                    <property name="margin_bottom">20</property>
+                    <property name="margin_bottom">5</property>
                     <property name="label" translatable="yes">Edit the title of the feed and set its category</property>
                     <property name="wrap">True</property>
                     <property name="ellipsize">end</property>
@@ -253,39 +253,14 @@
                   </packing>
                 </child>
                 <child>
-                  <object class="GtkBox">
+                  <object class="GtkImage" id="favicon_image">
+                    <property name="width_request">64</property>
+                    <property name="height_request">64</property>
                     <property name="visible">True</property>
                     <property name="can_focus">False</property>
-                    <property name="spacing">5</property>
-                    <child>
-                      <object class="GtkImage" id="favicon_image">
-                        <property name="width_request">32</property>
-                        <property name="height_request">32</property>
-                        <property name="visible">True</property>
-                        <property name="can_focus">False</property>
-                        <property name="pixel_size">32</property>
-                        <property name="icon_name">application-rss+xml-symbolic</property>
-                      </object>
-                      <packing>
-                        <property name="expand">False</property>
-                        <property name="fill">True</property>
-                        <property name="position">0</property>
-                      </packing>
-                    </child>
-                    <child>
-                      <object class="GtkEntry" id="feed_title_entry">
-                        <property name="visible">True</property>
-                        <property name="can_focus">True</property>
-                        <property name="valign">center</property>
-                        <property name="hexpand">True</property>
-                        <property name="placeholder_text" translatable="yes">Feed Title</property>
-                      </object>
-                      <packing>
-                        <property name="expand">False</property>
-                        <property name="fill">True</property>
-                        <property name="position">1</property>
-                      </packing>
-                    </child>
+                    <property name="margin_bottom">5</property>
+                    <property name="pixel_size">64</property>
+                    <property name="icon_name">application-rss+xml-symbolic</property>
                   </object>
                   <packing>
                     <property name="expand">False</property>
@@ -294,60 +269,29 @@
                   </packing>
                 </child>
                 <child>
-                  <object class="GtkBox">
+                  <object class="GtkEntry" id="feed_title_entry">
+                    <property name="visible">True</property>
+                    <property name="can_focus">True</property>
+                    <property name="valign">center</property>
+                    <property name="hexpand">True</property>
+                    <property name="placeholder_text" translatable="yes">Feed Title</property>
+                  </object>
+                  <packing>
+                    <property name="expand">False</property>
+                    <property name="fill">True</property>
+                    <property name="position">3</property>
+                  </packing>
+                </child>
+                <child>
+                  <object class="GtkComboBox">
                     <property name="visible">True</property>
                     <property name="can_focus">False</property>
-                    <property name="margin_bottom">10</property>
-                    <property name="spacing">10</property>
-                    <child>
-                      <object class="GtkStack" id="category_stack">
-                        <property name="visible">True</property>
+                    <property name="has_entry">True</property>
+                    <child internal-child="entry">
+                      <object class="GtkEntry" id="category_entry">
                         <property name="can_focus">False</property>
-                        <child>
-                          <object class="GtkComboBoxText" id="category_combo">
-                            <property name="visible">True</property>
-                            <property name="can_focus">False</property>
-                            <property name="active">0</property>
-                          </object>
-                          <packing>
-                            <property name="name">existing_category</property>
-                            <property name="title" translatable="yes">Existing Category</property>
-                          </packing>
-                        </child>
-                        <child>
-                          <object class="GtkEntry" id="category_entry">
-                            <property name="visible">True</property>
-                            <property name="can_focus">True</property>
-                          </object>
-                          <packing>
-                            <property name="name">new_category</property>
-                            <property name="title" translatable="yes">New Category</property>
-                            <property name="position">1</property>
-                          </packing>
-                        </child>
+                        <property name="placeholder_text" translatable="yes">Category</property>
                       </object>
-                      <packing>
-                        <property name="expand">True</property>
-                        <property name="fill">True</property>
-                        <property name="pack_type">end</property>
-                        <property name="position">0</property>
-                      </packing>
-                    </child>
-                    <child>
-                      <object class="GtkComboBoxText" id="category_type_combo">
-                        <property name="visible">True</property>
-                        <property name="can_focus">False</property>
-                        <property name="active">0</property>
-                        <items>
-                          <item id="existing" translatable="yes">Existing Category</item>
-                          <item id="new" translatable="yes">New Category</item>
-                        </items>
-                      </object>
-                      <packing>
-                        <property name="expand">False</property>
-                        <property name="fill">False</property>
-                        <property name="position">1</property>
-                      </packing>
                     </child>
                   </object>
                   <packing>
