@@ -1,11 +1,10 @@
 use super::header_selection::HeaderSelection;
 use crate::gtk_handle;
 use crate::util::{BuilderHelper, GtkHandle, GtkUtil};
-use gdk::EventType;
 use gio::{ActionExt, ActionMapExt, Menu, MenuItem};
 use glib::{translate::ToGlib, Variant};
 use gtk::{
-    Button, ButtonExt, Continue, EntryExt, Inhibit, MenuButton, MenuButtonExt, SearchEntry, SearchEntryExt, Stack,
+    Button, ButtonExt, Continue, EntryExt, MenuButton, MenuButtonExt, SearchEntry, SearchEntryExt, Stack,
     StackExt, ToggleButton, ToggleButtonExt, WidgetExt,
 };
 use libhandy::{SearchBar, SearchBarExt};
@@ -132,21 +131,8 @@ impl ContentHeader {
         linked_button_timeout: &GtkHandle<Option<u32>>,
         mode: HeaderSelection,
     ) {
-        let other_button_1_1 = other_button_1.clone();
-        let other_button_2_1 = other_button_2.clone();
-        button.connect_button_press_event(move |button, event| {
-            if button.get_active() || event.get_button() != 1 {
-                return Inhibit(true);
-            }
-            match event.get_event_type() {
-                EventType::ButtonPress => (),
-                _ => return gtk::Inhibit(true),
-            }
-            other_button_1_1.set_active(false);
-            other_button_2_1.set_active(false);
-            Inhibit(false)
-        });
-
+        let other_button_1 = other_button_1.clone();
+        let other_button_2 = other_button_2.clone();
         let header_selection = header_selection.clone();
         let linked_button_timeout = linked_button_timeout.clone();
         button.connect_toggled(move |button| {
@@ -154,6 +140,9 @@ impl ContentHeader {
                 // ignore deactivating toggle-button
                 return;
             }
+
+            other_button_1.set_active(false);
+            other_button_2.set_active(false);
 
             *header_selection.borrow_mut() = mode.clone();
 
