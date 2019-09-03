@@ -4,8 +4,8 @@ use crate::util::{BuilderHelper, GtkHandle, GtkUtil};
 use gio::{ActionExt, ActionMapExt, Menu, MenuItem};
 use glib::{object::Cast, translate::ToGlib, Variant};
 use gtk::{
-    Button, ButtonExt, Continue, EntryExt, MenuButton, MenuButtonExt, SearchEntry, SearchEntryExt, Stack,
-    StackExt, ToggleButton, ToggleButtonExt, WidgetExt, Inhibit,
+    Button, ButtonExt, Continue, EntryExt, Inhibit, MenuButton, MenuButtonExt, SearchEntry, SearchEntryExt, Stack,
+    StackExt, ToggleButton, ToggleButtonExt, WidgetExt,
 };
 use libhandy::{SearchBar, SearchBarExt};
 use std::cell::RefCell;

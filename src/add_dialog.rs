@@ -30,7 +30,6 @@ impl AddPopover {
         let category_combo = builder.get::<ComboBoxText>("category_combo");
         let category_type_combo = builder.get::<ComboBoxText>("category_type_combo");
 
-
         let category_stack_clone = category_stack.clone();
         category_type_combo.connect_changed(move |combo| {
             if let Some(id) = combo.get_active_id() {
