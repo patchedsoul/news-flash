@@ -21,12 +21,26 @@ impl AddPopover {
         let parse_button = builder.get::<Button>("parse_button");
         let add_feed_stack = builder.get::<Stack>("add_feed_stack");
         let feed_list = builder.get::<ListBox>("feed_list");
+        let select_button = builder.get::<Button>("select_button");
         let feed_title_entry = builder.get::<Entry>("feed_title_entry");
         let favicon_image = builder.get::<Image>("favicon_image");
         let category_stack = builder.get::<Stack>("category_stack");
         let add_button = builder.get::<Button>("add_button");
         let category_entry = builder.get::<Entry>("category_entry");
         let category_combo = builder.get::<ComboBoxText>("category_combo");
+        let category_type_combo = builder.get::<ComboBoxText>("category_type_combo");
+
+
+        let category_stack_clone = category_stack.clone();
+        category_type_combo.connect_changed(move |combo| {
+            if let Some(id) = combo.get_active_id() {
+                if id == "new" {
+                    category_stack_clone.set_visible_child_name("new_category");
+                } else {
+                    category_stack_clone.set_visible_child_name("existing_category");
+                }
+            }
+        });
 
         // setup list of categories to add feed to
         if categories.is_empty() {
@@ -66,6 +80,7 @@ impl AddPopover {
         let parse_button_feed_list = feed_list.clone();
         let parse_button_feed_title_entry = feed_title_entry.clone();
         let parse_button_favicon_image = favicon_image.clone();
+        let parse_button_select_button = select_button.clone();
         parse_button.connect_clicked(move |_button| {
             if let Some(url_text) = url_entry.get_text() {
                 let mut url_text = url_text.as_str().to_owned();
@@ -81,6 +96,7 @@ impl AddPopover {
                                 Self::fill_mupliple_feed_list(
                                     feed_vec,
                                     &parse_button_feed_list,
+                                    &parse_button_select_button,
                                     &parse_button_add_feed_stack,
                                     &parse_button_feed_title_entry,
                                     &parse_button_favicon_image,
@@ -191,23 +207,32 @@ impl AddPopover {
     fn fill_mupliple_feed_list(
         feed_vec: Vec<(String, Url)>,
         list: &ListBox,
+        select_button: &Button,
         stack: &Stack,
         title_entry: &Entry,
         favicon: &Image,
     ) {
+        let list_select_button = select_button.clone();
+        list.connect_row_selected(move |_list, row| {
+            list_select_button.set_sensitive(row.is_some());
+        });
+
         let add_feed_stack = stack.clone();
         let title_entry = title_entry.clone();
+        let list_clone = list.clone();
         let favicon = favicon.clone();
-        list.connect_row_activated(move |_list, row| {
-            if let Some(name) = row.get_name() {
-                // should never fail since it comes from `url.as_str()`
-                let url = Url::parse(name.as_str()).unwrap();
-                let feed_id = FeedID::new(url.get().as_str());
-                if let Ok(ParsedUrl::SingleFeed(feed)) =
-                    news_flash::feed_parser::download_and_parse_feed(&url, &feed_id, None, None)
-                {
-                    Self::fill_feed_page(feed, &title_entry, &favicon);
-                    add_feed_stack.set_visible_child_name("feed_page");
+        select_button.connect_clicked(move |_button| {
+            if let Some(row) = list_clone.get_selected_row() {
+                if let Some(name) = row.get_name() {
+                    // should never fail since it comes from `url.as_str()`
+                    let url = Url::parse(name.as_str()).unwrap();
+                    let feed_id = FeedID::new(url.get().as_str());
+                    if let Ok(ParsedUrl::SingleFeed(feed)) =
+                        news_flash::feed_parser::download_and_parse_feed(&url, &feed_id, None, None)
+                    {
+                        Self::fill_feed_page(feed, &title_entry, &favicon);
+                        add_feed_stack.set_visible_child_name("feed_page");
+                    }
                 }
             }
         });
@@ -219,8 +244,8 @@ impl AddPopover {
             label.set_margin_start(20);
             label.set_margin_end(20);
             let row = ListBoxRow::new();
-            row.set_selectable(false);
-            row.set_activatable(true);
+            row.set_selectable(true);
+            row.set_activatable(false);
             row.set_name(url.get().as_str());
             row.add(&label);
             row.show_all();
