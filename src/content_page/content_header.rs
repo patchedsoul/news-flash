@@ -2,10 +2,10 @@ use super::header_selection::HeaderSelection;
 use crate::gtk_handle;
 use crate::util::{BuilderHelper, GtkHandle, GtkUtil};
 use gio::{ActionExt, ActionMapExt, Menu, MenuItem};
-use glib::{translate::ToGlib, Variant};
+use glib::{object::Cast, translate::ToGlib, Variant};
 use gtk::{
     Button, ButtonExt, Continue, EntryExt, MenuButton, MenuButtonExt, SearchEntry, SearchEntryExt, Stack,
-    StackExt, ToggleButton, ToggleButtonExt, WidgetExt,
+    StackExt, ToggleButton, ToggleButtonExt, WidgetExt, Inhibit,
 };
 use libhandy::{SearchBar, SearchBarExt};
 use std::cell::RefCell;
@@ -131,6 +131,19 @@ impl ContentHeader {
         linked_button_timeout: &GtkHandle<Option<u32>>,
         mode: HeaderSelection,
     ) {
+        button.connect_button_press_event(|button, _event| {
+            let toggle_button = button
+                .clone()
+                .downcast::<ToggleButton>()
+                .expect("Failed to cast to ToggleButton");
+
+            if toggle_button.get_active() {
+                return Inhibit(true);
+            }
+
+            Inhibit(false)
+        });
+
         let other_button_1 = other_button_1.clone();
         let other_button_2 = other_button_2.clone();
         let header_selection = header_selection.clone();
