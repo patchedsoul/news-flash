@@ -283,13 +283,16 @@
                   </packing>
                 </child>
                 <child>
-                  <object class="GtkComboBox">
+                  <object class="GtkComboBox" id="category_combo">
                     <property name="visible">True</property>
                     <property name="can_focus">False</property>
                     <property name="has_entry">True</property>
+                    <property name="entry_text_column">1</property>
+                    <property name="id_column">0</property>
                     <child internal-child="entry">
                       <object class="GtkEntry" id="category_entry">
-                        <property name="can_focus">False</property>
+                        <property name="visible">True</property>
+                        <property name="can_focus">True</property>
                         <property name="placeholder_text" translatable="yes">Category</property>
                       </object>
                     </child>

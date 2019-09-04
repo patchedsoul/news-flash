@@ -1,8 +1,9 @@
 use crate::util::{BuilderHelper, GtkUtil};
 use gtk::{
-    Button, ButtonExt, ComboBoxExt, ComboBoxText, ComboBoxTextExt, ContainerExt, EditableSignals, Entry, EntryExt,
-    Image, ImageExt, Label, LabelExt, ListBox, ListBoxExt, ListBoxRow, ListBoxRowExt, Orientation, Popover, PopoverExt,
-    Separator, Stack, StackExt, StyleContextExt, WidgetExt,
+    Button, ButtonExt, ComboBox, ComboBoxExt, ContainerExt, EditableSignals, Entry,
+    EntryExt, GtkListStoreExt, GtkListStoreExtManual, Image, ImageExt, Label, LabelExt, ListBox, ListBoxExt,
+    ListBoxRow, ListBoxRowExt, ListStore, Orientation, Popover, PopoverExt, Separator, Stack, StackExt,
+    StyleContextExt, Type, WidgetExt,
 };
 use news_flash::models::{Category, Feed, FeedID, Url};
 use news_flash::ParsedUrl;
@@ -24,34 +25,21 @@ impl AddPopover {
         let select_button = builder.get::<Button>("select_button");
         let feed_title_entry = builder.get::<Entry>("feed_title_entry");
         let favicon_image = builder.get::<Image>("favicon_image");
-        //let category_stack = builder.get::<Stack>("category_stack");
-        //let category_entry = builder.get::<Entry>("category_entry");
-        //let category_combo = builder.get::<ComboBoxText>("category_combo");
-        //let category_type_combo = builder.get::<ComboBoxText>("category_type_combo");
+        let category_combo = builder.get::<ComboBox>("category_combo");
+        let category_entry = builder.get::<Entry>("category_entry");
         let add_button = builder.get::<Button>("add_button");
 
-        // let category_stack_clone = category_stack.clone();
-        // category_type_combo.connect_changed(move |combo| {
-        //     if let Some(id) = combo.get_active_id() {
-        //         if id == "new" {
-        //             category_stack_clone.set_visible_child_name("new_category");
-        //         } else {
-        //             category_stack_clone.set_visible_child_name("existing_category");
-        //         }
-        //     }
-        // });
-
         // setup list of categories to add feed to
-        // if categories.is_empty() {
-        //     category_combo.set_sensitive(false);
-        // } else {
-        //     for category in categories {
-        //         category_combo.append(Some(category.category_id.to_str()), &category.label);
-        //     }
-        //     if let Some(first_category) = categories.get(0) {
-        //         category_combo.set_active_id(Some(first_category.category_id.to_str()));
-        //     }
-        // }
+        if categories.is_empty() {
+            category_combo.set_sensitive(false);
+        } else {
+            let list_store = ListStore::new(&[Type::String, Type::String]);
+            for category in categories {
+                let iter = list_store.append();
+                list_store.set(&iter, &[0, 1], &[&Some(category.category_id.to_str()), &category.label]);
+            }
+            category_combo.set_model(Some(&list_store));
+        }
 
         // make parse button sensitive if entry contains text and vice versa
         let url_entry_parse_button = parse_button.clone();
@@ -120,61 +108,25 @@ impl AddPopover {
         });
 
         // make add_button sensitive / insensitive
-        // let category_stack_add_button = add_button.clone();
-        // let category_stack_title_entry = feed_title_entry.clone();
-        // let category_stack_category_entry = category_entry.clone();
-        // let category_stack_category_combo = category_combo.clone();
-        // category_stack.connect_property_visible_child_notify(move |stack| {
-        //     let sensitive = Self::calc_add_button_sensitice(
-        //         &stack,
-        //         &category_stack_title_entry,
-        //         &category_stack_category_entry,
-        //         &category_stack_category_combo,
-        //     );
-        //     category_stack_add_button.set_sensitive(sensitive);
-        // });
+        let category_entry_add_button = add_button.clone();
+        let category_entry_title_entry = feed_title_entry.clone();
+        category_entry.connect_changed(move |entry| {
+            let sensitive = Self::calc_add_button_sensitive(
+                &category_entry_title_entry,
+                &entry,
+            );
+            category_entry_add_button.set_sensitive(sensitive);
+        });
 
-        // let category_entry_add_button = add_button.clone();
-        // let category_entry_title_entry = feed_title_entry.clone();
-        // let category_entry_category_stack = category_stack.clone();
-        // let category_entry_category_combo = category_combo.clone();
-        // category_entry.connect_changed(move |entry| {
-        //     let sensitive = Self::calc_add_button_sensitice(
-        //         &category_entry_category_stack,
-        //         &category_entry_title_entry,
-        //         &entry,
-        //         &category_entry_category_combo,
-        //     );
-        //     category_entry_add_button.set_sensitive(sensitive);
-        // });
-
-        // let category_combo_add_button = add_button.clone();
-        // let category_combo_title_entry = feed_title_entry.clone();
-        // let category_combo_category_entry = category_entry.clone();
-        // let category_combo_category_stack = category_stack.clone();
-        // category_combo.connect_changed(move |combo| {
-        //     let sensitive = Self::calc_add_button_sensitice(
-        //         &category_combo_category_stack,
-        //         &category_combo_title_entry,
-        //         &category_combo_category_entry,
-        //         &combo,
-        //     );
-        //     category_combo_add_button.set_sensitive(sensitive);
-        // });
-
-        // let title_entry_add_button = add_button.clone();
-        // let title_entry_category_entry = category_entry.clone();
-        // let title_entry_category_stack = category_stack.clone();
-        // let title_entry_category_combo = category_combo.clone();
-        // feed_title_entry.connect_changed(move |entry| {
-        //     let sensitive = Self::calc_add_button_sensitice(
-        //         &title_entry_category_stack,
-        //         &entry,
-        //         &title_entry_category_entry,
-        //         &title_entry_category_combo,
-        //     );
-        //     title_entry_add_button.set_sensitive(sensitive);
-        // });
+        let title_entry_add_button = add_button.clone();
+        let title_entry_category_entry = category_entry.clone();
+        feed_title_entry.connect_changed(move |entry| {
+            let sensitive = Self::calc_add_button_sensitive(
+                &entry,
+                &title_entry_category_entry,
+            );
+            title_entry_add_button.set_sensitive(sensitive);
+        });
 
         popover.set_relative_to(Some(parent));
         popover.show_all();
@@ -264,11 +216,9 @@ impl AddPopover {
         }
     }
 
-    fn calc_add_button_sensitice(
-        stack: &Stack,
+    fn calc_add_button_sensitive(
         title_entry: &Entry,
         category_entry: &Entry,
-        category_combo: &ComboBoxText,
     ) -> bool {
         if let Some(text) = title_entry.get_text() {
             if text.as_str().is_empty() {
@@ -276,18 +226,9 @@ impl AddPopover {
             }
         }
 
-        if let Some(child_name) = stack.get_visible_child_name() {
-            let child_name = child_name.as_str();
-            if child_name == "new_category" {
-                if let Some(text) = category_entry.get_text() {
-                    if text.as_str().is_empty() {
-                        return false;
-                    }
-                }
-            } else if child_name == "existing_category" {
-                if category_combo.get_active_id().is_none() {
-                    return false;
-                }
+        if let Some(text) = category_entry.get_text() {
+            if text.as_str().is_empty() {
+                return false;
             }
         }
 
