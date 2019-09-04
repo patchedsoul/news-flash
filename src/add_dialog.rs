@@ -1,9 +1,8 @@
 use crate::util::{BuilderHelper, GtkUtil};
 use gtk::{
-    Button, ButtonExt, ComboBox, ComboBoxExt, ContainerExt, EditableSignals, Entry,
-    EntryExt, GtkListStoreExt, GtkListStoreExtManual, Image, ImageExt, Label, LabelExt, ListBox, ListBoxExt,
-    ListBoxRow, ListBoxRowExt, ListStore, Orientation, Popover, PopoverExt, Separator, Stack, StackExt,
-    StyleContextExt, Type, WidgetExt,
+    Button, ButtonExt, ComboBox, ComboBoxExt, ContainerExt, EditableSignals, Entry, EntryExt, GtkListStoreExt,
+    GtkListStoreExtManual, Image, ImageExt, Label, LabelExt, ListBox, ListBoxExt, ListBoxRow, ListBoxRowExt, ListStore,
+    Orientation, Popover, PopoverExt, Separator, Stack, StackExt, StyleContextExt, Type, WidgetExt,
 };
 use news_flash::models::{Category, Feed, FeedID, Url};
 use news_flash::ParsedUrl;
@@ -111,20 +110,14 @@ impl AddPopover {
         let category_entry_add_button = add_button.clone();
         let category_entry_title_entry = feed_title_entry.clone();
         category_entry.connect_changed(move |entry| {
-            let sensitive = Self::calc_add_button_sensitive(
-                &category_entry_title_entry,
-                &entry,
-            );
+            let sensitive = Self::calc_add_button_sensitive(&category_entry_title_entry, &entry);
             category_entry_add_button.set_sensitive(sensitive);
         });
 
         let title_entry_add_button = add_button.clone();
         let title_entry_category_entry = category_entry.clone();
         feed_title_entry.connect_changed(move |entry| {
-            let sensitive = Self::calc_add_button_sensitive(
-                &entry,
-                &title_entry_category_entry,
-            );
+            let sensitive = Self::calc_add_button_sensitive(&entry, &title_entry_category_entry);
             title_entry_add_button.set_sensitive(sensitive);
         });
 
@@ -216,10 +209,7 @@ impl AddPopover {
         }
     }
 
-    fn calc_add_button_sensitive(
-        title_entry: &Entry,
-        category_entry: &Entry,
-    ) -> bool {
+    fn calc_add_button_sensitive(title_entry: &Entry, category_entry: &Entry) -> bool {
         if let Some(text) = title_entry.get_text() {
             if text.as_str().is_empty() {
                 return false;
