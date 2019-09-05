@@ -20,7 +20,6 @@ use news_flash::models::{
     Article, ArticleFilter, ArticleID, CategoryID, FeedID, Marked, PluginCapabilities, PluginID, Read,
 };
 use news_flash::NewsFlash;
-use std::collections::HashMap;
 
 pub struct ContentPage {
     sidebar: SideBar,
@@ -207,6 +206,8 @@ impl ContentPage {
         undo_bar: &GtkHandle<UndoBar>,
     ) {
         if let Some(news_flash) = news_flash_handle.borrow_mut().as_mut() {
+            let now = std::time::Instant::now();
+
             let feedlist_count_type = match state.borrow().get_header_selection() {
                 HeaderSelection::All | HeaderSelection::Unread => FeedListCountType::Unread,
                 HeaderSelection::Marked => FeedListCountType::Marked,
@@ -216,19 +217,11 @@ impl ContentPage {
             let categories = news_flash.get_categories().unwrap();
             let (feeds, mappings) = news_flash.get_feeds().unwrap();
 
+            
+
             // collect unread and marked counts
-            // let feed_unread_counts = news_flash.unread_count_feed_map().unwrap();
-            // let feed_marked_counts = news_flash.marked_count_feed_map().unwrap();
-            let mut feed_unread_counts: HashMap<FeedID, i64> = HashMap::new();
-            let mut feed_marked_counts: HashMap<FeedID, i64> = HashMap::new();
-
-            for feed in &feeds {
-                let unread_count = news_flash.unread_count_feed(&feed.feed_id).unwrap();
-                let marked_count = news_flash.marked_count_feed(&feed.feed_id).unwrap();
-
-                feed_unread_counts.insert(feed.feed_id.clone(), unread_count);
-                feed_marked_counts.insert(feed.feed_id.clone(), marked_count);
-            }
+            let feed_unread_counts = news_flash.unread_count_feed_map().unwrap();
+            let feed_marked_counts = news_flash.marked_count_feed_map().unwrap();
 
             // feedlist: Categories
             for category in &categories {
@@ -275,13 +268,19 @@ impl ContentPage {
 
                 let feed = feeds.iter().find(|feed| feed.feed_id == mapping.feed_id).unwrap();
 
-                let unread_count = feed_unread_counts.get(&mapping.feed_id).unwrap();
-                let marked_count = feed_marked_counts.get(&mapping.feed_id).unwrap();
+                let unread_count = match feed_unread_counts.get(&mapping.feed_id) {
+                    Some(count) => *count,
+                    None => 0,
+                };
+                let marked_count = match feed_marked_counts.get(&mapping.feed_id) {
+                    Some(count) => *count,
+                    None => 0,
+                };
                 let favicon = match news_flash.get_icon_info(&feed) {
                     Ok(favicon) => Some(favicon),
                     Err(_) => None,
                 };
-                tree.add_feed(&feed, &mapping, *unread_count as i32, *marked_count as i32, favicon)
+                tree.add_feed(&feed, &mapping, unread_count as i32, marked_count as i32, favicon)
                     .unwrap();
             }
 
@@ -314,6 +313,8 @@ impl ContentPage {
 
             let total_unread_count = feed_unread_counts.iter().map(|(_key, value)| value).sum();
             let total_marked_count = feed_marked_counts.iter().map(|(_key, value)| value).sum();
+
+            println!("{}", now.elapsed().as_millis());
 
             self.sidebar.update_feedlist(tree);
             self.sidebar.update_all(total_unread_count, total_marked_count);
