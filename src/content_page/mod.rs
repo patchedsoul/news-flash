@@ -217,6 +217,8 @@ impl ContentPage {
             let (feeds, mappings) = news_flash.get_feeds().unwrap();
 
             // collect unread and marked counts
+            // let feed_unread_counts = news_flash.unread_count_feed_map().unwrap();
+            // let feed_marked_counts = news_flash.marked_count_feed_map().unwrap();
             let mut feed_unread_counts: HashMap<FeedID, i64> = HashMap::new();
             let mut feed_marked_counts: HashMap<FeedID, i64> = HashMap::new();
 
