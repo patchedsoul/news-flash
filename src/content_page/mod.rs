@@ -314,7 +314,7 @@ impl ContentPage {
             let total_unread_count = feed_unread_counts.iter().map(|(_key, value)| value).sum();
             let total_marked_count = feed_marked_counts.iter().map(|(_key, value)| value).sum();
 
-            println!("{}", now.elapsed().as_millis());
+            println!("db read: {} us", now.elapsed().as_micros());
 
             self.sidebar.update_feedlist(tree);
             self.sidebar.update_all(total_unread_count, total_marked_count);
@@ -322,10 +322,14 @@ impl ContentPage {
     }
 
     pub fn sidebar_change_count_type(&mut self, new_type: &FeedListCountType) {
+        let now = std::time::Instant::now();
         let tree = self.sidebar.clone_feedlist_tree_with_new_count_type(new_type);
+        println!("switch count: {} us", now.elapsed().as_micros());
 
+        let now = std::time::Instant::now();
         self.sidebar.update_feedlist(tree);
         self.sidebar.update_all_label();
+        println!("UI update: {} us", now.elapsed().as_micros());
     }
 
     pub fn sidebar_decrease_feed_count(&mut self, id: &FeedID, count_type: &FeedListCountType) {
