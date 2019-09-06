@@ -118,11 +118,7 @@ impl MainWindow {
             &state,
             &undo_bar_handle,
         );
-        MainWindowActions::setup_headerbar_selection_action(
-            &window,
-            &content_header_handle,
-            &state,
-        );
+        MainWindowActions::setup_headerbar_selection_action(&window, &content_header_handle, &state);
         MainWindowActions::setup_search_action(&window, &state);
         MainWindowActions::setup_update_article_list_action(
             &window,

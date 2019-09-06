@@ -16,9 +16,7 @@ use failure::format_err;
 use failure::Error;
 use gtk::{Box, BoxExt, Button, WidgetExt};
 use libhandy::Leaflet;
-use news_flash::models::{
-    Article, ArticleFilter, ArticleID, Marked, PluginCapabilities, PluginID, Read,
-};
+use news_flash::models::{Article, ArticleFilter, ArticleID, Marked, PluginCapabilities, PluginID, Read};
 use news_flash::NewsFlash;
 
 pub struct ContentPage {
@@ -227,8 +225,7 @@ impl ContentPage {
                     &feed_count_map,
                 );
 
-                tree.add_category(category, category_item_count)
-                    .unwrap();
+                tree.add_category(category, category_item_count).unwrap();
             }
 
             // feedlist: Feeds
@@ -259,8 +256,7 @@ impl ContentPage {
                     Ok(favicon) => Some(favicon),
                     Err(_) => None,
                 };
-                tree.add_feed(&feed, &mapping, item_count, favicon)
-                    .unwrap();
+                tree.add_feed(&feed, &mapping, item_count, favicon).unwrap();
             }
 
             // tag list
@@ -291,8 +287,6 @@ impl ContentPage {
             }
 
             let total_item_count = feed_count_map.iter().map(|(_key, value)| value).sum();
-
-            
 
             self.sidebar.update_feedlist(tree);
             self.sidebar.update_all(total_item_count);

@@ -71,11 +71,7 @@ impl FeedListTree {
         Err(FeedListModelErrorKind::AddFeedNoParent)?
     }
 
-    pub fn add_category(
-        &mut self,
-        category: &Category,
-        item_count: i64,
-    ) -> Result<(), FeedListModelError> {
+    pub fn add_category(&mut self, category: &Category, item_count: i64) -> Result<(), FeedListModelError> {
         if category.parent_id == self.top_level_id {
             let contains_category = self.top_level.iter().any(|item| {
                 if let FeedListItem::Category(item) = item {
@@ -162,12 +158,7 @@ impl FeedListTree {
 
     pub fn generate_diff(&self, other: &mut FeedListTree) -> Vec<FeedListChangeSet> {
         let mut list_pos = 0;
-        Self::diff_level(
-            &self.top_level,
-            &mut other.top_level,
-            &mut list_pos,
-            true,
-        )
+        Self::diff_level(&self.top_level, &mut other.top_level, &mut list_pos, true)
     }
 
     fn diff_level(
@@ -243,9 +234,7 @@ impl FeedListTree {
                         match new_item {
                             FeedListItem::Feed(new_feed) => {
                                 if let FeedListItem::Feed(old_feed) = old_item {
-                                    if new_feed.item_count
-                                        != old_feed.item_count
-                                    {
+                                    if new_feed.item_count != old_feed.item_count {
                                         diff.push(FeedListChangeSet::FeedUpdateItemCount(
                                             new_feed.id.clone(),
                                             new_feed.item_count,
@@ -262,9 +251,7 @@ impl FeedListTree {
                             FeedListItem::Category(new_category) => {
                                 if let FeedListItem::Category(old_category) = old_item {
                                     new_category.expanded = old_category.expanded;
-                                    if new_category.item_count
-                                        != old_category.item_count
-                                    {
+                                    if new_category.item_count != old_category.item_count {
                                         diff.push(FeedListChangeSet::CategoryUpdateItemCount(
                                             new_category.id.clone(),
                                             new_category.item_count,

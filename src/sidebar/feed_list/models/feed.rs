@@ -15,13 +15,7 @@ pub struct FeedListFeedModel {
 }
 
 impl FeedListFeedModel {
-    pub fn new(
-        feed: &Feed,
-        mapping: &FeedMapping,
-        item_count: i64,
-        level: i32,
-        icon: Option<FavIcon>,
-    ) -> Self {
+    pub fn new(feed: &Feed, mapping: &FeedMapping, item_count: i64, level: i32, icon: Option<FavIcon>) -> Self {
         FeedListFeedModel {
             id: feed.feed_id.clone(),
             parent_id: mapping.category_id.clone(),
@@ -57,10 +51,6 @@ impl PartialOrd for FeedListFeedModel {
 
 impl fmt::Display for FeedListFeedModel {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(
-            f,
-            "{} (count: {}) (id: {})",
-            self.label, self.item_count, self.id
-        )
+        write!(f, "{} (count: {}) (id: {})", self.label, self.item_count, self.id)
     }
 }

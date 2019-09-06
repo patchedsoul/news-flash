@@ -9,8 +9,8 @@ use crate::sidebar::feed_list::{
     category_row::CategoryRow,
     feed_row::FeedRow,
     models::{
-        FeedListCategoryModel, FeedListChangeSet, FeedListDndAction, FeedListFeedModel,
-        FeedListItem, FeedListItemID, FeedListTree,
+        FeedListCategoryModel, FeedListChangeSet, FeedListDndAction, FeedListFeedModel, FeedListItem, FeedListItemID,
+        FeedListTree,
     },
 };
 use crate::sidebar::SidebarIterateItem;
@@ -65,7 +65,7 @@ impl FeedList {
     pub fn widget(&self) -> ListBox {
         self.list.clone()
     }
-    
+
     fn setup_dnd(&self) {
         let entry = TargetEntry::new("FeedRow", TargetFlags::SAME_APP, 0);
         let tree = self.tree.clone();

@@ -445,10 +445,7 @@ impl MainWindowActions {
         window.add_action(&close_article_action);
     }
 
-    pub fn setup_mark_article_read_action(
-        window: &ApplicationWindow,
-        news_flash: &GtkHandle<Option<NewsFlash>>,
-    ) {
+    pub fn setup_mark_article_read_action(window: &ApplicationWindow, news_flash: &GtkHandle<Option<NewsFlash>>) {
         let news_flash = news_flash.clone();
         let main_window = window.clone();
         let mark_article_read_action = SimpleAction::new("mark-article-read", VariantTy::new("s").ok());
@@ -472,10 +469,7 @@ impl MainWindowActions {
         window.add_action(&mark_article_read_action);
     }
 
-    pub fn setup_mark_article_action(
-        window: &ApplicationWindow,
-        news_flash: &GtkHandle<Option<NewsFlash>>,
-    ) {
+    pub fn setup_mark_article_action(window: &ApplicationWindow, news_flash: &GtkHandle<Option<NewsFlash>>) {
         let news_flash = news_flash.clone();
         let main_window = window.clone();
         let mark_article_action = SimpleAction::new("mark-article", VariantTy::new("s").ok());
@@ -519,9 +513,7 @@ impl MainWindowActions {
                     SidebarSelection::Cateogry((category_id, _title)) => {
                         news_flash.set_category_read(&vec![category_id]).unwrap();
                     }
-                    SidebarSelection::Feed((feed_id, _title)) => {
-                        news_flash.set_feed_read(&vec![feed_id]).unwrap()
-                    }
+                    SidebarSelection::Feed((feed_id, _title)) => news_flash.set_feed_read(&vec![feed_id]).unwrap(),
                     SidebarSelection::Tag((tag_id, _title)) => {
                         news_flash.set_tag_read(&vec![tag_id]).unwrap();
                     }
