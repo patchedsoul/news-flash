@@ -1,5 +1,4 @@
 use super::item::FeedListItem;
-use crate::sidebar::FeedListCountType;
 use news_flash::models::{Category, CategoryID};
 use std;
 use std::cmp::Ordering;
@@ -15,12 +14,11 @@ pub struct FeedListCategoryModel {
     pub children: Vec<FeedListItem>,
     pub level: i32,
     pub expanded: bool,
-    unread_count: i32,
-    marked_count: i32,
+    pub item_count: i64,
 }
 
 impl FeedListCategoryModel {
-    pub fn new(category: &Category, unread_count: i32, marked_count: i32, level: i32) -> Self {
+    pub fn new(category: &Category, item_count: i64, level: i32) -> Self {
         FeedListCategoryModel {
             id: category.category_id.clone(),
             parent_id: category.parent_id.clone(),
@@ -32,22 +30,7 @@ impl FeedListCategoryModel {
             children: Vec::new(),
             level,
             expanded: false,
-            unread_count,
-            marked_count,
-        }
-    }
-
-    pub fn get_item_count_for_type(&self, count_type: &FeedListCountType) -> i32 {
-        match count_type {
-            FeedListCountType::Unread => self.unread_count,
-            FeedListCountType::Marked => self.marked_count,
-        }
-    }
-
-    pub fn set_item_count(&mut self, count: i32, count_type: &FeedListCountType) {
-        match count_type {
-            FeedListCountType::Unread => self.unread_count = count,
-            FeedListCountType::Marked => self.marked_count = count,
+            item_count,
         }
     }
 
@@ -95,8 +78,7 @@ impl Hash for FeedListCategoryModel {
     fn hash<H: Hasher>(&self, state: &mut H) {
         self.id.hash(state);
         self.parent_id.hash(state);
-        self.unread_count.hash(state);
-        self.marked_count.hash(state);
+        self.item_count.hash(state);
         self.sort_index.hash(state);
     }
 }
@@ -123,8 +105,8 @@ impl fmt::Display for FeedListCategoryModel {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(
             f,
-            "{}  (unread: {}) (marked: {}) (id: {}) (exp: {})",
-            self.label, self.unread_count, self.marked_count, self.id, self.expanded
+            "{}  (count: {}) (id: {}) (exp: {})",
+            self.label, self.item_count, self.id, self.expanded
         )
     }
 }

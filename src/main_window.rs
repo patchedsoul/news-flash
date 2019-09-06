@@ -122,7 +122,6 @@ impl MainWindow {
             &window,
             &content_header_handle,
             &state,
-            &content_page_handle,
         );
         MainWindowActions::setup_search_action(&window, &state);
         MainWindowActions::setup_update_article_list_action(
@@ -148,8 +147,8 @@ impl MainWindow {
         );
         MainWindowActions::setup_close_article_action(&window, &content_page_handle, &content_header_handle);
         MainWindowActions::setup_redraw_article_action(&window, &content_page_handle);
-        MainWindowActions::setup_mark_article_read_action(&window, &news_flash_handle, &content_page_handle);
-        MainWindowActions::setup_mark_article_action(&window, &news_flash_handle, &content_page_handle);
+        MainWindowActions::setup_mark_article_read_action(&window, &news_flash_handle);
+        MainWindowActions::setup_mark_article_action(&window, &news_flash_handle);
         MainWindowActions::setup_rename_feed_action(&window, &news_flash_handle);
         MainWindowActions::setup_add_action(&window, &news_flash_handle, &content_page_handle);
         MainWindowActions::setup_rename_category_action(&window, &news_flash_handle);
@@ -164,7 +163,7 @@ impl MainWindow {
         MainWindowActions::setup_export_action(&window, &news_flash_handle);
         MainWindowActions::setup_select_next_article_action(&window, &content_page_handle);
         MainWindowActions::setup_select_prev_article_action(&window, &content_page_handle);
-        MainWindowActions::setup_sidebar_set_read_action(&window, &news_flash_handle, &content_page_handle, &state);
+        MainWindowActions::setup_sidebar_set_read_action(&window, &news_flash_handle, &state);
 
         Self::setup_shortcuts(&window, &content_page_handle, &stack, &settings, &content_header_handle);
 

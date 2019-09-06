@@ -9,7 +9,7 @@ use crate::sidebar::feed_list::{
     category_row::CategoryRow,
     feed_row::FeedRow,
     models::{
-        FeedListCategoryModel, FeedListChangeSet, FeedListCountType, FeedListDndAction, FeedListFeedModel,
+        FeedListCategoryModel, FeedListChangeSet, FeedListDndAction, FeedListFeedModel,
         FeedListItem, FeedListItemID, FeedListTree,
     },
 };
@@ -55,7 +55,7 @@ impl FeedList {
             list: list_box,
             categories: gtk_handle!(HashMap::new()),
             feeds: gtk_handle!(HashMap::new()),
-            tree: gtk_handle!(FeedListTree::new(&FeedListCountType::Unread)),
+            tree: gtk_handle!(FeedListTree::new()),
             delayed_selection: gtk_handle!(None),
         };
         feed_list.setup_dnd();
@@ -65,11 +65,7 @@ impl FeedList {
     pub fn widget(&self) -> ListBox {
         self.list.clone()
     }
-
-    pub fn get_count_type(&self) -> FeedListCountType {
-        self.tree.borrow().get_count_type().clone()
-    }
-
+    
     fn setup_dnd(&self) {
         let entry = TargetEntry::new("FeedRow", TargetFlags::SAME_APP, 0);
         let tree = self.tree.clone();
@@ -165,14 +161,6 @@ impl FeedList {
             });
     }
 
-    pub fn clone_tree(&self) -> FeedListTree {
-        self.tree.borrow().clone()
-    }
-
-    pub fn clone_tree_with_new_count_type(&self, new_type: &FeedListCountType) -> FeedListTree {
-        self.tree.borrow().clone_with_new_count_type(new_type)
-    }
-
     pub fn update(&mut self, new_tree: FeedListTree) {
         let old_tree = self.tree.replace(new_tree);
         let tree_diff = old_tree.generate_diff(&mut self.tree.borrow_mut());
@@ -221,7 +209,7 @@ impl FeedList {
     }
 
     fn add_category(&mut self, category: &FeedListCategoryModel, pos: i32, visible: bool) {
-        let category_widget = CategoryRow::new(category, self.tree.borrow().get_count_type(), visible);
+        let category_widget = CategoryRow::new(category, visible);
         let feeds = self.feeds.clone();
         let categories = self.categories.clone();
         let category_id = category.id.clone();
@@ -290,7 +278,7 @@ impl FeedList {
     }
 
     fn add_feed(&mut self, feed: &FeedListFeedModel, pos: i32, visible: bool) {
-        let feed_widget = FeedRow::new(feed, self.tree.borrow().get_count_type(), visible);
+        let feed_widget = FeedRow::new(feed, visible);
         self.list.insert(&feed_widget.borrow().widget(), pos);
         self.feeds.borrow_mut().insert(feed.id.clone(), feed_widget);
     }

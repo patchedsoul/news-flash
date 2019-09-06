@@ -9,7 +9,7 @@ use crate::article_view::ArticleView;
 use crate::main_window_state::MainWindowState;
 use crate::settings::Settings;
 use crate::sidebar::models::SidebarSelection;
-use crate::sidebar::{FeedListCountType, FeedListTree, SideBar, TagListModel};
+use crate::sidebar::{FeedListTree, SideBar, TagListModel};
 use crate::undo_bar::{UndoActionModel, UndoBar};
 use crate::util::{BuilderHelper, GtkHandle, Util};
 use failure::format_err;
@@ -17,7 +17,7 @@ use failure::Error;
 use gtk::{Box, BoxExt, Button, WidgetExt};
 use libhandy::Leaflet;
 use news_flash::models::{
-    Article, ArticleFilter, ArticleID, CategoryID, FeedID, Marked, PluginCapabilities, PluginID, Read,
+    Article, ArticleFilter, ArticleID, Marked, PluginCapabilities, PluginID, Read,
 };
 use news_flash::NewsFlash;
 
@@ -68,42 +68,36 @@ impl ContentPage {
         undo_bar: &GtkHandle<UndoBar>,
     ) {
         if let Some(news_flash) = news_flash_handle.borrow_mut().as_mut() {
-            self.update_article_list_from_ref(news_flash, &mut *window_state.borrow_mut(), undo_bar);
+            let now = std::time::Instant::now();
+            let window_state = &mut *window_state.borrow_mut();
+            let relevant_articles_loaded = self
+                .article_list
+                .get_relevant_article_count(window_state.get_header_selection());
+            let limit = if window_state.reset_article_list() {
+                MainWindowState::page_size()
+            } else if relevant_articles_loaded as i64 >= MainWindowState::page_size() {
+                relevant_articles_loaded as i64
+            } else {
+                MainWindowState::page_size()
+            };
+            let mut list_model = ArticleListModel::new(&self.settings.borrow().get_article_list_order());
+            let mut articles = Self::load_articles(news_flash, &window_state, &self.settings, undo_bar, limit, None);
+
+            let (feeds, _) = news_flash.get_feeds().unwrap();
+            let _: Vec<_> = articles
+                .drain(..)
+                .map(|article| {
+                    let feed = feeds.iter().find(|&f| f.feed_id == article.feed_id).unwrap();
+                    let favicon = match news_flash.get_icon_info(&feed) {
+                        Ok(favicon) => Some(favicon),
+                        Err(_) => None,
+                    };
+                    list_model.add(article, feed.label.clone(), favicon)
+                })
+                .collect();
+            self.article_list.update(list_model, window_state);
+            println!("complete article list update: {} ms", now.elapsed().as_millis());
         }
-    }
-
-    fn update_article_list_from_ref(
-        &mut self,
-        news_flash: &mut NewsFlash,
-        window_state: &mut MainWindowState,
-        undo_bar: &GtkHandle<UndoBar>,
-    ) {
-        let relevant_articles_loaded = self
-            .article_list
-            .get_relevant_article_count(window_state.get_header_selection());
-        let limit = if window_state.reset_article_list() {
-            MainWindowState::page_size()
-        } else if relevant_articles_loaded as i64 >= MainWindowState::page_size() {
-            relevant_articles_loaded as i64
-        } else {
-            MainWindowState::page_size()
-        };
-        let mut list_model = ArticleListModel::new(&self.settings.borrow().get_article_list_order());
-        let mut articles = Self::load_articles(news_flash, &window_state, &self.settings, undo_bar, limit, None);
-
-        let (feeds, _) = news_flash.get_feeds().unwrap();
-        let _: Vec<_> = articles
-            .drain(..)
-            .map(|article| {
-                let feed = feeds.iter().find(|&f| f.feed_id == article.feed_id).unwrap();
-                let favicon = match news_flash.get_icon_info(&feed) {
-                    Ok(favicon) => Some(favicon),
-                    Err(_) => None,
-                };
-                list_model.add(article, feed.label.clone(), favicon)
-            })
-            .collect();
-        self.article_list.update(list_model, window_state);
     }
 
     pub fn load_more_articles(
@@ -208,20 +202,15 @@ impl ContentPage {
         if let Some(news_flash) = news_flash_handle.borrow_mut().as_mut() {
             let now = std::time::Instant::now();
 
-            let feedlist_count_type = match state.borrow().get_header_selection() {
-                HeaderSelection::All | HeaderSelection::Unread => FeedListCountType::Unread,
-                HeaderSelection::Marked => FeedListCountType::Marked,
-            };
-
-            let mut tree = FeedListTree::new(&feedlist_count_type);
+            let mut tree = FeedListTree::new();
             let categories = news_flash.get_categories().unwrap();
             let (feeds, mappings) = news_flash.get_feeds().unwrap();
 
-            
-
             // collect unread and marked counts
-            let feed_unread_counts = news_flash.unread_count_feed_map().unwrap();
-            let feed_marked_counts = news_flash.marked_count_feed_map().unwrap();
+            let feed_count_map = match state.borrow().get_header_selection() {
+                HeaderSelection::All | HeaderSelection::Unread => news_flash.unread_count_feed_map().unwrap(),
+                HeaderSelection::Marked => news_flash.marked_count_feed_map().unwrap(),
+            };
 
             // feedlist: Categories
             for category in &categories {
@@ -231,20 +220,14 @@ impl ContentPage {
                     }
                 }
 
-                let unread_count = Util::calculate_item_count_for_category(
+                let category_item_count = Util::calculate_item_count_for_category(
                     &category.category_id,
                     &categories,
                     &mappings,
-                    &feed_unread_counts,
-                );
-                let marked_count = Util::calculate_item_count_for_category(
-                    &category.category_id,
-                    &categories,
-                    &mappings,
-                    &feed_marked_counts,
+                    &feed_count_map,
                 );
 
-                tree.add_category(category, unread_count as i32, marked_count as i32)
+                tree.add_category(category, category_item_count)
                     .unwrap();
             }
 
@@ -268,11 +251,7 @@ impl ContentPage {
 
                 let feed = feeds.iter().find(|feed| feed.feed_id == mapping.feed_id).unwrap();
 
-                let unread_count = match feed_unread_counts.get(&mapping.feed_id) {
-                    Some(count) => *count,
-                    None => 0,
-                };
-                let marked_count = match feed_marked_counts.get(&mapping.feed_id) {
+                let item_count = match feed_count_map.get(&mapping.feed_id) {
                     Some(count) => *count,
                     None => 0,
                 };
@@ -280,7 +259,7 @@ impl ContentPage {
                     Ok(favicon) => Some(favicon),
                     Err(_) => None,
                 };
-                tree.add_feed(&feed, &mapping, unread_count as i32, marked_count as i32, favicon)
+                tree.add_feed(&feed, &mapping, item_count, favicon)
                     .unwrap();
             }
 
@@ -311,76 +290,15 @@ impl ContentPage {
                 }
             }
 
-            let total_unread_count = feed_unread_counts.iter().map(|(_key, value)| value).sum();
-            let total_marked_count = feed_marked_counts.iter().map(|(_key, value)| value).sum();
+            let total_item_count = feed_count_map.iter().map(|(_key, value)| value).sum();
 
-            println!("db read: {} us", now.elapsed().as_micros());
+            
 
             self.sidebar.update_feedlist(tree);
-            self.sidebar.update_all(total_unread_count, total_marked_count);
+            self.sidebar.update_all(total_item_count);
+
+            println!("complete sidebar update: {} ms", now.elapsed().as_millis());
         }
-    }
-
-    pub fn sidebar_change_count_type(&mut self, new_type: &FeedListCountType) {
-        let now = std::time::Instant::now();
-        let tree = self.sidebar.clone_feedlist_tree_with_new_count_type(new_type);
-        println!("switch count: {} us", now.elapsed().as_micros());
-
-        let now = std::time::Instant::now();
-        self.sidebar.update_feedlist(tree);
-        self.sidebar.update_all_label();
-        println!("UI update: {} us", now.elapsed().as_micros());
-    }
-
-    pub fn sidebar_decrease_feed_count(&mut self, id: &FeedID, count_type: &FeedListCountType) {
-        let mut tree = self.sidebar.clone_feedlist_tree();
-        tree.feed_decrease_count(id, count_type);
-
-        let total_count = self.sidebar.get_unread_all_for_type(count_type) - 1;
-
-        self.sidebar.update_feedlist(tree);
-        self.sidebar.update_all_for_type(total_count, count_type);
-    }
-
-    pub fn sidebar_increase_feed_count(&mut self, id: &FeedID, count_type: &FeedListCountType) {
-        let mut tree = self.sidebar.clone_feedlist_tree();
-        tree.feed_increase_count(id, count_type);
-
-        let total_count = self.sidebar.get_unread_all_for_type(count_type) + 1;
-
-        self.sidebar.update_feedlist(tree);
-        self.sidebar.update_all_for_type(total_count, count_type);
-    }
-
-    pub fn sidebar_reset_feed_count(&mut self, id: &FeedID, count_type: &FeedListCountType) {
-        let mut tree = self.sidebar.clone_feedlist_tree();
-        let old_count = tree.feed_reset_count(id, count_type) as i64;
-
-        let total_count = self.sidebar.get_unread_all_for_type(count_type) - old_count;
-
-        self.sidebar.update_feedlist(tree);
-        self.sidebar.update_all_for_type(total_count, count_type);
-    }
-
-    pub fn sidebar_reset_category_count(&mut self, id: &CategoryID, count_type: &FeedListCountType) {
-        let mut tree = self.sidebar.clone_feedlist_tree();
-        let old_count = tree.category_reset_count(id, count_type) as i64;
-
-        let total_count = self.sidebar.get_unread_all_for_type(count_type) - old_count;
-
-        if &self.sidebar.get_count_type() != count_type {
-            self.sidebar.update_feedlist(tree);
-        }
-        self.sidebar.update_all_for_type(total_count, count_type);
-    }
-
-    pub fn sidebar_reset_all_count(&mut self, count_type: &FeedListCountType) {
-        let mut tree = self.sidebar.clone_feedlist_tree();
-        tree.all_reset_count(count_type);
-
-        // FIXME: only update if necessary
-        self.sidebar.update_feedlist(tree);
-        self.sidebar.update_all_for_type(0, count_type);
     }
 
     pub fn article_view_show(

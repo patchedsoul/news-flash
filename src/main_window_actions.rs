@@ -12,7 +12,6 @@ use crate::rename_dialog::RenameDialog;
 use crate::responsive::ResponsiveLayout;
 use crate::settings::{NewsFlashShortcutWindow, Settings, SettingsDialog};
 use crate::sidebar::models::SidebarSelection;
-use crate::sidebar::FeedListCountType;
 use crate::undo_bar::{UndoActionModel, UndoBar};
 use crate::util::{FileUtil, GtkHandle};
 use gio::{ActionExt, ActionMapExt, ApplicationExt, SimpleAction};
@@ -22,7 +21,7 @@ use gtk::{
     FileFilter, GtkWindowExt, GtkWindowExtManual, ResponseType, Stack, StackExt, StackTransitionType,
 };
 use log::{debug, error, info, warn};
-use news_flash::models::{ArticleID, CategoryID, FeedID, LoginData, Marked, PluginID, Read};
+use news_flash::models::{ArticleID, CategoryID, FeedID, LoginData, PluginID};
 use news_flash::{NewsFlash, NewsFlashError};
 use std::cell::RefCell;
 use std::rc::Rc;
@@ -282,12 +281,10 @@ impl MainWindowActions {
         window: &ApplicationWindow,
         header: &GtkHandle<ContentHeader>,
         state: &GtkHandle<MainWindowState>,
-        content_page: &GtkHandle<ContentPage>,
     ) {
         let state = state.clone();
         let main_window = window.clone();
         let header = header.clone();
-        let content_page = content_page.clone();
         let headerbar_selection_action = SimpleAction::new("headerbar-selection", VariantTy::new("s").ok());
         headerbar_selection_action.connect_activate(move |_action, data| {
             if let Some(data) = data {
@@ -314,11 +311,9 @@ impl MainWindowActions {
                         },
                     };
                     if update_sidebar {
-                        let count_type = match old_selection {
-                            HeaderSelection::All | HeaderSelection::Unread => FeedListCountType::Marked,
-                            HeaderSelection::Marked => FeedListCountType::Unread,
-                        };
-                        content_page.borrow_mut().sidebar_change_count_type(&count_type);
+                        if let Some(action) = main_window.lookup_action("update-sidebar") {
+                            action.activate(None);
+                        }
                     }
                 }
             }
@@ -453,10 +448,9 @@ impl MainWindowActions {
     pub fn setup_mark_article_read_action(
         window: &ApplicationWindow,
         news_flash: &GtkHandle<Option<NewsFlash>>,
-        content_page: &GtkHandle<ContentPage>,
     ) {
         let news_flash = news_flash.clone();
-        let content_page = content_page.clone();
+        let main_window = window.clone();
         let mark_article_read_action = SimpleAction::new("mark-article-read", VariantTy::new("s").ok());
         mark_article_read_action.connect_activate(move |_action, data| {
             if let Some(data) = data {
@@ -467,15 +461,8 @@ impl MainWindowActions {
                         news_flash
                             .set_article_read(&[update.article_id.clone()], update.read)
                             .unwrap();
-
-                        let article = news_flash.get_article(&update.article_id).unwrap();
-                        match update.read {
-                            Read::Unread => content_page
-                                .borrow_mut()
-                                .sidebar_increase_feed_count(&article.feed_id, &FeedListCountType::Unread),
-                            Read::Read => content_page
-                                .borrow_mut()
-                                .sidebar_decrease_feed_count(&article.feed_id, &FeedListCountType::Unread),
+                        if let Some(action) = main_window.lookup_action("update-sidebar") {
+                            action.activate(None);
                         }
                     }
                 }
@@ -488,10 +475,9 @@ impl MainWindowActions {
     pub fn setup_mark_article_action(
         window: &ApplicationWindow,
         news_flash: &GtkHandle<Option<NewsFlash>>,
-        content_page: &GtkHandle<ContentPage>,
     ) {
         let news_flash = news_flash.clone();
-        let content_page = content_page.clone();
+        let main_window = window.clone();
         let mark_article_action = SimpleAction::new("mark-article", VariantTy::new("s").ok());
         mark_article_action.connect_activate(move |_action, data| {
             if let Some(data) = data {
@@ -502,15 +488,8 @@ impl MainWindowActions {
                         news_flash
                             .set_article_marked(&[update.article_id.clone()], update.marked)
                             .unwrap();
-
-                        let article = news_flash.get_article(&update.article_id).unwrap();
-                        match update.marked {
-                            Marked::Marked => content_page
-                                .borrow_mut()
-                                .sidebar_increase_feed_count(&article.feed_id, &FeedListCountType::Marked),
-                            Marked::Unmarked => content_page
-                                .borrow_mut()
-                                .sidebar_decrease_feed_count(&article.feed_id, &FeedListCountType::Marked),
+                        if let Some(action) = main_window.lookup_action("update-sidebar") {
+                            action.activate(None);
                         }
                     }
                 }
@@ -523,13 +502,11 @@ impl MainWindowActions {
     pub fn setup_sidebar_set_read_action(
         window: &ApplicationWindow,
         news_flash: &GtkHandle<Option<NewsFlash>>,
-        content_page: &GtkHandle<ContentPage>,
         state: &GtkHandle<MainWindowState>,
     ) {
         let news_flash = news_flash.clone();
         let main_window = window.clone();
         let state = state.clone();
-        let content_page = content_page.clone();
         let sidebar_set_read_action = SimpleAction::new("sidebar-set-read", None);
         sidebar_set_read_action.connect_activate(move |_action, _data| {
             if let Some(news_flash) = news_flash.borrow_mut().as_mut() {
@@ -537,33 +514,24 @@ impl MainWindowActions {
 
                 match sidebar_selection {
                     SidebarSelection::All => {
-                        content_page
-                            .borrow_mut()
-                            .sidebar_reset_all_count(&FeedListCountType::Unread);
                         news_flash.set_all_read().unwrap();
                     }
                     SidebarSelection::Cateogry((category_id, _title)) => {
-                        content_page
-                            .borrow_mut()
-                            .sidebar_reset_category_count(&category_id, &FeedListCountType::Unread);
                         news_flash.set_category_read(&vec![category_id]).unwrap();
                     }
                     SidebarSelection::Feed((feed_id, _title)) => {
-                        content_page
-                            .borrow_mut()
-                            .sidebar_reset_feed_count(&feed_id, &FeedListCountType::Unread);
                         news_flash.set_feed_read(&vec![feed_id]).unwrap()
                     }
                     SidebarSelection::Tag((tag_id, _title)) => {
                         news_flash.set_tag_read(&vec![tag_id]).unwrap();
-                        if let Some(action) = main_window.lookup_action("update-sidebar") {
-                            action.activate(None);
-                        }
                     }
                 }
             }
 
             if let Some(action) = main_window.lookup_action("update-article-list") {
+                action.activate(None);
+            }
+            if let Some(action) = main_window.lookup_action("update-sidebar") {
                 action.activate(None);
             }
         });
