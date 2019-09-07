@@ -458,9 +458,9 @@ impl MainWindowActions {
                         news_flash
                             .set_article_read(&[update.article_id.clone()], update.read)
                             .unwrap();
-                        if let Some(action) = main_window.lookup_action("update-sidebar") {
-                            action.activate(None);
-                        }
+                    }
+                    if let Some(action) = main_window.lookup_action("update-sidebar") {
+                        action.activate(None);
                     }
                 }
             }
@@ -482,9 +482,9 @@ impl MainWindowActions {
                         news_flash
                             .set_article_marked(&[update.article_id.clone()], update.marked)
                             .unwrap();
-                        if let Some(action) = main_window.lookup_action("update-sidebar") {
-                            action.activate(None);
-                        }
+                    }
+                    if let Some(action) = main_window.lookup_action("update-sidebar") {
+                        action.activate(None);
                     }
                 }
             }
