@@ -8,13 +8,15 @@ use news_flash::models::{Category, Feed, FeedID, Url};
 use news_flash::ParsedUrl;
 use pango::EllipsizeMode;
 
+pub const NEW_CATEGORY_ICON: &str = "folder-new-symbolic";
+
 #[derive(Clone, Debug)]
 pub struct AddPopover {
     popover: Popover,
 }
 
 impl AddPopover {
-    pub fn new(parent: &Button, categories: &[Category]) -> Self {
+    pub fn new(parent: &Button, categories: Vec<Category>) -> Self {
         let builder = BuilderHelper::new("add_dialog");
         let popover = builder.get::<Popover>("add_pop");
         let url_entry = builder.get::<Entry>("url_entry");
@@ -33,7 +35,7 @@ impl AddPopover {
             category_combo.set_sensitive(false);
         } else {
             let list_store = ListStore::new(&[Type::String, Type::String]);
-            for category in categories {
+            for category in &categories {
                 let iter = list_store.append();
                 list_store.set(&iter, &[0, 1], &[&Some(category.category_id.to_str()), &category.label]);
             }
@@ -109,9 +111,24 @@ impl AddPopover {
         // make add_button sensitive / insensitive
         let category_entry_add_button = add_button.clone();
         let category_entry_title_entry = feed_title_entry.clone();
+        let category_entry_category_combo = category_combo.clone();
         category_entry.connect_changed(move |entry| {
             let sensitive = Self::calc_add_button_sensitive(&category_entry_title_entry, &entry);
             category_entry_add_button.set_sensitive(sensitive);
+
+            let entry_text = entry.get_text().map(|t| t.as_str().to_owned());
+
+            let folder_icon = if category_entry_category_combo.get_active_id().is_some() {
+                None
+            } else if entry.get_text().is_none() {
+                None
+            } else if categories.iter().any(|c| Some(c.label.clone()) == entry_text) {
+                None
+            } else {
+                Some(NEW_CATEGORY_ICON)
+            };
+
+            entry.set_property_secondary_icon_name(folder_icon);
         });
 
         let title_entry_add_button = add_button.clone();
