@@ -66,7 +66,6 @@ impl ContentPage {
         undo_bar: &GtkHandle<UndoBar>,
     ) {
         if let Some(news_flash) = news_flash_handle.borrow_mut().as_mut() {
-            let now = std::time::Instant::now();
             let window_state = &mut *window_state.borrow_mut();
             let relevant_articles_loaded = self
                 .article_list
@@ -94,7 +93,6 @@ impl ContentPage {
                 })
                 .collect();
             self.article_list.update(list_model, window_state);
-            println!("complete article list update: {} ms", now.elapsed().as_millis());
         }
     }
 
@@ -198,8 +196,6 @@ impl ContentPage {
         undo_bar: &GtkHandle<UndoBar>,
     ) {
         if let Some(news_flash) = news_flash_handle.borrow_mut().as_mut() {
-            let now = std::time::Instant::now();
-
             let mut tree = FeedListTree::new();
             let categories = news_flash.get_categories().unwrap();
             let (feeds, mappings) = news_flash.get_feeds().unwrap();
@@ -290,8 +286,6 @@ impl ContentPage {
 
             self.sidebar.update_feedlist(tree);
             self.sidebar.update_all(total_item_count);
-
-            println!("complete sidebar update: {} ms", now.elapsed().as_millis());
         }
     }
 
