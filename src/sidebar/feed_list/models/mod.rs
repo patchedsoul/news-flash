@@ -11,4 +11,4 @@ pub use change_set::FeedListChangeSet;
 pub use dnd_action::FeedListDndAction;
 pub use feed::FeedListFeedModel;
 pub use item::{FeedListItem, FeedListItemID};
-pub use tree::{FeedListCountType, FeedListTree};
+pub use tree::FeedListTree;

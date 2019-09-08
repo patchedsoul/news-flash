@@ -1,4 +1,3 @@
-use crate::sidebar::FeedListCountType;
 use news_flash::models::{CategoryID, FavIcon, Feed, FeedID, FeedMapping};
 use std;
 use std::cmp::Ordering;
@@ -12,19 +11,11 @@ pub struct FeedListFeedModel {
     pub sort_index: i32,
     pub icon: Option<FavIcon>,
     pub level: i32,
-    unread_count: i32,
-    marked_count: i32,
+    pub item_count: i64,
 }
 
 impl FeedListFeedModel {
-    pub fn new(
-        feed: &Feed,
-        mapping: &FeedMapping,
-        unread_count: i32,
-        marked_count: i32,
-        level: i32,
-        icon: Option<FavIcon>,
-    ) -> Self {
+    pub fn new(feed: &Feed, mapping: &FeedMapping, item_count: i64, level: i32, icon: Option<FavIcon>) -> Self {
         FeedListFeedModel {
             id: feed.feed_id.clone(),
             parent_id: mapping.category_id.clone(),
@@ -35,22 +26,7 @@ impl FeedListFeedModel {
             },
             icon,
             level,
-            unread_count,
-            marked_count,
-        }
-    }
-
-    pub fn get_item_count_for_type(&self, count_type: &FeedListCountType) -> i32 {
-        match count_type {
-            FeedListCountType::Unread => self.unread_count,
-            FeedListCountType::Marked => self.marked_count,
-        }
-    }
-
-    pub fn set_item_count(&mut self, count: i32, count_type: &FeedListCountType) {
-        match count_type {
-            FeedListCountType::Unread => self.unread_count = count,
-            FeedListCountType::Marked => self.marked_count = count,
+            item_count,
         }
     }
 }
@@ -75,10 +51,6 @@ impl PartialOrd for FeedListFeedModel {
 
 impl fmt::Display for FeedListFeedModel {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(
-            f,
-            "{} (unread: {}) (marked: {}) (id: {})",
-            self.label, self.unread_count, self.marked_count, self.id
-        )
+        write!(f, "{} (count: {}) (id: {})", self.label, self.item_count, self.id)
     }
 }

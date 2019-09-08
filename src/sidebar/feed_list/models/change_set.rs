@@ -9,8 +9,8 @@ pub enum FeedListChangeSet {
     RemoveCategory(CategoryID),
     AddFeed(FeedListFeedModel, i32, bool),         // pos, visible
     AddCategory(FeedListCategoryModel, i32, bool), // pos, visible
-    FeedUpdateItemCount(FeedID, i32),              // item count
-    CategoryUpdateItemCount(CategoryID, i32),      // item count
+    FeedUpdateItemCount(FeedID, i64),              // item count
+    CategoryUpdateItemCount(CategoryID, i64),      // item count
     FeedUpdateLabel(FeedID, String),               // label
     CategoryUpdateLabel(CategoryID, String),       // label
 }

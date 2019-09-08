@@ -1,6 +1,5 @@
 use crate::gtk_handle;
 use crate::sidebar::feed_list::models::FeedListFeedModel;
-use crate::sidebar::FeedListCountType;
 use crate::undo_bar::UndoActionModel;
 use crate::util::{BuilderHelper, GtkHandle, GtkUtil};
 use cairo::{self, Format, ImageSurface};
@@ -30,7 +29,7 @@ pub struct FeedRow {
 }
 
 impl FeedRow {
-    pub fn new(model: &FeedListFeedModel, count_type: &FeedListCountType, visible: bool) -> GtkHandle<FeedRow> {
+    pub fn new(model: &FeedListFeedModel, visible: bool) -> GtkHandle<FeedRow> {
         let builder = BuilderHelper::new("feed");
         let revealer = builder.get::<Revealer>("feed_row");
         let level_margin = builder.get::<Box>("level_margin");
@@ -51,7 +50,7 @@ impl FeedRow {
             item_count_event,
             favicon,
         };
-        feed.update_item_count(model.get_item_count_for_type(count_type));
+        feed.update_item_count(model.item_count);
         feed.update_title(&model.label);
         feed.update_favicon(&model.icon);
         if !visible {
@@ -144,7 +143,7 @@ impl FeedRow {
         self.widget.clone()
     }
 
-    pub fn update_item_count(&self, count: i32) {
+    pub fn update_item_count(&self, count: i64) {
         if count > 0 {
             self.item_count.set_label(&count.to_string());
             self.item_count_event.set_visible(true);
