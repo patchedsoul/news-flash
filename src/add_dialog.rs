@@ -1,7 +1,5 @@
-use crate::util::{BuilderHelper, GtkHandle, GtkUtil};
 use crate::gtk_handle;
-use std::rc::Rc;
-use std::cell::RefCell;
+use crate::util::{BuilderHelper, GtkHandle, GtkUtil};
 use gtk::{
     Button, ButtonExt, ComboBox, ComboBoxExt, ContainerExt, EditableSignals, Entry, EntryExt, GtkListStoreExt,
     GtkListStoreExtManual, Image, ImageExt, Label, LabelExt, ListBox, ListBoxExt, ListBoxRow, ListBoxRowExt, ListStore,
@@ -10,6 +8,8 @@ use gtk::{
 use news_flash::models::{Category, Feed, FeedID, Url};
 use news_flash::ParsedUrl;
 use pango::EllipsizeMode;
+use std::cell::RefCell;
+use std::rc::Rc;
 
 pub const NEW_CATEGORY_ICON: &str = "folder-new-symbolic";
 
@@ -34,7 +34,7 @@ impl AddPopover {
         let category_combo = builder.get::<ComboBox>("category_combo");
         let category_entry = builder.get::<Entry>("category_entry");
         let add_button = builder.get::<Button>("add_button");
-        let feed_url : GtkHandle<Option<Url>> = gtk_handle!(None);
+        let feed_url: GtkHandle<Option<Url>> = gtk_handle!(None);
 
         // setup list of categories to add feed to
         if categories.is_empty() {
@@ -104,7 +104,7 @@ impl AddPopover {
                                     feed,
                                     &parse_button_feed_title_entry,
                                     &parse_button_favicon_image,
-                                    &parse_button_feed_url
+                                    &parse_button_feed_url,
                                 );
                             }
                         }
@@ -277,8 +277,6 @@ impl AddPopover {
     }
 
     pub fn get_feed_title(&self) -> Option<String> {
-        self.feed_title_entry
-            .get_text()
-            .map(|title| title.as_str().to_owned())
+        self.feed_title_entry.get_text().map(|title| title.as_str().to_owned())
     }
 }
