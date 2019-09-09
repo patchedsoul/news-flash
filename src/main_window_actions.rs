@@ -542,7 +542,12 @@ impl MainWindowActions {
         add_action.connect_activate(move |_action, _data| {
             if let Some(news_flash) = news_flash.borrow_mut().as_mut() {
                 let categories = news_flash.get_categories().unwrap();
-                let _dialog = AddPopover::new(&add_button, categories);
+                let dialog = AddPopover::new(&add_button, categories);
+                dialog.add_button().connect_clicked(move |_button| {
+                    let feed_url = dialog.get_feed_url().unwrap();
+                    let feed_title = dialog.get_feed_title();
+                    println!("url: {} - title: {:?}", feed_url, feed_title);
+                });
             }
         });
         add_action.set_enabled(true);

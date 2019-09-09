@@ -1,4 +1,7 @@
-use crate::util::{BuilderHelper, GtkUtil};
+use crate::util::{BuilderHelper, GtkHandle, GtkUtil};
+use crate::gtk_handle;
+use std::rc::Rc;
+use std::cell::RefCell;
 use gtk::{
     Button, ButtonExt, ComboBox, ComboBoxExt, ContainerExt, EditableSignals, Entry, EntryExt, GtkListStoreExt,
     GtkListStoreExtManual, Image, ImageExt, Label, LabelExt, ListBox, ListBoxExt, ListBoxRow, ListBoxRowExt, ListStore,
@@ -12,7 +15,9 @@ pub const NEW_CATEGORY_ICON: &str = "folder-new-symbolic";
 
 #[derive(Clone, Debug)]
 pub struct AddPopover {
-    popover: Popover,
+    add_button: Button,
+    feed_title_entry: Entry,
+    feed_url: GtkHandle<Option<Url>>,
 }
 
 impl AddPopover {
@@ -29,6 +34,7 @@ impl AddPopover {
         let category_combo = builder.get::<ComboBox>("category_combo");
         let category_entry = builder.get::<Entry>("category_entry");
         let add_button = builder.get::<Button>("add_button");
+        let feed_url : GtkHandle<Option<Url>> = gtk_handle!(None);
 
         // setup list of categories to add feed to
         if categories.is_empty() {
@@ -69,6 +75,7 @@ impl AddPopover {
         let parse_button_feed_title_entry = feed_title_entry.clone();
         let parse_button_favicon_image = favicon_image.clone();
         let parse_button_select_button = select_button.clone();
+        let parse_button_feed_url = feed_url.clone();
         parse_button.connect_clicked(move |_button| {
             if let Some(url_text) = url_entry.get_text() {
                 let mut url_text = url_text.as_str().to_owned();
@@ -88,11 +95,17 @@ impl AddPopover {
                                     &parse_button_add_feed_stack,
                                     &parse_button_feed_title_entry,
                                     &parse_button_favicon_image,
+                                    &parse_button_feed_url,
                                 );
                             }
                             ParsedUrl::SingleFeed(feed) => {
                                 parse_button_add_feed_stack.set_visible_child_name("feed_page");
-                                Self::fill_feed_page(feed, &parse_button_feed_title_entry, &parse_button_favicon_image);
+                                Self::fill_feed_page(
+                                    feed,
+                                    &parse_button_feed_title_entry,
+                                    &parse_button_favicon_image,
+                                    &parse_button_feed_url
+                                );
                             }
                         }
                     } else {
@@ -141,11 +154,16 @@ impl AddPopover {
         popover.set_relative_to(Some(parent));
         popover.show_all();
 
-        AddPopover { popover }
+        AddPopover {
+            add_button,
+            feed_title_entry,
+            feed_url,
+        }
     }
 
-    fn fill_feed_page(feed: Feed, title_entry: &Entry, favicon_image: &Image) {
+    fn fill_feed_page(feed: Feed, title_entry: &Entry, favicon_image: &Image, feed_url: &GtkHandle<Option<Url>>) {
         title_entry.set_text(&feed.label);
+        *feed_url.borrow_mut() = feed.feed_url.clone();
         let scale = favicon_image.get_style_context().get_scale();
 
         if let Some(favicon) = news_flash::util::favicon_cache::FavIconCache::scrap(&feed) {
@@ -172,6 +190,7 @@ impl AddPopover {
         stack: &Stack,
         title_entry: &Entry,
         favicon: &Image,
+        feed_url: &GtkHandle<Option<Url>>,
     ) {
         let list_select_button = select_button.clone();
         list.connect_row_selected(move |_list, row| {
@@ -182,6 +201,7 @@ impl AddPopover {
         let title_entry = title_entry.clone();
         let list_clone = list.clone();
         let favicon = favicon.clone();
+        let feed_url = feed_url.clone();
         select_button.connect_clicked(move |_button| {
             if let Some(row) = list_clone.get_selected_row() {
                 if let Some(name) = row.get_name() {
@@ -191,7 +211,7 @@ impl AddPopover {
                     if let Ok(ParsedUrl::SingleFeed(feed)) =
                         news_flash::feed_parser::download_and_parse_feed(&url, &feed_id, None, None)
                     {
-                        Self::fill_feed_page(feed, &title_entry, &favicon);
+                        Self::fill_feed_page(feed, &title_entry, &favicon, &feed_url);
                         add_feed_stack.set_visible_child_name("feed_page");
                     }
                 }
@@ -205,6 +225,12 @@ impl AddPopover {
             label.set_margin_start(20);
             label.set_margin_end(20);
             let row = ListBoxRow::new();
+
+            let row_select_button = select_button.clone();
+            row.connect_activate(move |_row| {
+                row_select_button.activate();
+            });
+
             row.set_selectable(true);
             row.set_activatable(false);
             row.set_name(url.get().as_str());
@@ -240,5 +266,19 @@ impl AddPopover {
         }
 
         true
+    }
+
+    pub fn add_button(&self) -> Button {
+        self.add_button.clone()
+    }
+
+    pub fn get_feed_url(&self) -> Option<Url> {
+        (*self.feed_url.borrow()).clone()
+    }
+
+    pub fn get_feed_title(&self) -> Option<String> {
+        self.feed_title_entry
+            .get_text()
+            .map(|title| title.as_str().to_owned())
     }
 }
