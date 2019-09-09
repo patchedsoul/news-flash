@@ -1,5 +1,5 @@
 use crate::about_dialog::NewsFlashAbout;
-use crate::add_dialog::AddPopover;
+use crate::add_dialog::{AddPopover, AddCategory};
 use crate::article_list::{MarkUpdate, ReadUpdate};
 use crate::content_page::HeaderSelection;
 use crate::content_page::{ContentHeader, ContentPage};
@@ -536,17 +536,31 @@ impl MainWindowActions {
         news_flash: &GtkHandle<Option<NewsFlash>>,
         content: &GtkHandle<ContentPage>,
     ) {
-        let news_flash = news_flash.clone();
+        let news_flash_handle = news_flash.clone();
         let add_button = content.borrow().sidebar_get_add_button();
         let add_action = SimpleAction::new("add-feed", None);
         add_action.connect_activate(move |_action, _data| {
-            if let Some(news_flash) = news_flash.borrow_mut().as_mut() {
+            if let Some(news_flash) = news_flash_handle.borrow_mut().as_mut() {
+                let news_flash_handle = news_flash_handle.clone();
                 let categories = news_flash.get_categories().unwrap();
                 let dialog = AddPopover::new(&add_button, categories);
                 dialog.add_button().connect_clicked(move |_button| {
                     let feed_url = dialog.get_feed_url().unwrap();
                     let feed_title = dialog.get_feed_title();
-                    println!("url: {} - title: {:?}", feed_url, feed_title);
+                    let feed_category = dialog.get_category();
+
+                    if let Some(news_flash) = news_flash_handle.borrow_mut().as_mut() {
+                        let category_id = match feed_category {
+                            AddCategory::New(category_title) => {
+                                let category = news_flash.add_category(&category_title, None, None).unwrap();
+                                Some(category.category_id)
+                            },
+                            AddCategory::Existing(category_id) => Some(category_id),
+                            AddCategory::None => None,
+                        };
+
+                        news_flash.add_feed(&feed_url, feed_title, category_id).unwrap();
+                    }
                 });
             }
         });

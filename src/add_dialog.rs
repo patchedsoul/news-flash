@@ -5,7 +5,7 @@ use gtk::{
     GtkListStoreExtManual, Image, ImageExt, Label, LabelExt, ListBox, ListBoxExt, ListBoxRow, ListBoxRowExt, ListStore,
     Orientation, Popover, PopoverExt, Separator, Stack, StackExt, StyleContextExt, Type, WidgetExt,
 };
-use news_flash::models::{Category, Feed, FeedID, Url};
+use news_flash::models::{Category, CategoryID, Feed, FeedID, Url};
 use news_flash::ParsedUrl;
 use pango::EllipsizeMode;
 use std::cell::RefCell;
@@ -14,10 +14,18 @@ use std::rc::Rc;
 pub const NEW_CATEGORY_ICON: &str = "folder-new-symbolic";
 
 #[derive(Clone, Debug)]
+pub enum AddCategory {
+    New(String),
+    Existing(CategoryID),
+    None,
+}
+
+#[derive(Clone, Debug)]
 pub struct AddPopover {
     add_button: Button,
     feed_title_entry: Entry,
     feed_url: GtkHandle<Option<Url>>,
+    feed_category: GtkHandle<AddCategory>,
 }
 
 impl AddPopover {
@@ -35,6 +43,7 @@ impl AddPopover {
         let category_entry = builder.get::<Entry>("category_entry");
         let add_button = builder.get::<Button>("add_button");
         let feed_url: GtkHandle<Option<Url>> = gtk_handle!(None);
+        let feed_category = gtk_handle!(AddCategory::None);
 
         // setup list of categories to add feed to
         if categories.is_empty() {
@@ -61,6 +70,7 @@ impl AddPopover {
                 url_entry_parse_button.set_sensitive(false);
             }
         });
+
         // hit enter in entry to parse url
         let url_entry_parse_button = parse_button.clone();
         url_entry.connect_activate(move |_entry| {
@@ -125,6 +135,7 @@ impl AddPopover {
         let category_entry_add_button = add_button.clone();
         let category_entry_title_entry = feed_title_entry.clone();
         let category_entry_category_combo = category_combo.clone();
+        let category_entry_feed_category = feed_category.clone();
         category_entry.connect_changed(move |entry| {
             let sensitive = Self::calc_add_button_sensitive(&category_entry_title_entry, &entry);
             category_entry_add_button.set_sensitive(sensitive);
@@ -132,14 +143,29 @@ impl AddPopover {
             let entry_text = entry.get_text().map(|t| t.as_str().to_owned());
 
             let folder_icon = if category_entry_category_combo.get_active_id().is_some() {
+                if let Some(id) = category_entry_category_combo.get_active_id() {
+                    let category_id = CategoryID::new(id.as_str());
+                    category_entry_feed_category.replace(AddCategory::Existing(category_id));
+                }
                 None
-            } else if entry.get_text().is_none() {
+            } else if entry_text.is_none() {
+                category_entry_feed_category.replace(AddCategory::None);
                 None
             } else if categories.iter().any(|c| Some(c.label.clone()) == entry_text) {
+                let category_id = categories.iter()
+                    .find(|c| Some(c.label.clone()) == entry_text)
+                    .map(|c| c.category_id.clone());
+
+                if let Some(category_id) = category_id {
+                    category_entry_feed_category.replace(AddCategory::Existing(category_id));
+                }
                 None
             } else {
+                category_entry_feed_category.replace(AddCategory::New(entry_text.unwrap()));
                 Some(NEW_CATEGORY_ICON)
             };
+
+            
 
             entry.set_property_secondary_icon_name(folder_icon);
         });
@@ -158,12 +184,13 @@ impl AddPopover {
             add_button,
             feed_title_entry,
             feed_url,
+            feed_category,
         }
     }
 
     fn fill_feed_page(feed: Feed, title_entry: &Entry, favicon_image: &Image, feed_url: &GtkHandle<Option<Url>>) {
         title_entry.set_text(&feed.label);
-        *feed_url.borrow_mut() = feed.feed_url.clone();
+        feed_url.replace(feed.feed_url.clone());
         let scale = favicon_image.get_style_context().get_scale();
 
         if let Some(favicon) = news_flash::util::favicon_cache::FavIconCache::scrap(&feed) {
@@ -278,5 +305,9 @@ impl AddPopover {
 
     pub fn get_feed_title(&self) -> Option<String> {
         self.feed_title_entry.get_text().map(|title| title.as_str().to_owned())
+    }
+
+    pub fn get_category(&self) -> AddCategory {
+        (*self.feed_category.borrow()).clone()
     }
 }
