@@ -1,11 +1,12 @@
 use crate::gtk_handle;
 use crate::util::{BuilderHelper, GtkHandle, GtkUtil};
-use gtk::{
-    BinExt, Button, ButtonExt, ComboBox, ComboBoxExt, ContainerExt, EditableSignals, Entry, EntryExt, GtkListStoreExt,
-    GtkListStoreExtManual, Image, ImageExt, Label, LabelExt, ListBox, ListBoxExt, ListBoxRow, ListBoxRowExt, ListStore,
-    Orientation, Popover, PopoverExt, Separator, Stack, StackExt, StyleContextExt, Type, WidgetExt, Box, BoxExt, IconSize,
-};
 use glib::object::Cast;
+use gtk::{
+    BinExt, Box, BoxExt, Button, ButtonExt, ComboBox, ComboBoxExt, ContainerExt, EditableSignals, Entry, EntryExt,
+    GtkListStoreExt, GtkListStoreExtManual, IconSize, Image, ImageExt, Label, LabelExt, ListBox, ListBoxExt,
+    ListBoxRow, ListBoxRowExt, ListStore, Orientation, Popover, PopoverExt, Separator, Stack, StackExt,
+    StyleContextExt, Type, WidgetExt,
+};
 use news_flash::models::{Category, CategoryID, Feed, FeedID, Url};
 use news_flash::ParsedUrl;
 use pango::EllipsizeMode;
@@ -158,7 +159,8 @@ impl AddPopover {
                 category_entry_feed_category.replace(AddCategory::None);
                 None
             } else if categories.iter().any(|c| Some(c.label.clone()) == entry_text) {
-                let category_id = categories.iter()
+                let category_id = categories
+                    .iter()
                     .find(|c| Some(c.label.clone()) == entry_text)
                     .map(|c| c.category_id.clone());
 
@@ -170,8 +172,6 @@ impl AddPopover {
                 category_entry_feed_category.replace(AddCategory::New(entry_text.unwrap()));
                 Some(NEW_CATEGORY_ICON)
             };
-
-            
 
             entry.set_property_secondary_icon_name(folder_icon);
         });

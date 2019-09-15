@@ -1,5 +1,5 @@
 use crate::about_dialog::NewsFlashAbout;
-use crate::add_dialog::{AddPopover, AddCategory};
+use crate::add_dialog::{AddCategory, AddPopover};
 use crate::article_list::{MarkUpdate, ReadUpdate};
 use crate::content_page::HeaderSelection;
 use crate::content_page::{ContentHeader, ContentPage};
@@ -554,7 +554,7 @@ impl MainWindowActions {
                             AddCategory::New(category_title) => {
                                 let category = news_flash.add_category(&category_title, None, None).unwrap();
                                 Some(category.category_id)
-                            },
+                            }
                             AddCategory::Existing(category_id) => Some(category_id),
                             AddCategory::None => None,
                         };
