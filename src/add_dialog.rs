@@ -1,10 +1,11 @@
 use crate::gtk_handle;
 use crate::util::{BuilderHelper, GtkHandle, GtkUtil};
 use gtk::{
-    Button, ButtonExt, ComboBox, ComboBoxExt, ContainerExt, EditableSignals, Entry, EntryExt, GtkListStoreExt,
+    BinExt, Button, ButtonExt, ComboBox, ComboBoxExt, ContainerExt, EditableSignals, Entry, EntryExt, GtkListStoreExt,
     GtkListStoreExtManual, Image, ImageExt, Label, LabelExt, ListBox, ListBoxExt, ListBoxRow, ListBoxRowExt, ListStore,
-    Orientation, Popover, PopoverExt, Separator, Stack, StackExt, StyleContextExt, Type, WidgetExt,
+    Orientation, Popover, PopoverExt, Separator, Stack, StackExt, StyleContextExt, Type, WidgetExt, Box, BoxExt, IconSize,
 };
+use glib::object::Cast;
 use news_flash::models::{Category, CategoryID, Feed, FeedID, Url};
 use news_flash::ParsedUrl;
 use pango::EllipsizeMode;
@@ -12,6 +13,7 @@ use std::cell::RefCell;
 use std::rc::Rc;
 
 pub const NEW_CATEGORY_ICON: &str = "folder-new-symbolic";
+pub const WARN_ICON: &str = "dialog-warning-symbolic";
 
 #[derive(Clone, Debug)]
 pub enum AddCategory {
@@ -69,6 +71,9 @@ impl AddPopover {
             } else {
                 url_entry_parse_button.set_sensitive(false);
             }
+
+            entry.set_property_secondary_icon_name(None);
+            entry.set_property_secondary_icon_tooltip_text(None);
         });
 
         // hit enter in entry to parse url
@@ -119,15 +124,16 @@ impl AddPopover {
                             }
                         }
                     } else {
-                        // FIXME
-                        // downloading or parsing feed failed
-                        // indicate in UI
+                        url_entry.set_property_secondary_icon_name(Some(WARN_ICON));
+                        url_entry.set_property_secondary_icon_tooltip_text(Some("No Feed found."));
                     }
                 } else {
-                    // FIXME
-                    // failed to parse url
-                    // indicate in UI
+                    url_entry.set_property_secondary_icon_name(Some(WARN_ICON));
+                    url_entry.set_property_secondary_icon_tooltip_text(Some("No valid URL."));
                 }
+            } else {
+                url_entry.set_property_secondary_icon_name(Some(WARN_ICON));
+                url_entry.set_property_secondary_icon_tooltip_text(Some("Empty URL"));
             }
         });
 
@@ -240,6 +246,14 @@ impl AddPopover {
                     {
                         Self::fill_feed_page(feed, &title_entry, &favicon, &feed_url);
                         add_feed_stack.set_visible_child_name("feed_page");
+                    } else {
+                        if let Some(child) = row.get_child() {
+                            if let Ok(_box) = child.downcast::<Box>() {
+                                if let Some(icon) = _box.get_children().get(1) {
+                                    icon.set_visible(true);
+                                }
+                            }
+                        }
                     }
                 }
             }
@@ -249,8 +263,17 @@ impl AddPopover {
             label.set_size_request(0, 50);
             label.set_ellipsize(EllipsizeMode::End);
             label.set_xalign(0.0);
-            label.set_margin_start(20);
-            label.set_margin_end(20);
+
+            let warn_icon = Image::new_from_icon_name(Some(WARN_ICON), IconSize::Button);
+            warn_icon.set_tooltip_text(Some("Failed to get Feed."));
+            warn_icon.set_no_show_all(true);
+
+            let gtk_box = Box::new(Orientation::Horizontal, 0);
+            gtk_box.set_margin_start(20);
+            gtk_box.set_margin_end(20);
+            gtk_box.pack_start(&label, true, true, 0);
+            gtk_box.pack_end(&warn_icon, false, false, 0);
+
             let row = ListBoxRow::new();
 
             let row_select_button = select_button.clone();
@@ -261,7 +284,7 @@ impl AddPopover {
             row.set_selectable(true);
             row.set_activatable(false);
             row.set_name(url.get().as_str());
-            row.add(&label);
+            row.add(&gtk_box);
             row.show_all();
             list.insert(&row, -1);
 
