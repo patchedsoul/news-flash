@@ -7,6 +7,7 @@ use gtk::{
     ListBoxRow, ListBoxRowExt, ListStore, Orientation, Popover, PopoverExt, Separator, Stack, StackExt,
     StyleContextExt, Type, WidgetExt,
 };
+use log::error;
 use news_flash::models::{Category, CategoryID, Feed, FeedID, Url};
 use news_flash::ParsedUrl;
 use pango::EllipsizeMode;
@@ -100,8 +101,9 @@ impl AddPopover {
                 }
                 if let Ok(url) = Url::parse(&url_text) {
                     let feed_id = FeedID::new(&url_text);
-                    if let Ok(result) = news_flash::feed_parser::download_and_parse_feed(&url, &feed_id, None, None) {
-                        match result {
+
+                    match news_flash::feed_parser::download_and_parse_feed(&url, &feed_id, None, None) {
+                        Ok(result) => match result {
                             ParsedUrl::MultipleFeeds(feed_vec) => {
                                 parse_button_add_feed_stack.set_visible_child_name("feed_selection_page");
                                 Self::fill_mupliple_feed_list(
@@ -123,16 +125,20 @@ impl AddPopover {
                                     &parse_button_feed_url,
                                 );
                             }
+                        },
+                        Err(error) => {
+                            error!("No feed found for url '{}': {}", url, error);
+                            url_entry.set_property_secondary_icon_name(Some(WARN_ICON));
+                            url_entry.set_property_secondary_icon_tooltip_text(Some("No Feed found."));
                         }
-                    } else {
-                        url_entry.set_property_secondary_icon_name(Some(WARN_ICON));
-                        url_entry.set_property_secondary_icon_tooltip_text(Some("No Feed found."));
                     }
                 } else {
+                    error!("No valid url: '{}'", url_text);
                     url_entry.set_property_secondary_icon_name(Some(WARN_ICON));
                     url_entry.set_property_secondary_icon_tooltip_text(Some("No valid URL."));
                 }
             } else {
+                error!("Empty url");
                 url_entry.set_property_secondary_icon_name(Some(WARN_ICON));
                 url_entry.set_property_secondary_icon_tooltip_text(Some("Empty URL"));
             }

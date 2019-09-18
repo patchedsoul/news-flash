@@ -3,7 +3,7 @@ use crate::add_dialog::{AddCategory, AddPopover};
 use crate::article_list::{MarkUpdate, ReadUpdate};
 use crate::content_page::HeaderSelection;
 use crate::content_page::{ContentHeader, ContentPage};
-use crate::error_dialog::ErrorDialog;
+use crate::error_bar::ErrorBar;
 use crate::gtk_handle;
 use crate::login_screen::{PasswordLogin, WebLogin};
 use crate::main_window::DATA_DIR;
@@ -202,10 +202,12 @@ impl MainWindowActions {
         window: &ApplicationWindow,
         content_header: &GtkHandle<ContentHeader>,
         news_flash: &GtkHandle<Option<NewsFlash>>,
+        error_bar: &GtkHandle<ErrorBar>,
     ) {
         let parent = window.clone();
         let content_header = content_header.clone();
         let news_flash = news_flash.clone();
+        let error_bar = error_bar.clone();
         let sync_action = SimpleAction::new("sync", None);
         sync_action.connect_activate(move |_action, _data| {
             let mut result: Result<(), NewsFlashError> = Ok(());
@@ -224,7 +226,7 @@ impl MainWindowActions {
                 }
                 Err(error) => {
                     content_header.borrow().finish_sync();
-                    let _dialog = ErrorDialog::new(&error, &parent);
+                    error_bar.borrow().news_flash_error("Failed to sync.", error);
                 }
             }
         });

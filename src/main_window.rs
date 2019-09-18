@@ -2,6 +2,7 @@ use crate::about_dialog::APP_NAME;
 use crate::article_list::{MarkUpdate, ReadUpdate};
 use crate::config::{APP_ID, PROFILE};
 use crate::content_page::{ContentHeader, ContentPage};
+use crate::error_bar::ErrorBar;
 use crate::gtk_handle;
 use crate::login_screen::{LoginHeaderbar, PasswordLogin, WebLogin};
 use crate::main_window_actions::MainWindowActions;
@@ -57,6 +58,7 @@ impl MainWindow {
         let stack = builder.get::<Stack>("main_stack");
         let header_stack = builder.get::<Stack>("header_stack");
         let undo_bar = UndoBar::new(&builder);
+        let error_bar = ErrorBar::new(&builder);
 
         let responsive_layout = gtk_handle!(ResponsiveLayout::new(&builder));
 
@@ -87,6 +89,7 @@ impl MainWindow {
         let content_header_handle = gtk_handle!(content_header);
         let news_flash_handle = gtk_handle!(None);
         let undo_bar_handle = gtk_handle!(undo_bar);
+        let error_bar_handle = gtk_handle!(error_bar);
 
         let state = gtk_handle!(MainWindowState::new());
 
@@ -109,7 +112,7 @@ impl MainWindow {
             &undo_bar_handle,
         );
         MainWindowActions::setup_login_action(&window, &news_flash_handle, &oauht_login_handle, &pw_login_handle);
-        MainWindowActions::setup_sync_action(&window, &content_header_handle, &news_flash_handle);
+        MainWindowActions::setup_sync_action(&window, &content_header_handle, &news_flash_handle, &error_bar_handle);
         MainWindowActions::setup_sidebar_selection_action(&window, &state, &responsive_layout);
         MainWindowActions::setup_update_sidebar_action(
             &window,
