@@ -116,6 +116,7 @@ impl MainWindowActions {
         content_page: &GtkHandle<ContentPage>,
         state: &GtkHandle<MainWindowState>,
         undo_bar: &GtkHandle<UndoBar>,
+        error_bar: &GtkHandle<ErrorBar>,
     ) {
         let news_flash = news_flash.clone();
         let stack = stack.clone();
@@ -123,6 +124,7 @@ impl MainWindowActions {
         let content_page = content_page.clone();
         let state = state.clone();
         let undo_bar = undo_bar.clone();
+        let error_bar = error_bar.clone();
         let show_content_page = SimpleAction::new("show-content-page", VariantTy::new("s").ok());
         show_content_page.connect_activate(move |_action, data| {
             if let Some(data) = data {
@@ -132,11 +134,21 @@ impl MainWindowActions {
                     if let Some(api) = &*news_flash.borrow() {
                         user_name = api.user_name();
                     }
-                    content_page.borrow_mut().update_sidebar(&news_flash, &state, &undo_bar);
-                    content_page.borrow().set_service(&id, user_name).unwrap();
-                    header_stack.set_visible_child_name("content");
                     stack.set_transition_type(StackTransitionType::SlideLeft);
                     stack.set_visible_child_name("content");
+                    header_stack.set_visible_child_name("content");
+
+                    if content_page
+                        .borrow_mut()
+                        .update_sidebar(&news_flash, &state, &undo_bar)
+                        .is_err()
+                    {
+                        error_bar.borrow().simple_message("Failed to update sidebar.");
+                    }
+
+                    if content_page.borrow().set_service(&id, user_name).is_err() {
+                        error_bar.borrow().simple_message("Failed to set service.");
+                    }
                 }
             }
         });
@@ -158,7 +170,7 @@ impl MainWindowActions {
         login_action.connect_activate(move |_action, data| {
             if let Some(data) = data {
                 if let Some(data) = data.get_str() {
-                    let info: LoginData = serde_json::from_str(&data).unwrap();
+                    let info: LoginData = serde_json::from_str(&data).expect("Invalid LoginData");
                     let id = match &info {
                         LoginData::OAuth(oauth) => oauth.id.clone(),
                         LoginData::Password(pass) => pass.id.clone(),
@@ -240,17 +252,25 @@ impl MainWindowActions {
         news_flash: &GtkHandle<Option<NewsFlash>>,
         state: &GtkHandle<MainWindowState>,
         undo_bar: &GtkHandle<UndoBar>,
+        error_bar: &GtkHandle<ErrorBar>,
     ) {
         let state = state.clone();
         let content_page = content_page.clone();
         let news_flash = news_flash.clone();
         let undo_bar = undo_bar.clone();
-        let sync_action = SimpleAction::new("update-sidebar", None);
-        sync_action.connect_activate(move |_action, _data| {
-            content_page.borrow_mut().update_sidebar(&news_flash, &state, &undo_bar);
+        let error_bar = error_bar.clone();
+        let update_sidebar_action = SimpleAction::new("update-sidebar", None);
+        update_sidebar_action.connect_activate(move |_action, _data| {
+            if content_page
+                .borrow_mut()
+                .update_sidebar(&news_flash, &state, &undo_bar)
+                .is_err()
+            {
+                error_bar.borrow().simple_message("Failed to update sidebar.");
+            }
         });
-        sync_action.set_enabled(true);
-        window.add_action(&sync_action);
+        update_sidebar_action.set_enabled(true);
+        window.add_action(&update_sidebar_action);
     }
 
     pub fn setup_sidebar_selection_action(
@@ -265,7 +285,7 @@ impl MainWindowActions {
         sidebar_selection_action.connect_activate(move |_action, data| {
             if let Some(data) = data {
                 if let Some(data) = data.get_str() {
-                    let selection: SidebarSelection = serde_json::from_str(&data).unwrap();
+                    let selection: SidebarSelection = serde_json::from_str(&data).expect("Invalid SidebarSelection");
                     state.borrow_mut().set_sidebar_selection(selection);
                     responsive_layout.borrow().state.borrow_mut().minor_leaflet_selected = true;
                     ResponsiveLayout::process_state_change(&*responsive_layout.borrow());
@@ -291,7 +311,7 @@ impl MainWindowActions {
         headerbar_selection_action.connect_activate(move |_action, data| {
             if let Some(data) = data {
                 if let Some(data) = data.get_str() {
-                    let new_selection: HeaderSelection = serde_json::from_str(&data).unwrap();
+                    let new_selection: HeaderSelection = serde_json::from_str(&data).expect("Invalid HeaderSelection");
                     let old_selection = state.borrow().get_header_selection().clone();
                     state.borrow_mut().set_header_selection(new_selection.clone());
                     match new_selection {
@@ -375,17 +395,22 @@ impl MainWindowActions {
         content_page: &GtkHandle<ContentPage>,
         news_flash: &GtkHandle<Option<NewsFlash>>,
         undo_bar: &GtkHandle<UndoBar>,
+        error_bar: &GtkHandle<ErrorBar>,
     ) {
         let state = state.clone();
         let content_page = content_page.clone();
         let news_flash = news_flash.clone();
         let undo_bar = undo_bar.clone();
+        let error_bar = error_bar.clone();
         let show_more_articles_action = SimpleAction::new("show-more-articles", None);
         show_more_articles_action.connect_activate(move |_action, _data| {
-            content_page
+            if content_page
                 .borrow_mut()
                 .load_more_articles(&news_flash, &state, &undo_bar)
-                .unwrap();
+                .is_err()
+            {
+                error_bar.borrow().simple_message("Failed to load more articles.");
+            }
         });
         show_more_articles_action.set_enabled(true);
         window.add_action(&show_more_articles_action);
@@ -397,20 +422,27 @@ impl MainWindowActions {
         content_header: &GtkHandle<ContentHeader>,
         news_flash: &GtkHandle<Option<NewsFlash>>,
         responsive_layout: &GtkHandle<ResponsiveLayout>,
+        error_bar: &GtkHandle<ErrorBar>,
     ) {
         let content_page = content_page.clone();
         let content_header = content_header.clone();
         let news_flash = news_flash.clone();
         let responsive_layout = responsive_layout.clone();
+        let error_bar = error_bar.clone();
         let show_article_action = SimpleAction::new("show-article", VariantTy::new("s").ok());
         show_article_action.connect_activate(move |_action, data| {
             if let Some(data) = data {
                 if let Some(data) = data.get_str() {
                     let article_id = ArticleID::new(data);
-                    content_page
+                    if content_page
                         .borrow_mut()
                         .article_view_show(&article_id, &news_flash)
-                        .unwrap();
+                        .is_err()
+                    {
+                        error_bar
+                            .borrow()
+                            .simple_message(&format!("Failed to show article: '{}'", article_id));
+                    }
                     content_header.borrow().set_article_header_sensitive(true);
                     responsive_layout.borrow().state.borrow_mut().major_leaflet_selected = true;
                     ResponsiveLayout::process_state_change(&*responsive_layout.borrow());
@@ -421,11 +453,18 @@ impl MainWindowActions {
         window.add_action(&show_article_action);
     }
 
-    pub fn setup_redraw_article_action(window: &ApplicationWindow, content_page: &GtkHandle<ContentPage>) {
+    pub fn setup_redraw_article_action(
+        window: &ApplicationWindow,
+        content_page: &GtkHandle<ContentPage>,
+        error_bar: &GtkHandle<ErrorBar>,
+    ) {
         let content_page = content_page.clone();
+        let error_bar = error_bar.clone();
         let redraw_article_action = SimpleAction::new("redraw-article", None);
         redraw_article_action.connect_activate(move |_action, _data| {
-            content_page.borrow_mut().article_view_redraw().unwrap();
+            if content_page.borrow_mut().article_view_redraw().is_err() {
+                error_bar.borrow().simple_message("Failed to redraw article");
+            }
         });
         redraw_article_action.set_enabled(true);
         window.add_action(&redraw_article_action);
@@ -440,27 +479,42 @@ impl MainWindowActions {
         let content_header = content_header.clone();
         let close_article_action = SimpleAction::new("close-article", None);
         close_article_action.connect_activate(move |_action, _data| {
-            content_page.borrow_mut().article_view_close().unwrap();
+            content_page.borrow_mut().article_view_close();
             content_header.borrow().set_article_header_sensitive(false);
         });
         close_article_action.set_enabled(true);
         window.add_action(&close_article_action);
     }
 
-    pub fn setup_mark_article_read_action(window: &ApplicationWindow, news_flash: &GtkHandle<Option<NewsFlash>>) {
+    pub fn setup_mark_article_read_action(
+        window: &ApplicationWindow,
+        news_flash: &GtkHandle<Option<NewsFlash>>,
+        error_bar: &GtkHandle<ErrorBar>,
+    ) {
         let news_flash = news_flash.clone();
         let main_window = window.clone();
+        let error_bar = error_bar.clone();
         let mark_article_read_action = SimpleAction::new("mark-article-read", VariantTy::new("s").ok());
         mark_article_read_action.connect_activate(move |_action, data| {
             if let Some(data) = data {
                 if let Some(data) = data.get_str() {
-                    let update: ReadUpdate = serde_json::from_str(&data).unwrap();
+                    let update: ReadUpdate = serde_json::from_str(&data).expect("Invalid ReadUpdate");
 
                     if let Some(news_flash) = news_flash.borrow_mut().as_mut() {
-                        news_flash
-                            .set_article_read(&[update.article_id.clone()], update.read)
-                            .unwrap();
+                        match news_flash.set_article_read(&[update.article_id.clone()], update.read) {
+                            Ok(_) => {}
+                            Err(error) => {
+                                let message = format!("Failed to mark article read: '{}'", update.article_id);
+                                error!("{}", message);
+                                error_bar.borrow().news_flash_error(&message, error);
+                            }
+                        }
+                    } else {
+                        let message = "Failed to borrow NewsFlash.";
+                        error!("{}", message);
+                        error_bar.borrow().simple_message(message);
                     }
+
                     if let Some(action) = main_window.lookup_action("update-sidebar") {
                         action.activate(None);
                     }
@@ -471,20 +525,35 @@ impl MainWindowActions {
         window.add_action(&mark_article_read_action);
     }
 
-    pub fn setup_mark_article_action(window: &ApplicationWindow, news_flash: &GtkHandle<Option<NewsFlash>>) {
+    pub fn setup_mark_article_action(
+        window: &ApplicationWindow,
+        news_flash: &GtkHandle<Option<NewsFlash>>,
+        error_bar: &GtkHandle<ErrorBar>,
+    ) {
         let news_flash = news_flash.clone();
         let main_window = window.clone();
+        let error_bar = error_bar.clone();
         let mark_article_action = SimpleAction::new("mark-article", VariantTy::new("s").ok());
         mark_article_action.connect_activate(move |_action, data| {
             if let Some(data) = data {
                 if let Some(data) = data.get_str() {
-                    let update: MarkUpdate = serde_json::from_str(&data).unwrap();
+                    let update: MarkUpdate = serde_json::from_str(&data).expect("Invalid MarkUpdate");
 
                     if let Some(news_flash) = news_flash.borrow_mut().as_mut() {
-                        news_flash
-                            .set_article_marked(&[update.article_id.clone()], update.marked)
-                            .unwrap();
+                        match news_flash.set_article_marked(&[update.article_id.clone()], update.marked) {
+                            Ok(_) => {}
+                            Err(error) => {
+                                let message = format!("Failed to star article: '{}'", update.article_id);
+                                error!("{}", message);
+                                error_bar.borrow().news_flash_error(&message, error);
+                            }
+                        }
+                    } else {
+                        let message = "Failed to borrow NewsFlash.";
+                        error!("{}", message);
+                        error_bar.borrow().simple_message(message);
                     }
+
                     if let Some(action) = main_window.lookup_action("update-sidebar") {
                         action.activate(None);
                     }
@@ -499,26 +568,54 @@ impl MainWindowActions {
         window: &ApplicationWindow,
         news_flash: &GtkHandle<Option<NewsFlash>>,
         state: &GtkHandle<MainWindowState>,
+        error_bar: &GtkHandle<ErrorBar>,
     ) {
         let news_flash = news_flash.clone();
         let main_window = window.clone();
         let state = state.clone();
+        let error_bar = error_bar.clone();
         let sidebar_set_read_action = SimpleAction::new("sidebar-set-read", None);
         sidebar_set_read_action.connect_activate(move |_action, _data| {
             if let Some(news_flash) = news_flash.borrow_mut().as_mut() {
                 let sidebar_selection = state.borrow().get_sidebar_selection().clone();
 
                 match sidebar_selection {
-                    SidebarSelection::All => {
-                        news_flash.set_all_read().unwrap();
-                    }
+                    SidebarSelection::All => match news_flash.set_all_read() {
+                        Ok(_) => {}
+                        Err(error) => {
+                            let message = "Failed to mark all read";
+                            error_bar.borrow().news_flash_error(message, error);
+                            error!("{}", message);
+                        }
+                    },
                     SidebarSelection::Cateogry((category_id, _title)) => {
-                        news_flash.set_category_read(&vec![category_id]).unwrap();
+                        match news_flash.set_category_read(&vec![category_id.clone()]) {
+                            Ok(_) => {}
+                            Err(error) => {
+                                let message = format!("Failed to mark category '{}' read", category_id);
+                                error_bar.borrow().news_flash_error(&message, error);
+                                error!("{}", message);
+                            }
+                        }
                     }
-                    SidebarSelection::Feed((feed_id, _title)) => news_flash.set_feed_read(&vec![feed_id]).unwrap(),
-                    SidebarSelection::Tag((tag_id, _title)) => {
-                        news_flash.set_tag_read(&vec![tag_id]).unwrap();
+                    SidebarSelection::Feed((feed_id, _title)) => {
+                        match news_flash.set_feed_read(&vec![feed_id.clone()]) {
+                            Ok(_) => {}
+                            Err(error) => {
+                                let message = format!("Failed to mark feed '{}' read", feed_id);
+                                error_bar.borrow().news_flash_error(&message, error);
+                                error!("{}", message);
+                            }
+                        }
                     }
+                    SidebarSelection::Tag((tag_id, _title)) => match news_flash.set_tag_read(&vec![tag_id.clone()]) {
+                        Ok(_) => {}
+                        Err(error) => {
+                            let message = format!("Failed to mark tag '{}' read", tag_id);
+                            error_bar.borrow().news_flash_error(&message, error);
+                            error!("{}", message);
+                        }
+                    },
                 }
             }
 
@@ -537,31 +634,67 @@ impl MainWindowActions {
         window: &ApplicationWindow,
         news_flash: &GtkHandle<Option<NewsFlash>>,
         content: &GtkHandle<ContentPage>,
+        error_bar: &GtkHandle<ErrorBar>,
     ) {
         let news_flash_handle = news_flash.clone();
         let add_button = content.borrow().sidebar_get_add_button();
+        let error_bar = error_bar.clone();
         let add_action = SimpleAction::new("add-feed", None);
         add_action.connect_activate(move |_action, _data| {
             if let Some(news_flash) = news_flash_handle.borrow_mut().as_mut() {
                 let news_flash_handle = news_flash_handle.clone();
-                let categories = news_flash.get_categories().unwrap();
+                let error_message = "Failed to add feed";
+
+                let categories = match news_flash.get_categories() {
+                    Ok(categories) => categories,
+                    Err(error) => {
+                        error!("{}", error_message);
+                        error_bar.borrow().news_flash_error(error_message, error);
+                        return;
+                    }
+                };
                 let dialog = AddPopover::new(&add_button, categories);
+                let error_bar = error_bar.clone();
                 dialog.add_button().connect_clicked(move |_button| {
-                    let feed_url = dialog.get_feed_url().unwrap();
+                    let feed_url = match dialog.get_feed_url() {
+                        Some(url) => url,
+                        None => {
+                            error!("{}: No valid url", error_message);
+                            error_bar.borrow().simple_message(error_message);
+                            return;
+                        }
+                    };
                     let feed_title = dialog.get_feed_title();
                     let feed_category = dialog.get_category();
 
                     if let Some(news_flash) = news_flash_handle.borrow_mut().as_mut() {
                         let category_id = match feed_category {
                             AddCategory::New(category_title) => {
-                                let category = news_flash.add_category(&category_title, None, None).unwrap();
+                                let category = match news_flash.add_category(&category_title, None, None) {
+                                    Ok(category) => category,
+                                    Err(error) => {
+                                        error!("{}: Can't add Category", error_message);
+                                        error_bar.borrow().news_flash_error(error_message, error);
+                                        return;
+                                    }
+                                };
                                 Some(category.category_id)
                             }
                             AddCategory::Existing(category_id) => Some(category_id),
                             AddCategory::None => None,
                         };
 
-                        news_flash.add_feed(&feed_url, feed_title, category_id).unwrap();
+                        match news_flash.add_feed(&feed_url, feed_title, category_id) {
+                            Ok(_) => {}
+                            Err(error) => {
+                                error!("{}: Can't add Feed", error_message);
+                                error_bar.borrow().news_flash_error(error_message, error);
+                                return;
+                            }
+                        }
+                    } else {
+                        error!("{}: Can't borrow NewsFlash", error_message);
+                        error_bar.borrow().simple_message(error_message);
                     }
                 });
             }
@@ -570,9 +703,14 @@ impl MainWindowActions {
         window.add_action(&add_action);
     }
 
-    pub fn setup_rename_feed_action(window: &ApplicationWindow, news_flash: &GtkHandle<Option<NewsFlash>>) {
+    pub fn setup_rename_feed_action(
+        window: &ApplicationWindow,
+        news_flash: &GtkHandle<Option<NewsFlash>>,
+        error_bar: &GtkHandle<ErrorBar>,
+    ) {
         let news_flash = news_flash.clone();
         let main_window = window.clone();
+        let error_bar = error_bar.clone();
         let rename_feed_action = SimpleAction::new("rename-feed", VariantTy::new("s").ok());
         rename_feed_action.connect_activate(move |_action, data| {
             if let Some(data) = data {

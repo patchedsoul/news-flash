@@ -195,11 +195,10 @@ impl ArticleView {
         Ok(())
     }
 
-    pub fn close_article(&self) -> Result<(), Error> {
+    pub fn close_article(&self) {
         self.remove_old_view(150);
         *self.internal_state.borrow_mut() = InternalState::Empty;
         self.stack.set_visible_child_name("empty");
-        Ok(())
     }
 
     fn switch_view(&mut self) -> Result<WebView, Error> {

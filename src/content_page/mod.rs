@@ -194,16 +194,16 @@ impl ContentPage {
         news_flash_handle: &GtkHandle<Option<NewsFlash>>,
         state: &GtkHandle<MainWindowState>,
         undo_bar: &GtkHandle<UndoBar>,
-    ) {
+    ) -> Result<(), Error> {
         if let Some(news_flash) = news_flash_handle.borrow_mut().as_mut() {
             let mut tree = FeedListTree::new();
-            let categories = news_flash.get_categories().unwrap();
-            let (feeds, mappings) = news_flash.get_feeds().unwrap();
+            let categories = news_flash.get_categories()?;
+            let (feeds, mappings) = news_flash.get_feeds()?;
 
             // collect unread and marked counts
             let feed_count_map = match state.borrow().get_header_selection() {
-                HeaderSelection::All | HeaderSelection::Unread => news_flash.unread_count_feed_map().unwrap(),
-                HeaderSelection::Marked => news_flash.marked_count_feed_map().unwrap(),
+                HeaderSelection::All | HeaderSelection::Unread => news_flash.unread_count_feed_map()?,
+                HeaderSelection::Marked => news_flash.marked_count_feed_map()?,
             };
 
             // feedlist: Categories
@@ -242,7 +242,10 @@ impl ContentPage {
                     }
                 }
 
-                let feed = feeds.iter().find(|feed| feed.feed_id == mapping.feed_id).unwrap();
+                let feed = feeds
+                    .iter()
+                    .find(|feed| feed.feed_id == mapping.feed_id)
+                    .ok_or_else(|| format_err!("Can't find feed '{}'", mapping.feed_id))?;
 
                 let item_count = match feed_count_map.get(&mapping.feed_id) {
                     Some(count) => *count,
@@ -252,18 +255,18 @@ impl ContentPage {
                     Ok(favicon) => Some(favicon),
                     Err(_) => None,
                 };
-                tree.add_feed(&feed, &mapping, item_count, favicon).unwrap();
+                tree.add_feed(&feed, &mapping, item_count, favicon)?;
             }
 
             // tag list
-            let plugin_features = news_flash.features().unwrap();
+            let plugin_features = news_flash.features()?;
             let support_tags = plugin_features.contains(PluginCapabilities::SUPPORT_TAGS);
 
             if !support_tags {
                 self.sidebar.hide_taglist();
             } else {
                 let mut list = TagListModel::new();
-                let tags = news_flash.get_tags().unwrap();
+                let tags = news_flash.get_tags()?;
 
                 if tags.is_empty() {
                     self.sidebar.hide_taglist();
@@ -274,7 +277,7 @@ impl ContentPage {
                                 continue;
                             }
                         }
-                        list.add(&tag).unwrap();
+                        list.add(&tag)?;
                     }
 
                     self.sidebar.update_taglist(list);
@@ -286,7 +289,10 @@ impl ContentPage {
 
             self.sidebar.update_feedlist(tree);
             self.sidebar.update_all(total_item_count);
+            return Ok(());
         }
+
+        Err(format_err!("Can't borrow NewsFlash"))
     }
 
     pub fn article_view_show(
@@ -308,7 +314,7 @@ impl ContentPage {
         self.article_view.animate_scroll_diff(diff)
     }
 
-    pub fn article_view_close(&self) -> Result<(), Error> {
+    pub fn article_view_close(&self) {
         self.article_view.close_article()
     }
 

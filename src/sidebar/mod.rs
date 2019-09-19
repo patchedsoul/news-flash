@@ -246,7 +246,9 @@ impl SideBar {
 
     pub fn set_service(&self, id: &PluginID, user_name: Option<String>) -> Result<(), Error> {
         let list = NewsFlash::list_backends();
-        let info = list.get(id).ok_or_else(|| format_err!("some err"))?;
+        let info = list
+            .get(id)
+            .ok_or_else(|| format_err!("ID '{}' not found in NewsFlash backends", id))?;
         if let Some(icon) = &info.icon_symbolic {
             let surface = match icon {
                 PluginIcon::Vector(icon) => {
