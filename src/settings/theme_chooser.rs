@@ -2,7 +2,6 @@ use crate::article_view::{ArticleTheme, ArticleView};
 use crate::settings::Settings;
 use crate::util::{BuilderHelper, GtkHandle};
 use chrono::Utc;
-use failure::Error;
 use glib::object::IsA;
 use gtk::{Inhibit, ListBox, ListBoxExt, ListBoxRow, ListBoxRowExt, Popover, PopoverExt, Widget, WidgetExt};
 use news_flash::models::{ArticleID, FatArticle, FeedID, Marked, Read};
@@ -40,8 +39,7 @@ impl ThemeChooser {
             ArticleTheme::Default,
             "default",
             "Default",
-        )
-        .unwrap();
+        );
         Self::prepare_theme_selection(
             &builder,
             settings,
@@ -49,8 +47,7 @@ impl ThemeChooser {
             ArticleTheme::Spring,
             "spring",
             "Spring",
-        )
-        .unwrap();
+        );
         Self::prepare_theme_selection(
             &builder,
             settings,
@@ -58,8 +55,7 @@ impl ThemeChooser {
             ArticleTheme::Midnight,
             "midnight",
             "Midnight",
-        )
-        .unwrap();
+        );
         Self::prepare_theme_selection(
             &builder,
             settings,
@@ -67,8 +63,7 @@ impl ThemeChooser {
             ArticleTheme::Parchment,
             "parchment",
             "Parchment",
-        )
-        .unwrap();
+        );
 
         let pop_clone = pop.clone();
         let settings = settings.clone();
@@ -114,7 +109,7 @@ impl ThemeChooser {
         theme: ArticleTheme,
         id: &str,
         name: &str,
-    ) -> Result<(), Error> {
+    ) {
         let view = builder.get::<WebView>(&format!("{}_view", id));
         let row = builder.get::<ListBoxRow>(&format!("{}_row", id));
         view.connect_button_press_event(move |_view, _event| {
@@ -129,8 +124,7 @@ impl ThemeChooser {
             settings,
             Some(theme),
             Some(10240),
-        )?;
+        );
         view.load_html(&html, None);
-        Ok(())
     }
 }

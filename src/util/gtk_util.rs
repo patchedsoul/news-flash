@@ -78,7 +78,9 @@ impl GtkUtil {
     ) -> Result<gtk::ApplicationWindow, UtilError> {
         if let Some(toplevel) = widget.get_toplevel() {
             if Self::is_main_window(&toplevel) {
-                let main_window = toplevel.downcast::<gtk::ApplicationWindow>().unwrap();
+                let main_window = toplevel
+                    .downcast::<gtk::ApplicationWindow>()
+                    .expect("Already checked if toplevel is main_window");
                 return Ok(main_window);
             }
             warn!("widget is not the main window");

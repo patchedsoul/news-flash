@@ -167,7 +167,7 @@ impl ArticleView {
 
     pub fn show_article(&mut self, article: FatArticle, feed_name: String) -> Result<(), Error> {
         let webview = self.switch_view()?;
-        let html = self.build_article(&article, &feed_name)?;
+        let html = self.build_article(&article, &feed_name);
         webview.load_html(&html, None);
         *self.visible_article.borrow_mut() = Some(article);
         *self.visible_feed_name.borrow_mut() = Some(feed_name);
@@ -180,7 +180,7 @@ impl ArticleView {
 
         if let Some(article) = &*self.visible_article.borrow() {
             if let Some(feed_name) = &*self.visible_feed_name.borrow() {
-                html = self.build_article(&article, feed_name)?;
+                html = self.build_article(&article, feed_name);
                 success = true;
             }
         }
@@ -605,7 +605,7 @@ impl ArticleView {
                                                     let scroll = *drag_y_pos_motion_update.borrow() - y;
                                                     *drag_y_pos_motion_update.borrow_mut() = y;
                                                     if let Ok(scroll_pos) = Self::get_scroll_pos_static(view) {
-                                                        Self::set_scroll_pos_static(view, scroll_pos + scroll).unwrap();
+                                                        Self::set_scroll_pos_static(view, scroll_pos + scroll);
                                                     }
                                                     Inhibit(false)
                                                 })
@@ -655,7 +655,7 @@ impl ArticleView {
                                 }
 
                                 let new_scroll_pos = f64::min(old_adjust + adjust_value, upper - page_size);
-                                Self::set_scroll_pos_static(&view, new_scroll_pos).unwrap();
+                                Self::set_scroll_pos_static(&view, new_scroll_pos);
 
                                 if drag_momentum.borrow().abs() < 1.0 {
                                     *drag_released_motion_signal_clone.borrow_mut() = None;
@@ -737,7 +737,7 @@ impl ArticleView {
         Ok(webview)
     }
 
-    fn build_article(&self, article: &FatArticle, feed_name: &str) -> Result<String, Error> {
+    fn build_article(&self, article: &FatArticle, feed_name: &str) -> String {
         Self::build_article_static("article", article, feed_name, &self.settings, None, None)
     }
 
@@ -748,13 +748,13 @@ impl ArticleView {
         settings: &GtkHandle<Settings>,
         theme_override: Option<ArticleTheme>,
         font_size_override: Option<i32>,
-    ) -> Result<String, Error> {
+    ) -> String {
         let template_data = Resources::get(&format!("article_view/{}.html", file_name)).expect(GTK_RESOURCE_FILE_ERROR);
         let template_str = str::from_utf8(template_data.as_ref()).expect(GTK_RESOURCE_FILE_ERROR);
         let mut template_string = template_str.to_owned();
 
         let css_data = Resources::get("article_view/style.css").expect(GTK_RESOURCE_FILE_ERROR);
-        let css_string = str::from_utf8(css_data.as_ref())?;
+        let css_string = str::from_utf8(css_data.as_ref()).expect("Failed to load CSS from resources");
 
         // A list of fonts we should try to use in order of preference
         // We will pass all of these to CSS in order
@@ -860,16 +860,15 @@ impl ArticleView {
         // $CSS
         template_string = template_string.replacen("$CSS", &css_string, 1);
 
-        Ok(template_string)
+        template_string
     }
 
-    fn set_scroll_pos_static(view: &WebView, pos: f64) -> Result<(), Error> {
+    fn set_scroll_pos_static(view: &WebView, pos: f64) {
         let cancellable: Option<&Cancellable> = None;
         view.run_javascript(&format!("window.scrollTo(0,{});", pos), cancellable, |res| match res {
             Ok(_) => {}
             Err(_) => error!("Setting scroll pos failed"),
         });
-        Ok(())
     }
 
     fn get_scroll_pos_static(view: &WebView) -> Result<f64, Error> {
@@ -925,7 +924,7 @@ impl ArticleView {
         if let Some(view_name) = view_name {
             if let Some(view) = self.stack.get_child_by_name(&view_name) {
                 if let Ok(view) = view.downcast::<WebView>() {
-                    Self::set_scroll_pos_static(&view, scroll)?;
+                    Self::set_scroll_pos_static(&view, scroll);
                     return Ok(());
                 }
             }
@@ -1044,7 +1043,7 @@ impl ArticleView {
                 let start_time_value = Util::some_or_default(*scroll_animation_data.start_time.borrow(), 0);
 
                 if !widget.get_mapped() {
-                    Self::set_scroll_pos_static(&view, start_value + diff_value).unwrap();
+                    Self::set_scroll_pos_static(&view, start_value + diff_value);
                     return Continue(false);
                 }
 
@@ -1060,7 +1059,7 @@ impl ArticleView {
 
                 let t = Util::ease_out_cubic(t);
 
-                Self::set_scroll_pos_static(&view, start_value + (t * diff_value)).unwrap();
+                Self::set_scroll_pos_static(&view, start_value + (t * diff_value));
 
                 let pos = Self::get_scroll_pos_static(&view).unwrap();
                 let upper = Self::get_scroll_upper_static(&view).unwrap();

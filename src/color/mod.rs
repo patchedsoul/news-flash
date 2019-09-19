@@ -268,7 +268,7 @@ mod tests {
     #[test]
     fn parse_color_string() {
         let color_string = "#FF0077";
-        let color = ColorRGBA::parse_string(&color_string).unwrap();
+        let color = ColorRGBA::parse_string(&color_string).expect("Failed to parse color #FF0077");
         assert_eq!(color.red, 255);
         assert_eq!(color.green, 0);
         assert_eq!(color.blue, 119);
@@ -283,7 +283,7 @@ mod tests {
             blue: 200,
             alpha: 255,
         };
-        let hsla = rgba.to_hsla().unwrap();
+        let hsla = rgba.to_hsla().expect("Failed to convert rgba to hsla");
         assert_eq!(hsla.hue, 180.0);
         assert!(hsla.saturation > 0.69 && hsla.saturation < 0.71);
         assert!(hsla.lightness > 0.45 && hsla.lightness < 0.47);
@@ -298,7 +298,7 @@ mod tests {
             lightness: 0.46,
             alpha: 1.0,
         };
-        let rgba = hsla.to_rgba().unwrap();
+        let rgba = hsla.to_rgba().expect("Failed to convert hsla to rgba");
         assert_eq!(rgba.red, 35);
         assert_eq!(rgba.green, 199);
         assert_eq!(rgba.blue, 199);

@@ -2,8 +2,6 @@ use super::models::{ArticleListArticleModel, ArticleListModel, MarkUpdate, ReadU
 use crate::gtk_handle;
 use crate::util::{BuilderHelper, DateUtil, GtkHandle, GtkUtil, GTK_RESOURCE_FILE_ERROR};
 use crate::Resources;
-
-use failure::Error;
 use gdk::{EventType, NotifyType};
 use gio::{ActionExt, ActionMapExt};
 use glib::Variant;
@@ -26,7 +24,7 @@ pub struct ArticleRow {
 }
 
 impl ArticleRow {
-    pub fn new(article: &ArticleListArticleModel, list_model: &GtkHandle<ArticleListModel>) -> Result<Self, Error> {
+    pub fn new(article: &ArticleListArticleModel, list_model: &GtkHandle<ArticleListModel>) -> Self {
         let builder = BuilderHelper::new("article");
 
         let favicon = builder.get::<Image>("favicon");
@@ -46,22 +44,26 @@ impl ArticleRow {
 
         let marked = builder.get::<Image>("marked");
         let marked_icon = Resources::get("icons/marked.svg").expect(GTK_RESOURCE_FILE_ERROR);
-        let surface = GtkUtil::create_surface_from_bytes(&marked_icon, 16, 16, scale)?;
+        let surface = GtkUtil::create_surface_from_bytes(&marked_icon, 16, 16, scale)
+            .expect("Failed to load 'icons/marked.svg' from resources.");
         marked.set_from_surface(Some(&surface));
 
         let unmarked = builder.get::<Image>("unmarked");
         let unmarked_icon = Resources::get("icons/unmarked.svg").expect(GTK_RESOURCE_FILE_ERROR);
-        let surface = GtkUtil::create_surface_from_bytes(&unmarked_icon, 16, 16, scale)?;
+        let surface = GtkUtil::create_surface_from_bytes(&unmarked_icon, 16, 16, scale)
+            .expect("Failed to load 'icons/unmarked.svg' from resources.");
         unmarked.set_from_surface(Some(&surface));
 
         let read = builder.get::<Image>("read");
         let read_icon = Resources::get("icons/read.svg").expect(GTK_RESOURCE_FILE_ERROR);
-        let surface = GtkUtil::create_surface_from_bytes(&read_icon, 16, 16, scale)?;
+        let surface = GtkUtil::create_surface_from_bytes(&read_icon, 16, 16, scale)
+            .expect("Failed to load 'icons/read.svg' from resources.");
         read.set_from_surface(Some(&surface));
 
         let unread = builder.get::<Image>("unread");
         let unread_icon = Resources::get("icons/unread.svg").expect(GTK_RESOURCE_FILE_ERROR);
-        let surface = GtkUtil::create_surface_from_bytes(&unread_icon, 16, 16, scale)?;
+        let surface = GtkUtil::create_surface_from_bytes(&unread_icon, 16, 16, scale)
+            .expect("Failed to load 'icons/unread.svg' from resources.");
         unread.set_from_surface(Some(&surface));
 
         title_label.set_text(&article.title);
@@ -71,8 +73,9 @@ impl ArticleRow {
 
         if let Some(icon) = &article.favicon {
             if let Some(data) = &icon.data {
-                let surface = GtkUtil::create_surface_from_bytes(data, 16, 16, scale).unwrap();
-                favicon.set_from_surface(Some(&surface));
+                if let Ok(surface) = GtkUtil::create_surface_from_bytes(data, 16, 16, scale) {
+                    favicon.set_from_surface(Some(&surface));
+                }
             }
         }
 
@@ -99,7 +102,7 @@ impl ArticleRow {
         );
         Self::setup_marked_eventbox(&marked_eventbox, &marked_handle, &marked_stack, &article.id, list_model);
 
-        Ok(ArticleRow {
+        ArticleRow {
             widget: row,
             marked_handle,
             read_handle,
@@ -107,7 +110,7 @@ impl ArticleRow {
             unread_stack,
             title_label,
             row_hovered,
-        })
+        }
     }
 
     pub fn widget(&self) -> ListBoxRow {
@@ -189,7 +192,7 @@ impl ArticleRow {
                     article_id: article_id.clone(),
                     read,
                 };
-                let update_data = serde_json::to_string(&update).unwrap();
+                let update_data = serde_json::to_string(&update).expect("Failed to serialize ReadUpdate");
                 let update_data = Variant::from(&update_data);
                 if let Some(action) = main_window.lookup_action("mark-article-read") {
                     action.activate(Some(&update_data));
@@ -250,11 +253,12 @@ impl ArticleRow {
                     article_id: article_id.clone(),
                     marked,
                 };
-                let update_data = serde_json::to_string(&update).unwrap();
+                let update_data = serde_json::to_string(&update).expect("Failed to serialize MarkUpdate");
                 let update_data = Variant::from(&update_data);
-                if let Some(action) = main_window.lookup_action("mark-article") {
-                    action.activate(Some(&update_data));
-                }
+                let action = main_window
+                    .lookup_action("mark-article")
+                    .expect("'mark-acrticle' action not defined.");
+                action.activate(Some(&update_data));
             }
             Inhibit(true)
         });

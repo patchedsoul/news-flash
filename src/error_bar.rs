@@ -1,6 +1,7 @@
 use crate::error_dialog::ErrorDialog;
 use crate::util::{BuilderHelper, GtkUtil};
 use gtk::{Button, ButtonExt, InfoBar, InfoBarExt, Label, LabelExt, ResponseType, WidgetExt};
+use log::error;
 use news_flash::NewsFlashError;
 
 #[derive(Clone, Debug)]
@@ -46,8 +47,11 @@ impl ErrorBar {
         self.button.set_visible(true);
 
         self.button.connect_clicked(move |button| {
-            let parent = GtkUtil::get_main_window(button).unwrap();
-            let _dialog = ErrorDialog::new(&error, &parent);
+            if let Ok(parent) = GtkUtil::get_main_window(button) {
+                let _dialog = ErrorDialog::new(&error, &parent);
+            } else {
+                error!("Failed to spawn ErrorDialog. Parent window not found.");
+            }
         });
     }
 }

@@ -30,7 +30,7 @@ impl WelcomePage {
         };
 
         page.populate()?;
-        page.connect_signals();
+        page.connect_signals()?;
 
         Ok(page)
     }
@@ -47,8 +47,8 @@ impl WelcomePage {
         Ok(())
     }
 
-    fn connect_signals(&self) {
-        let main_window = GtkUtil::get_main_window(&self.page).unwrap();
+    fn connect_signals(&self) -> Result<(), Error> {
+        let main_window = GtkUtil::get_main_window(&self.page)?;
         let services = self.services.clone();
         self.list.connect_row_activated(move |_list, row| {
             if let Some((id, login_desc)) = services.borrow().get(&row.get_index()) {
@@ -70,5 +70,6 @@ impl WelcomePage {
                 };
             }
         });
+        Ok(())
     }
 }

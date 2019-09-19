@@ -175,7 +175,9 @@ impl AddPopover {
                 }
                 None
             } else {
-                category_entry_feed_category.replace(AddCategory::New(entry_text.unwrap()));
+                category_entry_feed_category.replace(AddCategory::New(
+                    entry_text.expect("entry_text already checked for None"),
+                ));
                 Some(NEW_CATEGORY_ICON)
             };
 
@@ -207,8 +209,9 @@ impl AddPopover {
 
         if let Some(favicon) = news_flash::util::favicon_cache::FavIconCache::scrap(&feed) {
             if let Some(data) = &favicon.data {
-                let surface = GtkUtil::create_surface_from_bytes(data, 64, 64, scale).unwrap();
-                favicon_image.set_from_surface(Some(&surface));
+                if let Ok(surface) = GtkUtil::create_surface_from_bytes(data, 64, 64, scale) {
+                    favicon_image.set_from_surface(Some(&surface));
+                }
             }
         } else if let Some(icon_url) = feed.icon_url {
             if let Ok(mut response) = reqwest::get(icon_url.get()) {
@@ -244,8 +247,7 @@ impl AddPopover {
         select_button.connect_clicked(move |_button| {
             if let Some(row) = list_clone.get_selected_row() {
                 if let Some(name) = row.get_name() {
-                    // should never fail since it comes from `url.as_str()`
-                    let url = Url::parse(name.as_str()).unwrap();
+                    let url = Url::parse(name.as_str()).expect("should never fail since it comes from 'url.as_str()'");
                     let feed_id = FeedID::new(url.get().as_str());
                     if let Ok(ParsedUrl::SingleFeed(feed)) =
                         news_flash::feed_parser::download_and_parse_feed(&url, &feed_id, None, None)

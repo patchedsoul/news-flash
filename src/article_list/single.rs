@@ -96,7 +96,7 @@ impl SingleArticleList {
     }
 
     pub fn add(&mut self, article: &ArticleListArticleModel, pos: i32, model: &GtkHandle<ArticleListModel>) {
-        let article_row = ArticleRow::new(&article, model).unwrap();
+        let article_row = ArticleRow::new(&article, model);
         self.list.insert(&article_row.widget(), pos);
         article_row.widget().show();
         self.articles.insert(article.id.clone(), gtk_handle!(article_row));
