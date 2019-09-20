@@ -160,16 +160,16 @@ mod tests {
         };
 
         let mut old_list = TagListModel::new();
-        old_list.add(&tag_1).unwrap();
-        old_list.add(&tag_2).unwrap();
-        old_list.add(&tag_3).unwrap();
+        old_list.add(&tag_1).expect("Failed to add tag_1 (old_list)");
+        old_list.add(&tag_2).expect("Failed to add tag_2 (old_list)");
+        old_list.add(&tag_3).expect("Failed to add tag_3 (old_list)");
 
         let mut new_list = TagListModel::new();
         tag_1.sort_index = Some(1);
         tag_2.sort_index = Some(0);
-        new_list.add(&tag_1).unwrap();
-        new_list.add(&tag_2).unwrap();
-        new_list.add(&tag_3).unwrap();
+        new_list.add(&tag_1).expect("Failed to add tag_1 (new_list)");
+        new_list.add(&tag_2).expect("Failed to add tag_2 (new_list)");
+        new_list.add(&tag_3).expect("Failed to add tag_3 (new_list)");
 
         let diff = old_list.generate_diff(&mut new_list);
         assert_eq!(diff.len(), 5);

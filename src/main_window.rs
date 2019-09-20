@@ -130,6 +130,7 @@ impl MainWindow {
             &content_page_handle,
             &news_flash_handle,
             &undo_bar_handle,
+            &error_bar_handle,
         );
         MainWindowActions::setup_show_more_articles_action(
             &window,
@@ -186,7 +187,8 @@ impl MainWindow {
                 .unwrap();
             content_page_handle
                 .borrow_mut()
-                .update_article_list(&news_flash_handle, &state, &undo_bar_handle);
+                .update_article_list(&news_flash_handle, &state, &undo_bar_handle)
+                .unwrap();
 
             header_stack.set_visible_child_name(CONTENT_PAGE);
         } else {

@@ -71,12 +71,14 @@ impl ServiceRow {
         price_label.set_text(price_string);
 
         let arrow_event = builder.get::<EventBox>("arrow_event");
-        arrow_event.connect_leave_notify_event(|widget, _| {
-            widget.get_child().unwrap().set_opacity(0.8);
+        let arrow_image = builder.get::<Image>("arrow_image");
+        arrow_event.connect_leave_notify_event(move |_widget, _| {
+            arrow_image.set_opacity(0.8);
             gtk::Inhibit(false)
         });
-        arrow_event.connect_enter_notify_event(|widget, _| {
-            widget.get_child().unwrap().set_opacity(1.0);
+        let arrow_image = builder.get::<Image>("arrow_image");
+        arrow_event.connect_enter_notify_event(move |_widget, _| {
+            arrow_image.set_opacity(1.0);
             gtk::Inhibit(false)
         });
 
@@ -138,7 +140,7 @@ impl ServiceRow {
                     EventType::ButtonPress => (),
                     _ => return gtk::Inhibit(false),
                 }
-                let arrow_image = widget.get_child().unwrap();
+                let arrow_image = widget.get_child().expect("arrow_image is not child of arrow_event");
                 let context = arrow_image.get_style_context();
                 let expanded = handle.borrow().show_info;
                 if !expanded {

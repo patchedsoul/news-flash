@@ -61,16 +61,21 @@ impl CategoryRow {
         arrow_event.set_events(EventMask::BUTTON_PRESS_MASK);
         arrow_event.set_events(EventMask::ENTER_NOTIFY_MASK);
         arrow_event.set_events(EventMask::LEAVE_NOTIFY_MASK);
-        arrow_event.connect_enter_notify_event(|widget, _| {
-            widget.get_child().unwrap().set_opacity(1.0);
-            gtk::Inhibit(false)
-        });
-        arrow_event.connect_leave_notify_event(|widget, _| {
-            widget.get_child().unwrap().set_opacity(0.8);
+
+        let arrow_image = builder.get::<Image>("arrow_image");
+        arrow_event.connect_enter_notify_event(move |_widget, _| {
+            arrow_image.set_opacity(1.0);
             gtk::Inhibit(false)
         });
 
-        arrow_event.connect_button_press_event(move |widget, event| {
+        let arrow_image = builder.get::<Image>("arrow_image");
+        arrow_event.connect_leave_notify_event(move |_widget, _| {
+            arrow_image.set_opacity(0.8);
+            gtk::Inhibit(false)
+        });
+
+        let arrow_image = builder.get::<Image>("arrow_image");
+        arrow_event.connect_button_press_event(move |_widget, event| {
             if event.get_button() != 1 {
                 return gtk::Inhibit(false);
             }
@@ -78,9 +83,8 @@ impl CategoryRow {
                 EventType::ButtonPress => (),
                 _ => return gtk::Inhibit(false),
             }
-            let arrow_image = widget.get_child().unwrap();
             let expanded = handle1.borrow().expanded;
-            Self::rotate_arrow(&arrow_image, !expanded);
+            Self::rotate_arrow(&arrow_image.clone().upcast::<gtk::Widget>(), !expanded);
             handle1.borrow_mut().expanded = !expanded;
             gtk::Inhibit(false)
         });
@@ -185,7 +189,10 @@ impl CategoryRow {
 
     pub fn expand_collapse_arrow(&mut self) {
         self.expanded = !self.expanded;
-        let arrow_image = self.arrow_event.get_child().unwrap();
+        let arrow_image = self
+            .arrow_event
+            .get_child()
+            .expect("arrow_image is not child of arrow_event");
         Self::rotate_arrow(&arrow_image, self.expanded);
     }
 

@@ -287,7 +287,8 @@ impl PasswordLogin {
         self.error_details_signal = Some(
             self.error_details_button
                 .connect_clicked(move |button| {
-                    let parent = GtkUtil::get_main_window(button).unwrap();
+                    let parent = GtkUtil::get_main_window(button)
+                        .expect("MainWindow is not a parent of password login error details button.");
                     let _dialog = ErrorDialog::new(&error, &parent);
                 })
                 .to_glib(),

@@ -361,16 +361,22 @@ impl MainWindowActions {
         content_page: &GtkHandle<ContentPage>,
         news_flash: &GtkHandle<Option<NewsFlash>>,
         undo_bar: &GtkHandle<UndoBar>,
+        error_bar: &GtkHandle<ErrorBar>,
     ) {
         let state = state.clone();
         let content_page = content_page.clone();
         let news_flash = news_flash.clone();
         let undo_bar = undo_bar.clone();
+        let error_bar = error_bar.clone();
         let update_article_list_action = SimpleAction::new("update-article-list", None);
         update_article_list_action.connect_activate(move |_action, _data| {
-            content_page
+            if content_page
                 .borrow_mut()
-                .update_article_list(&news_flash, &state, &undo_bar);
+                .update_article_list(&news_flash, &state, &undo_bar)
+                .is_err()
+            {
+                error_bar.borrow().simple_message("Failed to update the article list.");
+            }
         });
         update_article_list_action.set_enabled(true);
         window.add_action(&update_article_list_action);

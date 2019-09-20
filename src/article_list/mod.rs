@@ -225,7 +225,7 @@ impl ArticleList {
                             article_id: selected_article_id,
                             read: Read::Read,
                         };
-                        let update_data = serde_json::to_string(&update).unwrap();
+                        let update_data = serde_json::to_string(&update).expect("Failed to serialize ReadUpdate");
                         let update_data = Variant::from(&update_data);
                         list_model.borrow_mut().set_read(&selected_article.id, Read::Read);
                         match *current_list.borrow() {

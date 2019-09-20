@@ -52,13 +52,16 @@ fn main() {
 
     let root = Root::builder().appender("stdout").build(LevelFilter::Debug);
 
-    let config = Config::builder().appender(appender).build(root).unwrap();
+    let config = Config::builder()
+        .appender(appender)
+        .build(root)
+        .expect("Failed to create log4rs config.");
 
-    let _handle = log4rs::init_config(config).unwrap();
+    let _handle = log4rs::init_config(config).expect("Failed to init log4rs config.");
 
     application.connect_startup(move |_app| {});
     application.connect_activate(move |app| {
-        let mainwindow = MainWindow::new(&app).unwrap();
+        let mainwindow = MainWindow::new(&app).expect("Failed to create MainWindow.");
         mainwindow.present();
     });
 

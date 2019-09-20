@@ -628,19 +628,35 @@ mod tests {
         let (mut category_1, mut category_2, mut category_3, _, feed_1, _feed_2, mapping_1, mapping_2, _mapping_3, _) =
             building_blocks();
         let mut old_tree = FeedListTree::new();
-        old_tree.add_category(&category_1, 5).unwrap();
-        old_tree.add_category(&category_2, 0).unwrap();
-        old_tree.add_category(&category_3, 0).unwrap();
-        old_tree.add_feed(&feed_1, &mapping_1, 1, None).unwrap();
+        old_tree
+            .add_category(&category_1, 5)
+            .expect("Failed to add category_1 (old_tree)");
+        old_tree
+            .add_category(&category_2, 0)
+            .expect("Failed to add category_2 (old_tree)");
+        old_tree
+            .add_category(&category_3, 0)
+            .expect("Failed to add category_3 (old_tree)");
+        old_tree
+            .add_feed(&feed_1, &mapping_1, 1, None)
+            .expect("Failed to add feed_1 with mapping_1 (old_tree)");
 
         let mut new_tree = FeedListTree::new();
         category_1.label = "Category 1 new".to_owned();
-        new_tree.add_category(&category_1, 2).unwrap();
+        new_tree
+            .add_category(&category_1, 2)
+            .expect("Failed to add category_1 (new_tree)");
         category_2.sort_index = Some(2);
-        new_tree.add_category(&category_2, 0).unwrap();
+        new_tree
+            .add_category(&category_2, 0)
+            .expect("Failed to add category_2 (new_tree)");
         category_3.sort_index = Some(1);
-        new_tree.add_category(&category_3, 1).unwrap();
-        new_tree.add_feed(&feed_1, &mapping_2, 2, None).unwrap();
+        new_tree
+            .add_category(&category_3, 1)
+            .expect("Failed to add category_3 (new_tree)");
+        new_tree
+            .add_feed(&feed_1, &mapping_2, 2, None)
+            .expect("Failed to add feed_1 with mapping_2 (new_tree)");
 
         let diff = old_tree.generate_diff(&mut new_tree);
 
@@ -697,13 +713,15 @@ mod tests {
         let (category_1, category_2, category_3, _, feed_1, feed_2, mapping_1, _, mapping_3, _) = building_blocks();
 
         let mut tree = FeedListTree::new();
-        tree.add_category(&category_1, 5).unwrap();
-        tree.add_category(&category_2, 0).unwrap();
-        tree.add_category(&category_3, 0).unwrap();
-        tree.add_feed(&feed_1, &mapping_1, 1, None).unwrap();
-        tree.add_feed(&feed_2, &mapping_3, 1, None).unwrap();
+        tree.add_category(&category_1, 5).expect("Failed to add category_1");
+        tree.add_category(&category_2, 0).expect("Failed to add category_2");
+        tree.add_category(&category_3, 0).expect("Failed to add category_3");
+        tree.add_feed(&feed_1, &mapping_1, 1, None)
+            .expect("Failed to add feed_1 with mapping_1");
+        tree.add_feed(&feed_2, &mapping_3, 1, None)
+            .expect("Failed to add feed_2 with mapping_3");
 
-        let (id, pos) = tree.calculate_dnd(2).unwrap();
+        let (id, pos) = tree.calculate_dnd(2).expect("Failed to calculate drag&drop result");
 
         assert_eq!(id, CategoryID::new("category_2"));
         assert_eq!(pos, 0);

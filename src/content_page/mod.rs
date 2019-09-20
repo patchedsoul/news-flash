@@ -64,7 +64,7 @@ impl ContentPage {
         news_flash_handle: &GtkHandle<Option<NewsFlash>>,
         window_state: &GtkHandle<MainWindowState>,
         undo_bar: &GtkHandle<UndoBar>,
-    ) {
+    ) -> Result<(), Error> {
         if let Some(news_flash) = news_flash_handle.borrow_mut().as_mut() {
             let window_state = &mut *window_state.borrow_mut();
             let relevant_articles_loaded = self
@@ -80,11 +80,14 @@ impl ContentPage {
             let mut list_model = ArticleListModel::new(&self.settings.borrow().get_article_list_order());
             let mut articles = Self::load_articles(news_flash, &window_state, &self.settings, undo_bar, limit, None);
 
-            let (feeds, _) = news_flash.get_feeds().unwrap();
+            let (feeds, _) = news_flash.get_feeds()?;
             let _: Vec<_> = articles
                 .drain(..)
                 .map(|article| {
-                    let feed = feeds.iter().find(|&f| f.feed_id == article.feed_id).unwrap();
+                    let feed = feeds
+                        .iter()
+                        .find(|&f| f.feed_id == article.feed_id)
+                        .ok_or_else(|| format_err!("some err"))?;
                     let favicon = match news_flash.get_icon_info(&feed) {
                         Ok(favicon) => Some(favicon),
                         Err(_) => None,
@@ -93,7 +96,10 @@ impl ContentPage {
                 })
                 .collect();
             self.article_list.update(list_model, window_state);
+            return Ok(());
         }
+
+        Err(format_err!("some err"))
     }
 
     pub fn load_more_articles(
