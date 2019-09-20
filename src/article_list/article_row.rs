@@ -3,7 +3,6 @@ use crate::gtk_handle;
 use crate::util::{BuilderHelper, DateUtil, GtkHandle, GtkUtil, GTK_RESOURCE_FILE_ERROR};
 use crate::Resources;
 use gdk::{EventType, NotifyType};
-use gio::{ActionExt, ActionMapExt};
 use glib::Variant;
 use gtk::{
     ContainerExt, EventBox, Image, ImageExt, Inhibit, Label, LabelExt, ListBoxRow, ListBoxRowExt, Stack, StackExt,
@@ -187,17 +186,13 @@ impl ArticleRow {
             let read = *read_3.borrow();
             Self::update_title_label(&title_label, read);
             list_model.borrow_mut().set_read(&article_id, read);
-            if let Ok(main_window) = GtkUtil::get_main_window(widget) {
-                let update = ReadUpdate {
-                    article_id: article_id.clone(),
-                    read,
-                };
-                let update_data = serde_json::to_string(&update).expect("Failed to serialize ReadUpdate");
-                let update_data = Variant::from(&update_data);
-                if let Some(action) = main_window.lookup_action("mark-article-read") {
-                    action.activate(Some(&update_data));
-                }
-            }
+            let update = ReadUpdate {
+                article_id: article_id.clone(),
+                read,
+            };
+            let update_data = serde_json::to_string(&update).expect("Failed to serialize ReadUpdate");
+            let update_data = Variant::from(&update_data);
+            GtkUtil::execute_action(widget, "mark-article-read", Some(&update_data));
             Inhibit(true)
         });
     }
@@ -248,18 +243,13 @@ impl ArticleRow {
             let marked = *marked_3.borrow();
             list_model.borrow_mut().set_marked(&article_id, marked);
 
-            if let Ok(main_window) = GtkUtil::get_main_window(widget) {
-                let update = MarkUpdate {
-                    article_id: article_id.clone(),
-                    marked,
-                };
-                let update_data = serde_json::to_string(&update).expect("Failed to serialize MarkUpdate");
-                let update_data = Variant::from(&update_data);
-                let action = main_window
-                    .lookup_action("mark-article")
-                    .expect("'mark-acrticle' action not defined.");
-                action.activate(Some(&update_data));
-            }
+            let update = MarkUpdate {
+                article_id: article_id.clone(),
+                marked,
+            };
+            let update_data = serde_json::to_string(&update).expect("Failed to serialize MarkUpdate");
+            let update_data = Variant::from(&update_data);
+            GtkUtil::execute_action(widget, "mark-article", Some(&update_data));
             Inhibit(true)
         });
     }

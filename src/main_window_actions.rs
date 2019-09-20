@@ -13,8 +13,8 @@ use crate::responsive::ResponsiveLayout;
 use crate::settings::{NewsFlashShortcutWindow, Settings, SettingsDialog};
 use crate::sidebar::models::SidebarSelection;
 use crate::undo_bar::{UndoActionModel, UndoBar};
-use crate::util::{FileUtil, GtkHandle};
-use gio::{ActionExt, ActionMapExt, ApplicationExt, SimpleAction};
+use crate::util::{FileUtil, GtkHandle, GtkUtil};
+use gio::{ActionMapExt, ApplicationExt, SimpleAction};
 use glib::{Variant, VariantTy};
 use gtk::{
     self, Application, ApplicationWindow, ButtonExt, DialogExt, FileChooserAction, FileChooserDialog, FileChooserExt,
@@ -183,10 +183,8 @@ impl MainWindowActions {
                             *news_flash.borrow_mut() = Some(news_flash_lib);
 
                             // show content page
-                            if let Some(action) = main_window.lookup_action("show-content-page") {
-                                let id = Variant::from(id.to_str());
-                                action.activate(Some(&id));
-                            }
+                            let id = Variant::from(id.to_str());
+                            GtkUtil::execute_action_main_window(&main_window, "show-content-page", Some(&id));
                         }
                         Err(error) => {
                             error!("Login failed! Plguin: {}, Error: {}", id, error);
@@ -229,12 +227,8 @@ impl MainWindowActions {
             match result {
                 Ok(()) => {
                     content_header.borrow().finish_sync();
-                    if let Some(action) = parent.lookup_action("update-sidebar") {
-                        action.activate(None);
-                    }
-                    if let Some(action) = parent.lookup_action("update-article-list") {
-                        action.activate(None);
-                    }
+                    GtkUtil::execute_action_main_window(&parent, "update-sidebar", None);
+                    GtkUtil::execute_action_main_window(&parent, "update-article-list", None);
                 }
                 Err(error) => {
                     content_header.borrow().finish_sync();
@@ -289,9 +283,7 @@ impl MainWindowActions {
                     state.borrow_mut().set_sidebar_selection(selection);
                     responsive_layout.borrow().state.borrow_mut().minor_leaflet_selected = true;
                     ResponsiveLayout::process_state_change(&*responsive_layout.borrow());
-                    if let Some(action) = main_window.lookup_action("update-article-list") {
-                        action.activate(None);
-                    }
+                    GtkUtil::execute_action_main_window(&main_window, "update-article-list", None);
                 }
             }
         });
@@ -319,9 +311,8 @@ impl MainWindowActions {
                         HeaderSelection::Unread => header.borrow().select_unread_button(),
                         HeaderSelection::Marked => header.borrow().select_marked_button(),
                     };
-                    if let Some(action) = main_window.lookup_action("update-article-list") {
-                        action.activate(None);
-                    }
+                    GtkUtil::execute_action_main_window(&main_window, "update-article-list", None);
+
                     let update_sidebar = match old_selection {
                         HeaderSelection::All | HeaderSelection::Unread => match new_selection {
                             HeaderSelection::All | HeaderSelection::Unread => false,
@@ -333,9 +324,7 @@ impl MainWindowActions {
                         },
                     };
                     if update_sidebar {
-                        if let Some(action) = main_window.lookup_action("update-sidebar") {
-                            action.activate(None);
-                        }
+                        GtkUtil::execute_action_main_window(&main_window, "update-sidebar", None);
                     }
                 }
             }
@@ -358,9 +347,7 @@ impl MainWindowActions {
                         state.borrow_mut().set_search_term(Some(data.to_owned()));
                     }
 
-                    if let Some(action) = main_window.lookup_action("update-article-list") {
-                        action.activate(None);
-                    }
+                    GtkUtil::execute_action_main_window(&main_window, "update-article-list", None);
                 }
             }
         });
@@ -515,9 +502,7 @@ impl MainWindowActions {
                         error_bar.borrow().simple_message(message);
                     }
 
-                    if let Some(action) = main_window.lookup_action("update-sidebar") {
-                        action.activate(None);
-                    }
+                    GtkUtil::execute_action_main_window(&main_window, "update-sidebar", None);
                 }
             }
         });
@@ -554,9 +539,7 @@ impl MainWindowActions {
                         error_bar.borrow().simple_message(message);
                     }
 
-                    if let Some(action) = main_window.lookup_action("update-sidebar") {
-                        action.activate(None);
-                    }
+                    GtkUtil::execute_action_main_window(&main_window, "update-sidebar", None);
                 }
             }
         });
@@ -619,12 +602,8 @@ impl MainWindowActions {
                 }
             }
 
-            if let Some(action) = main_window.lookup_action("update-article-list") {
-                action.activate(None);
-            }
-            if let Some(action) = main_window.lookup_action("update-sidebar") {
-                action.activate(None);
-            }
+            GtkUtil::execute_action_main_window(&main_window, "update-article-list", None);
+            GtkUtil::execute_action_main_window(&main_window, "update-sidebar", None);
         });
         sidebar_set_read_action.set_enabled(true);
         window.add_action(&sidebar_set_read_action);
@@ -731,12 +710,9 @@ impl MainWindowActions {
                                 news_flash.rename_feed(&feed, &new_label).unwrap();
                                 dialog_handle.borrow().close();
                             }
-                            if let Some(action) = main_window.lookup_action("update-sidebar") {
-                                action.activate(None);
-                            }
-                            if let Some(action) = main_window.lookup_action("update-article-list") {
-                                action.activate(None);
-                            }
+
+                            GtkUtil::execute_action_main_window(&main_window, "update-article-list", None);
+                            GtkUtil::execute_action_main_window(&main_window, "update-sidebar", None);
                         });
                     }
                 }
@@ -775,9 +751,8 @@ impl MainWindowActions {
                                 news_flash.rename_category(&category, &new_label).unwrap();
                                 dialog_handle.borrow().close();
                             }
-                            if let Some(action) = main_window.lookup_action("update-sidebar") {
-                                action.activate(None);
-                            }
+
+                            GtkUtil::execute_action_main_window(&main_window, "update-sidebar", None);
                         });
                     }
                 }
@@ -790,7 +765,7 @@ impl MainWindowActions {
     pub fn setup_delete_selection_action(window: &ApplicationWindow, content_page: &GtkHandle<ContentPage>) {
         let content_page = content_page.clone();
         let main_window = window.clone();
-        let delete_selection_action = SimpleAction::new("delete-selection-action", None);
+        let delete_selection_action = SimpleAction::new("delete-selection", None);
         delete_selection_action.connect_activate(move |_action, _data| {
             let selection = content_page.borrow().sidebar_get_selection();
             let undo_action = match selection {
@@ -805,12 +780,12 @@ impl MainWindowActions {
                 SidebarSelection::Tag((tag_id, label)) => Some(UndoActionModel::DeleteTag((tag_id, label))),
             };
             if let Some(undo_action) = undo_action {
-                if let Some(action) = main_window.lookup_action("enqueue-undoable-action") {
-                    if let Ok(json) = serde_json::to_string(&undo_action) {
-                        let json = Variant::from(&json);
-                        action.activate(Some(&json));
-                    }
-                }
+                let json = serde_json::to_string(&undo_action).expect("Failed to serialize UndoActionModel");
+                GtkUtil::execute_action_main_window(
+                    &main_window,
+                    "enqueue-undoable-action",
+                    Some(&Variant::from(&json)),
+                );
             }
         });
         delete_selection_action.set_enabled(true);

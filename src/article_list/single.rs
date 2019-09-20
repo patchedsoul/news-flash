@@ -4,7 +4,6 @@ use super::models::ArticleListModel;
 use crate::gtk_handle;
 use crate::util::{BuilderHelper, GtkHandle, GtkUtil, Util};
 use failure::Error;
-use gio::{ActionExt, ActionMapExt};
 use glib::{object::Cast, translate::ToGlib};
 use gtk::{
     AdjustmentExt, ContainerExt, Continue, ListBox, ListBoxExt, ListBoxRowExt, ScrolledWindow, ScrolledWindowExt,
@@ -55,17 +54,13 @@ impl SingleArticleList {
                 if !is_on_cooldown {
                     let max = vadj.get_upper() - vadj.get_page_size();
                     if max > 0.0 && vadj.get_value() >= (max - LIST_BOTTOM_THREASHOLD) {
-                        if let Ok(main_window) = GtkUtil::get_main_window(&vadj_scroll) {
-                            if let Some(action) = main_window.lookup_action("show-more-articles") {
-                                *cooldown.borrow_mut() = true;
-                                let cooldown = cooldown.clone();
-                                gtk::timeout_add(800, move || {
-                                    *cooldown.borrow_mut() = false;
-                                    Continue(false)
-                                });
-                                action.activate(None);
-                            }
-                        }
+                        *cooldown.borrow_mut() = true;
+                        let cooldown = cooldown.clone();
+                        gtk::timeout_add(800, move || {
+                            *cooldown.borrow_mut() = false;
+                            Continue(false)
+                        });
+                        GtkUtil::execute_action(&vadj_scroll, "show-more-articles", None);
                     }
                 }
             });

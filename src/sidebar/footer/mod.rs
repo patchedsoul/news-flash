@@ -1,5 +1,4 @@
 use crate::util::{BuilderHelper, GtkUtil};
-use gio::{ActionExt, ActionMapExt};
 use gtk::{Button, ButtonExt, WidgetExt};
 
 #[derive(Clone, Debug)]
@@ -14,19 +13,11 @@ impl SidebarFooter {
         let remove_button = builder.get::<Button>("remove_button");
 
         remove_button.connect_clicked(|button| {
-            if let Ok(main_window) = GtkUtil::get_main_window(button) {
-                if let Some(action) = main_window.lookup_action("delete-selection-action") {
-                    action.activate(None);
-                }
-            }
+            GtkUtil::execute_action(button, "delete-selection", None);
         });
 
         add_button.connect_clicked(|button| {
-            if let Ok(main_window) = GtkUtil::get_main_window(button) {
-                if let Some(action) = main_window.lookup_action("add-feed") {
-                    action.activate(None);
-                }
-            }
+            GtkUtil::execute_action(button, "add-feed", None);
         });
 
         SidebarFooter {

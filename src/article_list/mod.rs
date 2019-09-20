@@ -9,7 +9,6 @@ use crate::settings::Settings;
 use crate::sidebar::models::SidebarSelection;
 use crate::util::{BuilderHelper, GtkHandle, GtkUtil};
 use failure::{format_err, Error};
-use gio::{ActionExt, ActionMapExt};
 use glib::{translate::ToGlib, Variant};
 use gtk::{Continue, Label, LabelExt, ListBoxExt, ListBoxRowExt, ScrolledWindow, Stack, StackExt, StackTransitionType};
 use models::ArticleListChangeSet;
@@ -219,28 +218,22 @@ impl ArticleList {
                 let selected_article = list_model.borrow_mut().calculate_selection(selected_index).cloned();
                 if let Some(selected_article) = selected_article {
                     let selected_article_id = selected_article.id.clone();
-                    if let Ok(main_window) = GtkUtil::get_main_window(list) {
-                        let selected_article_id_variant = Variant::from(&selected_article_id.to_str());
-                        if let Some(action) = main_window.lookup_action("show-article") {
-                            action.activate(Some(&selected_article_id_variant));
+                    let selected_article_id_variant = Variant::from(&selected_article_id.to_str());
+                    GtkUtil::execute_action(list, "show-article", Some(&selected_article_id_variant));
+                    if selected_article.read == Read::Unread {
+                        let update = ReadUpdate {
+                            article_id: selected_article_id,
+                            read: Read::Read,
+                        };
+                        let update_data = serde_json::to_string(&update).unwrap();
+                        let update_data = Variant::from(&update_data);
+                        list_model.borrow_mut().set_read(&selected_article.id, Read::Read);
+                        match *current_list.borrow() {
+                            CurrentList::List1 => list_1.borrow_mut().update_read(&selected_article.id, Read::Read),
+                            CurrentList::List2 => list_2.borrow_mut().update_read(&selected_article.id, Read::Read),
+                            CurrentList::Empty => return,
                         }
-                        if selected_article.read == Read::Unread {
-                            let update = ReadUpdate {
-                                article_id: selected_article_id,
-                                read: Read::Read,
-                            };
-                            let update_data = serde_json::to_string(&update).unwrap();
-                            let update_data = Variant::from(&update_data);
-                            list_model.borrow_mut().set_read(&selected_article.id, Read::Read);
-                            match *current_list.borrow() {
-                                CurrentList::List1 => list_1.borrow_mut().update_read(&selected_article.id, Read::Read),
-                                CurrentList::List2 => list_2.borrow_mut().update_read(&selected_article.id, Read::Read),
-                                CurrentList::Empty => return,
-                            }
-                            if let Some(action) = main_window.lookup_action("mark-article-read") {
-                                action.activate(Some(&update_data));
-                            }
-                        }
+                        GtkUtil::execute_action(list, "mark-article-read", Some(&update_data));
                     }
                 }
             })

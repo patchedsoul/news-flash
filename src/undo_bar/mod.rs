@@ -2,7 +2,6 @@ mod models;
 
 use crate::gtk_handle;
 use crate::util::{BuilderHelper, GtkHandle, GtkUtil};
-use gio::{ActionExt, ActionMapExt};
 use glib::{translate::ToGlib, Variant};
 use gtk::{Button, ButtonExt, Continue, InfoBar, InfoBarExt, Label, LabelExt, WidgetExt};
 use log::debug;
@@ -44,14 +43,8 @@ impl UndoBar {
             button_info_bar.set_revealed(false);
 
             // update lists
-            if let Ok(main_window) = GtkUtil::get_main_window(button) {
-                if let Some(action) = main_window.lookup_action("update-sidebar") {
-                    action.activate(None);
-                }
-                if let Some(action) = main_window.lookup_action("update-article-list") {
-                    action.activate(None);
-                }
-            }
+            GtkUtil::execute_action(button, "update-sidebar", None);
+            GtkUtil::execute_action(button, "update-article-list", None);
         });
 
         self.widget.show();
@@ -60,28 +53,16 @@ impl UndoBar {
     fn execute_action(action: &UndoActionModel, bar: &InfoBar) {
         match action {
             UndoActionModel::DeleteFeed((feed_id, _label)) => {
-                if let Ok(main_window) = GtkUtil::get_main_window(bar) {
-                    if let Some(action) = main_window.lookup_action("delete-feed") {
-                        let variant = Variant::from(feed_id.to_str());
-                        action.activate(Some(&variant));
-                    }
-                }
+                let variant = Variant::from(feed_id.to_str());
+                GtkUtil::execute_action(bar, "delete-feed", Some(&variant));
             }
             UndoActionModel::DeleteCategory((category_id, _label)) => {
-                if let Ok(main_window) = GtkUtil::get_main_window(bar) {
-                    if let Some(action) = main_window.lookup_action("delete-category") {
-                        let variant = Variant::from(category_id.to_str());
-                        action.activate(Some(&variant));
-                    }
-                }
+                let variant = Variant::from(category_id.to_str());
+                GtkUtil::execute_action(bar, "delete-category", Some(&variant));
             }
             UndoActionModel::DeleteTag((tag_id, _label)) => {
-                if let Ok(main_window) = GtkUtil::get_main_window(bar) {
-                    if let Some(action) = main_window.lookup_action("delete-tag") {
-                        let variant = Variant::from(tag_id.to_str());
-                        action.activate(Some(&variant));
-                    }
-                }
+                let variant = Variant::from(tag_id.to_str());
+                GtkUtil::execute_action(bar, "delete-tag", Some(&variant));
             }
         }
     }
@@ -118,14 +99,8 @@ impl UndoBar {
             .replace(UndoAction::new(action, source_id.to_glib()));
 
         // update lists
-        if let Ok(main_window) = GtkUtil::get_main_window(&self.widget) {
-            if let Some(action) = main_window.lookup_action("update-sidebar") {
-                action.activate(None);
-            }
-            if let Some(action) = main_window.lookup_action("update-article-list") {
-                action.activate(None);
-            }
-        }
+        GtkUtil::execute_action(&self.widget, "update-sidebar", None);
+        GtkUtil::execute_action(&self.widget, "update-article-list", None);
     }
 
     pub fn get_current_action(&self) -> Option<UndoActionModel> {

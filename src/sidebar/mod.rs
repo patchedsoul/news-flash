@@ -12,7 +12,6 @@ use failure::Error;
 pub use feed_list::models::{FeedListItemID, FeedListTree};
 use feed_list::FeedList;
 use gdk::{EventMask, EventType};
-use gio::{ActionExt, ActionMapExt};
 use glib::{translate::ToGlib, Variant};
 use gtk::{
     Box, BoxExt, Button, Continue, EventBox, Image, ImageExt, Inhibit, Label, LabelExt, ListBoxExt, Revealer,
@@ -88,14 +87,10 @@ impl SideBar {
             .borrow()
             .widget()
             .connect_row_activated(move |list, _row| {
-                if let Ok(selection_json) = serde_json::to_string(&*feed_list_selection_handle.borrow()) {
-                    if let Ok(main_window) = GtkUtil::get_main_window(list) {
-                        if let Some(action) = main_window.lookup_action("sidebar-selection") {
-                            let selection = Variant::from(&selection_json);
-                            action.activate(Some(&selection));
-                        }
-                    }
-                }
+                let selection_json = serde_json::to_string(&*feed_list_selection_handle.borrow())
+                    .expect("Failed to serialize SidebarSelection.");
+                let selection = Variant::from(&selection_json);
+                GtkUtil::execute_action(list, "sidebar-selection", Some(&selection));
             });
 
         let feed_list_all_event_box = all_event_box.clone();
@@ -128,14 +123,10 @@ impl SideBar {
             .borrow()
             .widget()
             .connect_row_activated(move |list, _row| {
-                if let Ok(selection_json) = serde_json::to_string(&*tag_list_selection_handle.borrow()) {
-                    if let Ok(main_window) = GtkUtil::get_main_window(list) {
-                        if let Some(action) = main_window.lookup_action("sidebar-selection") {
-                            let selection = Variant::from(&selection_json);
-                            action.activate(Some(&selection));
-                        }
-                    }
-                }
+                let selection_json = serde_json::to_string(&*tag_list_selection_handle.borrow())
+                    .expect("Failed to serialize SidebarSelection.");
+                let selection = Variant::from(&selection_json);
+                GtkUtil::execute_action(list, "sidebar-selection", Some(&selection));
             });
 
         let tag_list_all_event_box = all_event_box.clone();
@@ -384,17 +375,15 @@ impl SideBar {
         let all_event_box = all_event_box.clone();
         *delayed_selection.borrow_mut() = Some(
             gtk::timeout_add(300, move || {
-                if let Ok(selection_json) = serde_json::to_string(&SidebarSelection::All) {
-                    if let Ok(main_window) = GtkUtil::get_main_window(&all_event_box) {
-                        if let Some(action) = main_window.lookup_action("sidebar-selection") {
-                            let selection = Variant::from(&selection_json);
-                            gtk::idle_add(move || {
-                                action.activate(Some(&selection));
-                                Continue(false)
-                            });
-                        }
-                    }
-                }
+                let selection_json =
+                    serde_json::to_string(&SidebarSelection::All).expect("Failed to serialize SidebarSelection.");
+                let selection = Variant::from(&selection_json);
+                let all_event_box = all_event_box.clone();
+                gtk::idle_add(move || {
+                    GtkUtil::execute_action(&all_event_box, "sidebar-selection", Some(&selection));
+                    Continue(false)
+                });
+
                 *source_id.borrow_mut() = None;
                 Continue(false)
             })

@@ -2,10 +2,9 @@ use super::keybinding_editor::{KeybindState, KeybindingEditor};
 use super::keybindings::Keybindings;
 use super::theme_chooser::ThemeChooser;
 use crate::settings::Settings;
-use crate::util::{BuilderHelper, GtkHandle, GTK_BUILDER_ERROR};
+use crate::util::{BuilderHelper, GtkHandle, GtkUtil, GTK_BUILDER_ERROR};
 use gdk::{EventMask, EventType};
-use gio::{ActionExt, ActionMapExt};
-use glib::object::{Cast, IsA};
+use glib::object::Cast;
 use gtk::{
     DialogExt, EventBox, FontButton, FontButtonExt, FontChooserExt, GtkWindowExt, GtkWindowExtManual, Inhibit, Label,
     LabelExt, ListBox, ListBoxExt, ListBoxRowExt, Popover, PopoverExt, Settings as GtkSettings,
@@ -21,7 +20,7 @@ pub struct SettingsDialog {
 }
 
 impl SettingsDialog {
-    pub fn new<W: IsA<Window> + GtkWindowExt + ActionMapExt>(window: &W, settings: &GtkHandle<Settings>) -> Self {
+    pub fn new(window: &gtk::ApplicationWindow, settings: &GtkHandle<Settings>) -> Self {
         let builder = BuilderHelper::new("settings");
 
         let dialog = builder.get::<Window>("dialog");
@@ -43,7 +42,7 @@ impl SettingsDialog {
         self.widget.clone()
     }
 
-    fn setup_ui_section<W: IsA<Window> + GtkWindowExt + ActionMapExt>(&self, window: &W) {
+    fn setup_ui_section(&self, window: &gtk::ApplicationWindow) {
         let settings_1 = self.settings.clone();
         let settings_2 = self.settings.clone();
         let settings_3 = self.settings.clone();
@@ -103,9 +102,7 @@ impl SettingsDialog {
                 };
                 article_order_label.set_label(new_order.to_str());
                 settings.borrow_mut().set_article_list_order(new_order).unwrap();
-                if let Some(action) = main_window.lookup_action("update-article-list") {
-                    action.activate(None);
-                }
+                GtkUtil::execute_action_main_window(&main_window, "update-article-list", None);
             });
             Inhibit(false)
         });
@@ -134,9 +131,7 @@ impl SettingsDialog {
                                 };
                                 article_order_label.set_label(new_order.to_str());
                                 settings.borrow_mut().set_article_list_order(new_order).unwrap();
-                                if let Some(action) = main_window.lookup_action("update-article-list") {
-                                    action.activate(None);
-                                }
+                                GtkUtil::execute_action_main_window(&main_window, "update-article-list", None);
                             });
                         }
                     }
@@ -165,9 +160,7 @@ impl SettingsDialog {
             let theme_chooser = ThemeChooser::new(eventbox, &settings);
             theme_chooser.widget().connect_closed(move |_pop| {
                 article_theme_label.set_label(settings.borrow().get_article_view_theme().name());
-                if let Some(action) = main_window.lookup_action("redraw-article") {
-                    action.activate(None);
-                }
+                GtkUtil::execute_action_main_window(&main_window, "redraw-article", None);
             });
             theme_chooser.widget().popup();
 
@@ -189,9 +182,7 @@ impl SettingsDialog {
                             let theme_chooser = ThemeChooser::new(&article_theme_event, &settings);
                             theme_chooser.widget().connect_closed(move |_pop| {
                                 article_theme_label.set_label(settings.borrow().get_article_view_theme().name());
-                                if let Some(action) = main_window.lookup_action("redraw-article") {
-                                    action.activate(None);
-                                }
+                                GtkUtil::execute_action_main_window(&main_window, "redraw-article", None);
                             });
                             theme_chooser.widget().popup();
                         }
@@ -205,9 +196,7 @@ impl SettingsDialog {
         allow_selection_switch.set_state(self.settings.borrow().get_article_view_allow_select());
         allow_selection_switch.connect_state_set(move |_switch, is_set| {
             settings_3.borrow_mut().set_article_view_allow_select(is_set).unwrap();
-            if let Some(action) = main_window.lookup_action("redraw-article") {
-                action.activate(None);
-            }
+            GtkUtil::execute_action_main_window(&main_window, "redraw-article", None);
             Inhibit(false)
         });
 
@@ -223,9 +212,7 @@ impl SettingsDialog {
                 None => None,
             };
             settings_5.borrow_mut().set_article_view_font(font).unwrap();
-            if let Some(action) = main_window.lookup_action("redraw-article") {
-                action.activate(None);
-            }
+            GtkUtil::execute_action_main_window(&main_window, "redraw-article", None);
         });
 
         let main_window = window.clone();
@@ -250,9 +237,7 @@ impl SettingsDialog {
             font_button.set_sensitive(!is_set);
             font_row.set_sensitive(!is_set);
             settings_4.borrow_mut().set_article_view_font(font).unwrap();
-            if let Some(action) = main_window.lookup_action("redraw-article") {
-                action.activate(None);
-            }
+            GtkUtil::execute_action_main_window(&main_window, "redraw-article", None);
             Inhibit(false)
         });
     }

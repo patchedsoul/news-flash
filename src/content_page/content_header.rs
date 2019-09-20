@@ -1,7 +1,7 @@
 use super::header_selection::HeaderSelection;
 use crate::gtk_handle;
 use crate::util::{BuilderHelper, GtkHandle, GtkUtil};
-use gio::{ActionExt, ActionMapExt, Menu, MenuItem};
+use gio::{Menu, MenuItem};
 use glib::{object::Cast, translate::ToGlib, Variant};
 use gtk::{
     Button, ButtonExt, Continue, EntryExt, Inhibit, MenuButton, MenuButtonExt, SearchEntry, SearchEntryExt, Stack,
@@ -172,14 +172,8 @@ impl ContentHeader {
         header_selection: &GtkHandle<HeaderSelection>,
         linked_button_timeout: &GtkHandle<Option<u32>>,
     ) {
-        if let Ok(main_window) = GtkUtil::get_main_window(button) {
-            if let Some(action) = main_window.lookup_action("headerbar-selection") {
-                if let Ok(json) = serde_json::to_string(&*header_selection.borrow()) {
-                    let json = Variant::from(&json);
-                    action.activate(Some(&json));
-                }
-            }
-        }
+        let json = serde_json::to_string(&*header_selection.borrow()).expect("Failed to serialize HeaderSelection.");
+        GtkUtil::execute_action(button, "headerbar-selection", Some(&Variant::from(&json)));
 
         if linked_button_timeout.borrow().is_some() {
             return;
@@ -206,12 +200,7 @@ impl ContentHeader {
         button.connect_clicked(move |button| {
             button.set_sensitive(false);
             stack.set_visible_child_name("spinner");
-
-            if let Ok(main_window) = GtkUtil::get_main_window(button) {
-                if let Some(action) = main_window.lookup_action("sync") {
-                    action.activate(None);
-                }
-            }
+            GtkUtil::execute_action(button, "sync", None);
         });
     }
 
@@ -238,13 +227,9 @@ impl ContentHeader {
 
     fn setup_search_entry(search_entry: &SearchEntry) {
         search_entry.connect_search_changed(|search_entry| {
-            if let Ok(main_window) = GtkUtil::get_main_window(search_entry) {
-                if let Some(action) = main_window.lookup_action("search-term") {
-                    if let Some(text) = search_entry.get_text() {
-                        let search_term = Variant::from(text.as_str());
-                        action.activate(Some(&search_term));
-                    }
-                }
+            if let Some(text) = search_entry.get_text() {
+                let search_term = Variant::from(text.as_str());
+                GtkUtil::execute_action(search_entry, "search-term", Some(&search_term));
             }
         });
     }

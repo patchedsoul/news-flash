@@ -2,7 +2,6 @@ use crate::error_dialog::ErrorDialog;
 use crate::util::{BuilderHelper, GtkUtil, GTK_RESOURCE_FILE_ERROR};
 use crate::Resources;
 use failure::{Error, Fail};
-use gio::{ActionExt, ActionMapExt};
 use glib::{signal::SignalHandlerId, translate::ToGlib, Variant};
 use gtk::{
     self, Box, Button, ButtonExt, Entry, EntryExt, Image, ImageExt, InfoBar, InfoBarExt, Label, LabelExt, ResponseType,
@@ -199,14 +198,9 @@ impl PasswordLogin {
                             http_password,
                         };
                         let login_data = LoginData::Password(login_data);
-                        let login_data_json = serde_json::to_string(&login_data).unwrap();
-
-                        if let Ok(main_window) = GtkUtil::get_main_window(&url_entry) {
-                            if let Some(action) = main_window.lookup_action("login") {
-                                let login_data_json = Variant::from(&login_data_json);
-                                action.activate(Some(&login_data_json));
-                            }
-                        }
+                        let login_data_json =
+                            serde_json::to_string(&login_data).expect("Failed to serialize LoginData.");
+                        GtkUtil::execute_action(&url_entry, "login", Some(&Variant::from(&login_data_json)));
                     })
                     .to_glib(),
             );

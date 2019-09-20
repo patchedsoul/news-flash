@@ -1,8 +1,6 @@
 use super::service_row::ServiceRow;
 use crate::gtk_handle;
 use crate::util::{BuilderHelper, GtkHandleMap, GtkUtil};
-use failure::Error;
-use gio::{ActionExt, ActionMapExt};
 use glib::Variant;
 use gtk::{Box, ListBox, ListBoxExt, ListBoxRowExt};
 use news_flash::models::{LoginGUI, PluginID};
@@ -19,7 +17,7 @@ pub struct WelcomePage {
 }
 
 impl WelcomePage {
-    pub fn new(builder: &BuilderHelper) -> Result<Self, Error> {
+    pub fn new(builder: &BuilderHelper) -> Self {
         let page = builder.get::<Box>("welcome_page");
         let list = builder.get::<ListBox>("list");
 
@@ -29,40 +27,35 @@ impl WelcomePage {
             services: gtk_handle!(HashMap::new()),
         };
 
-        page.populate()?;
-        page.connect_signals()?;
+        page.populate();
+        page.connect_signals();
 
-        Ok(page)
+        page
     }
 
-    fn populate(&mut self) -> Result<(), Error> {
+    fn populate(&mut self) {
         let services = NewsFlash::list_backends();
         for (index, (id, api_meta)) in services.iter().enumerate() {
-            let row = ServiceRow::new(api_meta.clone())?;
+            let row = ServiceRow::new(api_meta.clone());
             self.list.insert(&row.widget(), index as i32);
             self.services
                 .borrow_mut()
                 .insert(index as i32, (id.clone(), api_meta.login_gui.clone()));
         }
-        Ok(())
     }
 
-    fn connect_signals(&self) -> Result<(), Error> {
-        let main_window = GtkUtil::get_main_window(&self.page)?;
+    fn connect_signals(&self) {
         let services = self.services.clone();
+        let page = self.page.clone();
         self.list.connect_row_activated(move |_list, row| {
             if let Some((id, login_desc)) = services.borrow().get(&row.get_index()) {
                 let id = Variant::from(id.to_str());
                 match login_desc {
                     LoginGUI::OAuth(_) => {
-                        if let Some(action) = main_window.lookup_action("show-oauth-page") {
-                            action.activate(Some(&id));
-                        }
+                        GtkUtil::execute_action(&page, "show-oauth-page", Some(&id));
                     }
                     LoginGUI::Password(_) => {
-                        if let Some(action) = main_window.lookup_action("show-pw-page") {
-                            action.activate(Some(&id));
-                        }
+                        GtkUtil::execute_action(&page, "show-pw-page", Some(&id));
                     }
                     LoginGUI::None => {
                         // FIXME: trigger "login" action directly
@@ -70,6 +63,5 @@ impl WelcomePage {
                 };
             }
         });
-        Ok(())
     }
 }

@@ -1,6 +1,5 @@
 use crate::gtk_handle;
 use crate::util::{BuilderHelper, GtkHandle, GtkUtil};
-use failure::Error;
 use gdk::{EventType, NotifyType};
 use gtk::{
     self, BinExt, EventBox, Image, ImageExt, Inhibit, Label, LabelExt, Revealer, RevealerExt, StyleContextExt,
@@ -21,7 +20,7 @@ pub struct ServiceRow {
 }
 
 impl ServiceRow {
-    pub fn new(info: PluginInfo) -> Result<Self, Error> {
+    pub fn new(info: PluginInfo) -> Self {
         let builder = BuilderHelper::new("service_row");
         let row = builder.get::<EventBox>("service_row");
         let label = builder.get::<Label>("label");
@@ -87,8 +86,10 @@ impl ServiceRow {
         let image = builder.get::<Image>("icon");
         if let Some(icon) = info.icon {
             let surface = match icon {
-                PluginIcon::Vector(icon) => GtkUtil::create_surface_from_bytes(&icon.data, 64, 64, scale)?,
-                PluginIcon::Pixel(icon) => GtkUtil::create_surface_from_pixelicon(&icon, scale)?,
+                PluginIcon::Vector(icon) => GtkUtil::create_surface_from_bytes(&icon.data, 64, 64, scale)
+                    .expect("Failed to create surface from service vector icon."),
+                PluginIcon::Pixel(icon) => GtkUtil::create_surface_from_pixelicon(&icon, scale)
+                    .expect("Failed to create surface from service pixel icon."),
             };
             image.set_from_surface(Some(&surface));
         } else {
@@ -106,7 +107,7 @@ impl ServiceRow {
         let self_handle = gtk_handle!(service_row.clone());
         service_row.setup_events(self_handle);
 
-        Ok(service_row)
+        service_row
     }
 
     fn setup_events(&self, handle: GtkHandle<ServiceRow>) {

@@ -2,7 +2,6 @@ use crate::error_dialog::ErrorDialog;
 use crate::gtk_handle;
 use crate::util::{BuilderHelper, GtkHandle, GtkUtil, GTK_BUILDER_ERROR};
 use failure::Error;
-use gio::{ActionExt, ActionMapExt};
 use glib::{
     signal::SignalHandlerId,
     translate::{FromGlib, ToGlib},
@@ -120,17 +119,14 @@ impl WebLogin {
                                         };
                                         let oauth_data = LoginData::OAuth(oauth_data);
                                         let oauth_data_json = serde_json::to_string(&oauth_data).unwrap();
-                                        if let Ok(main_window) = GtkUtil::get_main_window(webview) {
-                                            if let Some(action) = main_window.lookup_action("login") {
-                                                let login_data_json = Variant::from(&oauth_data_json);
-                                                if let Some(signal_id) = *redirect_signal_id.borrow() {
-                                                    let signal_id = SignalHandlerId::from_glib(signal_id);
-                                                    webview.disconnect(signal_id);
-                                                }
-                                                webview.stop_loading();
-                                                action.activate(Some(&login_data_json));
-                                            }
+                                        let login_data_json = Variant::from(&oauth_data_json);
+                                        if let Some(signal_id) = *redirect_signal_id.borrow() {
+                                            let signal_id = SignalHandlerId::from_glib(signal_id);
+                                            webview.disconnect(signal_id);
                                         }
+                                        webview.stop_loading();
+
+                                        GtkUtil::execute_action(webview, "login", Some(&login_data_json));
                                     }
                                 }
                             }

@@ -3,7 +3,7 @@ use cairo::{Context, Surface};
 use failure::ResultExt;
 use gdk::{ContextExt, Window};
 use gdk_pixbuf::Pixbuf;
-use gio::{Cancellable, MemoryInputStream};
+use gio::{ActionExt, ActionMapExt, Cancellable, MemoryInputStream};
 use glib::{object::IsA, object::ObjectExt, signal::SignalHandlerId, source::SourceId, translate::FromGlib, Bytes};
 use gtk::{BinExt, Cast, EntryExt, ListBoxRow, Revealer, StyleContext, WidgetExt};
 use log::{error, warn};
@@ -90,6 +90,29 @@ impl GtkUtil {
 
         error!("getting main window for widget failed");
         Err(UtilErrorKind::WidgetIsMainwindow)?
+    }
+
+    pub fn execute_action<W: IsA<gtk::Object> + IsA<gtk::Widget> + WidgetExt + Clone>(
+        widget: &W,
+        action_name: &str,
+        payload: Option<&glib::Variant>,
+    ) {
+        GtkUtil::get_main_window(widget)
+            .expect("MainWindow is not a parent of Widget")
+            .lookup_action(action_name)
+            .expect(&format!("'{}' action not found.", action_name))
+            .activate(payload);
+    }
+
+    pub fn execute_action_main_window(
+        main_window: &gtk::ApplicationWindow,
+        action_name: &str,
+        payload: Option<&glib::Variant>,
+    ) {
+        main_window
+            .lookup_action(action_name)
+            .expect(&format!("'{}' action not found.", action_name))
+            .activate(payload);
     }
 
     pub fn get_dnd_style_context_widget(row: &gtk::Widget) -> Option<StyleContext> {

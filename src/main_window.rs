@@ -15,7 +15,6 @@ use crate::welcome_screen::{WelcomeHeaderbar, WelcomePage};
 use crate::Resources;
 use failure::Error;
 use gdk::EventKey;
-use gio::{ActionExt, ActionMapExt};
 use glib::{self, Variant};
 use gtk::{
     self, Application, ApplicationWindow, CssProvider, CssProviderExt, GtkWindowExt, GtkWindowExtManual, Inhibit,
@@ -78,7 +77,7 @@ impl MainWindow {
         });
 
         // setup pages
-        let _welcome = WelcomePage::new(&builder)?;
+        let _welcome = WelcomePage::new(&builder);
         let pw_login = PasswordLogin::new(&builder);
         let oauth_login = WebLogin::new(&builder);
         let content = ContentPage::new(&builder, &settings)?;
@@ -201,9 +200,7 @@ impl MainWindow {
             let provider = provider_handle.clone();
             settings.connect_property_gtk_application_prefer_dark_theme_notify(move |_settings| {
                 Self::load_css(&provider);
-                if let Some(action) = window.lookup_action("redraw-article") {
-                    action.activate(None);
-                }
+                GtkUtil::execute_action_main_window(&window, "redraw-article", None);
             });
         }
 
@@ -244,21 +241,15 @@ impl MainWindow {
             }
 
             if Self::check_shortcut("shortcuts", &settings, event) {
-                if let Some(action) = widget.lookup_action("shortcuts") {
-                    action.activate(None);
-                }
+                GtkUtil::execute_action_main_window(&widget, "shortcuts", None);
             }
 
             if Self::check_shortcut("refresh", &settings, event) {
-                if let Some(action) = widget.lookup_action("sync") {
-                    action.activate(None);
-                }
+                GtkUtil::execute_action_main_window(&widget, "sync", None);
             }
 
             if Self::check_shortcut("quit", &settings, event) {
-                if let Some(action) = widget.lookup_action("quit") {
-                    action.activate(None);
-                }
+                GtkUtil::execute_action_main_window(&widget, "quit", None);
             }
 
             if Self::check_shortcut("search", &settings, event) {
@@ -278,15 +269,11 @@ impl MainWindow {
             }
 
             if Self::check_shortcut("next_article", &settings, event) {
-                if let Some(action) = widget.lookup_action("next-article") {
-                    action.activate(None);
-                }
+                GtkUtil::execute_action_main_window(&widget, "next-article", None);
             }
 
             if Self::check_shortcut("previous_article", &settings, event) {
-                if let Some(action) = widget.lookup_action("prev-article") {
-                    action.activate(None);
-                }
+                GtkUtil::execute_action_main_window(&widget, "prev-article", None);
             }
 
             if Self::check_shortcut("toggle_category_expanded", &settings, event) {
@@ -302,14 +289,10 @@ impl MainWindow {
                             read: article_model.read.invert(),
                         };
 
-                        let update_data = serde_json::to_string(&update).unwrap();
+                        let update_data = serde_json::to_string(&update).expect("Failed to serialize ReadUpdate.");
                         let update_data = Variant::from(&update_data);
-                        if let Some(action) = main_window.lookup_action("mark-article-read") {
-                            action.activate(Some(&update_data));
-                        }
-                        if let Some(action) = main_window.lookup_action("update-article-list") {
-                            action.activate(None);
-                        }
+                        GtkUtil::execute_action_main_window(&main_window, "mark-article-read", Some(&update_data));
+                        GtkUtil::execute_action_main_window(&main_window, "update-article-list", None);
                     }
                 }
             }
@@ -323,14 +306,10 @@ impl MainWindow {
                             marked: article_model.marked.invert(),
                         };
 
-                        let update_data = serde_json::to_string(&update).unwrap();
+                        let update_data = serde_json::to_string(&update).expect("Failed to serialize MarkUpdate.");
                         let update_data = Variant::from(&update_data);
-                        if let Some(action) = main_window.lookup_action("mark-article") {
-                            action.activate(Some(&update_data));
-                        }
-                        if let Some(action) = main_window.lookup_action("update-article-list") {
-                            action.activate(None);
-                        }
+                        GtkUtil::execute_action_main_window(&main_window, "mark-article", Some(&update_data));
+                        GtkUtil::execute_action_main_window(&main_window, "update-article-list", None);
                     }
                 }
             }
@@ -365,9 +344,7 @@ impl MainWindow {
             }
 
             if Self::check_shortcut("sidebar_set_read", &settings, event) {
-                if let Some(action) = main_window.lookup_action("sidebar-set-read") {
-                    action.activate(None);
-                }
+                GtkUtil::execute_action_main_window(&main_window, "sidebar-set-read", None);
             }
 
             Inhibit(false)
