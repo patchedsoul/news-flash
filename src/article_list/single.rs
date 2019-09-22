@@ -3,7 +3,6 @@ use super::models::ArticleListArticleModel;
 use super::models::ArticleListModel;
 use crate::gtk_handle;
 use crate::util::{BuilderHelper, GtkHandle, GtkUtil, Util};
-use failure::Error;
 use glib::{object::Cast, translate::ToGlib};
 use gtk::{
     AdjustmentExt, ContainerExt, Continue, ListBox, ListBoxExt, ListBoxRowExt, ScrolledWindow, ScrolledWindowExt,
@@ -39,7 +38,7 @@ pub struct SingleArticleList {
 }
 
 impl SingleArticleList {
-    pub fn new() -> Result<Self, Error> {
+    pub fn new() -> Self {
         let builder = BuilderHelper::new("article_list_single");
         let scroll = builder.get::<ScrolledWindow>("article_list_scroll");
         let list = builder.get::<ListBox>("article_list_box");
@@ -66,7 +65,7 @@ impl SingleArticleList {
             });
         }
 
-        Ok(SingleArticleList {
+        SingleArticleList {
             scroll,
             articles: HashMap::new(),
             list,
@@ -79,7 +78,7 @@ impl SingleArticleList {
                 transition_start_value: gtk_handle!(None),
                 transition_diff: gtk_handle!(None),
             },
-        })
+        }
     }
 
     pub fn widget(&self) -> gtk::ScrolledWindow {

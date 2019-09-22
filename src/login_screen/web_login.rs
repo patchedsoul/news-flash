@@ -1,7 +1,7 @@
 use crate::error_dialog::ErrorDialog;
 use crate::gtk_handle;
 use crate::util::{BuilderHelper, GtkHandle, GtkUtil, GTK_BUILDER_ERROR};
-use failure::Error;
+use super::error::{LoginScreenError, LoginScreenErrorKind};
 use glib::{
     signal::SignalHandlerId,
     translate::{FromGlib, ToGlib},
@@ -84,7 +84,7 @@ impl WebLogin {
         self.info_bar.set_revealed(true);
     }
 
-    pub fn set_service(&mut self, info: PluginInfo) -> Result<(), Error> {
+    pub fn set_service(&mut self, info: PluginInfo) -> Result<(), LoginScreenError> {
         // setup infobar
         self.info_bar_close_signal = Some(
             self.info_bar
@@ -139,10 +139,13 @@ impl WebLogin {
                 });
 
                 *self.redirect_signal_id.borrow_mut() = Some(signal_id.to_glib());
+                return Ok(())
             }
+
+            return Err(LoginScreenErrorKind::OauthUrl)?
         }
 
-        Ok(())
+        Err(LoginScreenErrorKind::LoginGUI)?
     }
 
     pub fn reset(&self) {

@@ -1,7 +1,7 @@
+use super::error::{SettingsError, SettingsErrorKind};
 use crate::settings::Settings;
 use crate::util::{BuilderHelper, GtkHandle, GTK_RESOURCE_FILE_ERROR};
 use crate::Resources;
-use failure::{format_err, Error};
 use gdk::{enums::key, ModifierType};
 use glib::object::IsA;
 use gtk::{BinExt, Box, Cast, ContainerExt, GtkWindowExt, ShortcutsWindow, Stack, StackExt, WidgetExt, Window};
@@ -186,7 +186,11 @@ impl Keybindings {
         modifier
     }
 
-    pub fn write_keybinding(id: &str, keybinding: Option<String>, settings: &GtkHandle<Settings>) -> Result<(), Error> {
+    pub fn write_keybinding(
+        id: &str,
+        keybinding: Option<String>,
+        settings: &GtkHandle<Settings>,
+    ) -> Result<(), SettingsError> {
         match id {
             "next_article" => settings.borrow_mut().set_keybind_article_list_next(keybinding),
             "previous_article" => settings.borrow_mut().set_keybind_article_list_prev(keybinding),
@@ -208,12 +212,12 @@ impl Keybindings {
             "scroll_down" => settings.borrow_mut().set_keybind_article_view_down(keybinding),
             _ => {
                 warn!("unexpected keybind id: {}", id);
-                Err(format_err!("some err"))
+                Err(SettingsErrorKind::InvalidKeybind)?
             }
         }
     }
 
-    pub fn read_keybinding(id: &str, settings: &GtkHandle<Settings>) -> Result<Option<String>, Error> {
+    pub fn read_keybinding(id: &str, settings: &GtkHandle<Settings>) -> Result<Option<String>, SettingsError> {
         match id {
             "next_article" => Ok(settings.borrow_mut().get_keybind_article_list_next()),
             "previous_article" => Ok(settings.borrow_mut().get_keybind_article_list_prev()),
@@ -235,7 +239,7 @@ impl Keybindings {
             "scroll_down" => Ok(settings.borrow_mut().get_keybind_article_view_down()),
             _ => {
                 warn!("unexpected keybind id: {}", id);
-                Err(format_err!("some err"))
+                Err(SettingsErrorKind::InvalidKeybind)?
             }
         }
     }

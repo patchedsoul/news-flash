@@ -1,10 +1,10 @@
 mod change_set;
 mod tag;
+mod error;
 
 use crate::sidebar::SidebarIterateItem;
+use self::error::{TagListModelError, TagListModelErrorKind};
 pub use change_set::TagListChangeSet;
-use failure::format_err;
-use failure::Error;
 use news_flash::models::{Tag, TagID};
 use std::collections::HashSet;
 pub use tag::TagListTagModel;
@@ -23,9 +23,9 @@ impl TagListModel {
         }
     }
 
-    pub fn add(&mut self, tag: &Tag) -> Result<(), Error> {
+    pub fn add(&mut self, tag: &Tag) -> Result<(), TagListModelError> {
         if self.tags.contains(&tag.tag_id) {
-            return Err(format_err!("some err"));
+            return Err(TagListModelErrorKind::AlreadyExists)?;
         }
         let model = TagListTagModel::new(tag);
         self.tags.insert(model.id.clone());

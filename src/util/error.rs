@@ -8,6 +8,10 @@ pub struct UtilError {
 
 #[derive(Copy, Clone, Eq, PartialEq, Debug, Fail)]
 pub enum UtilErrorKind {
+    #[fail(display = "Error creating/opening file")]
+    CreateFile,
+    #[fail(display = "Error writing file to disc")]
+    WriteFile,
     #[fail(display = "Provided widget is not a main window")]
     WidgetIsMainwindow,
     #[fail(display = "Failed to create a cairo surface from the given data")]

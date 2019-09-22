@@ -1,14 +1,16 @@
 mod article_row;
+mod error;
 mod models;
 mod single;
 
+use self::error::{ArticleListError, ArticleListErrorKind};
 use crate::content_page::HeaderSelection;
 use crate::gtk_handle;
 use crate::main_window_state::MainWindowState;
 use crate::settings::Settings;
 use crate::sidebar::models::SidebarSelection;
 use crate::util::{BuilderHelper, GtkHandle, GtkUtil};
-use failure::{format_err, Error};
+use failure::ResultExt;
 use glib::{translate::ToGlib, Variant};
 use gtk::{Continue, Label, LabelExt, ListBoxExt, ListBoxRowExt, ScrolledWindow, Stack, StackExt, StackTransitionType};
 use models::ArticleListChangeSet;
@@ -38,14 +40,14 @@ pub struct ArticleList {
 }
 
 impl ArticleList {
-    pub fn new(settings: &GtkHandle<Settings>) -> Result<Self, Error> {
+    pub fn new(settings: &GtkHandle<Settings>) -> Self {
         let builder = BuilderHelper::new("article_list");
         let stack = builder.get::<Stack>("article_list_stack");
         let empty_scroll = builder.get::<ScrolledWindow>("empty_scroll");
         let empty_label = builder.get::<Label>("empty_label");
 
-        let list_1 = SingleArticleList::new()?;
-        let list_2 = SingleArticleList::new()?;
+        let list_1 = SingleArticleList::new();
+        let list_2 = SingleArticleList::new();
 
         let window_state = MainWindowState::new();
         let model = ArticleListModel::new(&settings.borrow().get_article_list_order());
@@ -70,7 +72,7 @@ impl ArticleList {
 
         article_list.setup_list_selected_singal();
 
-        Ok(article_list)
+        article_list
     }
 
     pub fn widget(&self) -> gtk::Stack {
@@ -132,15 +134,18 @@ impl ArticleList {
         self.window_state = new_state.clone();
     }
 
-    pub fn add_more_articles(&mut self, new_list: ArticleListModel) -> Result<(), Error> {
+    pub fn add_more_articles(&mut self, new_list: ArticleListModel) -> Result<(), ArticleListError> {
         let list = match *self.current_list.borrow() {
             CurrentList::List1 => &mut self.list_1,
             CurrentList::List2 => &mut self.list_2,
-            CurrentList::Empty => return Err(format_err!("some err!")),
+            CurrentList::Empty => return Err(ArticleListErrorKind::EmptyState)?,
         };
 
         for model in new_list.models() {
-            self.list_model.borrow_mut().add_model(model.clone())?;
+            self.list_model
+                .borrow_mut()
+                .add_model(model.clone())
+                .context(ArticleListErrorKind::Model)?;
             let model = model.clone();
             let list = list.clone();
             let list_model = self.list_model.clone();

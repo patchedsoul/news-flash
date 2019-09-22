@@ -1,14 +1,15 @@
+mod error;
 mod feed_list;
 mod footer;
 pub mod models;
 mod tag_list;
 
+use self::error::{SidebarError, SidebarErrorKind};
 use self::footer::SidebarFooter;
 use crate::gtk_handle;
 use crate::util::{BuilderHelper, GtkHandle, GtkUtil, GTK_RESOURCE_FILE_ERROR};
 use crate::Resources;
-use failure::format_err;
-use failure::Error;
+use failure::ResultExt;
 pub use feed_list::models::{FeedListItemID, FeedListTree};
 use feed_list::FeedList;
 use gdk::{EventMask, EventType};
@@ -50,7 +51,7 @@ pub struct SideBar {
 }
 
 impl SideBar {
-    pub fn new() -> Result<Self, Error> {
+    pub fn new() -> Self {
         let builder = BuilderHelper::new("sidebar");
 
         let sidebar = builder.get::<Box>("toplevel");
@@ -175,7 +176,7 @@ impl SideBar {
             &delayed_all_selection,
         );
 
-        Ok(SideBar {
+        SideBar {
             sidebar,
             tags_box,
             logo,
@@ -195,7 +196,7 @@ impl SideBar {
             expanded_tags,
             delayed_all_selection,
             footer: footer_handle,
-        })
+        }
     }
 
     pub fn widget(&self) -> Box {
@@ -235,22 +236,25 @@ impl SideBar {
         self.item_count
     }
 
-    pub fn set_service(&self, id: &PluginID, user_name: Option<String>) -> Result<(), Error> {
+    pub fn set_service(&self, id: &PluginID, user_name: Option<String>) -> Result<(), SidebarError> {
         let list = NewsFlash::list_backends();
         let info = list
             .get(id)
-            .ok_or_else(|| format_err!("ID '{}' not found in NewsFlash backends", id))?;
+            .ok_or_else(|| SidebarErrorKind::UnknownPlugin(id.clone()))?;
         if let Some(icon) = &info.icon_symbolic {
             let surface = match icon {
                 PluginIcon::Vector(icon) => {
-                    GtkUtil::create_surface_from_bytes(&icon.data, icon.width, icon.height, self.scale_factor)?
+                    GtkUtil::create_surface_from_bytes(&icon.data, icon.width, icon.height, self.scale_factor)
+                        .context(SidebarErrorKind::MetaData)?
                 }
-                PluginIcon::Pixel(icon) => GtkUtil::create_surface_from_pixelicon(icon, self.scale_factor)?,
+                PluginIcon::Pixel(icon) => GtkUtil::create_surface_from_pixelicon(icon, self.scale_factor)
+                    .context(SidebarErrorKind::MetaData)?,
             };
             self.logo.set_from_surface(Some(&surface));
         } else {
             let generic_logo_data = Resources::get("icons/feed-service-generic.svg").expect(GTK_RESOURCE_FILE_ERROR);
-            let surface = GtkUtil::create_surface_from_bytes(&generic_logo_data, 64, 64, self.scale_factor)?;
+            let surface = GtkUtil::create_surface_from_bytes(&generic_logo_data, 64, 64, self.scale_factor)
+                .context(SidebarErrorKind::MetaData)?;
             self.logo.set_from_surface(Some(&surface));
         }
 
@@ -398,7 +402,7 @@ impl SideBar {
         *delayed_selection.borrow_mut() = None;
     }
 
-    pub fn select_next_item(&self) -> Result<(), Error> {
+    pub fn select_next_item(&self) -> Result<(), SidebarError> {
         let select_next = match *self.selection.borrow() {
             SidebarSelection::All => SidebarIterateItem::FeedListSelectFirstItem,
             SidebarSelection::Cateogry(_) | SidebarSelection::Feed(_) => self.feed_list.borrow().select_next_item(),
@@ -407,7 +411,7 @@ impl SideBar {
         self.select_item(select_next)
     }
 
-    pub fn select_prev_item(&self) -> Result<(), Error> {
+    pub fn select_prev_item(&self) -> Result<(), SidebarError> {
         let select_next = match *self.selection.borrow() {
             SidebarSelection::All => SidebarIterateItem::TagListSelectLastItem,
             SidebarSelection::Cateogry(_) | SidebarSelection::Feed(_) => self.feed_list.borrow().select_prev_item(),
@@ -416,7 +420,7 @@ impl SideBar {
         self.select_item(select_next)
     }
 
-    fn select_item(&self, selection: SidebarIterateItem) -> Result<(), Error> {
+    fn select_item(&self, selection: SidebarIterateItem) -> Result<(), SidebarError> {
         self.deselect();
 
         match selection {
@@ -424,10 +428,16 @@ impl SideBar {
                 Self::select_all_button(&self.all_event_box, &self.selection, &self.delayed_all_selection);
             }
             SidebarIterateItem::SelectFeedListFeed(id) => {
-                self.feed_list.borrow().set_selection(FeedListItemID::Feed(id))?;
+                self.feed_list
+                    .borrow()
+                    .set_selection(FeedListItemID::Feed(id))
+                    .context(SidebarErrorKind::Selection)?;
             }
             SidebarIterateItem::SelectFeedListCategory(id) => {
-                self.feed_list.borrow().set_selection(FeedListItemID::Category(id))?;
+                self.feed_list
+                    .borrow()
+                    .set_selection(FeedListItemID::Category(id))
+                    .context(SidebarErrorKind::Selection)?;
             }
             SidebarIterateItem::FeedListSelectFirstItem => {
                 Self::expand_list(
@@ -437,7 +447,10 @@ impl SideBar {
                     &self.expanded_categories,
                 );
                 if let Some(item) = self.feed_list.borrow().get_first_item() {
-                    self.feed_list.borrow().set_selection(item)?;
+                    self.feed_list
+                        .borrow()
+                        .set_selection(item)
+                        .context(SidebarErrorKind::Selection)?;
                 }
             }
             SidebarIterateItem::FeedListSelectLastItem => {
@@ -448,11 +461,17 @@ impl SideBar {
                     &self.expanded_categories,
                 );
                 if let Some(item) = self.feed_list.borrow().get_last_item(None) {
-                    self.feed_list.borrow().set_selection(item)?;
+                    self.feed_list
+                        .borrow()
+                        .set_selection(item)
+                        .context(SidebarErrorKind::Selection)?;
                 }
             }
             SidebarIterateItem::SelectTagList(id) => {
-                self.tag_list.borrow().set_selection(id);
+                self.tag_list
+                    .borrow()
+                    .set_selection(id)
+                    .context(SidebarErrorKind::Selection)?;
             }
             SidebarIterateItem::TagListSelectFirstItem => {
                 // if tags not supported or not available jump back to "All Articles"
@@ -461,7 +480,10 @@ impl SideBar {
                 }
                 Self::expand_list(true, &self.tags_revealer, &self.tags_expander, &self.expanded_tags);
                 if let Some(item) = self.tag_list.borrow().get_first_item() {
-                    self.tag_list.borrow().set_selection(item);
+                    self.tag_list
+                        .borrow()
+                        .set_selection(item)
+                        .context(SidebarErrorKind::Selection)?;
                 }
             }
             SidebarIterateItem::TagListSelectLastItem => {
@@ -471,7 +493,10 @@ impl SideBar {
                 }
                 Self::expand_list(true, &self.tags_revealer, &self.tags_expander, &self.expanded_tags);
                 if let Some(item) = self.tag_list.borrow().get_last_item() {
-                    self.tag_list.borrow().set_selection(item);
+                    self.tag_list
+                        .borrow()
+                        .set_selection(item)
+                        .context(SidebarErrorKind::Selection)?;
                 }
             }
             SidebarIterateItem::NothingSelected => { /* nothing */ }

@@ -1,7 +1,9 @@
+mod error;
 mod models;
 mod progress_overlay;
 mod url_overlay;
 
+use self::error::{ArticleViewError, ArticleViewErrorKind};
 pub use self::models::ArticleTheme;
 use self::models::InternalState;
 use self::progress_overlay::ProgressOverlay;
@@ -10,7 +12,6 @@ use crate::gtk_handle;
 use crate::settings::Settings;
 use crate::util::{BuilderHelper, DateUtil, FileUtil, GtkHandle, GtkUtil, Util, GTK_RESOURCE_FILE_ERROR};
 use crate::Resources;
-use failure::{format_err, Error};
 use gdk::{
     enums::key::KP_Add as KP_ADD, enums::key::KP_Subtract as KP_SUBTRACT, enums::key::KP_0, Cursor, CursorType,
     Display, EventMask, ModifierType, ScrollDirection,
@@ -80,7 +81,7 @@ pub struct ArticleView {
 }
 
 impl ArticleView {
-    pub fn new(settings: &GtkHandle<Settings>) -> Result<Self, Error> {
+    pub fn new(settings: &GtkHandle<Settings>) -> Self {
         let builder = BuilderHelper::new("article_view");
 
         let url_overlay = builder.get::<Overlay>("url_overlay");
@@ -158,23 +159,22 @@ impl ArticleView {
         };
 
         article_view.stack.show_all();
-        Ok(article_view)
+        article_view
     }
 
     pub fn widget(&self) -> gtk::Overlay {
         self.top_overlay.clone()
     }
 
-    pub fn show_article(&mut self, article: FatArticle, feed_name: String) -> Result<(), Error> {
-        let webview = self.switch_view()?;
+    pub fn show_article(&mut self, article: FatArticle, feed_name: String) {
+        let webview = self.switch_view();
         let html = self.build_article(&article, &feed_name);
         webview.load_html(&html, None);
         *self.visible_article.borrow_mut() = Some(article);
         *self.visible_feed_name.borrow_mut() = Some(feed_name);
-        Ok(())
     }
 
-    pub fn redraw_article(&mut self) -> Result<(), Error> {
+    pub fn redraw_article(&mut self) {
         let mut html = String::new();
         let mut success = false;
 
@@ -187,12 +187,11 @@ impl ArticleView {
 
         if !success {
             warn!("Can't redraw article view. No article is on display.");
-            return Ok(());
+            return;
         }
 
-        let webview = self.switch_view()?;
+        let webview = self.switch_view();
         webview.load_html(&html, None);
-        Ok(())
     }
 
     pub fn close_article(&self) {
@@ -201,10 +200,10 @@ impl ArticleView {
         self.stack.set_visible_child_name("empty");
     }
 
-    fn switch_view(&mut self) -> Result<WebView, Error> {
+    fn switch_view(&mut self) -> WebView {
         self.remove_old_view(150);
 
-        let webview = self.new_webview()?;
+        let webview = self.new_webview();
         let old_state = (*self.internal_state.borrow()).clone();
         *self.internal_state.borrow_mut() = old_state.switch();
         if let Some(new_name) = self.internal_state.borrow().to_str() {
@@ -213,7 +212,7 @@ impl ArticleView {
             self.stack.set_visible_child_name(new_name);
         }
 
-        Ok(webview)
+        webview
     }
 
     fn remove_old_view(&self, timeout: u32) {
@@ -302,7 +301,7 @@ impl ArticleView {
         });
     }
 
-    fn new_webview(&mut self) -> Result<WebView, Error> {
+    fn new_webview(&mut self) -> WebView {
         let settings = WebkitSettings::new();
         settings.set_enable_accelerated_2d_canvas(true);
         settings.set_enable_html5_database(false);
@@ -732,7 +731,7 @@ impl ArticleView {
         // webview.enter_fullscreen.connect(enterFullscreenVideo);
         // webview.leave_fullscreen.connect(leaveFullscreenVideo);
 
-        Ok(webview)
+        webview
     }
 
     fn build_article(&self, article: &FatArticle, feed_name: &str) -> String {
@@ -891,7 +890,7 @@ impl ArticleView {
         .expect("Failed to get upper limit from webview.")
     }
 
-    fn webview_js_get_f64(view: &WebView, java_script: &str) -> Result<f64, Error> {
+    fn webview_js_get_f64(view: &WebView, java_script: &str) -> Result<f64, ArticleViewError> {
         let wait_loop = Arc::new(MainLoop::new(None, false));
         let callback_wait_loop = wait_loop.clone();
         let value: Arc<Mutex<Option<f64>>> = Arc::new(Mutex::new(None));
@@ -914,64 +913,88 @@ impl ArticleView {
         });
 
         wait_loop.run();
+
         if let Ok(pos) = value.lock() {
             if let Some(pos) = *pos {
                 return Ok(pos);
+            } else {
+                return Err(ArticleViewErrorKind::NoValueFromJS)?;
             }
         }
-        Err(format_err!("some err"))
+
+        Err(ArticleViewErrorKind::Mutex)?
     }
 
-    fn set_scroll_abs(&self, scroll: f64) -> Result<(), Error> {
+    fn set_scroll_abs(&self, scroll: f64) -> Result<(), ArticleViewError> {
         let view_name = (*self.internal_state.borrow()).to_str().map(|s| s.to_owned());
         if let Some(view_name) = view_name {
             if let Some(view) = self.stack.get_child_by_name(&view_name) {
                 if let Ok(view) = view.downcast::<WebView>() {
                     Self::set_scroll_pos_static(&view, scroll);
-                    return Ok(());
+                    Ok(())
+                } else {
+                    Err(ArticleViewErrorKind::InvalidActiveWebView)?
                 }
+            } else {
+                Err(ArticleViewErrorKind::InvalidActiveWebView)?
             }
+        } else {
+            Err(ArticleViewErrorKind::NoActiveWebView)?
         }
-        Err(format_err!("some err"))
     }
 
-    fn get_scroll_abs(&self) -> Result<f64, Error> {
+    fn get_scroll_abs(&self) -> Result<f64, ArticleViewError> {
         let view_name = (*self.internal_state.borrow()).to_str().map(|s| s.to_owned());
         if let Some(view_name) = view_name {
             if let Some(view) = self.stack.get_child_by_name(&view_name) {
                 if let Ok(view) = view.downcast::<WebView>() {
                     return Ok(Self::get_scroll_pos_static(&view));
+                } else {
+                    Err(ArticleViewErrorKind::InvalidActiveWebView)?
                 }
+            } else {
+                Err(ArticleViewErrorKind::InvalidActiveWebView)?
             }
+        } else {
+            Err(ArticleViewErrorKind::NoActiveWebView)?
         }
-        Err(format_err!("some err"))
     }
 
-    fn get_scroll_window_height(&self) -> Result<f64, Error> {
+    fn get_scroll_window_height(&self) -> Result<f64, ArticleViewError> {
         let view_name = (*self.internal_state.borrow()).to_str().map(|s| s.to_owned());
         if let Some(view_name) = view_name {
             if let Some(view) = self.stack.get_child_by_name(&view_name) {
                 if let Ok(view) = view.downcast::<WebView>() {
                     return Ok(Self::get_scroll_window_height_static(&view));
+                } else {
+                    Err(ArticleViewErrorKind::InvalidActiveWebView)?
                 }
+            } else {
+                Err(ArticleViewErrorKind::InvalidActiveWebView)?
             }
+        } else {
+            Err(ArticleViewErrorKind::NoActiveWebView)?
         }
-        Err(format_err!("some err"))
     }
 
-    fn get_scroll_upper(&self) -> Result<f64, Error> {
+    fn get_scroll_upper(&self) -> Result<f64, ArticleViewError> {
         let view_name = (*self.internal_state.borrow()).to_str().map(|s| s.to_owned());
         if let Some(view_name) = view_name {
             if let Some(view) = self.stack.get_child_by_name(&view_name) {
                 if let Ok(view) = view.downcast::<WebView>() {
                     return Ok(Self::get_scroll_upper_static(&view));
+                } else {
+                    Err(ArticleViewErrorKind::InvalidActiveWebView)?
                 }
+            } else {
+                Err(ArticleViewErrorKind::InvalidActiveWebView)?
             }
+        } else {
+            Err(ArticleViewErrorKind::NoActiveWebView)?
         }
-        Err(format_err!("some err"))
     }
 
-    pub fn animate_scroll_diff(&self, diff: f64) -> Result<(), Error> {
+    pub fn animate_scroll_diff(&self, diff: f64) -> Result<(), ArticleViewError> {
         let pos = self.get_scroll_abs()?;
         let upper = self.get_scroll_upper()?;
         let window_height = self.get_scroll_window_height()?;
@@ -985,7 +1008,7 @@ impl ArticleView {
         self.animate_scroll_absolute(pos + diff, pos)
     }
 
-    pub fn animate_scroll_absolute(&self, pos: f64, current_pos: f64) -> Result<(), Error> {
+    pub fn animate_scroll_absolute(&self, pos: f64, current_pos: f64) -> Result<(), ArticleViewError> {
         let animate = match gtk::Settings::get_default() {
             Some(settings) => settings.get_property_gtk_enable_animations(),
             None => false,
@@ -1025,11 +1048,11 @@ impl ArticleView {
         let view_name = (*self.internal_state.borrow())
             .to_str()
             .map(|s| s.to_owned())
-            .ok_or(format_err!("some err"))?;
+            .ok_or_else(|| ArticleViewErrorKind::NoActiveWebView)?;
         let view = self
             .stack
             .get_child_by_name(&view_name)
-            .ok_or(format_err!("some err"))?;
+            .ok_or_else(|| ArticleViewErrorKind::InvalidActiveWebView)?;
 
         let scroll_animation_data = self.scroll_animation_data.clone();
         *self.scroll_animation_data.scroll_callback_id.borrow_mut() =

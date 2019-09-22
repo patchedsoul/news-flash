@@ -61,8 +61,7 @@ fn main() {
 
     application.connect_startup(move |_app| {});
     application.connect_activate(move |app| {
-        let mainwindow = MainWindow::new(&app).expect("Failed to create MainWindow.");
-        mainwindow.present();
+        MainWindow::new(&app).present();
     });
 
     glib::set_application_name("NewsFlash");

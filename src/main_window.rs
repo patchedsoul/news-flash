@@ -13,7 +13,6 @@ use crate::undo_bar::UndoBar;
 use crate::util::{BuilderHelper, GtkHandle, GtkUtil, GTK_CSS_ERROR, GTK_RESOURCE_FILE_ERROR};
 use crate::welcome_screen::{WelcomeHeaderbar, WelcomePage};
 use crate::Resources;
-use failure::Error;
 use gdk::EventKey;
 use glib::{self, Variant};
 use gtk::{
@@ -40,10 +39,10 @@ pub struct MainWindow {
 }
 
 impl MainWindow {
-    pub fn new(app: &Application) -> Result<Self, Error> {
+    pub fn new(app: &Application) -> Self {
         let provider_handle = gtk_handle!(CssProvider::new());
 
-        let settings = gtk_handle!(Settings::open()?);
+        let settings = gtk_handle!(Settings::open().expect("Failed to access settings file"));
 
         if let Some(gtk_settings) = GtkSettings::get_default() {
             gtk_settings.set_property_gtk_application_prefer_dark_theme(settings.borrow().get_prefer_dark_theme());
@@ -80,7 +79,7 @@ impl MainWindow {
         let _welcome = WelcomePage::new(&builder);
         let pw_login = PasswordLogin::new(&builder);
         let oauth_login = WebLogin::new(&builder);
-        let content = ContentPage::new(&builder, &settings)?;
+        let content = ContentPage::new(&builder, &settings);
 
         let pw_login_handle = gtk_handle!(pw_login);
         let oauht_login_handle = gtk_handle!(oauth_login);
@@ -149,7 +148,7 @@ impl MainWindow {
             &error_bar_handle,
         );
         MainWindowActions::setup_close_article_action(&window, &content_page_handle, &content_header_handle);
-        MainWindowActions::setup_redraw_article_action(&window, &content_page_handle, &error_bar_handle);
+        MainWindowActions::setup_redraw_article_action(&window, &content_page_handle);
         MainWindowActions::setup_mark_article_read_action(&window, &news_flash_handle, &error_bar_handle);
         MainWindowActions::setup_mark_article_action(&window, &news_flash_handle, &error_bar_handle);
         MainWindowActions::setup_rename_feed_action(&window, &news_flash_handle, &error_bar_handle);
@@ -184,9 +183,15 @@ impl MainWindow {
             header_stack.set_visible_child_name(CONTENT_PAGE);
 
             if let Some(id) = news_flash_lib.id() {
-                content_page_handle
+                if content_page_handle
                     .borrow()
-                    .set_service(&id, news_flash_lib.user_name())?;
+                    .set_service(&id, news_flash_lib.user_name())
+                    .is_err()
+                {
+                    error_bar_handle
+                        .borrow()
+                        .simple_message("Failed to set sidebar service logo.");
+                }
                 *news_flash_handle.borrow_mut() = Some(news_flash_lib);
 
                 // try to fill content page with data
@@ -230,9 +235,7 @@ impl MainWindow {
 
         window.show_all();
 
-        let main_window = MainWindow { widget: window };
-
-        Ok(main_window)
+        MainWindow { widget: window }
     }
 
     pub fn present(&self) {

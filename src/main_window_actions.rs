@@ -456,18 +456,11 @@ impl MainWindowActions {
         window.add_action(&show_article_action);
     }
 
-    pub fn setup_redraw_article_action(
-        window: &ApplicationWindow,
-        content_page: &GtkHandle<ContentPage>,
-        error_bar: &GtkHandle<ErrorBar>,
-    ) {
+    pub fn setup_redraw_article_action(window: &ApplicationWindow, content_page: &GtkHandle<ContentPage>) {
         let content_page = content_page.clone();
-        let error_bar = error_bar.clone();
         let redraw_article_action = SimpleAction::new("redraw-article", None);
         redraw_article_action.connect_activate(move |_action, _data| {
-            if content_page.borrow_mut().article_view_redraw().is_err() {
-                error_bar.borrow().simple_message("Failed to redraw article");
-            }
+            content_page.borrow_mut().article_view_redraw();
         });
         redraw_article_action.set_enabled(true);
         window.add_action(&redraw_article_action);

@@ -1,9 +1,11 @@
 pub mod models;
 mod tag_row;
+mod error;
 
 use crate::gtk_handle;
 use crate::sidebar::SidebarIterateItem;
 use crate::util::{BuilderHelper, GtkHandle, GtkUtil};
+use self::error::{TagListError, TagListErrorKind};
 use glib::translate::ToGlib;
 use gtk::{ContainerExt, Continue, ListBox, ListBoxExt, ListBoxRowExt, SelectionMode, WidgetExt};
 use models::{TagListChangeSet, TagListModel, TagListTagModel};
@@ -115,7 +117,7 @@ impl TagList {
         self.list_model.borrow_mut().last().map(|model| model.id.clone())
     }
 
-    pub fn set_selection(&self, selection: TagID) {
+    pub fn set_selection(&self, selection: TagID) -> Result<(), TagListError> {
         self.cancel_selection();
 
         if let Some(tag_row) = self.tags.get(&selection) {
@@ -139,7 +141,10 @@ impl TagList {
                 row.emit_activate();
                 Continue(false)
             });
+            return Ok(());
         }
+
+        Err(TagListErrorKind::InvalidSelection)?
     }
 
     pub fn cancel_selection(&self) {

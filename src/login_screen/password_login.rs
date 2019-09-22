@@ -1,7 +1,8 @@
 use crate::error_dialog::ErrorDialog;
 use crate::util::{BuilderHelper, GtkUtil, GTK_RESOURCE_FILE_ERROR};
 use crate::Resources;
-use failure::{Error, Fail};
+use super::error::{LoginScreenError, LoginScreenErrorKind};
+use failure::{ResultExt, Fail};
 use glib::{signal::SignalHandlerId, translate::ToGlib, Variant};
 use gtk::{
     self, Box, Button, ButtonExt, Entry, EntryExt, Image, ImageExt, InfoBar, InfoBarExt, Label, LabelExt, ResponseType,
@@ -97,14 +98,18 @@ impl PasswordLogin {
         }
     }
 
-    pub fn set_service(&mut self, info: PluginInfo) -> Result<(), Error> {
+    pub fn set_service(&mut self, info: PluginInfo) -> Result<(), LoginScreenError> {
         // set Icon
         if let Some(icon) = info.icon {
             let surface = match icon {
                 PluginIcon::Vector(icon) => {
-                    GtkUtil::create_surface_from_bytes(&icon.data, icon.width, icon.height, self.scale_factor)?
+                    GtkUtil::create_surface_from_bytes(&icon.data, icon.width, icon.height, self.scale_factor)
+                        .context(LoginScreenErrorKind::Icon)?
                 }
-                PluginIcon::Pixel(icon) => GtkUtil::create_surface_from_pixelicon(&icon, self.scale_factor)?,
+                PluginIcon::Pixel(icon) => {
+                    GtkUtil::create_surface_from_pixelicon(&icon, self.scale_factor)
+                        .context(LoginScreenErrorKind::Icon)?
+                },
             };
             self.logo.set_from_surface(Some(&surface));
         }
@@ -212,8 +217,11 @@ impl PasswordLogin {
                     })
                     .to_glib(),
             );
+
+            return Ok(())
         }
-        Ok(())
+
+        Err(LoginScreenErrorKind::LoginGUI)?
     }
 
     pub fn reset(&mut self) {
