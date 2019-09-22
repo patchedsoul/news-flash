@@ -154,43 +154,65 @@ impl MainWindow {
         MainWindowActions::setup_mark_article_action(&window, &news_flash_handle, &error_bar_handle);
         MainWindowActions::setup_rename_feed_action(&window, &news_flash_handle, &error_bar_handle);
         MainWindowActions::setup_add_action(&window, &news_flash_handle, &content_page_handle, &error_bar_handle);
-        MainWindowActions::setup_rename_category_action(&window, &news_flash_handle);
+        MainWindowActions::setup_rename_category_action(&window, &news_flash_handle, &error_bar_handle);
         MainWindowActions::setup_delete_selection_action(&window, &content_page_handle);
         MainWindowActions::setup_enqueue_undoable_action(&window, &undo_bar_handle, &content_page_handle, &state);
-        MainWindowActions::setup_delete_feed_action(&window, &news_flash_handle);
-        MainWindowActions::setup_delete_category_action(&window, &news_flash_handle);
+        MainWindowActions::setup_delete_feed_action(&window, &news_flash_handle, &error_bar_handle);
+        MainWindowActions::setup_delete_category_action(&window, &news_flash_handle, &error_bar_handle);
         MainWindowActions::setup_about_action(&window);
-        MainWindowActions::setup_settings_action(&window, &settings);
+        MainWindowActions::setup_settings_action(&window, &settings, &error_bar_handle);
         MainWindowActions::setup_shortcut_window_action(&window, &settings);
         MainWindowActions::setup_quit_action(&window, app);
-        MainWindowActions::setup_export_action(&window, &news_flash_handle);
+        MainWindowActions::setup_export_action(&window, &news_flash_handle, &error_bar_handle);
         MainWindowActions::setup_select_next_article_action(&window, &content_page_handle);
         MainWindowActions::setup_select_prev_article_action(&window, &content_page_handle);
         MainWindowActions::setup_sidebar_set_read_action(&window, &news_flash_handle, &state, &error_bar_handle);
 
-        Self::setup_shortcuts(&window, &content_page_handle, &stack, &settings, &content_header_handle);
+        Self::setup_shortcuts(
+            &window,
+            &content_page_handle,
+            &stack,
+            &settings,
+            &content_header_handle,
+            &error_bar_handle,
+        );
 
         if let Ok(news_flash_lib) = NewsFlash::try_load(&DATA_DIR) {
             info!("Successful load from config");
 
             stack.set_visible_child_name(CONTENT_PAGE);
-            let id = news_flash_lib.id().unwrap();
-            content_page_handle
-                .borrow()
-                .set_service(&id, news_flash_lib.user_name())?;
-            *news_flash_handle.borrow_mut() = Some(news_flash_lib);
-
-            // try to fill content page with data
-            content_page_handle
-                .borrow_mut()
-                .update_sidebar(&news_flash_handle, &state, &undo_bar_handle)
-                .unwrap();
-            content_page_handle
-                .borrow_mut()
-                .update_article_list(&news_flash_handle, &state, &undo_bar_handle)
-                .unwrap();
-
             header_stack.set_visible_child_name(CONTENT_PAGE);
+
+            if let Some(id) = news_flash_lib.id() {
+                content_page_handle
+                    .borrow()
+                    .set_service(&id, news_flash_lib.user_name())?;
+                *news_flash_handle.borrow_mut() = Some(news_flash_lib);
+
+                // try to fill content page with data
+                if content_page_handle
+                    .borrow_mut()
+                    .update_sidebar(&news_flash_handle, &state, &undo_bar_handle)
+                    .is_err()
+                {
+                    error_bar_handle
+                        .borrow()
+                        .simple_message("Failed to populate sidebar with data.");
+                }
+                if content_page_handle
+                    .borrow_mut()
+                    .update_article_list(&news_flash_handle, &state, &undo_bar_handle)
+                    .is_err()
+                {
+                    error_bar_handle
+                        .borrow()
+                        .simple_message("Failed to populate article list with data.");
+                }
+            } else {
+                warn!("No valid backend ID");
+                stack.set_visible_child_name("welcome");
+                header_stack.set_visible_child_name("welcome");
+            }
         } else {
             warn!("No account configured");
             stack.set_visible_child_name("welcome");
@@ -223,12 +245,14 @@ impl MainWindow {
         main_stack: &Stack,
         settings: &GtkHandle<Settings>,
         content_header: &GtkHandle<ContentHeader>,
+        error_bar: &GtkHandle<ErrorBar>,
     ) {
         let main_stack = main_stack.clone();
         let settings = settings.clone();
         let content_page = content_page.clone();
         let main_window = window.clone();
         let content_header = content_header.clone();
+        let error_bar = error_bar.clone();
         window.connect_key_press_event(move |widget, event| {
             // ignore shortcuts when not on content page
             if let Some(visible_child) = main_stack.get_visible_child_name() {
@@ -320,7 +344,9 @@ impl MainWindow {
                 let article_model = content_page.borrow().get_selected_article_model();
                 if let Some(article_model) = article_model {
                     if let Some(url) = article_model.url {
-                        gtk::show_uri_on_window(Some(&main_window), url.get().as_str(), 0).unwrap();
+                        if gtk::show_uri_on_window(Some(&main_window), url.get().as_str(), 0).is_err() {
+                            error_bar.borrow().simple_message("Failed to open URL in browser.");
+                        }
                     } else {
                         warn!("Open selected article in browser: No url available.")
                     }
@@ -330,19 +356,35 @@ impl MainWindow {
             }
 
             if Self::check_shortcut("next_item", &settings, event) {
-                content_page.borrow().sidebar_select_next_item().unwrap();
+                if content_page.borrow().sidebar_select_next_item().is_err() {
+                    error_bar
+                        .borrow()
+                        .simple_message("Failed to select next item in sidebar.");
+                }
             }
 
             if Self::check_shortcut("previous_item", &settings, event) {
-                content_page.borrow().sidebar_select_prev_item().unwrap();
+                if content_page.borrow().sidebar_select_prev_item().is_err() {
+                    error_bar
+                        .borrow()
+                        .simple_message("Failed to select previous item in sidebar.");
+                }
             }
 
             if Self::check_shortcut("scroll_up", &settings, event) {
-                content_page.borrow().article_view_scroll_diff(-150.0).unwrap();
+                if content_page.borrow().article_view_scroll_diff(-150.0).is_err() {
+                    error_bar
+                        .borrow()
+                        .simple_message("Failed to select scroll article view up.");
+                }
             }
 
             if Self::check_shortcut("scroll_down", &settings, event) {
-                content_page.borrow().article_view_scroll_diff(150.0).unwrap();
+                if content_page.borrow().article_view_scroll_diff(150.0).is_err() {
+                    error_bar
+                        .borrow()
+                        .simple_message("Failed to select scroll article view down.");
+                }
             }
 
             if Self::check_shortcut("sidebar_set_read", &settings, event) {

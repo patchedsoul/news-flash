@@ -604,9 +604,8 @@ impl ArticleView {
                                                     let (_, y) = event.get_position();
                                                     let scroll = *drag_y_pos_motion_update.borrow() - y;
                                                     *drag_y_pos_motion_update.borrow_mut() = y;
-                                                    if let Ok(scroll_pos) = Self::get_scroll_pos_static(view) {
-                                                        Self::set_scroll_pos_static(view, scroll_pos + scroll);
-                                                    }
+                                                    let scroll_pos = Self::get_scroll_pos_static(view);
+                                                    Self::set_scroll_pos_static(view, scroll_pos + scroll);
                                                     Inhibit(false)
                                                 })
                                                 .to_glib(),
@@ -644,9 +643,8 @@ impl ArticleView {
 
                                 let page_size = f64::from(view.get_allocated_height());
                                 let adjust_value = page_size * *drag_momentum.borrow() / f64::from(allocation.height);
-                                let old_adjust = f64::from(Self::get_scroll_pos_static(&view).unwrap());
-                                let upper =
-                                    f64::from(Self::get_scroll_upper_static(&view).unwrap()) * view.get_zoom_level();
+                                let old_adjust = f64::from(Self::get_scroll_pos_static(&view));
+                                let upper = f64::from(Self::get_scroll_upper_static(&view)) * view.get_zoom_level();
 
                                 if (old_adjust + adjust_value) > (upper - page_size)
                                     || (old_adjust + adjust_value) < 0.0
@@ -871,15 +869,15 @@ impl ArticleView {
         });
     }
 
-    fn get_scroll_pos_static(view: &WebView) -> Result<f64, Error> {
-        Self::webview_js_get_f64(view, "window.scrollY")
+    fn get_scroll_pos_static(view: &WebView) -> f64 {
+        Self::webview_js_get_f64(view, "window.scrollY").expect("Failed to get scroll position from webview.")
     }
 
-    fn get_scroll_window_height_static(view: &WebView) -> Result<f64, Error> {
-        Self::webview_js_get_f64(view, "window.innerHeight")
+    fn get_scroll_window_height_static(view: &WebView) -> f64 {
+        Self::webview_js_get_f64(view, "window.innerHeight").expect("Failed to get window height from webview.")
     }
 
-    fn get_scroll_upper_static(view: &WebView) -> Result<f64, Error> {
+    fn get_scroll_upper_static(view: &WebView) -> f64 {
         Self::webview_js_get_f64(
             view,
             "Math.max (
@@ -890,6 +888,7 @@ impl ArticleView {
             document.documentElement.offsetHeight
         )",
         )
+        .expect("Failed to get upper limit from webview.")
     }
 
     fn webview_js_get_f64(view: &WebView, java_script: &str) -> Result<f64, Error> {
@@ -901,9 +900,13 @@ impl ArticleView {
         view.run_javascript(java_script, cancellable, move |res| {
             match res {
                 Ok(result) => {
-                    let context = result.get_global_context().unwrap();
-                    let value = result.get_value().unwrap();
-                    *callback_value.lock().unwrap() = value.to_number(&context);
+                    let context = result.get_global_context().expect("Failed to get webkit js context.");
+                    let value = result.get_value().expect("Failed to get value from js result.");
+                    if let Ok(mut guard) = callback_value.lock() {
+                        *guard = value.to_number(&context);
+                    } else {
+                        error!("Locking callback_value mutex failed.");
+                    }
                 }
                 Err(_) => error!("Getting scroll pos failed"),
             }
@@ -937,7 +940,7 @@ impl ArticleView {
         if let Some(view_name) = view_name {
             if let Some(view) = self.stack.get_child_by_name(&view_name) {
                 if let Ok(view) = view.downcast::<WebView>() {
-                    return Self::get_scroll_pos_static(&view);
+                    return Ok(Self::get_scroll_pos_static(&view));
                 }
             }
         }
@@ -949,7 +952,7 @@ impl ArticleView {
         if let Some(view_name) = view_name {
             if let Some(view) = self.stack.get_child_by_name(&view_name) {
                 if let Ok(view) = view.downcast::<WebView>() {
-                    return Self::get_scroll_window_height_static(&view);
+                    return Ok(Self::get_scroll_window_height_static(&view));
                 }
             }
         }
@@ -961,7 +964,7 @@ impl ArticleView {
         if let Some(view_name) = view_name {
             if let Some(view) = self.stack.get_child_by_name(&view_name) {
                 if let Ok(view) = view.downcast::<WebView>() {
-                    return Self::get_scroll_upper_static(&view);
+                    return Ok(Self::get_scroll_upper_static(&view));
                 }
             }
         }
@@ -1061,8 +1064,8 @@ impl ArticleView {
 
                 Self::set_scroll_pos_static(&view, start_value + (t * diff_value));
 
-                let pos = Self::get_scroll_pos_static(&view).unwrap();
-                let upper = Self::get_scroll_upper_static(&view).unwrap();
+                let pos = Self::get_scroll_pos_static(&view);
+                let upper = Self::get_scroll_upper_static(&view);
                 if pos <= 0.0 || pos >= upper || now >= end_time_value {
                     Self::stop_scroll_animation(&view, &scroll_animation_data);
                     return Continue(false);

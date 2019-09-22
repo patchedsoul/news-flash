@@ -176,7 +176,17 @@ impl MainWindowActions {
                         LoginData::Password(pass) => pass.id.clone(),
                         LoginData::None(id) => id.clone(),
                     };
-                    let mut news_flash_lib = NewsFlash::new(&DATA_DIR, &id).unwrap();
+                    let mut news_flash_lib = match NewsFlash::new(&DATA_DIR, &id) {
+                        Ok(news_flash) => news_flash,
+                        Err(error) => {
+                            match &info {
+                                LoginData::OAuth(_) => oauth_page.borrow_mut().show_error(error),
+                                LoginData::Password(_) => pw_page.borrow_mut().show_error(error),
+                                LoginData::None(_) => {}
+                            }
+                            return;
+                        }
+                    };
                     match news_flash_lib.login(info.clone()) {
                         Ok(()) => {
                             // create main obj
@@ -703,17 +713,47 @@ impl MainWindowActions {
                     let feed_id = FeedID::new(&data);
                     let dialog_news_flash = news_flash.clone();
                     if let Some(news_flash) = news_flash.borrow_mut().as_mut() {
-                        let (feeds, _mappings) = news_flash.get_feeds().unwrap();
-                        let feed = feeds.iter().find(|f| f.feed_id == feed_id).map(|f| f.clone()).unwrap();
+                        let (feeds, _mappings) = match news_flash.get_feeds() {
+                            Ok(result) => result,
+                            Err(error) => {
+                                error_bar
+                                    .borrow()
+                                    .news_flash_error("Failed to laod list of feeds.", error);
+                                return;
+                            }
+                        };
+
+                        let feed = match feeds.iter().find(|f| f.feed_id == feed_id).map(|f| f.clone()) {
+                            Some(feed) => feed,
+                            None => {
+                                error_bar
+                                    .borrow()
+                                    .simple_message(&format!("Failed to find feed '{}'", feed_id));
+                                return;
+                            }
+                        };
+
                         let dialog =
                             RenameDialog::new(&main_window, &SidebarSelection::Feed((feed_id, feed.label.clone())));
                         let rename_button = dialog.rename_button();
                         let dialog_handle = gtk_handle!(dialog);
                         let main_window = main_window.clone();
+                        let error_bar = error_bar.clone();
                         rename_button.connect_clicked(move |_button| {
                             if let Some(news_flash) = dialog_news_flash.borrow_mut().as_mut() {
-                                let new_label = dialog_handle.borrow().new_label().unwrap();
-                                news_flash.rename_feed(&feed, &new_label).unwrap();
+                                let new_label = match dialog_handle.borrow().new_label() {
+                                    Some(label) => label,
+                                    None => {
+                                        error_bar.borrow().simple_message("No valid title to rename feed.");
+                                        dialog_handle.borrow().close();
+                                        return;
+                                    }
+                                };
+
+                                if let Err(error) = news_flash.rename_feed(&feed, &new_label) {
+                                    error_bar.borrow().news_flash_error("Failed to rename feed.", error);
+                                }
+
                                 dialog_handle.borrow().close();
                             }
 
@@ -728,9 +768,14 @@ impl MainWindowActions {
         window.add_action(&rename_feed_action);
     }
 
-    pub fn setup_rename_category_action(window: &ApplicationWindow, news_flash: &GtkHandle<Option<NewsFlash>>) {
+    pub fn setup_rename_category_action(
+        window: &ApplicationWindow,
+        news_flash: &GtkHandle<Option<NewsFlash>>,
+        error_bar: &GtkHandle<ErrorBar>,
+    ) {
         let news_flash = news_flash.clone();
         let main_window = window.clone();
+        let error_bar = error_bar.clone();
         let rename_category_action = SimpleAction::new("rename-category", VariantTy::new("s").ok());
         rename_category_action.connect_activate(move |_action, data| {
             if let Some(data) = data {
@@ -738,23 +783,51 @@ impl MainWindowActions {
                     let category_id = CategoryID::new(&data);
                     let dialog_news_flash = news_flash.clone();
                     if let Some(news_flash) = news_flash.borrow_mut().as_mut() {
-                        let categories = news_flash.get_categories().unwrap();
-                        let category = categories
+                        let categories = match news_flash.get_categories() {
+                            Ok(categories) => categories,
+                            Err(error) => {
+                                error_bar
+                                    .borrow()
+                                    .news_flash_error("Failed to load list of categories.", error);
+                                return;
+                            }
+                        };
+
+                        let category = match categories
                             .iter()
                             .find(|c| c.category_id == category_id)
                             .map(|c| c.clone())
-                            .unwrap();
+                        {
+                            Some(category) => category,
+                            None => {
+                                error_bar
+                                    .borrow()
+                                    .simple_message(&format!("Failed to find category '{}'", category_id));
+                                return;
+                            }
+                        };
+
                         let dialog = RenameDialog::new(
                             &main_window,
                             &SidebarSelection::Cateogry((category_id, category.label.clone())),
                         );
+
                         let rename_button = dialog.rename_button();
                         let dialog_handle = gtk_handle!(dialog);
                         let main_window = main_window.clone();
+                        let error_bar = error_bar.clone();
                         rename_button.connect_clicked(move |_button| {
                             if let Some(news_flash) = dialog_news_flash.borrow_mut().as_mut() {
-                                let new_label = dialog_handle.borrow().new_label().unwrap();
-                                news_flash.rename_category(&category, &new_label).unwrap();
+                                let new_label = match dialog_handle.borrow().new_label() {
+                                    Some(label) => label,
+                                    None => {
+                                        error_bar.borrow().simple_message("No valid title to rename category.");
+                                        return;
+                                    }
+                                };
+                                if let Err(error) = news_flash.rename_category(&category, &new_label) {
+                                    error_bar.borrow().news_flash_error("Failed to rename category.", error);
+                                }
                                 dialog_handle.borrow().close();
                             }
 
@@ -811,7 +884,8 @@ impl MainWindowActions {
         enqueue_undoable_action.connect_activate(move |_action, data| {
             if let Some(data) = data {
                 if let Some(data) = data.get_str() {
-                    let action: UndoActionModel = serde_json::from_str(&data).unwrap();
+                    let action: UndoActionModel =
+                        serde_json::from_str(&data).expect("Failed to deserialize UndoActionModel.");
 
                     let select_all_button = match content_page.borrow().sidebar_get_selection() {
                         SidebarSelection::All => false,
@@ -860,21 +934,37 @@ impl MainWindowActions {
         window.add_action(&enqueue_undoable_action);
     }
 
-    pub fn setup_delete_feed_action(window: &ApplicationWindow, news_flash: &GtkHandle<Option<NewsFlash>>) {
+    pub fn setup_delete_feed_action(
+        window: &ApplicationWindow,
+        news_flash: &GtkHandle<Option<NewsFlash>>,
+        error_bar: &GtkHandle<ErrorBar>,
+    ) {
         let news_flash = news_flash.clone();
+        let error_bar = error_bar.clone();
         let delete_feed_action = SimpleAction::new("delete-feed", VariantTy::new("s").ok());
         delete_feed_action.connect_activate(move |_action, data| {
             if let Some(data) = data {
                 if let Some(data) = data.get_str() {
                     let feed_id = FeedID::new(&data);
                     if let Some(news_flash) = news_flash.borrow_mut().as_mut() {
-                        let (feeds, _mappings) = news_flash.get_feeds().unwrap();
+                        let (feeds, _mappings) = match news_flash.get_feeds() {
+                            Ok(res) => res,
+                            Err(error) => {
+                                error_bar.borrow().news_flash_error("Failed to delete feed.", error);
+                                return;
+                            }
+                        };
 
                         if let Some(feed) = feeds.iter().find(|f| f.feed_id == feed_id).map(|f| f.clone()) {
                             info!("delete feed '{}' (id: {})", feed.label, feed.feed_id);
-                        //news_flash.remove_feed(&feed).unwrap();
+                            if let Err(error) = news_flash.remove_feed(&feed) {
+                                error_bar.borrow().news_flash_error("Failed to delete feed.", error);
+                            }
                         } else {
-                            // FIXME: error handling
+                            error_bar.borrow().simple_message(&format!(
+                                "Failed to delete feed: feed with id '{}' not found.",
+                                feed_id
+                            ));
                             error!("feed not found: {}", feed_id);
                         }
                     }
@@ -885,15 +975,26 @@ impl MainWindowActions {
         window.add_action(&delete_feed_action);
     }
 
-    pub fn setup_delete_category_action(window: &ApplicationWindow, news_flash: &GtkHandle<Option<NewsFlash>>) {
+    pub fn setup_delete_category_action(
+        window: &ApplicationWindow,
+        news_flash: &GtkHandle<Option<NewsFlash>>,
+        error_bar: &GtkHandle<ErrorBar>,
+    ) {
         let news_flash = news_flash.clone();
+        let error_bar = error_bar.clone();
         let delete_feed_action = SimpleAction::new("delete-category", VariantTy::new("s").ok());
         delete_feed_action.connect_activate(move |_action, data| {
             if let Some(data) = data {
                 if let Some(data) = data.get_str() {
                     let category_id = CategoryID::new(&data);
                     if let Some(news_flash) = news_flash.borrow_mut().as_mut() {
-                        let categories = news_flash.get_categories().unwrap();
+                        let categories = match news_flash.get_categories() {
+                            Ok(res) => res,
+                            Err(error) => {
+                                error_bar.borrow().news_flash_error("Failed to delete category.", error);
+                                return;
+                            }
+                        };
 
                         if let Some(category) = categories
                             .iter()
@@ -901,9 +1002,14 @@ impl MainWindowActions {
                             .map(|c| c.clone())
                         {
                             info!("delete category '{}' (id: {})", category.label, category.category_id);
-                        //news_flash.remove_feed(&feed).unwrap();
+                            if let Err(error) = news_flash.remove_category(&category, true) {
+                                error_bar.borrow().news_flash_error("Failed to delete category.", error);
+                            }
                         } else {
-                            // FIXME: error handling
+                            error_bar.borrow().simple_message(&format!(
+                                "Failed to delete category: category with id '{}' not found.",
+                                category_id
+                            ));
                             error!("category not found: {}", category_id);
                         }
                     }
@@ -945,12 +1051,17 @@ impl MainWindowActions {
         window.add_action(&about_action);
     }
 
-    pub fn setup_settings_action(window: &ApplicationWindow, settings: &GtkHandle<Settings>) {
+    pub fn setup_settings_action(
+        window: &ApplicationWindow,
+        settings: &GtkHandle<Settings>,
+        error_bar: &GtkHandle<ErrorBar>,
+    ) {
         let main_window = window.clone();
         let settings = settings.clone();
+        let error_bar = error_bar.clone();
         let settings_action = SimpleAction::new("settings", None);
         settings_action.connect_activate(move |_action, _data| {
-            let dialog = SettingsDialog::new(&main_window, &settings).widget();
+            let dialog = SettingsDialog::new(&main_window, &settings, &error_bar).widget();
             dialog.present();
         });
         settings_action.set_enabled(true);
@@ -982,9 +1093,14 @@ impl MainWindowActions {
         window.add_action(&quit_action);
     }
 
-    pub fn setup_export_action(window: &ApplicationWindow, news_flash: &GtkHandle<Option<NewsFlash>>) {
+    pub fn setup_export_action(
+        window: &ApplicationWindow,
+        news_flash: &GtkHandle<Option<NewsFlash>>,
+        error_bar: &GtkHandle<ErrorBar>,
+    ) {
         let main_window = window.clone();
         let news_flash = news_flash.clone();
+        let error_bar = error_bar.clone();
         let export_action = SimpleAction::new("export", None);
         export_action.connect_activate(move |_action, _data| {
             let dialog = FileChooserDialog::with_buttons(
@@ -1008,9 +1124,17 @@ impl MainWindowActions {
             match ResponseType::from(dialog.run()) {
                 ResponseType::Ok => {
                     if let Some(news_flash) = news_flash.borrow().as_ref() {
-                        let opml = news_flash.export_opml().unwrap();
+                        let opml = match news_flash.export_opml() {
+                            Ok(opml) => opml,
+                            Err(error) => {
+                                error_bar.borrow().news_flash_error("Failed to get OPML data.", error);
+                                return;
+                            }
+                        };
                         if let Some(filename) = dialog.get_filename() {
-                            FileUtil::write_text_file(&filename, &opml).unwrap();
+                            if FileUtil::write_text_file(&filename, &opml).is_err() {
+                                error_bar.borrow().simple_message("Failed to write OPML data to disc.")
+                            }
                         }
                     }
                 }

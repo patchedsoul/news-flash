@@ -80,7 +80,8 @@ impl FeedRow {
         let row_clone = row.clone();
         widget.connect_drag_begin(move |_widget, drag_context| {
             let alloc = row_clone.get_allocation();
-            let surface = ImageSurface::create(Format::ARgb32, alloc.width, alloc.height).unwrap();
+            let surface = ImageSurface::create(Format::ARgb32, alloc.width, alloc.height)
+                .expect("Failed to create Cairo ImageSurface.");
             let cairo_context = cairo::Context::new(&surface);
             let style_context = row_clone.get_style_context();
             style_context.add_class("drag-icon");
@@ -156,8 +157,9 @@ impl FeedRow {
         if let Some(icon) = icon {
             if let Some(data) = &icon.data {
                 let scale = self.widget.get_style_context().get_scale();
-                let surface = GtkUtil::create_surface_from_bytes(data, 16, 16, scale).unwrap();
-                self.favicon.set_from_surface(Some(&surface));
+                if let Ok(surface) = GtkUtil::create_surface_from_bytes(data, 16, 16, scale) {
+                    self.favicon.set_from_surface(Some(&surface));
+                }
             }
         }
     }

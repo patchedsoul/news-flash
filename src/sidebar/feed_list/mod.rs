@@ -21,7 +21,7 @@ use gtk::{
     self, ContainerExt, Continue, DestDefaults, Inhibit, ListBox, ListBoxExt, ListBoxRowExt, SelectionMode,
     StyleContextExt, TargetEntry, TargetFlags, WidgetExt, WidgetExtManual,
 };
-use log::debug;
+use log::error;
 use news_flash::models::{CategoryID, FeedID};
 use std::cell::RefCell;
 use std::collections::HashMap;
@@ -140,18 +140,20 @@ impl FeedList {
                     };
 
                     if let Ok((parent_category, sort_index)) = tree.borrow().calculate_dnd(index).map_err(|_| {
-                        debug!("Failed to calculate Drag&Drop action");
+                        error!("Failed to calculate Drag&Drop action");
                     }) {
                         if let Some(dnd_data_string) = selection_data.get_text() {
                             if dnd_data_string.contains("FeedID") {
                                 let feed: FeedID =
-                                    serde_json::from_str(&dnd_data_string.as_str().to_owned().split_off(6)).unwrap();
+                                    serde_json::from_str(&dnd_data_string.as_str().to_owned().split_off(6))
+                                        .expect("Failed to deserialize FeedID.");
                                 let _fixme = FeedListDndAction::MoveFeed(feed, parent_category.clone(), sort_index);
                             }
 
                             if dnd_data_string.contains("CategoryID") {
                                 let category: CategoryID =
-                                    serde_json::from_str(&dnd_data_string.as_str().to_owned().split_off(10)).unwrap();
+                                    serde_json::from_str(&dnd_data_string.as_str().to_owned().split_off(10))
+                                        .expect("Failed to deserialize CategoryID.");
                                 let _fixme =
                                     FeedListDndAction::MoveCategory(category, parent_category.clone(), sort_index);
                             }

@@ -78,7 +78,7 @@ impl ContentPage {
                 MainWindowState::page_size()
             };
             let mut list_model = ArticleListModel::new(&self.settings.borrow().get_article_list_order());
-            let mut articles = Self::load_articles(news_flash, &window_state, &self.settings, undo_bar, limit, None);
+            let mut articles = Self::load_articles(news_flash, &window_state, &self.settings, undo_bar, limit, None)?;
 
             let (feeds, _) = news_flash.get_feeds()?;
             let _: Vec<_> = articles
@@ -121,17 +121,24 @@ impl ContentPage {
                 undo_bar,
                 MainWindowState::page_size(),
                 Some(relevant_articles_loaded as i64),
-            );
-            let (feeds, _) = news_flash.get_feeds().unwrap();
+            )?;
+            let (feeds, _) = news_flash.get_feeds()?;
             let _: Vec<_> = articles
                 .drain(..)
                 .map(|article| {
-                    let feed = feeds.iter().find(|&f| f.feed_id == article.feed_id).unwrap();
+                    let feed = match feeds.iter().find(|&f| f.feed_id == article.feed_id) {
+                        Some(feed) => feed,
+                        None => return Err(format_err!("some err")),
+                    };
                     let favicon = match news_flash.get_icon_info(&feed) {
                         Ok(favicon) => Some(favicon),
                         Err(_) => None,
                     };
-                    list_model.add(article, feed.label.clone(), favicon)
+                    match list_model.add(article, feed.label.clone(), favicon) {
+                        Ok(_) => {}
+                        Err(_error) => return Err(format_err!("some err")),
+                    };
+                    Ok(())
                 })
                 .collect();
             self.article_list.add_more_articles(list_model)?;
@@ -146,7 +153,7 @@ impl ContentPage {
         undo_bar: &GtkHandle<UndoBar>,
         limit: i64,
         offset: Option<i64>,
-    ) -> Vec<Article> {
+    ) -> Result<Vec<Article>, Error> {
         let unread = match window_state.get_header_selection() {
             HeaderSelection::All | HeaderSelection::Marked => None,
             HeaderSelection::Unread => Some(Read::Unread),
@@ -176,23 +183,23 @@ impl ContentPage {
             None => (None, None),
         };
 
-        news_flash
-            .get_articles(ArticleFilter {
-                limit: Some(limit),
-                offset,
-                order: Some(settings.borrow().get_article_list_order()),
-                unread,
-                marked,
-                feed,
-                feed_blacklist,
-                category,
-                category_blacklist,
-                tag,
-                ids: None,
-                newer_than: None,
-                older_than: None,
-            })
-            .unwrap()
+        let articles = news_flash.get_articles(ArticleFilter {
+            limit: Some(limit),
+            offset,
+            order: Some(settings.borrow().get_article_list_order()),
+            unread,
+            marked,
+            feed,
+            feed_blacklist,
+            category,
+            category_blacklist,
+            tag,
+            ids: None,
+            newer_than: None,
+            older_than: None,
+        })?;
+
+        Ok(articles)
     }
 
     pub fn update_sidebar(
@@ -227,7 +234,7 @@ impl ContentPage {
                     &feed_count_map,
                 );
 
-                tree.add_category(category, category_item_count).unwrap();
+                tree.add_category(category, category_item_count)?;
             }
 
             // feedlist: Feeds
@@ -307,9 +314,12 @@ impl ContentPage {
         news_flash_handle: &GtkHandle<Option<NewsFlash>>,
     ) -> Result<(), Error> {
         if let Some(news_flash) = news_flash_handle.borrow_mut().as_mut() {
-            let article = news_flash.get_fat_article(article_id).unwrap();
-            let (feeds, _) = news_flash.get_feeds().unwrap();
-            let feed = feeds.iter().find(|&f| f.feed_id == article.feed_id).unwrap();
+            let article = news_flash.get_fat_article(article_id)?;
+            let (feeds, _) = news_flash.get_feeds()?;
+            let feed = match feeds.iter().find(|&f| f.feed_id == article.feed_id) {
+                Some(feed) => feed,
+                None => return Err(format_err!("some err")),
+            };
             self.article_view.show_article(article, feed.label.clone())?;
             return Ok(());
         }

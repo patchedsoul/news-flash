@@ -170,8 +170,16 @@ impl PasswordLogin {
                         } else {
                             None
                         };
-                        let user = user_entry.get_text().unwrap().as_str().to_owned();
-                        let password = pass_entry.get_text().unwrap().as_str().to_owned();
+                        let user = user_entry
+                            .get_text()
+                            .expect("Login button should be insensitive if user entry is empty.")
+                            .as_str()
+                            .to_owned();
+                        let password = pass_entry
+                            .get_text()
+                            .expect("Login button should be insensitive if password entry is empty.")
+                            .as_str()
+                            .to_owned();
                         let http_user: Option<String> = if pw_gui_desc.http_auth {
                             match http_user_entry.get_text() {
                                 Some(user) => Some(user.as_str().to_owned()),

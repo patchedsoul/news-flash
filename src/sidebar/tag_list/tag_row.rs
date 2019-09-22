@@ -10,6 +10,9 @@ use std::cell::RefCell;
 use std::rc::Rc;
 use std::str;
 
+const DEFAULT_OUTER_COLOR: &str = "#FF0077";
+const DEFAULT_INNER_COLOR: &str = "#FF0077";
+
 #[derive(Clone, Debug)]
 pub struct TagRow {
     pub id: TagID,
@@ -28,7 +31,7 @@ impl TagRow {
         let tag_image_update = tag_color_circle.clone();
         let tag_color_update = model.color.clone();
         tag_color_circle.connect_realize(move |_widget| {
-            Self::update_color_cirlce_internal(&tag_image_update, &tag_color_update);
+            Self::update_color_cirlce(&tag_image_update, &tag_color_update);
         });
 
         let tag = TagRow {
@@ -57,7 +60,7 @@ impl TagRow {
         self.widget.clone()
     }
 
-    fn update_color_cirlce_internal(tag_color_circle: &Image, color: &str) {
+    fn update_color_cirlce(tag_color_circle: &Image, color: &str) {
         let size = 16;
         let half_size = f64::from(size / 2);
         let scale = tag_color_circle.get_style_context().get_scale();
@@ -67,9 +70,17 @@ impl TagRow {
                 cairo_ctx.set_fill_rule(FillRule::EvenOdd);
                 cairo_ctx.set_line_width(2.0);
 
-                let rgba_outer = ColorRGBA::parse_string(color).unwrap();
-                let mut rgba_inner = ColorRGBA::parse_string(color).unwrap();
-                rgba_inner.adjust_lightness(0.05).unwrap();
+                let rgba_outer = match ColorRGBA::parse_string(color) {
+                    Ok(color) => color,
+                    Err(_) => ColorRGBA::parse_string(DEFAULT_OUTER_COLOR)
+                        .expect("Failed to parse default outer RGBA string."),
+                };
+
+                let mut rgba_inner = rgba_outer.clone();
+                if rgba_inner.adjust_lightness(0.05).is_err() {
+                    rgba_inner = ColorRGBA::parse_string(DEFAULT_INNER_COLOR)
+                        .expect("Failed to parse default inner RGBA string.")
+                }
 
                 cairo_ctx.set_source_rgba(
                     rgba_inner.red_normalized(),

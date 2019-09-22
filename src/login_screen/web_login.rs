@@ -74,7 +74,7 @@ impl WebLogin {
         self.error_details_signal = Some(
             self.error_details_button
                 .connect_clicked(move |button| {
-                    let parent = GtkUtil::get_main_window(button).unwrap();
+                    let parent = GtkUtil::get_main_window(button).expect("MainWindow is not parent of details button.");
                     let _dialog = ErrorDialog::new(&error, &parent);
                 })
                 .to_glib(),
@@ -118,7 +118,8 @@ impl WebLogin {
                                             url: uri.as_str().to_owned(),
                                         };
                                         let oauth_data = LoginData::OAuth(oauth_data);
-                                        let oauth_data_json = serde_json::to_string(&oauth_data).unwrap();
+                                        let oauth_data_json =
+                                            serde_json::to_string(&oauth_data).expect("Failed to serialize LoginData.");
                                         let login_data_json = Variant::from(&oauth_data_json);
                                         if let Some(signal_id) = *redirect_signal_id.borrow() {
                                             let signal_id = SignalHandlerId::from_glib(signal_id);
