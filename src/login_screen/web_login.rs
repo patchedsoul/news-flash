@@ -1,7 +1,7 @@
+use super::error::{LoginScreenError, LoginScreenErrorKind};
 use crate::error_dialog::ErrorDialog;
 use crate::gtk_handle;
 use crate::util::{BuilderHelper, GtkHandle, GtkUtil, GTK_BUILDER_ERROR};
-use super::error::{LoginScreenError, LoginScreenErrorKind};
 use glib::{
     signal::SignalHandlerId,
     translate::{FromGlib, ToGlib},
@@ -139,10 +139,10 @@ impl WebLogin {
                 });
 
                 *self.redirect_signal_id.borrow_mut() = Some(signal_id.to_glib());
-                return Ok(())
+                return Ok(());
             }
 
-            return Err(LoginScreenErrorKind::OauthUrl)?
+            return Err(LoginScreenErrorKind::OauthUrl)?;
         }
 
         Err(LoginScreenErrorKind::LoginGUI)?

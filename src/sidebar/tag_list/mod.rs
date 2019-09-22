@@ -1,11 +1,11 @@
+mod error;
 pub mod models;
 mod tag_row;
-mod error;
 
+use self::error::{TagListError, TagListErrorKind};
 use crate::gtk_handle;
 use crate::sidebar::SidebarIterateItem;
 use crate::util::{BuilderHelper, GtkHandle, GtkUtil};
-use self::error::{TagListError, TagListErrorKind};
 use glib::translate::ToGlib;
 use gtk::{ContainerExt, Continue, ListBox, ListBoxExt, ListBoxRowExt, SelectionMode, WidgetExt};
 use models::{TagListChangeSet, TagListModel, TagListTagModel};

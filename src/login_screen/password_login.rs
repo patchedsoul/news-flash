@@ -1,8 +1,8 @@
+use super::error::{LoginScreenError, LoginScreenErrorKind};
 use crate::error_dialog::ErrorDialog;
 use crate::util::{BuilderHelper, GtkUtil, GTK_RESOURCE_FILE_ERROR};
 use crate::Resources;
-use super::error::{LoginScreenError, LoginScreenErrorKind};
-use failure::{ResultExt, Fail};
+use failure::{Fail, ResultExt};
 use glib::{signal::SignalHandlerId, translate::ToGlib, Variant};
 use gtk::{
     self, Box, Button, ButtonExt, Entry, EntryExt, Image, ImageExt, InfoBar, InfoBarExt, Label, LabelExt, ResponseType,
@@ -106,10 +106,8 @@ impl PasswordLogin {
                     GtkUtil::create_surface_from_bytes(&icon.data, icon.width, icon.height, self.scale_factor)
                         .context(LoginScreenErrorKind::Icon)?
                 }
-                PluginIcon::Pixel(icon) => {
-                    GtkUtil::create_surface_from_pixelicon(&icon, self.scale_factor)
-                        .context(LoginScreenErrorKind::Icon)?
-                },
+                PluginIcon::Pixel(icon) => GtkUtil::create_surface_from_pixelicon(&icon, self.scale_factor)
+                    .context(LoginScreenErrorKind::Icon)?,
             };
             self.logo.set_from_surface(Some(&surface));
         }
@@ -218,7 +216,7 @@ impl PasswordLogin {
                     .to_glib(),
             );
 
-            return Ok(())
+            return Ok(());
         }
 
         Err(LoginScreenErrorKind::LoginGUI)?

@@ -12,19 +12,15 @@ impl FileUtil {
         let temp_directory = env::temp_dir();
         let temp_file = temp_directory.join(file_name);
 
-        let mut file = File::create(temp_file.clone())
-            .context(UtilErrorKind::CreateFile)?;
-        file.write_all(content.as_bytes())
-            .context(UtilErrorKind::WriteFile)?;
+        let mut file = File::create(temp_file.clone()).context(UtilErrorKind::CreateFile)?;
+        file.write_all(content.as_bytes()).context(UtilErrorKind::WriteFile)?;
 
         Ok(temp_file)
     }
 
     pub fn write_text_file(file_path: &PathBuf, content: &str) -> Result<(), UtilError> {
-        let mut file = File::create(file_path)
-            .context(UtilErrorKind::CreateFile)?;
-        file.write_all(content.as_bytes())
-            .context(UtilErrorKind::WriteFile)?;
+        let mut file = File::create(file_path).context(UtilErrorKind::CreateFile)?;
+        file.write_all(content.as_bytes()).context(UtilErrorKind::WriteFile)?;
         Ok(())
     }
 }

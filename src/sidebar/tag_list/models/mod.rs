@@ -1,9 +1,9 @@
 mod change_set;
-mod tag;
 mod error;
+mod tag;
 
-use crate::sidebar::SidebarIterateItem;
 use self::error::{TagListModelError, TagListModelErrorKind};
+use crate::sidebar::SidebarIterateItem;
 pub use change_set::TagListChangeSet;
 use news_flash::models::{Tag, TagID};
 use std::collections::HashSet;
