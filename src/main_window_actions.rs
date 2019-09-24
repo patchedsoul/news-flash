@@ -1196,8 +1196,6 @@ impl MainWindowActions {
 
                 dialog.emit_close();
             }
-
-            
         });
         export_article_action.set_enabled(true);
         window.add_action(&export_article_action);
