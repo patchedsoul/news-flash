@@ -194,6 +194,10 @@ impl ArticleView {
         webview.load_html(&html, None);
     }
 
+    pub fn get_visible_article(&self) -> Option<FatArticle> {
+        (*self.visible_article.borrow()).clone()
+    }
+
     pub fn close_article(&self) {
         self.remove_old_view(150);
         *self.internal_state.borrow_mut() = InternalState::Empty;

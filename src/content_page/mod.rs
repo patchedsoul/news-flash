@@ -17,7 +17,7 @@ use crate::util::{BuilderHelper, GtkHandle, Util};
 use failure::ResultExt;
 use gtk::{Box, BoxExt, Button, WidgetExt};
 use libhandy::Leaflet;
-use news_flash::models::{Article, ArticleFilter, ArticleID, Marked, PluginCapabilities, PluginID, Read};
+use news_flash::models::{Article, FatArticle, ArticleFilter, ArticleID, Marked, PluginCapabilities, PluginID, Read};
 use news_flash::NewsFlash;
 
 pub struct ContentPage {
@@ -355,6 +355,10 @@ impl ContentPage {
 
     pub fn article_view_close(&self) {
         self.article_view.close_article()
+    }
+
+    pub fn article_list_visible_article(&self) -> Option<FatArticle> {
+        self.article_view.get_visible_article()
     }
 
     pub fn article_view_redraw(&mut self) {

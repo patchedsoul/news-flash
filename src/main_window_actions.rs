@@ -1139,4 +1139,67 @@ impl MainWindowActions {
         export_action.set_enabled(true);
         window.add_action(&export_action);
     }
+
+    pub fn setup_export_article_action(
+        window: &ApplicationWindow,
+        news_flash: &GtkHandle<Option<NewsFlash>>,
+        content_page: &GtkHandle<ContentPage>,
+        error_bar: &GtkHandle<ErrorBar>,
+    ) {
+        let main_window = window.clone();
+        let news_flash = news_flash.clone();
+        let content_page = content_page.clone();
+        let error_bar = error_bar.clone();
+        let export_article_action = SimpleAction::new("export-article", None);
+        export_article_action.connect_activate(move |_action, _data| {
+            if let Some(article) = content_page.borrow().article_list_visible_article() {
+                let dialog = FileChooserDialog::with_buttons(
+                    Some("Export Article"),
+                    Some(&main_window),
+                    FileChooserAction::Save,
+                    &vec![("Cancel", ResponseType::Cancel), ("Save", ResponseType::Ok)],
+                );
+
+                let filter = FileFilter::new();
+                filter.add_pattern("*.html");
+                filter.add_mime_type("text/html");
+                filter.set_name(Some("HTML"));
+                dialog.add_filter(&filter);
+                dialog.set_filter(&filter);
+                if let Some(title) = &article.title {
+                    dialog.set_current_name(&format!("{}.html", title));
+                } else {
+                    dialog.set_current_name("Article.html");
+                }
+
+                match ResponseType::from(dialog.run()) {
+                    ResponseType::Ok => {
+                        if let Some(news_flash) = news_flash.borrow().as_ref() {
+                            let article = match news_flash.article_download_images(&article.article_id) {
+                                Ok(opml) => opml,
+                                Err(error) => {
+                                    error_bar.borrow().news_flash_error("Failed to get OPML data.", error);
+                                    return;
+                                }
+                            };
+                            if let Some(filename) = dialog.get_filename() {
+                                if let Some(html) = article.html {
+                                    if FileUtil::write_text_file(&filename, &html).is_err() {
+                                        error_bar.borrow().simple_message("Failed to write OPML data to disc.")
+                                    }
+                                }
+                            }
+                        }
+                    }
+                    _ => {}
+                }
+
+                dialog.emit_close();
+            }
+
+            
+        });
+        export_article_action.set_enabled(true);
+        window.add_action(&export_article_action);
+    }
 }
