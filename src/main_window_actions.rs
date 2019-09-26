@@ -1,6 +1,7 @@
 use crate::about_dialog::NewsFlashAbout;
 use crate::add_dialog::{AddCategory, AddPopover};
 use crate::article_list::{MarkUpdate, ReadUpdate};
+use crate::article_view::ArticleView;
 use crate::content_page::HeaderSelection;
 use crate::content_page::{ContentHeader, ContentPage};
 use crate::error_bar::ErrorBar;
@@ -14,7 +15,6 @@ use crate::settings::{NewsFlashShortcutWindow, Settings, SettingsDialog};
 use crate::sidebar::models::SidebarSelection;
 use crate::undo_bar::{UndoActionModel, UndoBar};
 use crate::util::{FileUtil, GtkHandle, GtkUtil};
-use crate::article_view::ArticleView;
 use gio::{ActionMapExt, ApplicationExt, SimpleAction};
 use glib::{Variant, VariantTy};
 use gtk::{
@@ -1181,7 +1181,9 @@ impl MainWindowActions {
                             let article = match news_flash.article_download_images(&article.article_id) {
                                 Ok(opml) => opml,
                                 Err(error) => {
-                                    error_bar.borrow().news_flash_error("Failed to downlaod article images.", error);
+                                    error_bar
+                                        .borrow()
+                                        .news_flash_error("Failed to downlaod article images.", error);
                                     return;
                                 }
                             };
@@ -1189,7 +1191,9 @@ impl MainWindowActions {
                             let (feeds, _) = match news_flash.get_feeds() {
                                 Ok(opml) => opml,
                                 Err(error) => {
-                                    error_bar.borrow().news_flash_error("Failed to load feeds from db.", error);
+                                    error_bar
+                                        .borrow()
+                                        .news_flash_error("Failed to load feeds from db.", error);
                                     return;
                                 }
                             };
@@ -1198,10 +1202,17 @@ impl MainWindowActions {
                                 None => {
                                     error_bar.borrow().simple_message("Failed to find specific feed.");
                                     return;
-                                },
+                                }
                             };
                             if let Some(filename) = dialog.get_filename() {
-                                let html = ArticleView::build_article_static("article", &article, &feed.label, &settings, None, None);
+                                let html = ArticleView::build_article_static(
+                                    "article",
+                                    &article,
+                                    &feed.label,
+                                    &settings,
+                                    None,
+                                    None,
+                                );
                                 if FileUtil::write_text_file(&filename, &html).is_err() {
                                     error_bar.borrow().simple_message("Failed to write OPML data to disc.")
                                 }
@@ -1213,8 +1224,6 @@ impl MainWindowActions {
 
                 dialog.emit_close();
             }
-
-            
         });
         export_article_action.set_enabled(true);
         window.add_action(&export_article_action);
