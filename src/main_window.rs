@@ -163,7 +163,7 @@ impl MainWindow {
         MainWindowActions::setup_shortcut_window_action(&window, &settings);
         MainWindowActions::setup_quit_action(&window, app);
         MainWindowActions::setup_export_action(&window, &news_flash_handle, &error_bar_handle);
-        MainWindowActions::setup_export_article_action(&window, &news_flash_handle, &content_page_handle, &error_bar_handle);
+        MainWindowActions::setup_export_article_action(&window, &news_flash_handle, &content_page_handle, &settings, &error_bar_handle);
         MainWindowActions::setup_select_next_article_action(&window, &content_page_handle);
         MainWindowActions::setup_select_prev_article_action(&window, &content_page_handle);
         MainWindowActions::setup_sidebar_set_read_action(&window, &news_flash_handle, &state, &error_bar_handle);

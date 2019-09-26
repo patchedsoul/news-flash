@@ -14,6 +14,7 @@ use crate::settings::{NewsFlashShortcutWindow, Settings, SettingsDialog};
 use crate::sidebar::models::SidebarSelection;
 use crate::undo_bar::{UndoActionModel, UndoBar};
 use crate::util::{FileUtil, GtkHandle, GtkUtil};
+use crate::article_view::ArticleView;
 use gio::{ActionMapExt, ApplicationExt, SimpleAction};
 use glib::{Variant, VariantTy};
 use gtk::{
@@ -1144,11 +1145,13 @@ impl MainWindowActions {
         window: &ApplicationWindow,
         news_flash: &GtkHandle<Option<NewsFlash>>,
         content_page: &GtkHandle<ContentPage>,
+        settings: &GtkHandle<Settings>,
         error_bar: &GtkHandle<ErrorBar>,
     ) {
         let main_window = window.clone();
         let news_flash = news_flash.clone();
         let content_page = content_page.clone();
+        let settings = settings.clone();
         let error_bar = error_bar.clone();
         let export_article_action = SimpleAction::new("export-article", None);
         export_article_action.connect_activate(move |_action, _data| {
@@ -1178,15 +1181,29 @@ impl MainWindowActions {
                             let article = match news_flash.article_download_images(&article.article_id) {
                                 Ok(opml) => opml,
                                 Err(error) => {
-                                    error_bar.borrow().news_flash_error("Failed to get OPML data.", error);
+                                    error_bar.borrow().news_flash_error("Failed to downlaod article images.", error);
                                     return;
                                 }
                             };
+
+                            let (feeds, _) = match news_flash.get_feeds() {
+                                Ok(opml) => opml,
+                                Err(error) => {
+                                    error_bar.borrow().news_flash_error("Failed to load feeds from db.", error);
+                                    return;
+                                }
+                            };
+                            let feed = match feeds.iter().find(|&f| f.feed_id == article.feed_id) {
+                                Some(feed) => feed,
+                                None => {
+                                    error_bar.borrow().simple_message("Failed to find specific feed.");
+                                    return;
+                                },
+                            };
                             if let Some(filename) = dialog.get_filename() {
-                                if let Some(html) = article.html {
-                                    if FileUtil::write_text_file(&filename, &html).is_err() {
-                                        error_bar.borrow().simple_message("Failed to write OPML data to disc.")
-                                    }
+                                let html = ArticleView::build_article_static("article", &article, &feed.label, &settings, None, None);
+                                if FileUtil::write_text_file(&filename, &html).is_err() {
+                                    error_bar.borrow().simple_message("Failed to write OPML data to disc.")
                                 }
                             }
                         }
