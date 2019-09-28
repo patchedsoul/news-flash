@@ -142,7 +142,7 @@ impl ResponsiveLayout {
             layout.major_leaflet.set_visible_child(&layout.minor_leaflet);
             layout.header_leaflet.set_visible_child(&layout.left_header);
             layout.right_button.set_visible(false);
-            
+
             layout.state.borrow_mut().right_button_clicked = false;
             return;
         }

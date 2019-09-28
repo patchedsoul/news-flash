@@ -1,12 +1,12 @@
 use crate::error_dialog::ErrorDialog;
-use crate::util::{BuilderHelper, GtkHandle, GtkUtil};
 use crate::gtk_handle;
-use std::rc::Rc;
-use std::cell::RefCell;
-use gtk::{Button, ButtonExt, InfoBar, InfoBarExt, Label, LabelExt, ResponseType, WidgetExt};
+use crate::util::{BuilderHelper, GtkHandle, GtkUtil};
 use glib::translate::ToGlib;
+use gtk::{Button, ButtonExt, InfoBar, InfoBarExt, Label, LabelExt, ResponseType, WidgetExt};
 use log::error;
 use news_flash::NewsFlashError;
+use std::cell::RefCell;
+use std::rc::Rc;
 
 #[derive(Clone, Debug)]
 pub struct ErrorBar {
@@ -57,12 +57,16 @@ impl ErrorBar {
 
         GtkUtil::disconnect_signal_handle(&self.click_signal, &self.button);
 
-        self.click_signal.replace(Some(self.button.connect_clicked(move |button| {
-            if let Ok(parent) = GtkUtil::get_main_window(button) {
-                let _dialog = ErrorDialog::new(&error, &parent);
-            } else {
-                error!("Failed to spawn ErrorDialog. Parent window not found.");
-            }
-        }).to_glib()));
+        self.click_signal.replace(Some(
+            self.button
+                .connect_clicked(move |button| {
+                    if let Ok(parent) = GtkUtil::get_main_window(button) {
+                        let _dialog = ErrorDialog::new(&error, &parent);
+                    } else {
+                        error!("Failed to spawn ErrorDialog. Parent window not found.");
+                    }
+                })
+                .to_glib(),
+        ));
     }
 }
