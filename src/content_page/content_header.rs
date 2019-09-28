@@ -37,6 +37,11 @@ impl ContentHeader {
         let search_entry = builder.get::<SearchEntry>("search_entry");
         let mode_button = builder.get::<MenuButton>("mode_switch_button");
         let mode_switch_stack = builder.get::<Stack>("mode_switch_stack");
+        let mark_all_read_button = builder.get::<Button>("mark_all_button");
+
+        mark_all_read_button.connect_clicked(|button| {
+            GtkUtil::execute_action(button, "sidebar-set-read", None);
+        });
 
         let linked_button_timeout: GtkHandle<Option<u32>> = gtk_handle!(None);
         let header_selection = gtk_handle!(HeaderSelection::All);

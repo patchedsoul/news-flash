@@ -21,6 +21,7 @@ pub struct ResponsiveLayout {
     pub right_header: HeaderBar,
     pub mode_switch_box: Box,
     pub mode_switch_button: MenuButton,
+    pub mark_all_read_button: Button,
 }
 
 impl ResponsiveLayout {
@@ -40,6 +41,7 @@ impl ResponsiveLayout {
         let right_header = builder.get::<HeaderBar>("right_headerbar");
         let mode_switch_box = builder.get::<Box>("mode_switch_box");
         let mode_switch_button = builder.get::<MenuButton>("mode_switch_button");
+        let mark_all_read_button = builder.get::<Button>("mark_all_button");
         let layout = ResponsiveLayout {
             state,
             left_button,
@@ -55,6 +57,7 @@ impl ResponsiveLayout {
             right_header,
             mode_switch_box,
             mode_switch_button,
+            mark_all_read_button,
         };
         layout.setup_signals();
         layout
@@ -111,9 +114,11 @@ impl ResponsiveLayout {
                 layout.search_button.set_visible(true);
                 layout.mode_switch_button.set_visible(true);
                 layout.minor_leaflet.set_visible_child(&layout.sidebar_box);
+                layout.mark_all_read_button.set_visible(true);
             } else {
                 layout.search_button.set_visible(false);
                 layout.mode_switch_button.set_visible(false);
+                layout.mark_all_read_button.set_visible(false);
             }
 
             layout.state.borrow_mut().minor_leaflet_folded = false;
@@ -126,6 +131,7 @@ impl ResponsiveLayout {
             layout.left_button.set_visible(false);
             layout.search_button.set_visible(false);
             layout.mode_switch_button.set_visible(false);
+            layout.mark_all_read_button.set_visible(false);
 
             layout.state.borrow_mut().left_button_clicked = false;
             return;
@@ -136,7 +142,7 @@ impl ResponsiveLayout {
             layout.major_leaflet.set_visible_child(&layout.minor_leaflet);
             layout.header_leaflet.set_visible_child(&layout.left_header);
             layout.right_button.set_visible(false);
-
+            
             layout.state.borrow_mut().right_button_clicked = false;
             return;
         }
@@ -160,6 +166,7 @@ impl ResponsiveLayout {
                 layout.left_button.set_visible(true);
                 layout.search_button.set_visible(true);
                 layout.mode_switch_button.set_visible(true);
+                layout.mark_all_read_button.set_visible(true);
             }
 
             layout.state.borrow_mut().minor_leaflet_selected = false;
