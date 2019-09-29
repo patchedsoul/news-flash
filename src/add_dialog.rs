@@ -205,7 +205,7 @@ impl AddPopover {
     fn fill_feed_page(feed: Feed, title_entry: &Entry, favicon_image: &Image, feed_url: &GtkHandle<Option<Url>>) {
         title_entry.set_text(&feed.label);
         feed_url.replace(feed.feed_url.clone());
-        let scale = favicon_image.get_style_context().get_scale();
+        let scale = GtkUtil::get_scale(favicon_image);
 
         if let Some(favicon) = news_flash::util::favicon_cache::FavIconCache::scrap(&feed) {
             if let Some(data) = &favicon.data {

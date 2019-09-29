@@ -17,7 +17,7 @@ use crate::util::{BuilderHelper, GtkHandle, Util};
 use failure::ResultExt;
 use gtk::{Box, BoxExt, Button, WidgetExt};
 use libhandy::Leaflet;
-use news_flash::models::{Article, ArticleFilter, ArticleID, FatArticle, Marked, PluginCapabilities, PluginID, Read};
+use news_flash::models::{Article, ArticleFilter, FatArticle, Feed, Marked, PluginCapabilities, PluginID, Read};
 use news_flash::NewsFlash;
 
 pub struct ContentPage {
@@ -326,24 +326,8 @@ impl ContentPage {
         Err(ContentPageErrorKind::NewsFlashHandle)?
     }
 
-    pub fn article_view_show(
-        &mut self,
-        article_id: &ArticleID,
-        news_flash_handle: &GtkHandle<Option<NewsFlash>>,
-    ) -> Result<(), ContentPageError> {
-        if let Some(news_flash) = news_flash_handle.borrow_mut().as_mut() {
-            let article = news_flash
-                .get_fat_article(article_id)
-                .context(ContentPageErrorKind::DataBase)?;
-            let (feeds, _) = news_flash.get_feeds().context(ContentPageErrorKind::DataBase)?;
-            let feed = feeds
-                .iter()
-                .find(|&f| f.feed_id == article.feed_id)
-                .ok_or_else(|| ContentPageErrorKind::FeedTitle)?;
-            self.article_view.show_article(article, feed.label.clone());
-            return Ok(());
-        }
-        Err(ContentPageErrorKind::NewsFlashHandle)?
+    pub fn article_view_show(&mut self, article: FatArticle, feed: &Feed) {
+        self.article_view.show_article(article, feed.label.clone());
     }
 
     pub fn article_view_scroll_diff(&self, diff: f64) -> Result<(), ContentPageError> {

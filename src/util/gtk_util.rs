@@ -1,11 +1,14 @@
 use super::error::{UtilError, UtilErrorKind};
+use crate::Resources;
 use cairo::{Context, Surface};
 use failure::ResultExt;
 use gdk::{ContextExt, Window};
 use gdk_pixbuf::Pixbuf;
-use gio::{ActionExt, ActionMapExt, Cancellable, MemoryInputStream};
+use gio::{ActionExt, ActionMapExt, Cancellable, MemoryInputStream, Resource};
 use glib::{object::IsA, object::ObjectExt, signal::SignalHandlerId, source::SourceId, translate::FromGlib, Bytes};
-use gtk::{BinExt, Cast, EntryExt, ListBoxRow, Revealer, StyleContext, WidgetExt};
+use gtk::{
+    BinExt, Cast, EntryExt, IconTheme, IconThemeExt, ListBoxRow, Revealer, StyleContext, StyleContextExt, WidgetExt,
+};
 use log::{error, warn};
 use news_flash::models::PixelIcon;
 use std::cell::RefCell;
@@ -29,6 +32,23 @@ macro_rules! gtk_handle {
 pub struct GtkUtil;
 
 impl GtkUtil {
+    pub fn register_symbolic_icons() {
+        let data = Resources::get("gresource_bundles/symbolic_icons.gresource").expect(GTK_RESOURCE_FILE_ERROR);
+        let bytes = Bytes::from(&data);
+        let icon_resource = Resource::new_from_data(&bytes).unwrap();
+        gio::resources_register(&icon_resource);
+        IconTheme::get_default()
+            .unwrap()
+            .add_resource_path("/com/gitlab/newsflash/resources/icons/");
+    }
+
+    pub fn create_surface_from_icon_name(icon_name: &str, size: i32, scale_factor: i32) -> Surface {
+        let icon_name = format!("icons/{}.svg", icon_name);
+        let icon = Resources::get(&icon_name).expect(GTK_RESOURCE_FILE_ERROR);
+        Self::create_surface_from_bytes(&icon, size, size, scale_factor)
+            .expect(&format!("Failed to load '{}' from resources.", icon_name))
+    }
+
     pub fn create_surface_from_pixelicon(icon: &PixelIcon, scale_factor: i32) -> Result<Surface, UtilError> {
         Self::create_surface_from_bytes(&icon.data, icon.width, icon.height, scale_factor)
     }
@@ -67,6 +87,10 @@ impl GtkUtil {
             return true;
         }
         false
+    }
+
+    pub fn get_scale<W: IsA<gtk::Object> + IsA<gtk::Widget> + Clone>(widget: &W) -> i32 {
+        widget.get_style_context().get_scale()
     }
 
     pub fn is_main_window<W: IsA<gtk::Object> + IsA<gtk::Widget> + Clone>(widget: &W) -> bool {

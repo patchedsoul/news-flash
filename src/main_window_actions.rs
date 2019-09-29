@@ -438,18 +438,36 @@ impl MainWindowActions {
             if let Some(data) = data {
                 if let Some(data) = data.get_str() {
                     let article_id = ArticleID::new(data);
-                    if content_page
-                        .borrow_mut()
-                        .article_view_show(&article_id, &news_flash)
-                        .is_err()
-                    {
-                        error_bar
-                            .borrow()
-                            .simple_message(&format!("Failed to show article: '{}'", article_id));
+                    if let Some(news_flash) = news_flash.borrow_mut().as_mut() {
+                        let article = match news_flash.get_fat_article(&article_id) {
+                            Ok(article) => article,
+                            Err(error) => {
+                                error_bar.borrow().news_flash_error("Failed to read article.", error);
+                                return;
+                            }
+                        };
+                        let (feeds, _) = match news_flash.get_feeds() {
+                            Ok(res) => res,
+                            Err(error) => {
+                                error_bar.borrow().news_flash_error("Failed to read feeds.", error);
+                                return;
+                            }
+                        };
+                        let feed = match feeds.iter().find(|&f| f.feed_id == article.feed_id) {
+                            Some(feed) => feed,
+                            None => {
+                                error_bar
+                                    .borrow()
+                                    .simple_message(&format!("Failed to find feed: '{}'", article.feed_id));
+                                return;
+                            }
+                        };
+                        content_header.borrow().show_article(Some(&article));
+                        content_page.borrow_mut().article_view_show(article, feed);
+
+                        responsive_layout.borrow().state.borrow_mut().major_leaflet_selected = true;
+                        ResponsiveLayout::process_state_change(&*responsive_layout.borrow());
                     }
-                    content_header.borrow().set_article_header_sensitive(true);
-                    responsive_layout.borrow().state.borrow_mut().major_leaflet_selected = true;
-                    ResponsiveLayout::process_state_change(&*responsive_layout.borrow());
                 }
             }
         });
@@ -477,7 +495,7 @@ impl MainWindowActions {
         let close_article_action = SimpleAction::new("close-article", None);
         close_article_action.connect_activate(move |_action, _data| {
             content_page.borrow_mut().article_view_close();
-            content_header.borrow().set_article_header_sensitive(false);
+            content_header.borrow().show_article(None);
         });
         close_article_action.set_enabled(true);
         window.add_action(&close_article_action);

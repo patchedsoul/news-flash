@@ -1,12 +1,11 @@
 use super::error::{LoginScreenError, LoginScreenErrorKind};
 use crate::error_dialog::ErrorDialog;
-use crate::util::{BuilderHelper, GtkUtil, GTK_RESOURCE_FILE_ERROR};
-use crate::Resources;
+use crate::util::{BuilderHelper, GtkUtil};
 use failure::{Fail, ResultExt};
 use glib::{signal::SignalHandlerId, translate::ToGlib, Variant};
 use gtk::{
     self, Box, Button, ButtonExt, Entry, EntryExt, Image, ImageExt, InfoBar, InfoBarExt, Label, LabelExt, ResponseType,
-    Revealer, RevealerExt, StyleContextExt, WidgetExt,
+    Revealer, RevealerExt, WidgetExt,
 };
 use news_flash::models::{
     LoginData, LoginGUI, PasswordLogin as PasswordLoginData, PasswordLoginGUI, PluginIcon, PluginInfo,
@@ -61,11 +60,8 @@ impl PasswordLogin {
         let ignore_tls_button = builder.get::<Button>("ignore_button");
         let error_details_button = builder.get::<Button>("pw_details_button");
 
-        let scale_factor = page.get_style_context().get_scale();
-
-        let generic_logo_data = Resources::get("icons/feed-service-generic.svg").expect(GTK_RESOURCE_FILE_ERROR);
-        let surface = GtkUtil::create_surface_from_bytes(&generic_logo_data, 64, 64, scale_factor)
-            .expect(GTK_RESOURCE_FILE_ERROR);
+        let scale_factor = GtkUtil::get_scale(&page);
+        let surface = GtkUtil::create_surface_from_icon_name("feed-service-generic", 64, scale_factor);
         logo.set_from_surface(Some(&surface));
 
         PasswordLogin {

@@ -222,12 +222,9 @@ impl ArticleList {
                 let selected_index = row.get_index();
                 let selected_article = list_model.borrow_mut().calculate_selection(selected_index).cloned();
                 if let Some(selected_article) = selected_article {
-                    let selected_article_id = selected_article.id.clone();
-                    let selected_article_id_variant = Variant::from(&selected_article_id.to_str());
-                    GtkUtil::execute_action(list, "show-article", Some(&selected_article_id_variant));
                     if selected_article.read == Read::Unread {
                         let update = ReadUpdate {
-                            article_id: selected_article_id,
+                            article_id: selected_article.id.clone(),
                             read: Read::Read,
                         };
                         let update_data = serde_json::to_string(&update).expect("Failed to serialize ReadUpdate");
@@ -240,6 +237,9 @@ impl ArticleList {
                         }
                         GtkUtil::execute_action(list, "mark-article-read", Some(&update_data));
                     }
+
+                    let selected_article_id_variant = Variant::from(&selected_article.id.to_str());
+                    GtkUtil::execute_action(list, "show-article", Some(&selected_article_id_variant));
                 }
             })
             .to_glib();

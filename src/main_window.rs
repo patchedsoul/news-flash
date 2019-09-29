@@ -40,8 +40,8 @@ pub struct MainWindow {
 
 impl MainWindow {
     pub fn new(app: &Application) -> Self {
+        GtkUtil::register_symbolic_icons();
         let provider_handle = gtk_handle!(CssProvider::new());
-
         let settings = gtk_handle!(Settings::open().expect("Failed to access settings file"));
 
         if let Some(gtk_settings) = GtkSettings::get_default() {

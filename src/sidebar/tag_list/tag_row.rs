@@ -1,7 +1,7 @@
 use crate::color::ColorRGBA;
 use crate::gtk_handle;
 use crate::sidebar::tag_list::models::TagListTagModel;
-use crate::util::{BuilderHelper, GtkHandle};
+use crate::util::{BuilderHelper, GtkHandle, GtkUtil};
 use cairo::{Context, FillRule};
 use gdk::WindowExt;
 use gtk::{Box, ContainerExt, Image, ImageExt, Label, LabelExt, ListBoxRow, ListBoxRowExt, StyleContextExt, WidgetExt};
@@ -63,7 +63,7 @@ impl TagRow {
     fn update_color_cirlce(tag_color_circle: &Image, color: &str) {
         let size = 16;
         let half_size = f64::from(size / 2);
-        let scale = tag_color_circle.get_style_context().get_scale();
+        let scale = GtkUtil::get_scale(tag_color_circle);
         if let Some(window) = tag_color_circle.get_window() {
             if let Some(surface) = window.create_similar_image_surface(0, size, size, scale) {
                 let cairo_ctx = Context::new(&surface);

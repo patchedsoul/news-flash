@@ -83,7 +83,7 @@ impl ServiceRow {
         });
 
         let arrow_image = builder.get::<Image>("arrow_image");
-        let scale = row.get_style_context().get_scale();
+        let scale = GtkUtil::get_scale(&row);
 
         let image = builder.get::<Image>("icon");
         if let Some(icon) = info.icon {

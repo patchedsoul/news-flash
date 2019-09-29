@@ -156,7 +156,7 @@ impl FeedRow {
     pub fn update_favicon(&self, icon: &Option<FavIcon>) {
         if let Some(icon) = icon {
             if let Some(data) = &icon.data {
-                let scale = self.widget.get_style_context().get_scale();
+                let scale = GtkUtil::get_scale(&self.widget());
                 if let Ok(surface) = GtkUtil::create_surface_from_bytes(data, 16, 16, scale) {
                     self.favicon.set_from_surface(Some(&surface));
                 }

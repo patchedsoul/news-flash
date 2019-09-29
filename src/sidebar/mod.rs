@@ -7,8 +7,7 @@ mod tag_list;
 use self::error::{SidebarError, SidebarErrorKind};
 use self::footer::SidebarFooter;
 use crate::gtk_handle;
-use crate::util::{BuilderHelper, GtkHandle, GtkUtil, GTK_RESOURCE_FILE_ERROR};
-use crate::Resources;
+use crate::util::{BuilderHelper, GtkHandle, GtkUtil};
 use failure::ResultExt;
 pub use feed_list::models::{FeedListItemID, FeedListTree};
 use feed_list::FeedList;
@@ -155,7 +154,7 @@ impl SideBar {
                 }
             });
 
-        let scale = sidebar.get_style_context().get_scale();
+        let scale = GtkUtil::get_scale(&sidebar);
 
         let expanded_categories = gtk_handle!(true);
         let expanded_tags = gtk_handle!(false);
@@ -252,9 +251,7 @@ impl SideBar {
             };
             self.logo.set_from_surface(Some(&surface));
         } else {
-            let generic_logo_data = Resources::get("icons/feed-service-generic.svg").expect(GTK_RESOURCE_FILE_ERROR);
-            let surface = GtkUtil::create_surface_from_bytes(&generic_logo_data, 64, 64, self.scale_factor)
-                .context(SidebarErrorKind::MetaData)?;
+            let surface = GtkUtil::create_surface_from_icon_name("feed-service-generic", 64, self.scale_factor);
             self.logo.set_from_surface(Some(&surface));
         }
 

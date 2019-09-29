@@ -4,10 +4,11 @@ use crate::util::{BuilderHelper, GtkHandle, GtkUtil};
 use gio::{Menu, MenuItem};
 use glib::{object::Cast, translate::ToGlib, Variant};
 use gtk::{
-    Button, ButtonExt, Continue, EntryExt, Inhibit, MenuButton, MenuButtonExt, SearchEntry, SearchEntryExt, Stack,
-    StackExt, ToggleButton, ToggleButtonExt, WidgetExt,
+    Button, ButtonExt, Continue, EntryExt, IconSize, Image, ImageExt, Inhibit, MenuButton, MenuButtonExt, SearchEntry,
+    SearchEntryExt, Stack, StackExt, ToggleButton, ToggleButtonExt, WidgetExt,
 };
 use libhandy::{SearchBar, SearchBarExt};
+use news_flash::models::{FatArticle, Marked, Read};
 use std::cell::RefCell;
 use std::rc::Rc;
 
@@ -23,6 +24,8 @@ pub struct ContentHeader {
     mode_switch_stack: Stack,
     mark_article_button: Button,
     mark_article_read_button: Button,
+    mark_article_image: Image,
+    mark_article_read_image: Image,
 }
 
 impl ContentHeader {
@@ -42,6 +45,11 @@ impl ContentHeader {
         let mark_all_read_button = builder.get::<Button>("mark_all_button");
         let mark_article_button = builder.get::<Button>("mark_article_button");
         let mark_article_read_button = builder.get::<Button>("mark_article_read_button");
+        let mark_article_image = builder.get::<Image>("mark_article_image");
+        let mark_article_read_image = builder.get::<Image>("mark_article_read_image");
+
+        mark_article_image.set_from_icon_name(Some("unmarked-symbolic"), IconSize::SmallToolbar);
+        mark_article_read_image.set_from_icon_name(Some("read-symbolic"), IconSize::SmallToolbar);
 
         mark_all_read_button.connect_clicked(|button| {
             GtkUtil::execute_action(button, "sidebar-set-read", None);
@@ -95,6 +103,8 @@ impl ContentHeader {
             mode_switch_stack,
             mark_article_button,
             mark_article_read_button,
+            mark_article_image,
+            mark_article_read_image,
         }
     }
 
@@ -296,7 +306,29 @@ impl ContentHeader {
         button.set_sensitive(false);
     }
 
-    pub fn set_article_header_sensitive(&self, sensitive: bool) {
+    pub fn show_article(&self, article: Option<&FatArticle>) {
+        let sensitive = article.is_some();
+
+        let unread_icon = match article {
+            Some(article) => match article.unread {
+                Read::Read => "read-symbolic",
+                Read::Unread => "unread-symbolic",
+            },
+            None => "read-symbolic",
+        };
+        let marked_icon = match article {
+            Some(article) => match article.marked {
+                Marked::Marked => "marked-symbolic",
+                Marked::Unmarked => "unmarked-symbolic",
+            },
+            None => "unmarked-symbolic",
+        };
+
+        self.mark_article_image
+            .set_from_icon_name(Some(marked_icon), IconSize::SmallToolbar);
+        self.mark_article_read_image
+            .set_from_icon_name(Some(unread_icon), IconSize::SmallToolbar);
+
         self.more_actions_button.set_sensitive(sensitive);
         self.mark_article_button.set_sensitive(sensitive);
         self.mark_article_read_button.set_sensitive(sensitive);

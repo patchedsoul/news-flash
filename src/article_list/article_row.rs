@@ -1,7 +1,6 @@
 use super::models::{ArticleListArticleModel, ArticleListModel, MarkUpdate, ReadUpdate};
 use crate::gtk_handle;
-use crate::util::{BuilderHelper, DateUtil, GtkHandle, GtkUtil, GTK_RESOURCE_FILE_ERROR};
-use crate::Resources;
+use crate::util::{BuilderHelper, DateUtil, GtkHandle, GtkUtil};
 use gdk::{EventType, NotifyType};
 use glib::Variant;
 use gtk::{
@@ -39,30 +38,22 @@ impl ArticleRow {
 
         let row = Self::create_row(&article_eventbox);
 
-        let scale = favicon.get_style_context().get_scale();
+        let scale = GtkUtil::get_scale(&favicon);
 
         let marked = builder.get::<Image>("marked");
-        let marked_icon = Resources::get("icons/marked.svg").expect(GTK_RESOURCE_FILE_ERROR);
-        let surface = GtkUtil::create_surface_from_bytes(&marked_icon, 16, 16, scale)
-            .expect("Failed to load 'icons/marked.svg' from resources.");
+        let surface = GtkUtil::create_surface_from_icon_name("marked", 16, scale);
         marked.set_from_surface(Some(&surface));
 
         let unmarked = builder.get::<Image>("unmarked");
-        let unmarked_icon = Resources::get("icons/unmarked.svg").expect(GTK_RESOURCE_FILE_ERROR);
-        let surface = GtkUtil::create_surface_from_bytes(&unmarked_icon, 16, 16, scale)
-            .expect("Failed to load 'icons/unmarked.svg' from resources.");
+        let surface = GtkUtil::create_surface_from_icon_name("unmarked", 16, scale);
         unmarked.set_from_surface(Some(&surface));
 
         let read = builder.get::<Image>("read");
-        let read_icon = Resources::get("icons/read.svg").expect(GTK_RESOURCE_FILE_ERROR);
-        let surface = GtkUtil::create_surface_from_bytes(&read_icon, 16, 16, scale)
-            .expect("Failed to load 'icons/read.svg' from resources.");
+        let surface = GtkUtil::create_surface_from_icon_name("read", 16, scale);
         read.set_from_surface(Some(&surface));
 
         let unread = builder.get::<Image>("unread");
-        let unread_icon = Resources::get("icons/unread.svg").expect(GTK_RESOURCE_FILE_ERROR);
-        let surface = GtkUtil::create_surface_from_bytes(&unread_icon, 16, 16, scale)
-            .expect("Failed to load 'icons/unread.svg' from resources.");
+        let surface = GtkUtil::create_surface_from_icon_name("unread", 16, scale);
         unread.set_from_surface(Some(&surface));
 
         title_label.set_text(&article.title);
