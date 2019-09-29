@@ -21,6 +21,8 @@ pub struct ContentHeader {
     marked_button: ToggleButton,
     more_actions_button: MenuButton,
     mode_switch_stack: Stack,
+    mark_article_button: Button,
+    mark_article_read_button: Button,
 }
 
 impl ContentHeader {
@@ -38,6 +40,8 @@ impl ContentHeader {
         let mode_button = builder.get::<MenuButton>("mode_switch_button");
         let mode_switch_stack = builder.get::<Stack>("mode_switch_stack");
         let mark_all_read_button = builder.get::<Button>("mark_all_button");
+        let mark_article_button = builder.get::<Button>("mark_article_button");
+        let mark_article_read_button = builder.get::<Button>("mark_article_read_button");
 
         mark_all_read_button.connect_clicked(|button| {
             GtkUtil::execute_action(button, "sidebar-set-read", None);
@@ -89,6 +93,8 @@ impl ContentHeader {
             marked_button,
             more_actions_button,
             mode_switch_stack,
+            mark_article_button,
+            mark_article_read_button,
         }
     }
 
@@ -292,5 +298,7 @@ impl ContentHeader {
 
     pub fn set_article_header_sensitive(&self, sensitive: bool) {
         self.more_actions_button.set_sensitive(sensitive);
+        self.mark_article_button.set_sensitive(sensitive);
+        self.mark_article_read_button.set_sensitive(sensitive);
     }
 }
