@@ -462,7 +462,7 @@ impl MainWindowActions {
                                 return;
                             }
                         };
-                        content_header.borrow().show_article(Some(&article));
+                        content_header.borrow_mut().show_article(Some(&article));
                         content_page.borrow_mut().article_view_show(article, feed);
 
                         responsive_layout.borrow().state.borrow_mut().major_leaflet_selected = true;
@@ -495,19 +495,65 @@ impl MainWindowActions {
         let close_article_action = SimpleAction::new("close-article", None);
         close_article_action.connect_activate(move |_action, _data| {
             content_page.borrow_mut().article_view_close();
-            content_header.borrow().show_article(None);
+            content_header.borrow_mut().show_article(None);
         });
         close_article_action.set_enabled(true);
         window.add_action(&close_article_action);
     }
 
+    pub fn setup_toggle_article_read_action(window: &ApplicationWindow, content_page: &GtkHandle<ContentPage>) {
+        let content_page = content_page.clone();
+        let main_window = window.clone();
+        let toggle_article_read_action = SimpleAction::new("toggle-article-read", None);
+        toggle_article_read_action.connect_activate(move |_action, _data| {
+            let visible_article = content_page.borrow().article_view_visible_article();
+            if let Some(visible_article) = visible_article {
+                let update = ReadUpdate {
+                    article_id: visible_article.article_id.clone(),
+                    read: visible_article.unread.invert(),
+                };
+                let update_data = serde_json::to_string(&update).expect("Failed to serialize ReadUpdate");
+                let update_data = Variant::from(&update_data);
+                GtkUtil::execute_action_main_window(&main_window, "mark-article-read", Some(&update_data));
+                GtkUtil::execute_action_main_window(&main_window, "update-article-list", None);
+            }
+        });
+        toggle_article_read_action.set_enabled(true);
+        window.add_action(&toggle_article_read_action);
+    }
+
+    pub fn setup_toggle_article_marked_action(window: &ApplicationWindow, content_page: &GtkHandle<ContentPage>) {
+        let content_page = content_page.clone();
+        let main_window = window.clone();
+        let toggle_article_marked_action = SimpleAction::new("toggle-article-marked", None);
+        toggle_article_marked_action.connect_activate(move |_action, _data| {
+            let visible_article = content_page.borrow().article_view_visible_article();
+            if let Some(visible_article) = visible_article {
+                let update = MarkUpdate {
+                    article_id: visible_article.article_id.clone(),
+                    marked: visible_article.marked.invert(),
+                };
+                let update_data = serde_json::to_string(&update).expect("Failed to serialize MarkUpdate");
+                let update_data = Variant::from(&update_data);
+                GtkUtil::execute_action_main_window(&main_window, "mark-article", Some(&update_data));
+                GtkUtil::execute_action_main_window(&main_window, "update-article-list", None);
+            }
+        });
+        toggle_article_marked_action.set_enabled(true);
+        window.add_action(&toggle_article_marked_action);
+    }
+
     pub fn setup_mark_article_read_action(
         window: &ApplicationWindow,
         news_flash: &GtkHandle<Option<NewsFlash>>,
+        content_page: &GtkHandle<ContentPage>,
+        content_header: &GtkHandle<ContentHeader>,
         error_bar: &GtkHandle<ErrorBar>,
     ) {
         let news_flash = news_flash.clone();
         let main_window = window.clone();
+        let content_page = content_page.clone();
+        let content_header = content_header.clone();
         let error_bar = error_bar.clone();
         let mark_article_read_action = SimpleAction::new("mark-article-read", VariantTy::new("s").ok());
         mark_article_read_action.connect_activate(move |_action, data| {
@@ -531,6 +577,17 @@ impl MainWindowActions {
                     }
 
                     GtkUtil::execute_action_main_window(&main_window, "update-sidebar", None);
+                    let visible_article = content_page.borrow().article_view_visible_article();
+                    if let Some(visible_article) = visible_article {
+                        if visible_article.article_id == update.article_id {
+                            let mut visible_article = visible_article.clone();
+                            visible_article.unread = update.read;
+                            content_header.borrow_mut().show_article(Some(&visible_article));
+                            content_page
+                                .borrow_mut()
+                                .article_view_update_visible_article(Some(visible_article.unread), None);
+                        }
+                    }
                 }
             }
         });
@@ -541,10 +598,14 @@ impl MainWindowActions {
     pub fn setup_mark_article_action(
         window: &ApplicationWindow,
         news_flash: &GtkHandle<Option<NewsFlash>>,
+        content_page: &GtkHandle<ContentPage>,
+        content_header: &GtkHandle<ContentHeader>,
         error_bar: &GtkHandle<ErrorBar>,
     ) {
         let news_flash = news_flash.clone();
         let main_window = window.clone();
+        let content_page = content_page.clone();
+        let content_header = content_header.clone();
         let error_bar = error_bar.clone();
         let mark_article_action = SimpleAction::new("mark-article", VariantTy::new("s").ok());
         mark_article_action.connect_activate(move |_action, data| {
@@ -568,6 +629,17 @@ impl MainWindowActions {
                     }
 
                     GtkUtil::execute_action_main_window(&main_window, "update-sidebar", None);
+                    let visible_article = content_page.borrow().article_view_visible_article();
+                    if let Some(visible_article) = visible_article {
+                        if visible_article.article_id == update.article_id {
+                            let mut visible_article = visible_article.clone();
+                            visible_article.marked = update.marked;
+                            content_header.borrow_mut().show_article(Some(&visible_article));
+                            content_page
+                                .borrow_mut()
+                                .article_view_update_visible_article(None, Some(visible_article.marked));
+                        }
+                    }
                 }
             }
         });
@@ -579,11 +651,15 @@ impl MainWindowActions {
         window: &ApplicationWindow,
         news_flash: &GtkHandle<Option<NewsFlash>>,
         state: &GtkHandle<MainWindowState>,
+        content_page: &GtkHandle<ContentPage>,
+        content_header: &GtkHandle<ContentHeader>,
         error_bar: &GtkHandle<ErrorBar>,
     ) {
         let news_flash = news_flash.clone();
         let main_window = window.clone();
         let state = state.clone();
+        let content_page = content_page.clone();
+        let content_header = content_header.clone();
         let error_bar = error_bar.clone();
         let sidebar_set_read_action = SimpleAction::new("sidebar-set-read", None);
         sidebar_set_read_action.connect_activate(move |_action, _data| {
@@ -627,6 +703,16 @@ impl MainWindowActions {
                             error!("{}", message);
                         }
                     },
+                }
+
+                let visible_article = content_page.borrow().article_view_visible_article();
+                if let Some(visible_article) = visible_article {
+                    if let Ok(visible_article) = news_flash.get_fat_article(&visible_article.article_id) {
+                        content_header.borrow_mut().show_article(Some(&visible_article));
+                        content_page
+                            .borrow_mut()
+                            .article_view_update_visible_article(Some(visible_article.unread), None);
+                    }
                 }
             }
 
@@ -1173,7 +1259,7 @@ impl MainWindowActions {
         let error_bar = error_bar.clone();
         let export_article_action = SimpleAction::new("export-article", None);
         export_article_action.connect_activate(move |_action, _data| {
-            if let Some(article) = content_page.borrow().article_list_visible_article() {
+            if let Some(article) = content_page.borrow().article_view_visible_article() {
                 let dialog = FileChooserDialog::with_buttons(
                     Some("Export Article"),
                     Some(&main_window),

@@ -337,16 +337,41 @@
                         <property name="visible">True</property>
                         <property name="can_focus">False</property>
                         <child>
-                          <object class="GtkButton" id="mark_article_button">
+                          <object class="GtkToggleButton" id="mark_article_button">
                             <property name="visible">True</property>
                             <property name="sensitive">False</property>
                             <property name="can_focus">True</property>
                             <property name="receives_default">True</property>
+                            <property name="tooltip_text" translatable="yes">Toggle Starred</property>
                             <child>
-                              <object class="GtkImage" id="mark_article_image">
+                              <object class="GtkStack" id="mark_article_stack">
                                 <property name="visible">True</property>
                                 <property name="can_focus">False</property>
-                                <property name="stock">gtk-missing-image</property>
+                                <property name="transition_duration">50</property>
+                                <property name="transition_type">crossfade</property>
+                                <child>
+                                  <object class="GtkImage">
+                                    <property name="visible">True</property>
+                                    <property name="can_focus">False</property>
+                                    <property name="icon_name">unmarked-symbolic</property>
+                                  </object>
+                                  <packing>
+                                    <property name="name">unmarked</property>
+                                    <property name="title" translatable="yes">unmarked</property>
+                                  </packing>
+                                </child>
+                                <child>
+                                  <object class="GtkImage">
+                                    <property name="visible">True</property>
+                                    <property name="can_focus">False</property>
+                                    <property name="icon_name">marked-symbolic</property>
+                                  </object>
+                                  <packing>
+                                    <property name="name">marked</property>
+                                    <property name="title" translatable="yes">marked</property>
+                                    <property name="position">1</property>
+                                  </packing>
+                                </child>
                               </object>
                             </child>
                           </object>
@@ -357,16 +382,41 @@
                           </packing>
                         </child>
                         <child>
-                          <object class="GtkButton" id="mark_article_read_button">
+                          <object class="GtkToggleButton" id="mark_article_read_button">
                             <property name="visible">True</property>
                             <property name="sensitive">False</property>
                             <property name="can_focus">True</property>
                             <property name="receives_default">True</property>
+                            <property name="tooltip_text" translatable="yes">Toggle Read</property>
                             <child>
-                              <object class="GtkImage" id="mark_article_read_image">
+                              <object class="GtkStack" id="mark_article_read_stack">
                                 <property name="visible">True</property>
                                 <property name="can_focus">False</property>
-                                <property name="stock">gtk-missing-image</property>
+                                <property name="transition_duration">50</property>
+                                <property name="transition_type">crossfade</property>
+                                <child>
+                                  <object class="GtkImage">
+                                    <property name="visible">True</property>
+                                    <property name="can_focus">False</property>
+                                    <property name="icon_name">read-symbolic</property>
+                                  </object>
+                                  <packing>
+                                    <property name="name">read</property>
+                                    <property name="title" translatable="yes">read</property>
+                                  </packing>
+                                </child>
+                                <child>
+                                  <object class="GtkImage">
+                                    <property name="visible">True</property>
+                                    <property name="can_focus">False</property>
+                                    <property name="icon_name">unread-symbolic</property>
+                                  </object>
+                                  <packing>
+                                    <property name="name">unread</property>
+                                    <property name="title" translatable="yes">unread</property>
+                                    <property name="position">1</property>
+                                  </packing>
+                                </child>
                               </object>
                             </child>
                           </object>

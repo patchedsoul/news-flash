@@ -23,7 +23,7 @@ use gtk::{
     StackExt, TickCallbackId, WidgetExt, WidgetExtManual,
 };
 use log::{error, warn};
-use news_flash::models::FatArticle;
+use news_flash::models::{FatArticle, Marked, Read};
 use pango::FontDescription;
 use std::cell::RefCell;
 use std::rc::Rc;
@@ -170,8 +170,8 @@ impl ArticleView {
         let webview = self.switch_view();
         let html = self.build_article(&article, &feed_name);
         webview.load_html(&html, None);
-        *self.visible_article.borrow_mut() = Some(article);
-        *self.visible_feed_name.borrow_mut() = Some(feed_name);
+        self.visible_article.replace(Some(article));
+        self.visible_feed_name.replace(Some(feed_name));
     }
 
     pub fn redraw_article(&mut self) {
@@ -196,6 +196,17 @@ impl ArticleView {
 
     pub fn get_visible_article(&self) -> Option<FatArticle> {
         (*self.visible_article.borrow()).clone()
+    }
+
+    pub fn update_visible_article(&mut self, read: Option<Read>, marked: Option<Marked>) {
+        if let Some(visible_article) = &mut *self.visible_article.borrow_mut() {
+            if let Some(marked) = marked {
+                visible_article.marked = marked;
+            }
+            if let Some(read) = read {
+                visible_article.unread = read;
+            }
+        }
     }
 
     pub fn close_article(&self) {

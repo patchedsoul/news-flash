@@ -341,8 +341,12 @@ impl ContentPage {
         self.article_view.close_article()
     }
 
-    pub fn article_list_visible_article(&self) -> Option<FatArticle> {
+    pub fn article_view_visible_article(&self) -> Option<FatArticle> {
         self.article_view.get_visible_article()
+    }
+
+    pub fn article_view_update_visible_article(&mut self, read: Option<Read>, marked: Option<Marked>) {
+        self.article_view.update_visible_article(read, marked);
     }
 
     pub fn article_view_redraw(&mut self) {

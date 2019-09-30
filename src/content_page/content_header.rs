@@ -4,8 +4,8 @@ use crate::util::{BuilderHelper, GtkHandle, GtkUtil};
 use gio::{Menu, MenuItem};
 use glib::{object::Cast, translate::ToGlib, Variant};
 use gtk::{
-    Button, ButtonExt, Continue, EntryExt, IconSize, Image, ImageExt, Inhibit, MenuButton, MenuButtonExt, SearchEntry,
-    SearchEntryExt, Stack, StackExt, ToggleButton, ToggleButtonExt, WidgetExt,
+    Button, ButtonExt, Continue, EntryExt, Inhibit, MenuButton, MenuButtonExt, SearchEntry, SearchEntryExt, Stack,
+    StackExt, ToggleButton, ToggleButtonExt, WidgetExt,
 };
 use libhandy::{SearchBar, SearchBarExt};
 use news_flash::models::{FatArticle, Marked, Read};
@@ -22,10 +22,12 @@ pub struct ContentHeader {
     marked_button: ToggleButton,
     more_actions_button: MenuButton,
     mode_switch_stack: Stack,
-    mark_article_button: Button,
-    mark_article_read_button: Button,
-    mark_article_image: Image,
-    mark_article_read_image: Image,
+    mark_article_button: ToggleButton,
+    mark_article_read_button: ToggleButton,
+    mark_article_stack: Stack,
+    mark_article_read_stack: Stack,
+    mark_article_event: Option<u64>,
+    mark_article_read_event: Option<u64>,
 }
 
 impl ContentHeader {
@@ -43,13 +45,10 @@ impl ContentHeader {
         let mode_button = builder.get::<MenuButton>("mode_switch_button");
         let mode_switch_stack = builder.get::<Stack>("mode_switch_stack");
         let mark_all_read_button = builder.get::<Button>("mark_all_button");
-        let mark_article_button = builder.get::<Button>("mark_article_button");
-        let mark_article_read_button = builder.get::<Button>("mark_article_read_button");
-        let mark_article_image = builder.get::<Image>("mark_article_image");
-        let mark_article_read_image = builder.get::<Image>("mark_article_read_image");
-
-        mark_article_image.set_from_icon_name(Some("unmarked-symbolic"), IconSize::SmallToolbar);
-        mark_article_read_image.set_from_icon_name(Some("read-symbolic"), IconSize::SmallToolbar);
+        let mark_article_button = builder.get::<ToggleButton>("mark_article_button");
+        let mark_article_read_button = builder.get::<ToggleButton>("mark_article_read_button");
+        let mark_article_stack = builder.get::<Stack>("mark_article_stack");
+        let mark_article_read_stack = builder.get::<Stack>("mark_article_read_stack");
 
         mark_all_read_button.connect_clicked(|button| {
             GtkUtil::execute_action(button, "sidebar-set-read", None);
@@ -91,7 +90,7 @@ impl ContentHeader {
         Self::setup_mode_button(&mode_button);
         Self::setup_more_actions_button(&more_actions_button);
 
-        ContentHeader {
+        let mut header = ContentHeader {
             update_stack,
             update_button,
             search_button,
@@ -103,9 +102,14 @@ impl ContentHeader {
             mode_switch_stack,
             mark_article_button,
             mark_article_read_button,
-            mark_article_image,
-            mark_article_read_image,
-        }
+            mark_article_stack,
+            mark_article_read_stack,
+            mark_article_event: None,
+            mark_article_read_event: None,
+        };
+
+        header.show_article(None);
+        header
     }
 
     pub fn finish_sync(&self) {
@@ -306,28 +310,75 @@ impl ContentHeader {
         button.set_sensitive(false);
     }
 
-    pub fn show_article(&self, article: Option<&FatArticle>) {
+    fn setup_toggle_button(
+        toggle_button: &ToggleButton,
+        stack: &Stack,
+        active: &'static str,
+        inactive: &'static str,
+        action_name: &'static str,
+    ) -> u64 {
+        let toggle_stack = stack.clone();
+        toggle_button
+            .connect_toggled(move |toggle_button| {
+                if toggle_button.get_active() {
+                    toggle_stack.set_visible_child_name(active);
+                } else {
+                    toggle_stack.set_visible_child_name(inactive);
+                }
+                GtkUtil::execute_action(toggle_button, action_name, None);
+            })
+            .to_glib()
+    }
+
+    fn unread_button_state(article: Option<&FatArticle>) -> (&str, bool) {
+        match article {
+            Some(article) => match article.unread {
+                Read::Read => ("read", false),
+                Read::Unread => ("unread", true),
+            },
+            None => ("read", false),
+        }
+    }
+
+    fn marked_button_state(article: Option<&FatArticle>) -> (&str, bool) {
+        match article {
+            Some(article) => match article.marked {
+                Marked::Marked => ("marked", true),
+                Marked::Unmarked => ("unmarked", false),
+            },
+            None => ("unmarked", false),
+        }
+    }
+
+    pub fn show_article(&mut self, article: Option<&FatArticle>) {
         let sensitive = article.is_some();
 
-        let unread_icon = match article {
-            Some(article) => match article.unread {
-                Read::Read => "read-symbolic",
-                Read::Unread => "unread-symbolic",
-            },
-            None => "read-symbolic",
-        };
-        let marked_icon = match article {
-            Some(article) => match article.marked {
-                Marked::Marked => "marked-symbolic",
-                Marked::Unmarked => "unmarked-symbolic",
-            },
-            None => "unmarked-symbolic",
-        };
+        let (unread_icon, unread_active) = Self::unread_button_state(article);
+        let (marked_icon, marked_active) = Self::marked_button_state(article);
 
-        self.mark_article_image
-            .set_from_icon_name(Some(marked_icon), IconSize::SmallToolbar);
-        self.mark_article_read_image
-            .set_from_icon_name(Some(unread_icon), IconSize::SmallToolbar);
+        self.mark_article_stack.set_visible_child_name(marked_icon);
+        self.mark_article_read_stack.set_visible_child_name(unread_icon);
+
+        GtkUtil::disconnect_signal(self.mark_article_read_event, &self.mark_article_read_button);
+        GtkUtil::disconnect_signal(self.mark_article_event, &self.mark_article_button);
+
+        self.mark_article_button.set_active(marked_active);
+        self.mark_article_read_button.set_active(unread_active);
+
+        self.mark_article_event = Some(Self::setup_toggle_button(
+            &self.mark_article_button,
+            &self.mark_article_stack,
+            "marked",
+            "unmarked",
+            "toggle-article-marked",
+        ));
+        self.mark_article_read_event = Some(Self::setup_toggle_button(
+            &self.mark_article_read_button,
+            &self.mark_article_read_stack,
+            "unread",
+            "read",
+            "toggle-article-read",
+        ));
 
         self.more_actions_button.set_sensitive(sensitive);
         self.mark_article_button.set_sensitive(sensitive);
