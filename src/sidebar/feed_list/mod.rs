@@ -122,7 +122,6 @@ impl FeedList {
                             let hover = tree.borrow().calculate_selection(index);
                             if let Some(hovered_item) = hover {
                                 if let (FeedListItemID::Category(id), _title) = hovered_item {
-
                                     let mut start_hover = false;
                                     if let Some((saved_source, saved_id)) = &*hovered_category_expand.borrow() {
                                         if saved_id != &id {
@@ -139,16 +138,19 @@ impl FeedList {
                                         let categories2 = categories.clone();
                                         let id2 = id.clone();
                                         let hovered_category_expand2 = hovered_category_expand.clone();
-                                        
 
-                                        hovered_category_expand.replace(Some((gtk::timeout_add(1500, move || {
-                                            if let Some(category_row) = categories2.borrow().get(&id2) {
-                                                category_row.borrow_mut().expand_collapse_arrow();
-                                                Self::expand_collapse_category(&id2, &tree2, &categories2, &feeds2);
-                                            }
-                                            hovered_category_expand2.replace(None);
-                                            Continue(false)
-                                        }).to_glib(), id)));
+                                        hovered_category_expand.replace(Some((
+                                            gtk::timeout_add(1500, move || {
+                                                if let Some(category_row) = categories2.borrow().get(&id2) {
+                                                    category_row.borrow_mut().expand_collapse_arrow();
+                                                    Self::expand_collapse_category(&id2, &tree2, &categories2, &feeds2);
+                                                }
+                                                hovered_category_expand2.replace(None);
+                                                Continue(false)
+                                            })
+                                            .to_glib(),
+                                            id,
+                                        )));
                                     }
                                 }
                             }
@@ -158,7 +160,6 @@ impl FeedList {
                     }
 
                     Self::clear_hovered_expand(&hovered_category_expand);
-                    
 
                     // check next visible item
                     let next_item = tree.borrow_mut().calculate_next_item(index);
