@@ -69,12 +69,16 @@
 	border-bottom: 1px solid transparent;
 }
 
-.newsflash-sidebar .drag-above {
+.newsflash-sidebar .drag-bottom {
 	border-bottom: 1px solid white;
 }
 
-.newsflash-sidebar .drag-below {
+.newsflash-sidebar .drag-top {
 	border-top: 1px solid white;
+}
+
+.newsflash-sidebar .drag-category {
+	background: @sidebar-selected;
 }
 
 .newsflash-sidebar .activatable {

@@ -149,6 +149,16 @@ impl GtkUtil {
         None
     }
 
+    pub fn listboxrow_is_category(row: &gtk::ListBoxRow) -> bool {
+        if let Some(row) = row.get_child() {
+            if row.downcast::<EventBox>().is_ok() {
+                return true;
+            }
+        }
+
+        false
+    }
+
     pub fn get_dnd_style_context_listboxrow(row: &gtk::ListBoxRow) -> Option<StyleContext> {
         if let Some(row) = row.get_child() {
             if let Ok(row) = row.clone().downcast::<Revealer>() {
