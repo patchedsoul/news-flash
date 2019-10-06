@@ -69,41 +69,62 @@ impl FeedList {
     fn setup_dnd(&self) {
         let entry = TargetEntry::new("FeedRow", TargetFlags::SAME_APP, 0);
         let tree = self.tree.clone();
+        let feeds = self.feeds.clone();
+        let categories = self.categories.clone();
         self.list
             .drag_dest_set(DestDefaults::DROP | DestDefaults::MOTION, &[entry], DragAction::MOVE);
         self.list.drag_dest_add_text_targets();
-        self.list.connect_drag_motion(|widget, _drag_context, _x, y, _time| {
-            // maybe we should keep track of the previous highlighted rows instead of iterating over all of them
-            let children = widget.get_children();
-            for widget in children {
-                if let Some(ctx) = GtkUtil::get_dnd_style_context_widget(&widget) {
-                    ctx.remove_class("drag-above");
-                    ctx.remove_class("drag-below");
+        self.list
+            .connect_drag_motion(move |widget, _drag_context, _x, y, _time| {
+                // maybe we should keep track of the previous highlighted rows instead of iterating over all of them
+                let children = widget.get_children();
+                for widget in children {
+                    if let Some(ctx) = GtkUtil::get_dnd_style_context_widget(&widget) {
+                        ctx.remove_class("drag-above");
+                        ctx.remove_class("drag-below");
+                    }
                 }
-            }
 
-            if let Some(row) = widget.get_row_at_y(y) {
-                let alloc = row.get_allocation();
-                let index = row.get_index();
+                if let Some(row) = widget.get_row_at_y(y) {
+                    let alloc = row.get_allocation();
+                    let index = row.get_index();
 
-                if y < alloc.y + (alloc.height / 2) {
-                    if let Some(ctx) = GtkUtil::get_dnd_style_context_listboxrow(&row) {
-                        ctx.add_class("drag-below");
+                    if y < alloc.y + (alloc.height / 2) {
+                        if let Some(ctx) = GtkUtil::get_dnd_style_context_listboxrow(&row) {
+                            ctx.add_class("drag-below");
+                            return Inhibit(false);
+                        }
                     }
-                } else if let Some(row_below) = widget.get_row_at_index(index + 1) {
-                    if let Some(ctx) = GtkUtil::get_dnd_style_context_listboxrow(&row_below) {
-                        ctx.add_class("drag-below");
+
+                    // check next visible item
+                    let next_item = tree.borrow_mut().calculate_next_item(index);
+                    if let SidebarIterateItem::SelectFeedListCategory(id) = &next_item {
+                        if let Some(category_row) = categories.borrow().get(&id) {
+                            if let Some(ctx) =
+                                GtkUtil::get_dnd_style_context_listboxrow(&category_row.borrow().widget())
+                            {
+                                ctx.add_class("drag-below");
+                                return Inhibit(false);
+                            }
+                        }
+                    } else if let SidebarIterateItem::SelectFeedListFeed(id) = &next_item {
+                        if let Some(feed_row) = feeds.borrow().get(&id) {
+                            if let Some(ctx) = GtkUtil::get_dnd_style_context_listboxrow(&feed_row.borrow().widget()) {
+                                ctx.add_class("drag-below");
+                                return Inhibit(false);
+                            }
+                        }
                     }
-                } else {
+
                     // row after doesn't exist -> insert at last pos
                     if let Some(ctx) = GtkUtil::get_dnd_style_context_listboxrow(&row) {
                         ctx.add_class("drag-above");
+                        return Inhibit(false);
                     }
                 }
-            }
 
-            Inhibit(false)
-        });
+                Inhibit(false)
+            });
         self.list.connect_drag_leave(|widget, _drag_context, _time| {
             let children = widget.get_children();
             for widget in children {
@@ -113,6 +134,7 @@ impl FeedList {
                 }
             }
         });
+        let tree = self.tree.clone();
         self.list
             .connect_drag_data_received(move |widget, _ctx, _x, y, selection_data, _info, _time| {
                 let children = widget.get_children();

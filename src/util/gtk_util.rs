@@ -7,7 +7,8 @@ use gdk_pixbuf::Pixbuf;
 use gio::{ActionExt, ActionMapExt, Cancellable, MemoryInputStream, Resource};
 use glib::{object::IsA, object::ObjectExt, signal::SignalHandlerId, source::SourceId, translate::FromGlib, Bytes};
 use gtk::{
-    BinExt, Cast, EntryExt, IconTheme, IconThemeExt, ListBoxRow, Revealer, StyleContext, StyleContextExt, WidgetExt,
+    BinExt, Cast, EntryExt, EventBox, IconTheme, IconThemeExt, ListBoxRow, Revealer, StyleContext, StyleContextExt,
+    WidgetExt,
 };
 use log::{error, warn};
 use news_flash::models::PixelIcon;
@@ -150,9 +151,17 @@ impl GtkUtil {
 
     pub fn get_dnd_style_context_listboxrow(row: &gtk::ListBoxRow) -> Option<StyleContext> {
         if let Some(row) = row.get_child() {
-            if let Ok(row) = row.downcast::<Revealer>() {
+            if let Ok(row) = row.clone().downcast::<Revealer>() {
                 if let Some(row) = row.get_child() {
                     return Some(row.get_style_context());
+                }
+            } else if let Ok(row) = row.downcast::<EventBox>() {
+                if let Some(row) = row.get_child() {
+                    if let Ok(row) = row.downcast::<Revealer>() {
+                        if let Some(row) = row.get_child() {
+                            return Some(row.get_style_context());
+                        }
+                    }
                 }
             }
         }
