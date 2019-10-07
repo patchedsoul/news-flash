@@ -5,6 +5,7 @@ Comment=Faster than flash to deliver you the latest news from your subscribed fe
 Type=Application
 Exec=newsflash
 Terminal=false
+X-GNOME-UsesNotifications=true
 Categories=GNOME;GTK;Network;Feed;
 Keywords=Gnome;GTK;RSS;Feed;
 # Translators: Do NOT translate or transliterate this text (this is an icon file name)!

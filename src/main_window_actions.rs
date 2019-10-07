@@ -7,7 +7,7 @@ use crate::content_page::{ContentHeader, ContentPage};
 use crate::error_bar::ErrorBar;
 use crate::gtk_handle;
 use crate::login_screen::{PasswordLogin, WebLogin};
-use crate::main_window::DATA_DIR;
+use crate::main_window::{DATA_DIR, MainWindow};
 use crate::main_window_state::MainWindowState;
 use crate::rename_dialog::RenameDialog;
 use crate::responsive::ResponsiveLayout;
@@ -221,25 +221,33 @@ impl MainWindowActions {
 
     pub fn setup_sync_action(
         window: &ApplicationWindow,
+        application: &Application,
         content_header: &GtkHandle<ContentHeader>,
         news_flash: &GtkHandle<Option<NewsFlash>>,
         error_bar: &GtkHandle<ErrorBar>,
     ) {
         let parent = window.clone();
+        let application = application.clone();
         let content_header = content_header.clone();
         let news_flash = news_flash.clone();
         let error_bar = error_bar.clone();
         let sync_action = SimpleAction::new("sync", None);
         sync_action.connect_activate(move |_action, _data| {
-            let mut result: Result<(), NewsFlashError> = Ok(());
+            let mut result: Result<i64, NewsFlashError> = Ok(0);
+            let mut unread_count = 0;
             if let Some(news_flash) = news_flash.borrow_mut().as_mut() {
                 result = news_flash.sync();
+                unread_count = match news_flash.unread_count_all() {
+                    Ok(unread_count) => unread_count,
+                    Err(_) => 0,
+                };
             }
             match result {
-                Ok(()) => {
+                Ok(new_article_count) => {
                     content_header.borrow().finish_sync();
                     GtkUtil::execute_action_main_window(&parent, "update-sidebar", None);
                     GtkUtil::execute_action_main_window(&parent, "update-article-list", None);
+                    MainWindow::show_notification(&application, new_article_count, unread_count);
                 }
                 Err(error) => {
                     content_header.borrow().finish_sync();

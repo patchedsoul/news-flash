@@ -15,6 +15,7 @@ use crate::welcome_screen::{WelcomeHeaderbar, WelcomePage};
 use crate::Resources;
 use gdk::EventKey;
 use glib::{self, Variant};
+use gio::{ApplicationExt, Notification, NotificationPriority, ThemedIcon};
 use gtk::{
     self, Application, ApplicationWindow, CssProvider, CssProviderExt, GtkWindowExt, GtkWindowExtManual, Inhibit,
     Settings as GtkSettings, SettingsExt, Stack, StackExt, StyleContext, StyleContextExt, WidgetExt,
@@ -111,7 +112,7 @@ impl MainWindow {
             &error_bar_handle,
         );
         MainWindowActions::setup_login_action(&window, &news_flash_handle, &oauht_login_handle, &pw_login_handle);
-        MainWindowActions::setup_sync_action(&window, &content_header_handle, &news_flash_handle, &error_bar_handle);
+        MainWindowActions::setup_sync_action(&window,  &app, &content_header_handle, &news_flash_handle, &error_bar_handle);
         MainWindowActions::setup_sidebar_selection_action(&window, &state, &responsive_layout);
         MainWindowActions::setup_update_sidebar_action(
             &window,
@@ -467,5 +468,24 @@ impl MainWindow {
 
         // apply new style provider
         StyleContext::add_provider_for_screen(&screen, &*provider.borrow(), 600);
+    }
+
+    pub fn show_notification(app: &Application, new_articles: i64, unread_articles: i64) {
+        if new_articles > 0 && unread_articles > 0 {
+            let summary = "New Articles";
+
+            let message = if new_articles == 1 {
+                format!("There is 1 new article ({} unread)", unread_articles)
+            } else {
+                format!("There are {} new articles ({} unread)", new_articles, unread_articles)
+            };
+
+            let notification = Notification::new(summary);
+            notification.set_body(Some(&message));
+            notification.set_priority(NotificationPriority::Normal);
+            notification.set_icon(&ThemedIcon::new(APP_ID));
+
+            app.send_notification(Some("newsflash_sync"), &notification);
+        }
     }
 }
