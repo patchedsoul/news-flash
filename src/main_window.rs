@@ -267,8 +267,7 @@ impl MainWindow {
         }
 
         if let Some(gtk_settings) = GtkSettings::get_default() {
-            gtk_settings
-                .set_property_gtk_application_prefer_dark_theme(settings.borrow().get_prefer_dark_theme());
+            gtk_settings.set_property_gtk_application_prefer_dark_theme(settings.borrow().get_prefer_dark_theme());
 
             let window = window.clone();
             let provider = provider_handle.clone();

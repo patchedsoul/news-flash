@@ -29,10 +29,10 @@ use log4rs::append::console::ConsoleAppender;
 use log4rs::config::{Appender, Config, Root};
 use log4rs::encode::pattern::PatternEncoder;
 use rust_embed::RustEmbed;
-use std::env::args;
-use std::str;
-use std::rc::Rc;
 use std::cell::RefCell;
+use std::env::args;
+use std::rc::Rc;
+use std::str;
 
 #[derive(RustEmbed)]
 #[folder = "data/resources/"]
@@ -62,7 +62,7 @@ fn main() {
 
     let _handle = log4rs::init_config(config).expect("Failed to init log4rs config.");
 
-    let window_handle : GtkHandle<Option<MainWindow>> = gtk_handle!(None);
+    let window_handle: GtkHandle<Option<MainWindow>> = gtk_handle!(None);
 
     application.connect_startup(|_app| {});
     application.connect_activate(move |app| {
