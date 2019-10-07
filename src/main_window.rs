@@ -14,8 +14,8 @@ use crate::util::{BuilderHelper, GtkHandle, GtkUtil, GTK_CSS_ERROR, GTK_RESOURCE
 use crate::welcome_screen::{WelcomeHeaderbar, WelcomePage};
 use crate::Resources;
 use gdk::EventKey;
-use glib::{self, Variant};
 use gio::{ApplicationExt, Notification, NotificationPriority, ThemedIcon};
+use glib::{self, Variant};
 use gtk::{
     self, Application, ApplicationWindow, CssProvider, CssProviderExt, GtkWindowExt, GtkWindowExtManual, Inhibit,
     Settings as GtkSettings, SettingsExt, Stack, StackExt, StyleContext, StyleContextExt, WidgetExt,
@@ -112,7 +112,13 @@ impl MainWindow {
             &error_bar_handle,
         );
         MainWindowActions::setup_login_action(&window, &news_flash_handle, &oauht_login_handle, &pw_login_handle);
-        MainWindowActions::setup_sync_action(&window,  &app, &content_header_handle, &news_flash_handle, &error_bar_handle);
+        MainWindowActions::setup_sync_action(
+            &window,
+            &app,
+            &content_header_handle,
+            &news_flash_handle,
+            &error_bar_handle,
+        );
         MainWindowActions::setup_sidebar_selection_action(&window, &state, &responsive_layout);
         MainWindowActions::setup_update_sidebar_action(
             &window,

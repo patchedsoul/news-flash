@@ -7,7 +7,7 @@ use crate::content_page::{ContentHeader, ContentPage};
 use crate::error_bar::ErrorBar;
 use crate::gtk_handle;
 use crate::login_screen::{PasswordLogin, WebLogin};
-use crate::main_window::{DATA_DIR, MainWindow};
+use crate::main_window::{MainWindow, DATA_DIR};
 use crate::main_window_state::MainWindowState;
 use crate::rename_dialog::RenameDialog;
 use crate::responsive::ResponsiveLayout;
