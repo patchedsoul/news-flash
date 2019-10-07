@@ -183,7 +183,7 @@
                               <object class="GtkLabel">
                                 <property name="visible">True</property>
                                 <property name="can_focus">False</property>
-                                <property name="label" translatable="yes">Marked</property>
+                                <property name="label" translatable="yes">Starred</property>
                               </object>
                             </child>
                           </object>
