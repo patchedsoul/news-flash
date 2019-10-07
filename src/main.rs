@@ -21,6 +21,7 @@ mod welcome_screen;
 
 use crate::config::APP_ID;
 use crate::main_window::MainWindow;
+use crate::util::GtkHandle;
 use gio::{self, ApplicationExt, ApplicationExtManual};
 use gtk::{self, Application};
 use log::LevelFilter;
@@ -30,6 +31,8 @@ use log4rs::encode::pattern::PatternEncoder;
 use rust_embed::RustEmbed;
 use std::env::args;
 use std::str;
+use std::rc::Rc;
+use std::cell::RefCell;
 
 #[derive(RustEmbed)]
 #[folder = "data/resources/"]
@@ -59,9 +62,19 @@ fn main() {
 
     let _handle = log4rs::init_config(config).expect("Failed to init log4rs config.");
 
-    application.connect_startup(move |_app| {});
+    let window_handle : GtkHandle<Option<MainWindow>> = gtk_handle!(None);
+
+    application.connect_startup(|_app| {});
     application.connect_activate(move |app| {
-        MainWindow::new(&app).present();
+        let no_window = window_handle.borrow().is_none();
+
+        if no_window {
+            window_handle.replace(Some(MainWindow::new(&app)));
+        }
+
+        if let Some(main_window) = window_handle.borrow().as_ref() {
+            main_window.present();
+        }
     });
 
     glib::set_application_name("NewsFlash");

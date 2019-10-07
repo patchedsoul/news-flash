@@ -263,6 +263,7 @@ impl ContentHeader {
         let about_model = Menu::new();
         about_model.append(Some("Shortcuts"), Some("win.shortcuts"));
         about_model.append(Some("About"), Some("win.about"));
+        about_model.append(Some("Quit"), Some("win.quit"));
 
         let im_export_model = Menu::new();
         im_export_model.append(Some("Import OPML"), Some("win.import"));

@@ -71,9 +71,16 @@ impl MainWindow {
         if PROFILE == "Devel" {
             window.get_style_context().add_class("devel");
         }
+
+        let delete_event_settings = settings.clone();
         window.connect_delete_event(move |win, _| {
-            win.destroy();
-            Inhibit(false)
+            if delete_event_settings.borrow().get_keep_running_in_background() {
+                win.hide_on_delete();
+            } else {
+                GtkUtil::execute_action_main_window(win, "quit", None);
+            }
+
+            Inhibit(true)
         });
 
         // setup pages
@@ -259,21 +266,23 @@ impl MainWindow {
             header_stack.set_visible_child_name("welcome");
         }
 
-        if let Some(settings) = GtkSettings::get_default() {
+        if let Some(gtk_settings) = GtkSettings::get_default() {
+            gtk_settings
+                .set_property_gtk_application_prefer_dark_theme(settings.borrow().get_prefer_dark_theme());
+
             let window = window.clone();
             let provider = provider_handle.clone();
-            settings.connect_property_gtk_application_prefer_dark_theme_notify(move |_settings| {
+            gtk_settings.connect_property_gtk_application_prefer_dark_theme_notify(move |_settings| {
                 Self::load_css(&provider);
                 GtkUtil::execute_action_main_window(&window, "redraw-article", None);
             });
         }
 
-        window.show_all();
-
         MainWindow { widget: window }
     }
 
     pub fn present(&self) {
+        self.widget.show_all();
         self.widget.present();
     }
 
