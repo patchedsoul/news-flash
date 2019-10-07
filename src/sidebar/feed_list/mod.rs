@@ -98,6 +98,11 @@ impl FeedList {
                     }
                 }
 
+                // let threshold = (0.9 * (widget.get_allocation().height as f32)) as i32;
+                // if y > threshold {
+                //     println!("below {}", y - threshold);
+                // }
+
                 if let Some(row) = widget.get_row_at_y(y) {
                     let alloc = row.get_allocation();
                     let index = row.get_index();
@@ -118,7 +123,7 @@ impl FeedList {
                                 ctx.add_class("drag-category");
                             }
 
-                            // expand/collapse category on 1.5s hover
+                            // expand/collapse category on 1.2s hover
                             let hover = tree.borrow().calculate_selection(index);
                             if let Some(hovered_item) = hover {
                                 if let (FeedListItemID::Category(id), _title) = hovered_item {
@@ -140,7 +145,7 @@ impl FeedList {
                                         let hovered_category_expand2 = hovered_category_expand.clone();
 
                                         hovered_category_expand.replace(Some((
-                                            gtk::timeout_add(1500, move || {
+                                            gtk::timeout_add(1200, move || {
                                                 if let Some(category_row) = categories2.borrow().get(&id2) {
                                                     category_row.borrow_mut().expand_collapse_arrow();
                                                     Self::expand_collapse_category(&id2, &tree2, &categories2, &feeds2);
