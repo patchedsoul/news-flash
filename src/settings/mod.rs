@@ -8,6 +8,7 @@ mod keybindings;
 mod theme_chooser;
 
 use self::error::{SettingsError, SettingsErrorKind};
+use self::general::SyncInterval;
 use crate::article_view::ArticleTheme;
 use crate::main_window::DATA_DIR;
 use article_list::ArticleListSettings;
@@ -69,6 +70,16 @@ impl Settings {
 
     pub fn set_keep_running_in_background(&mut self, keep_running: bool) -> Result<(), SettingsError> {
         self.general.keep_running_in_background = keep_running;
+        self.write()?;
+        Ok(())
+    }
+
+    pub fn get_sync_interval(&self) -> SyncInterval {
+        self.general.sync_every
+    }
+
+    pub fn set_sync_interval(&mut self, sync_every: SyncInterval) -> Result<(), SettingsError> {
+        self.general.sync_every = sync_every;
         self.write()?;
         Ok(())
     }
