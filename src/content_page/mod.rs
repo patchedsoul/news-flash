@@ -105,7 +105,7 @@ impl ContentPage {
             return Ok(());
         }
 
-        Err(ContentPageErrorKind::NewsFlashHandle)?
+        Err(ContentPageErrorKind::NewsFlashHandle.into())
     }
 
     pub fn load_more_articles(
@@ -153,7 +153,7 @@ impl ContentPage {
             return Ok(());
         }
 
-        Err(ContentPageErrorKind::NewsFlashHandle)?
+        Err(ContentPageErrorKind::NewsFlashHandle.into())
     }
 
     fn load_articles(
@@ -323,7 +323,7 @@ impl ContentPage {
             return Ok(());
         }
 
-        Err(ContentPageErrorKind::NewsFlashHandle)?
+        Err(ContentPageErrorKind::NewsFlashHandle.into())
     }
 
     pub fn article_view_show(&mut self, article: FatArticle, feed: &Feed) {

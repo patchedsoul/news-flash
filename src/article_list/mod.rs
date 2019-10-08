@@ -138,7 +138,7 @@ impl ArticleList {
         let list = match *self.current_list.borrow() {
             CurrentList::List1 => &mut self.list_1,
             CurrentList::List2 => &mut self.list_2,
-            CurrentList::Empty => return Err(ArticleListErrorKind::EmptyState)?,
+            CurrentList::Empty => return Err(ArticleListErrorKind::EmptyState.into()),
         };
 
         for model in new_list.models() {
@@ -282,15 +282,15 @@ impl ArticleList {
             SidebarSelection::All => match new_state.get_header_selection() {
                 HeaderSelection::All => match new_state.get_search_term() {
                     Some(search) => format!("No articles that fit \"{}\"", search),
-                    None => format!("No articles"),
+                    None => "No articles".to_string(),
                 },
                 HeaderSelection::Unread => match new_state.get_search_term() {
                     Some(search) => format!("No unread articles that fit \"{}\"", search),
-                    None => format!("No unread articles"),
+                    None => "No unread articles".to_string(),
                 },
                 HeaderSelection::Marked => match new_state.get_search_term() {
                     Some(search) => format!("No starred articles that fit \"{}\"", search),
-                    None => format!("No starred articles"),
+                    None => "No starred articles".to_string(),
                 },
             },
             SidebarSelection::Cateogry((_id, title)) => match new_state.get_header_selection() {
@@ -362,12 +362,12 @@ impl ArticleList {
                     .list_model
                     .borrow_mut()
                     .calculate_selection(selected_index)
-                    .map(|r| r.clone());
+                    .cloned();
                 let next_row = self
                     .list_model
                     .borrow_mut()
                     .calculate_selection(selected_index + direction)
-                    .map(|r| r.clone());
+                    .cloned();
 
                 if let Some(selected_row) = selected_row {
                     if let Some(next_row) = next_row {
@@ -378,7 +378,7 @@ impl ArticleList {
                     }
                 }
             } else {
-                let first_row = self.list_model.borrow_mut().first().map(|r| r.clone());
+                let first_row = self.list_model.borrow_mut().first().cloned();
 
                 if let Some(first_row) = first_row {
                     current_list.borrow().select_after(&first_row.id, 300);
@@ -396,7 +396,7 @@ impl ArticleList {
                     .list_model
                     .borrow_mut()
                     .calculate_selection(selected_index)
-                    .map(|r| r.clone());
+                    .cloned();
 
                 if let Some(selected_row) = selected_row {
                     return Some(selected_row);

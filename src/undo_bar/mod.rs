@@ -50,19 +50,19 @@ impl UndoBar {
         self.widget.show();
     }
 
-    fn execute_action(action: &UndoActionModel, bar: &InfoBar) {
+    fn execute_action(action: &UndoActionModel, info_bar: &InfoBar) {
         match action {
             UndoActionModel::DeleteFeed((feed_id, _label)) => {
                 let variant = Variant::from(feed_id.to_str());
-                GtkUtil::execute_action(bar, "delete-feed", Some(&variant));
+                GtkUtil::execute_action(info_bar, "delete-feed", Some(&variant));
             }
             UndoActionModel::DeleteCategory((category_id, _label)) => {
                 let variant = Variant::from(category_id.to_str());
-                GtkUtil::execute_action(bar, "delete-category", Some(&variant));
+                GtkUtil::execute_action(info_bar, "delete-category", Some(&variant));
             }
             UndoActionModel::DeleteTag((tag_id, _label)) => {
                 let variant = Variant::from(tag_id.to_str());
-                GtkUtil::execute_action(bar, "delete-tag", Some(&variant));
+                GtkUtil::execute_action(info_bar, "delete-tag", Some(&variant));
             }
         }
     }

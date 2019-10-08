@@ -2,7 +2,7 @@ use news_flash::models::{Tag, TagID};
 use std;
 use std::cmp::Ordering;
 
-pub static DEFAULT_COLOUR: &'static str = "#008040";
+pub static DEFAULT_COLOUR: &str = "#008040";
 
 #[derive(Eq, Clone, Debug)]
 pub struct TagListTagModel {

@@ -196,7 +196,7 @@ impl SingleArticleList {
             None => 0.0,
         };
 
-        *self.scroll_animation_data.transition_diff.borrow_mut() = Some(if pos == -1.0 {
+        *self.scroll_animation_data.transition_diff.borrow_mut() = Some(if (pos + 1.0).abs() < 0.001 {
             self.get_scroll_upper() - self.get_scroll_page_size() - self.get_scroll_value()
         } else {
             (pos - self.get_scroll_value()) + leftover_scroll
@@ -261,7 +261,7 @@ impl SingleArticleList {
 
     fn set_scroll_value_static(scroll: &ScrolledWindow, pos: f64) {
         if let Some(vadjustment) = scroll.get_vadjustment() {
-            let pos = if pos == -1.0 {
+            let pos = if (pos + 1.0).abs() < 0.001 {
                 vadjustment.get_upper() - vadjustment.get_page_size()
             } else {
                 pos

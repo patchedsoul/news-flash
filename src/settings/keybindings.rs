@@ -29,10 +29,10 @@ impl Keybindings {
 
     pub fn parse_shortcut_string(keybinding: &str) -> Option<String> {
         let (keyval, modifier) = gtk::accelerator_parse(&keybinding);
-        Self::parse_shortcut(keyval, &modifier)
+        Self::parse_shortcut(keyval, modifier)
     }
 
-    pub fn parse_shortcut(keyval: u32, modifier: &ModifierType) -> Option<String> {
+    pub fn parse_shortcut(keyval: u32, modifier: ModifierType) -> Option<String> {
         let keyval = Self::parse_keyval(keyval);
         let modifier = Self::parse_modifiers(modifier);
         match keyval {
@@ -125,7 +125,7 @@ impl Keybindings {
         Some(mod_string)
     }
 
-    fn parse_modifiers(modifier: &ModifierType) -> Option<String> {
+    fn parse_modifiers(modifier: ModifierType) -> Option<String> {
         let mut mod_string = String::new();
 
         if modifier.contains(ModifierType::SHIFT_MASK) {
@@ -154,9 +154,7 @@ impl Keybindings {
         Some(mod_string)
     }
 
-    pub fn clean_modifier(modifier: &ModifierType) -> ModifierType {
-        let mut modifier = modifier.clone();
-
+    pub fn clean_modifier(mut modifier: ModifierType) -> ModifierType {
         modifier.remove(ModifierType::MOD2_MASK);
         modifier.remove(ModifierType::MOD3_MASK);
         modifier.remove(ModifierType::MOD4_MASK);
@@ -212,7 +210,7 @@ impl Keybindings {
             "scroll_down" => settings.borrow_mut().set_keybind_article_view_down(keybinding),
             _ => {
                 warn!("unexpected keybind id: {}", id);
-                Err(SettingsErrorKind::InvalidKeybind)?
+                Err(SettingsErrorKind::InvalidKeybind.into())
             }
         }
     }
@@ -239,7 +237,7 @@ impl Keybindings {
             "scroll_down" => Ok(settings.borrow_mut().get_keybind_article_view_down()),
             _ => {
                 warn!("unexpected keybind id: {}", id);
-                Err(SettingsErrorKind::InvalidKeybind)?
+                Err(SettingsErrorKind::InvalidKeybind.into())
             }
         }
     }
@@ -448,7 +446,7 @@ impl NewsFlashShortcutWindow {
             }
         }
 
-        NewsFlashShortcutWindow { widget: widget }
+        NewsFlashShortcutWindow { widget }
     }
 
     pub fn widget(&self) -> ShortcutsWindow {

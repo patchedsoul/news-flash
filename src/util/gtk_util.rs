@@ -39,7 +39,7 @@ impl GtkUtil {
         let icon_resource = Resource::new_from_data(&bytes).unwrap();
         gio::resources_register(&icon_resource);
         IconTheme::get_default()
-            .unwrap()
+            .unwrap_or_else(|| panic!("Failed to register symbolic icons."))
             .add_resource_path("/com/gitlab/newsflash/resources/icons/");
     }
 
@@ -47,7 +47,7 @@ impl GtkUtil {
         let icon_name = format!("icons/{}.svg", icon_name);
         let icon = Resources::get(&icon_name).expect(GTK_RESOURCE_FILE_ERROR);
         Self::create_surface_from_bytes(&icon, size, size, scale_factor)
-            .expect(&format!("Failed to load '{}' from resources.", icon_name))
+            .unwrap_or_else(|_| panic!("Failed to load '{}' from resources.", icon_name))
     }
 
     pub fn create_surface_from_pixelicon(icon: &PixelIcon, scale_factor: i32) -> Result<Surface, UtilError> {
@@ -63,8 +63,8 @@ impl GtkUtil {
         let pixbuf = Self::create_pixbuf_from_bytes(data, width, height, scale_factor)?;
         let window: Option<&Window> = None;
         match Context::cairo_surface_create_from_pixbuf(&pixbuf, scale_factor, window) {
-            Some(surface) => return Ok(surface),
-            None => return Err(UtilErrorKind::CairoSurface)?,
+            Some(surface) => Ok(surface),
+            None => Err(UtilErrorKind::CairoSurface.into()),
         }
     }
 
@@ -114,7 +114,7 @@ impl GtkUtil {
         }
 
         error!("getting main window for widget failed");
-        Err(UtilErrorKind::WidgetIsMainwindow)?
+        Err(UtilErrorKind::WidgetIsMainwindow.into())
     }
 
     pub fn execute_action<W: IsA<gtk::Object> + IsA<gtk::Widget> + WidgetExt + Clone>(
@@ -125,7 +125,7 @@ impl GtkUtil {
         GtkUtil::get_main_window(widget)
             .expect("MainWindow is not a parent of Widget")
             .lookup_action(action_name)
-            .expect(&format!("'{}' action not found.", action_name))
+            .unwrap_or_else(|| panic!("'{}' action not found.", action_name))
             .activate(payload);
     }
 
@@ -136,7 +136,7 @@ impl GtkUtil {
     ) {
         main_window
             .lookup_action(action_name)
-            .expect(&format!("'{}' action not found.", action_name))
+            .unwrap_or_else(|| panic!("'{}' action not found.", action_name))
             .activate(payload);
     }
 

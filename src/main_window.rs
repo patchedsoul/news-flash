@@ -401,36 +401,36 @@ impl MainWindow {
                 }
             }
 
-            if Self::check_shortcut("next_item", &settings, event) {
-                if content_page.borrow().sidebar_select_next_item().is_err() {
-                    error_bar
-                        .borrow()
-                        .simple_message("Failed to select next item in sidebar.");
-                }
+            if Self::check_shortcut("next_item", &settings, event)
+                && content_page.borrow().sidebar_select_next_item().is_err()
+            {
+                error_bar
+                    .borrow()
+                    .simple_message("Failed to select next item in sidebar.");
             }
 
-            if Self::check_shortcut("previous_item", &settings, event) {
-                if content_page.borrow().sidebar_select_prev_item().is_err() {
-                    error_bar
-                        .borrow()
-                        .simple_message("Failed to select previous item in sidebar.");
-                }
+            if Self::check_shortcut("previous_item", &settings, event)
+                && content_page.borrow().sidebar_select_prev_item().is_err()
+            {
+                error_bar
+                    .borrow()
+                    .simple_message("Failed to select previous item in sidebar.");
             }
 
-            if Self::check_shortcut("scroll_up", &settings, event) {
-                if content_page.borrow().article_view_scroll_diff(-150.0).is_err() {
-                    error_bar
-                        .borrow()
-                        .simple_message("Failed to select scroll article view up.");
-                }
+            if Self::check_shortcut("scroll_up", &settings, event)
+                && content_page.borrow().article_view_scroll_diff(-150.0).is_err()
+            {
+                error_bar
+                    .borrow()
+                    .simple_message("Failed to select scroll article view up.");
             }
 
-            if Self::check_shortcut("scroll_down", &settings, event) {
-                if content_page.borrow().article_view_scroll_diff(150.0).is_err() {
-                    error_bar
-                        .borrow()
-                        .simple_message("Failed to select scroll article view down.");
-                }
+            if Self::check_shortcut("scroll_down", &settings, event)
+                && content_page.borrow().article_view_scroll_diff(150.0).is_err()
+            {
+                error_bar
+                    .borrow()
+                    .simple_message("Failed to select scroll article view down.");
             }
 
             if Self::check_shortcut("sidebar_set_read", &settings, event) {
@@ -448,7 +448,7 @@ impl MainWindow {
 
                 if gdk::keyval_to_lower(keyval) == gdk::keyval_to_lower(event.get_keyval()) {
                     if modifier.is_empty() {
-                        if Keybindings::clean_modifier(&event.get_state()).is_empty() {
+                        if Keybindings::clean_modifier(event.get_state()).is_empty() {
                             return true;
                         }
                     } else if event.get_state().contains(modifier) {

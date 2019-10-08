@@ -56,7 +56,7 @@ impl FeedListTree {
                 self.top_level.push(item);
                 self.top_level.sort();
             } else {
-                return Err(FeedListModelErrorKind::AddDuplicateFeed)?;
+                return Err(FeedListModelErrorKind::AddDuplicateFeed.into());
             }
             return Ok(());
         }
@@ -68,7 +68,7 @@ impl FeedListTree {
             return Ok(());
         }
 
-        Err(FeedListModelErrorKind::AddFeedNoParent)?
+        Err(FeedListModelErrorKind::AddFeedNoParent.into())
     }
 
     pub fn add_category(&mut self, category: &Category, item_count: i64) -> Result<(), FeedListModelError> {
@@ -86,7 +86,7 @@ impl FeedListTree {
                 self.top_level.push(item);
                 self.top_level.sort();
             } else {
-                return Err(FeedListModelErrorKind::AddDuplicateCategory)?;
+                return Err(FeedListModelErrorKind::AddDuplicateCategory.into());
             }
             return Ok(());
         }
@@ -98,7 +98,7 @@ impl FeedListTree {
             return Ok(());
         }
 
-        Err(FeedListModelErrorKind::AddCategoryNoParent)?
+        Err(FeedListModelErrorKind::AddCategoryNoParent.into())
     }
 
     fn find_category(&mut self, id: &CategoryID) -> Option<&mut FeedListCategoryModel> {
@@ -370,7 +370,7 @@ impl FeedListTree {
                 return Ok((parent, local_pos as i32));
             }
         }
-        Err(FeedListModelErrorKind::DnD)?
+        Err(FeedListModelErrorKind::DnD.into())
     }
 
     pub fn calculate_selection(&self, selected_index: i32) -> Option<(FeedListItemID, String)> {
@@ -410,7 +410,7 @@ impl FeedListTree {
         let mut index = 0;
         let mut selected_found = false;
         self.top_level.sort();
-        Self::iterate_next_internal(selected_index + 1, &mut self.top_level, &mut index, &mut selected_found)
+        Self::iterate_next_internal(selected_index + 1, &self.top_level, &mut index, &mut selected_found)
     }
 
     fn iterate_next_internal(
@@ -463,7 +463,7 @@ impl FeedListTree {
         let mut index = self.len();
         let mut selected_found = false;
         self.top_level.sort();
-        Self::iterate_prev_internal(selected_index, &mut self.top_level, &mut index, &mut selected_found)
+        Self::iterate_prev_internal(selected_index, &self.top_level, &mut index, &mut selected_found)
     }
 
     fn iterate_prev_internal(

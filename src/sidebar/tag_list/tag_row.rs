@@ -76,7 +76,7 @@ impl TagRow {
                         .expect("Failed to parse default outer RGBA string."),
                 };
 
-                let mut rgba_inner = rgba_outer.clone();
+                let mut rgba_inner = rgba_outer;
                 if rgba_inner.adjust_lightness(0.05).is_err() {
                     rgba_inner = ColorRGBA::parse_string(DEFAULT_INNER_COLOR)
                         .expect("Failed to parse default inner RGBA string.")

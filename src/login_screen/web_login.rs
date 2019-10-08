@@ -142,10 +142,10 @@ impl WebLogin {
                 return Ok(());
             }
 
-            return Err(LoginScreenErrorKind::OauthUrl)?;
+            return Err(LoginScreenErrorKind::OauthUrl.into());
         }
 
-        Err(LoginScreenErrorKind::LoginGUI)?
+        Err(LoginScreenErrorKind::LoginGUI.into())
     }
 
     pub fn reset(&self) {

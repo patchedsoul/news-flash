@@ -41,7 +41,7 @@ impl KeybindingEditor {
         dialog.set_transient_for(Some(settings_dialog));
         dialog.connect_key_press_event(move |widget, event| {
             let keyval = event.get_keyval();
-            let modifier = Keybindings::clean_modifier(&event.get_state());
+            let modifier = Keybindings::clean_modifier(event.get_state());
 
             stack.set_visible_child_name("confirm");
 
@@ -59,7 +59,7 @@ impl KeybindingEditor {
                 return Inhibit(false);
             }
 
-            let printable_shortcut = Keybindings::parse_shortcut(keyval, &modifier);
+            let printable_shortcut = Keybindings::parse_shortcut(keyval, modifier);
             let internal_shortcut = gtk::accelerator_name(keyval, modifier)
                 .expect("Shortcut not convertable. This should never happen!")
                 .to_string();

@@ -263,22 +263,18 @@ impl SettingsDialog {
 
         let main_window = window.clone();
         let use_system_font_switch = self.builder.get::<Switch>("use_system_font_switch");
-        let have_custom_font = match self.settings.borrow().get_article_view_font() {
-            Some(_) => true,
-            None => false,
-        };
+        let have_custom_font = self.settings.borrow().get_article_view_font().is_some();
+
         use_system_font_switch.set_state(!have_custom_font);
         font_button.set_sensitive(have_custom_font);
         font_row.set_sensitive(have_custom_font);
         use_system_font_switch.connect_state_set(move |_switch, is_set| {
             let font = if is_set {
                 None
+            } else if let Some(font_name) = font_button.get_font() {
+                Some(font_name.to_string())
             } else {
-                if let Some(font_name) = font_button.get_font() {
-                    Some(font_name.to_string())
-                } else {
-                    None
-                }
+                None
             };
             font_button.set_sensitive(!is_set);
             font_row.set_sensitive(!is_set);
@@ -388,7 +384,7 @@ impl SettingsDialog {
                 let error_bar = error_bar.clone();
                 listbox.connect_row_activated(move |_list, row| {
                     if let Some(name) = row.get_name() {
-                        if name.as_str() == &row_name {
+                        if name.as_str() == row_name {
                             let id = id.clone();
                             let label = label.clone();
                             let settings = settings.clone();

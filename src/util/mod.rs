@@ -34,8 +34,8 @@ impl Util {
 
     pub fn calculate_item_count_for_category(
         category_id: &CategoryID,
-        categories: &Vec<Category>,
-        feed_mappings: &Vec<FeedMapping>,
+        categories: &[Category],
+        feed_mappings: &[FeedMapping],
         item_count_map: &HashMap<FeedID, i64>,
     ) -> i64 {
         let mut count = 0;

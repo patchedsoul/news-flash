@@ -657,8 +657,8 @@ impl ArticleView {
 
                                 let page_size = f64::from(view.get_allocated_height());
                                 let adjust_value = page_size * *drag_momentum.borrow() / f64::from(allocation.height);
-                                let old_adjust = f64::from(Self::get_scroll_pos_static(&view));
-                                let upper = f64::from(Self::get_scroll_upper_static(&view)) * view.get_zoom_level();
+                                let old_adjust = Self::get_scroll_pos_static(&view);
+                                let upper = Self::get_scroll_upper_static(&view) * view.get_zoom_level();
 
                                 if (old_adjust + adjust_value) > (upper - page_size)
                                     || (old_adjust + adjust_value) < 0.0
@@ -792,10 +792,8 @@ impl ArticleView {
             if let Some(family) = desc.get_family() {
                 font_families.push(family.to_string());
             }
-            if font_size.is_none() {
-                if desc.get_size() > 0 {
-                    font_size = Some(desc.get_size());
-                }
+            if font_size.is_none() && desc.get_size() > 0 {
+                font_size = Some(desc.get_size());
             }
         }
 
@@ -933,11 +931,11 @@ impl ArticleView {
             if let Some(pos) = *pos {
                 return Ok(pos);
             } else {
-                return Err(ArticleViewErrorKind::NoValueFromJS)?;
+                return Err(ArticleViewErrorKind::NoValueFromJS.into());
             }
         }
 
-        Err(ArticleViewErrorKind::Mutex)?
+        Err(ArticleViewErrorKind::Mutex.into())
     }
 
     fn set_scroll_abs(&self, scroll: f64) -> Result<(), ArticleViewError> {
@@ -948,13 +946,13 @@ impl ArticleView {
                     Self::set_scroll_pos_static(&view, scroll);
                     Ok(())
                 } else {
-                    Err(ArticleViewErrorKind::InvalidActiveWebView)?
+                    Err(ArticleViewErrorKind::InvalidActiveWebView.into())
                 }
             } else {
-                Err(ArticleViewErrorKind::InvalidActiveWebView)?
+                Err(ArticleViewErrorKind::InvalidActiveWebView.into())
             }
         } else {
-            Err(ArticleViewErrorKind::NoActiveWebView)?
+            Err(ArticleViewErrorKind::NoActiveWebView.into())
         }
     }
 
@@ -963,15 +961,15 @@ impl ArticleView {
         if let Some(view_name) = view_name {
             if let Some(view) = self.stack.get_child_by_name(&view_name) {
                 if let Ok(view) = view.downcast::<WebView>() {
-                    return Ok(Self::get_scroll_pos_static(&view));
+                    Ok(Self::get_scroll_pos_static(&view))
                 } else {
-                    Err(ArticleViewErrorKind::InvalidActiveWebView)?
+                    Err(ArticleViewErrorKind::InvalidActiveWebView.into())
                 }
             } else {
-                Err(ArticleViewErrorKind::InvalidActiveWebView)?
+                Err(ArticleViewErrorKind::InvalidActiveWebView.into())
             }
         } else {
-            Err(ArticleViewErrorKind::NoActiveWebView)?
+            Err(ArticleViewErrorKind::NoActiveWebView.into())
         }
     }
 
@@ -980,15 +978,15 @@ impl ArticleView {
         if let Some(view_name) = view_name {
             if let Some(view) = self.stack.get_child_by_name(&view_name) {
                 if let Ok(view) = view.downcast::<WebView>() {
-                    return Ok(Self::get_scroll_window_height_static(&view));
+                    Ok(Self::get_scroll_window_height_static(&view))
                 } else {
-                    Err(ArticleViewErrorKind::InvalidActiveWebView)?
+                    Err(ArticleViewErrorKind::InvalidActiveWebView.into())
                 }
             } else {
-                Err(ArticleViewErrorKind::InvalidActiveWebView)?
+                Err(ArticleViewErrorKind::InvalidActiveWebView.into())
             }
         } else {
-            Err(ArticleViewErrorKind::NoActiveWebView)?
+            Err(ArticleViewErrorKind::NoActiveWebView.into())
         }
     }
 
@@ -997,15 +995,15 @@ impl ArticleView {
         if let Some(view_name) = view_name {
             if let Some(view) = self.stack.get_child_by_name(&view_name) {
                 if let Ok(view) = view.downcast::<WebView>() {
-                    return Ok(Self::get_scroll_upper_static(&view));
+                    Ok(Self::get_scroll_upper_static(&view))
                 } else {
-                    Err(ArticleViewErrorKind::InvalidActiveWebView)?
+                    Err(ArticleViewErrorKind::InvalidActiveWebView.into())
                 }
             } else {
-                Err(ArticleViewErrorKind::InvalidActiveWebView)?
+                Err(ArticleViewErrorKind::InvalidActiveWebView.into())
             }
         } else {
-            Err(ArticleViewErrorKind::NoActiveWebView)?
+            Err(ArticleViewErrorKind::NoActiveWebView.into())
         }
     }
 
@@ -1014,9 +1012,7 @@ impl ArticleView {
         let upper = self.get_scroll_upper()?;
         let window_height = self.get_scroll_window_height()?;
 
-        if pos <= 0.0 && diff.is_sign_negative() {
-            return Ok(());
-        } else if pos >= (upper - window_height) && diff.is_sign_positive() {
+        if (pos <= 0.0 && diff.is_sign_negative()) || (pos >= (upper - window_height) && diff.is_sign_positive()) {
             return Ok(());
         }
 
@@ -1052,7 +1048,7 @@ impl ArticleView {
             None => 0.0,
         };
 
-        *self.scroll_animation_data.transition_diff.borrow_mut() = Some(if pos == -1.0 {
+        *self.scroll_animation_data.transition_diff.borrow_mut() = Some(if (pos + 1.0).abs() < 0.001 {
             self.get_scroll_upper()? - self.get_scroll_window_height()? - current_pos
         } else {
             (pos - current_pos) + leftover_scroll

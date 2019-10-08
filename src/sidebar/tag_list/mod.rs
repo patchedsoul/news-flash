@@ -144,7 +144,7 @@ impl TagList {
             return Ok(());
         }
 
-        Err(TagListErrorKind::InvalidSelection)?
+        Err(TagListErrorKind::InvalidSelection.into())
     }
 
     pub fn cancel_selection(&self) {

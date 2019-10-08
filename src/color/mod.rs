@@ -21,12 +21,12 @@ impl ColorRGBA {
                 "Expected lenght of color string is 7, string lenght is {}",
                 color_string.len()
             );
-            return Err(ColorErrorKind::Parse)?;
+            return Err(ColorErrorKind::Parse.into());
         }
 
         if !color_string.starts_with('#') {
             error!("Expected color string to start with '#' - string: {}", color_string);
-            return Err(ColorErrorKind::Parse)?;
+            return Err(ColorErrorKind::Parse.into());
         }
 
         let mut chars = color_string.chars();
@@ -106,7 +106,7 @@ impl ColorRGBA {
             hue = 60.0 * (((red_normalized - green_normalized) / delta) + 4.0);
         } else {
             error!("c_max matches neither R, G or B");
-            return Err(ColorErrorKind::RgbToHsla)?;
+            return Err(ColorErrorKind::RgbToHsla.into());
         }
 
         if hue < 0.0 {
@@ -185,7 +185,7 @@ impl ColorRGBA {
             'F' => Ok(15),
             _ => {
                 error!("illegal character {}", c);
-                Err(ColorErrorKind::IllegalCharacter)?
+                Err(ColorErrorKind::IllegalCharacter.into())
             }
         }
     }
@@ -243,7 +243,7 @@ impl ColorHSLA {
             b_n = x;
         } else if self.hue > 360.0 {
             error!("hue exceeds 360°: {}", self.hue);
-            return Err(ColorErrorKind::HslaToRgb)?;
+            return Err(ColorErrorKind::HslaToRgb.into());
         }
 
         let red = ((r_n + m) * 255.0) as u8;

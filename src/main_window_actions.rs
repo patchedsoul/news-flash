@@ -684,7 +684,7 @@ impl MainWindowActions {
                         }
                     },
                     SidebarSelection::Cateogry((category_id, _title)) => {
-                        match news_flash.set_category_read(&vec![category_id.clone()]) {
+                        match news_flash.set_category_read(&[category_id.clone()]) {
                             Ok(_) => {}
                             Err(error) => {
                                 let message = format!("Failed to mark category '{}' read", category_id);
@@ -693,17 +693,15 @@ impl MainWindowActions {
                             }
                         }
                     }
-                    SidebarSelection::Feed((feed_id, _title)) => {
-                        match news_flash.set_feed_read(&vec![feed_id.clone()]) {
-                            Ok(_) => {}
-                            Err(error) => {
-                                let message = format!("Failed to mark feed '{}' read", feed_id);
-                                error_bar.borrow().news_flash_error(&message, error);
-                                error!("{}", message);
-                            }
+                    SidebarSelection::Feed((feed_id, _title)) => match news_flash.set_feed_read(&[feed_id.clone()]) {
+                        Ok(_) => {}
+                        Err(error) => {
+                            let message = format!("Failed to mark feed '{}' read", feed_id);
+                            error_bar.borrow().news_flash_error(&message, error);
+                            error!("{}", message);
                         }
-                    }
-                    SidebarSelection::Tag((tag_id, _title)) => match news_flash.set_tag_read(&vec![tag_id.clone()]) {
+                    },
+                    SidebarSelection::Tag((tag_id, _title)) => match news_flash.set_tag_read(&[tag_id.clone()]) {
                         Ok(_) => {}
                         Err(error) => {
                             let message = format!("Failed to mark tag '{}' read", tag_id);
@@ -790,7 +788,6 @@ impl MainWindowActions {
                             Err(error) => {
                                 error!("{}: Can't add Feed", error_message);
                                 error_bar.borrow().news_flash_error(error_message, error);
-                                return;
                             }
                         }
                     } else {
@@ -829,7 +826,7 @@ impl MainWindowActions {
                             }
                         };
 
-                        let feed = match feeds.iter().find(|f| f.feed_id == feed_id).map(|f| f.clone()) {
+                        let feed = match feeds.iter().find(|f| f.feed_id == feed_id).cloned() {
                             Some(feed) => feed,
                             None => {
                                 error_bar
@@ -899,11 +896,7 @@ impl MainWindowActions {
                             }
                         };
 
-                        let category = match categories
-                            .iter()
-                            .find(|c| c.category_id == category_id)
-                            .map(|c| c.clone())
-                        {
+                        let category = match categories.iter().find(|c| c.category_id == category_id).cloned() {
                             Some(category) => category,
                             None => {
                                 error_bar
@@ -996,33 +989,15 @@ impl MainWindowActions {
                     let select_all_button = match content_page.borrow().sidebar_get_selection() {
                         SidebarSelection::All => false,
                         SidebarSelection::Cateogry((selected_id, _label)) => match &action {
-                            UndoActionModel::DeleteCategory((delete_id, _label)) => {
-                                if &selected_id == delete_id {
-                                    true
-                                } else {
-                                    false
-                                }
-                            }
+                            UndoActionModel::DeleteCategory((delete_id, _label)) => &selected_id == delete_id,
                             _ => false,
                         },
                         SidebarSelection::Feed((selected_id, _label)) => match &action {
-                            UndoActionModel::DeleteFeed((delete_id, _label)) => {
-                                if &selected_id == delete_id {
-                                    true
-                                } else {
-                                    false
-                                }
-                            }
+                            UndoActionModel::DeleteFeed((delete_id, _label)) => &selected_id == delete_id,
                             _ => false,
                         },
                         SidebarSelection::Tag((selected_id, _label)) => match &action {
-                            UndoActionModel::DeleteTag((delete_id, _label)) => {
-                                if &selected_id == delete_id {
-                                    true
-                                } else {
-                                    false
-                                }
-                            }
+                            UndoActionModel::DeleteTag((delete_id, _label)) => &selected_id == delete_id,
                             _ => false,
                         },
                     };
@@ -1061,7 +1036,7 @@ impl MainWindowActions {
                             }
                         };
 
-                        if let Some(feed) = feeds.iter().find(|f| f.feed_id == feed_id).map(|f| f.clone()) {
+                        if let Some(feed) = feeds.iter().find(|f| f.feed_id == feed_id).cloned() {
                             info!("delete feed '{}' (id: {})", feed.label, feed.feed_id);
                             if let Err(error) = news_flash.remove_feed(&feed) {
                                 error_bar.borrow().news_flash_error("Failed to delete feed.", error);
@@ -1102,11 +1077,7 @@ impl MainWindowActions {
                             }
                         };
 
-                        if let Some(category) = categories
-                            .iter()
-                            .find(|c| c.category_id == category_id)
-                            .map(|c| c.clone())
-                        {
+                        if let Some(category) = categories.iter().find(|c| c.category_id == category_id).cloned() {
                             info!("delete category '{}' (id: {})", category.label, category.category_id);
                             if let Err(error) = news_flash.remove_category(&category, true) {
                                 error_bar.borrow().news_flash_error("Failed to delete category.", error);
@@ -1213,7 +1184,7 @@ impl MainWindowActions {
                 Some("Export OPML"),
                 Some(&main_window),
                 FileChooserAction::Save,
-                &vec![("Cancel", ResponseType::Cancel), ("Save", ResponseType::Ok)],
+                &[("Cancel", ResponseType::Cancel), ("Save", ResponseType::Ok)],
             );
 
             let filter = FileFilter::new();
@@ -1227,24 +1198,21 @@ impl MainWindowActions {
             dialog.set_filter(&filter);
             dialog.set_current_name("NewsFlash.OPML");
 
-            match ResponseType::from(dialog.run()) {
-                ResponseType::Ok => {
-                    if let Some(news_flash) = news_flash.borrow().as_ref() {
-                        let opml = match news_flash.export_opml() {
-                            Ok(opml) => opml,
-                            Err(error) => {
-                                error_bar.borrow().news_flash_error("Failed to get OPML data.", error);
-                                return;
-                            }
-                        };
-                        if let Some(filename) = dialog.get_filename() {
-                            if FileUtil::write_text_file(&filename, &opml).is_err() {
-                                error_bar.borrow().simple_message("Failed to write OPML data to disc.")
-                            }
+            if let ResponseType::Ok = dialog.run() {
+                if let Some(news_flash) = news_flash.borrow().as_ref() {
+                    let opml = match news_flash.export_opml() {
+                        Ok(opml) => opml,
+                        Err(error) => {
+                            error_bar.borrow().news_flash_error("Failed to get OPML data.", error);
+                            return;
+                        }
+                    };
+                    if let Some(filename) = dialog.get_filename() {
+                        if FileUtil::write_text_file(&filename, &opml).is_err() {
+                            error_bar.borrow().simple_message("Failed to write OPML data to disc.")
                         }
                     }
                 }
-                _ => {}
             }
 
             dialog.emit_close();
@@ -1272,7 +1240,7 @@ impl MainWindowActions {
                     Some("Export Article"),
                     Some(&main_window),
                     FileChooserAction::Save,
-                    &vec![("Cancel", ResponseType::Cancel), ("Save", ResponseType::Ok)],
+                    &[("Cancel", ResponseType::Cancel), ("Save", ResponseType::Ok)],
                 );
 
                 let filter = FileFilter::new();
@@ -1287,51 +1255,48 @@ impl MainWindowActions {
                     dialog.set_current_name("Article.html");
                 }
 
-                match ResponseType::from(dialog.run()) {
-                    ResponseType::Ok => {
-                        if let Some(news_flash) = news_flash.borrow().as_ref() {
-                            let article = match news_flash.article_download_images(&article.article_id) {
-                                Ok(opml) => opml,
-                                Err(error) => {
-                                    error_bar
-                                        .borrow()
-                                        .news_flash_error("Failed to downlaod article images.", error);
-                                    return;
-                                }
-                            };
+                if let ResponseType::Ok = dialog.run() {
+                    if let Some(news_flash) = news_flash.borrow().as_ref() {
+                        let article = match news_flash.article_download_images(&article.article_id) {
+                            Ok(opml) => opml,
+                            Err(error) => {
+                                error_bar
+                                    .borrow()
+                                    .news_flash_error("Failed to downlaod article images.", error);
+                                return;
+                            }
+                        };
 
-                            let (feeds, _) = match news_flash.get_feeds() {
-                                Ok(opml) => opml,
-                                Err(error) => {
-                                    error_bar
-                                        .borrow()
-                                        .news_flash_error("Failed to load feeds from db.", error);
-                                    return;
-                                }
-                            };
-                            let feed = match feeds.iter().find(|&f| f.feed_id == article.feed_id) {
-                                Some(feed) => feed,
-                                None => {
-                                    error_bar.borrow().simple_message("Failed to find specific feed.");
-                                    return;
-                                }
-                            };
-                            if let Some(filename) = dialog.get_filename() {
-                                let html = ArticleView::build_article_static(
-                                    "article",
-                                    &article,
-                                    &feed.label,
-                                    &settings,
-                                    None,
-                                    None,
-                                );
-                                if FileUtil::write_text_file(&filename, &html).is_err() {
-                                    error_bar.borrow().simple_message("Failed to write OPML data to disc.")
-                                }
+                        let (feeds, _) = match news_flash.get_feeds() {
+                            Ok(opml) => opml,
+                            Err(error) => {
+                                error_bar
+                                    .borrow()
+                                    .news_flash_error("Failed to load feeds from db.", error);
+                                return;
+                            }
+                        };
+                        let feed = match feeds.iter().find(|&f| f.feed_id == article.feed_id) {
+                            Some(feed) => feed,
+                            None => {
+                                error_bar.borrow().simple_message("Failed to find specific feed.");
+                                return;
+                            }
+                        };
+                        if let Some(filename) = dialog.get_filename() {
+                            let html = ArticleView::build_article_static(
+                                "article",
+                                &article,
+                                &feed.label,
+                                &settings,
+                                None,
+                                None,
+                            );
+                            if FileUtil::write_text_file(&filename, &html).is_err() {
+                                error_bar.borrow().simple_message("Failed to write OPML data to disc.")
                             }
                         }
                     }
-                    _ => {}
                 }
 
                 dialog.emit_close();

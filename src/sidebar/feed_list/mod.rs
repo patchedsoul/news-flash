@@ -117,51 +117,52 @@ impl FeedList {
                         }
                     }
 
-                    if is_category {
-                        if y >= alloc.y + (alloc.height / height_threshold) && y <= alloc.y + (alloc.height * 3 / 4) {
-                            if let Some(ctx) = GtkUtil::get_dnd_style_context_listboxrow(&row) {
-                                ctx.add_class("drag-category");
-                            }
+                    if is_category
+                        && y >= alloc.y + (alloc.height / height_threshold)
+                        && y <= alloc.y + (alloc.height * 3 / 4)
+                    {
+                        if let Some(ctx) = GtkUtil::get_dnd_style_context_listboxrow(&row) {
+                            ctx.add_class("drag-category");
+                        }
 
-                            // expand/collapse category on 1.2s hover
-                            let hover = tree.borrow().calculate_selection(index);
-                            if let Some(hovered_item) = hover {
-                                if let (FeedListItemID::Category(id), _title) = hovered_item {
-                                    let mut start_hover = false;
-                                    if let Some((saved_source, saved_id)) = &*hovered_category_expand.borrow() {
-                                        if saved_id != &id {
-                                            GtkUtil::remove_source(Some(*saved_source));
-                                            start_hover = true;
-                                        }
-                                    } else {
+                        // expand/collapse category on 1.2s hover
+                        let hover = tree.borrow().calculate_selection(index);
+                        if let Some(hovered_item) = hover {
+                            if let (FeedListItemID::Category(id), _title) = hovered_item {
+                                let mut start_hover = false;
+                                if let Some((saved_source, saved_id)) = &*hovered_category_expand.borrow() {
+                                    if saved_id != &id {
+                                        GtkUtil::remove_source(Some(*saved_source));
                                         start_hover = true;
                                     }
+                                } else {
+                                    start_hover = true;
+                                }
 
-                                    if start_hover {
-                                        let tree2 = tree.clone();
-                                        let feeds2 = feeds.clone();
-                                        let categories2 = categories.clone();
-                                        let id2 = id.clone();
-                                        let hovered_category_expand2 = hovered_category_expand.clone();
+                                if start_hover {
+                                    let tree2 = tree.clone();
+                                    let feeds2 = feeds.clone();
+                                    let categories2 = categories.clone();
+                                    let id2 = id.clone();
+                                    let hovered_category_expand2 = hovered_category_expand.clone();
 
-                                        hovered_category_expand.replace(Some((
-                                            gtk::timeout_add(1200, move || {
-                                                if let Some(category_row) = categories2.borrow().get(&id2) {
-                                                    category_row.borrow_mut().expand_collapse_arrow();
-                                                    Self::expand_collapse_category(&id2, &tree2, &categories2, &feeds2);
-                                                }
-                                                hovered_category_expand2.replace(None);
-                                                Continue(false)
-                                            })
-                                            .to_glib(),
-                                            id,
-                                        )));
-                                    }
+                                    hovered_category_expand.replace(Some((
+                                        gtk::timeout_add(1200, move || {
+                                            if let Some(category_row) = categories2.borrow().get(&id2) {
+                                                category_row.borrow_mut().expand_collapse_arrow();
+                                                Self::expand_collapse_category(&id2, &tree2, &categories2, &feeds2);
+                                            }
+                                            hovered_category_expand2.replace(None);
+                                            Continue(false)
+                                        })
+                                        .to_glib(),
+                                        id,
+                                    )));
                                 }
                             }
-
-                            return Inhibit(false);
                         }
+
+                        return Inhibit(false);
                     }
 
                     Self::clear_hovered_expand(&hovered_category_expand);
@@ -432,11 +433,11 @@ impl FeedList {
         let row = match selection {
             FeedListItemID::Category(category) => match self.categories.borrow().get(&category) {
                 Some(category_row) => category_row.borrow().widget(),
-                None => return Err(FeedListErrorKind::CategoryNotFound)?,
+                None => return Err(FeedListErrorKind::CategoryNotFound.into()),
             },
             FeedListItemID::Feed(feed) => match self.feeds.borrow().get(&feed) {
                 Some(feed_row) => feed_row.borrow().widget(),
-                None => return Err(FeedListErrorKind::FeedNotFound)?,
+                None => return Err(FeedListErrorKind::FeedNotFound.into()),
             },
         };
 

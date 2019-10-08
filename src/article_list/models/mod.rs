@@ -40,7 +40,7 @@ impl ArticleListModel {
     ) -> Result<(), ArticleListModelError> {
         if self.contains(&article.article_id) {
             warn!("Listmodel already contains id {}", article.article_id);
-            return Err(ArticleListModelErrorKind::AlreadyContainsArticle)?;
+            return Err(ArticleListModelErrorKind::AlreadyContainsArticle.into());
         }
         self.ids.insert(article.article_id.clone());
         self.models.push(ArticleListArticleModel::new(article, feed_name, icon));
@@ -50,7 +50,7 @@ impl ArticleListModel {
     pub fn add_model(&mut self, model: ArticleListArticleModel) -> Result<(), ArticleListModelError> {
         if self.contains(&model.id) {
             warn!("Listmodel already contains id {}", model.id);
-            return Err(ArticleListModelErrorKind::AlreadyContainsArticle)?;
+            return Err(ArticleListModelErrorKind::AlreadyContainsArticle.into());
         }
         self.ids.insert(model.id.clone());
         self.models.push(model);

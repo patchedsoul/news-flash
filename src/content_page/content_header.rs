@@ -243,8 +243,8 @@ impl ContentHeader {
     fn setup_search_bar(search_bar: &SearchBar, search_button: &ToggleButton, search_entry: &SearchEntry) {
         search_bar.connect_entry(search_entry);
         let search_button = search_button.clone();
-        search_bar.connect_property_search_mode_enabled_notify(move |bar| {
-            if !bar.get_search_mode() {
+        search_bar.connect_property_search_mode_enabled_notify(move |search_bar| {
+            if !search_bar.get_search_mode() {
                 search_button.set_active(false);
             }
         });

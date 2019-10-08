@@ -254,12 +254,10 @@ impl AddPopover {
                     {
                         Self::fill_feed_page(feed, &title_entry, &favicon, &feed_url);
                         add_feed_stack.set_visible_child_name("feed_page");
-                    } else {
-                        if let Some(child) = row.get_child() {
-                            if let Ok(_box) = child.downcast::<Box>() {
-                                if let Some(icon) = _box.get_children().get(1) {
-                                    icon.set_visible(true);
-                                }
+                    } else if let Some(child) = row.get_child() {
+                        if let Ok(_box) = child.downcast::<Box>() {
+                            if let Some(icon) = _box.get_children().get(1) {
+                                icon.set_visible(true);
                             }
                         }
                     }

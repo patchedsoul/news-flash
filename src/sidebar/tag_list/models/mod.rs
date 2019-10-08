@@ -25,7 +25,7 @@ impl TagListModel {
 
     pub fn add(&mut self, tag: &Tag) -> Result<(), TagListModelError> {
         if self.tags.contains(&tag.tag_id) {
-            return Err(TagListModelErrorKind::AlreadyExists)?;
+            return Err(TagListModelErrorKind::AlreadyExists.into());
         }
         let model = TagListTagModel::new(tag);
         self.tags.insert(model.id.clone());

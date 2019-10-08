@@ -215,7 +215,7 @@ impl PasswordLogin {
             return Ok(());
         }
 
-        Err(LoginScreenErrorKind::LoginGUI)?
+        Err(LoginScreenErrorKind::LoginGUI.into())
     }
 
     pub fn reset(&mut self) {
