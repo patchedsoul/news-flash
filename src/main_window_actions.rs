@@ -16,10 +16,10 @@ use crate::sidebar::models::SidebarSelection;
 use crate::undo_bar::{UndoActionModel, UndoBar};
 use crate::util::{FileUtil, GtkHandle, GtkUtil};
 use gio::{ActionMapExt, ApplicationExt, SimpleAction};
-use glib::{Variant, VariantTy};
+use glib::{translate::ToGlib, Variant, VariantTy};
 use gtk::{
-    self, Application, ApplicationWindow, ButtonExt, DialogExt, FileChooserAction, FileChooserDialog, FileChooserExt,
-    FileFilter, GtkWindowExt, GtkWindowExtManual, ResponseType, Stack, StackExt, StackTransitionType,
+    self, Application, ApplicationWindow, ButtonExt, Continue, DialogExt, FileChooserAction, FileChooserDialog,
+    FileChooserExt, FileFilter, GtkWindowExt, GtkWindowExtManual, ResponseType, Stack, StackExt, StackTransitionType,
 };
 use log::{debug, error, info, warn};
 use news_flash::models::{ArticleID, CategoryID, FeedID, LoginData, PluginID};
@@ -217,6 +217,31 @@ impl MainWindowActions {
         });
         login_action.set_enabled(true);
         window.add_action(&login_action);
+    }
+
+    pub fn setup_schedule_sync_action(window: &ApplicationWindow, settings: &GtkHandle<Settings>) {
+        let main_window = window.clone();
+        let settings = settings.clone();
+        let sync_source_id: GtkHandle<Option<u32>> = gtk_handle!(None);
+        let schedule_sync_action = SimpleAction::new("schedule-sync", None);
+        schedule_sync_action.connect_activate(move |_action, _data| {
+            GtkUtil::remove_source(*sync_source_id.borrow());
+            let sync_interval = settings.borrow().get_sync_interval();
+            if let Some(sync_interval) = sync_interval.to_seconds() {
+                let main_window = main_window.clone();
+                sync_source_id.replace(Some(
+                    gtk::timeout_add_seconds(sync_interval, move || {
+                        GtkUtil::execute_action_main_window(&main_window, "sync", None);
+                        Continue(true)
+                    })
+                    .to_glib(),
+                ));
+            } else {
+                sync_source_id.replace(None);
+            }
+        });
+        schedule_sync_action.set_enabled(true);
+        window.add_action(&schedule_sync_action);
     }
 
     pub fn setup_sync_action(

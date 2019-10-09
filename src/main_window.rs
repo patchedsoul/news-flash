@@ -119,6 +119,7 @@ impl MainWindow {
             &error_bar_handle,
         );
         MainWindowActions::setup_login_action(&window, &news_flash_handle, &oauht_login_handle, &pw_login_handle);
+        MainWindowActions::setup_schedule_sync_action(&window, &settings);
         MainWindowActions::setup_sync_action(
             &window,
             &app,
@@ -255,6 +256,9 @@ impl MainWindow {
                         .borrow()
                         .simple_message("Failed to populate article list with data.");
                 }
+
+                // schedule background sync
+                GtkUtil::execute_action_main_window(&window, "schedule-sync", None);
             } else {
                 warn!("No valid backend ID");
                 stack.set_visible_child_name("welcome");

@@ -24,6 +24,22 @@ impl fmt::Display for SyncInterval {
     }
 }
 
+impl SyncInterval {
+    pub fn to_minutes(&self) -> Option<u32> {
+        match self {
+            SyncInterval::Never => None,
+            SyncInterval::QuaterHour => Some(15),
+            SyncInterval::HalfHour => Some(30),
+            SyncInterval::Hour => Some(60),
+            SyncInterval::TwoHour => Some(120),
+        }
+    }
+
+    pub fn to_seconds(&self) -> Option<u32> {
+        self.to_minutes().map(|m| m * 60)
+    }
+}
+
 #[derive(Debug, Serialize, Deserialize)]
 pub struct GeneralSettings {
     pub keep_running_in_background: bool,

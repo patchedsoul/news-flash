@@ -58,8 +58,6 @@ impl SettingsDialog {
         let settings_7 = self.settings.clone();
         let settings_8 = self.settings.clone();
         let settings_9 = self.settings.clone();
-        let settings_10 = self.settings.clone();
-        let settings_11 = self.settings.clone();
 
         let error_bar_1 = error_bar.clone();
         let error_bar_2 = error_bar.clone();
@@ -70,8 +68,6 @@ impl SettingsDialog {
         let error_bar_7 = error_bar.clone();
         let error_bar_8 = error_bar.clone();
         let error_bar_9 = error_bar.clone();
-        let error_bar_10 = error_bar.clone();
-        let error_bar_11 = error_bar.clone();
 
         let keep_running_switch = self.builder.get::<Switch>("keep_running_switch");
         keep_running_switch.set_state(self.settings.borrow().get_keep_running_in_background());
@@ -99,11 +95,34 @@ impl SettingsDialog {
             Inhibit(false)
         });
 
+        let main_window = window.clone();
+        let sync_label = self.builder.get::<Label>("sync_label");
+        let sync_pop = self.builder.get::<Popover>("sync_pop");
+        let sync_list = self.builder.get::<ListBox>("sync_list");
+        sync_list.connect_row_activated(move |_list, row| {
+            sync_pop.popdown();
+            let sync_interval = match row.get_index() {
+                0 => SyncInterval::Never,
+                2 => SyncInterval::QuaterHour,
+                4 => SyncInterval::HalfHour,
+                6 => SyncInterval::Hour,
+                8 => SyncInterval::TwoHour,
+
+                _ => SyncInterval::Never,
+            };
+            sync_label.set_label(&sync_interval.to_string());
+            if settings_8.borrow_mut().set_sync_interval(sync_interval).is_ok() {
+                GtkUtil::execute_action_main_window(&main_window, "schedule-sync", None);
+            } else {
+                error_bar_4
+                    .borrow()
+                    .simple_message("Failed to set setting 'article order'.");
+            }
+        });
+
         let sync_label = self.builder.get::<Label>("sync_label");
         sync_label.set_label(&self.settings.borrow().get_sync_interval().to_string());
-        let main_window = window.clone();
         let sync_event = self.builder.get::<EventBox>("sync_event");
-        let sync_list = self.builder.get::<ListBox>("sync_list");
         sync_event.set_events(EventMask::BUTTON_PRESS_MASK);
         let sync_pop = self.builder.get::<Popover>("sync_pop");
         sync_event.connect_button_press_event(move |_eventbox, event| {
@@ -118,83 +137,46 @@ impl SettingsDialog {
             }
 
             sync_pop.popup();
-
-            let settings = settings_10.clone();
-            let main_window = main_window.clone();
-            let sync_pop = sync_pop.clone();
-            let sync_label = sync_label.clone();
-            let error_bar_10 = error_bar_10.clone();
-            sync_list.connect_row_activated(move |_list, row| {
-                sync_pop.popdown();
-                let sync_interval = match row.get_index() {
-                    0 => SyncInterval::Never,
-                    2 => SyncInterval::QuaterHour,
-                    4 => SyncInterval::HalfHour,
-                    6 => SyncInterval::Hour,
-                    8 => SyncInterval::TwoHour,
-
-                    _ => SyncInterval::Never,
-                };
-                sync_label.set_label(&sync_interval.to_string());
-                if settings.borrow_mut().set_sync_interval(sync_interval).is_ok() {
-                    // FIXME: actually restart update loop with new interval
-                } else {
-                    error_bar_10
-                        .borrow()
-                        .simple_message("Failed to set setting 'sync interval'.");
-                }
-            });
             Inhibit(false)
         });
 
-        let main_window = window.clone();
-        let sync_label = self.builder.get::<Label>("sync_label");
         let sync_pop = self.builder.get::<Popover>("sync_pop");
         let sync_row = self.builder.get::<ActionRow>("sync_row");
-        let sync_list = self.builder.get::<ListBox>("sync_list");
         if let Some(listbox) = sync_row.get_parent() {
             if let Ok(listbox) = listbox.downcast::<ListBox>() {
                 listbox.connect_row_activated(move |_list, row| {
                     if let Some(name) = row.get_name() {
                         if name == "sync_row" {
                             sync_pop.popup();
-
-                            let settings = settings_11.clone();
-                            let main_window = main_window.clone();
-                            let sync_pop = sync_pop.clone();
-                            let sync_label = sync_label.clone();
-                            let error_bar_11 = error_bar_11.clone();
-                            sync_list.connect_row_activated(move |_list, row| {
-                                sync_pop.popdown();
-                                let sync_interval = match row.get_index() {
-                                    0 => SyncInterval::Never,
-                                    2 => SyncInterval::QuaterHour,
-                                    4 => SyncInterval::HalfHour,
-                                    6 => SyncInterval::Hour,
-                                    8 => SyncInterval::TwoHour,
-
-                                    _ => SyncInterval::Never,
-                                };
-                                sync_label.set_label(&sync_interval.to_string());
-                                if settings.borrow_mut().set_sync_interval(sync_interval).is_ok() {
-                                    // FIXME: actually restart update loop with new interval
-                                } else {
-                                    error_bar_11
-                                        .borrow()
-                                        .simple_message("Failed to set setting 'article order'.");
-                                }
-                            });
                         }
                     }
                 });
             }
         }
 
+        let main_window = window.clone();
+        let article_order_pop = self.builder.get::<Popover>("article_order_pop");
+        let article_order_label = self.builder.get::<Label>("article_order_label");
+        let article_order_list = self.builder.get::<ListBox>("article_order_list");
+        article_order_list.connect_row_activated(move |_list, row| {
+            article_order_pop.popdown();
+            let new_order = match row.get_index() {
+                0 => ArticleOrder::NewestFirst,
+                _ => ArticleOrder::OldestFirst,
+            };
+            article_order_label.set_label(new_order.to_str());
+            if settings_1.borrow_mut().set_article_list_order(new_order).is_ok() {
+                GtkUtil::execute_action_main_window(&main_window, "update-article-list", None);
+            } else {
+                error_bar_3
+                    .borrow()
+                    .simple_message("Failed to set setting 'article order'.");
+            }
+        });
+
         let article_order_label = self.builder.get::<Label>("article_order_label");
         article_order_label.set_label(self.settings.borrow().get_article_list_order().to_str());
-        let main_window = window.clone();
         let article_order_event = self.builder.get::<EventBox>("article_order_event");
-        let article_order_list = self.builder.get::<ListBox>("article_order_list");
         article_order_event.set_events(EventMask::BUTTON_PRESS_MASK);
         let article_order_pop = self.builder.get::<Popover>("article_order_pop");
         article_order_event.connect_button_press_event(move |_eventbox, event| {
@@ -209,62 +191,17 @@ impl SettingsDialog {
             }
 
             article_order_pop.popup();
-
-            let settings = settings_1.clone();
-            let main_window = main_window.clone();
-            let article_order_pop = article_order_pop.clone();
-            let article_order_label = article_order_label.clone();
-            let error_bar_3 = error_bar_3.clone();
-            article_order_list.connect_row_activated(move |_list, row| {
-                article_order_pop.popdown();
-                let new_order = match row.get_index() {
-                    0 => ArticleOrder::NewestFirst,
-                    _ => ArticleOrder::OldestFirst,
-                };
-                article_order_label.set_label(new_order.to_str());
-                if settings.borrow_mut().set_article_list_order(new_order).is_ok() {
-                    GtkUtil::execute_action_main_window(&main_window, "update-article-list", None);
-                } else {
-                    error_bar_3
-                        .borrow()
-                        .simple_message("Failed to set setting 'article order'.");
-                }
-            });
             Inhibit(false)
         });
 
-        let main_window = window.clone();
-        let article_order_label = self.builder.get::<Label>("article_order_label");
         let article_order_pop = self.builder.get::<Popover>("article_order_pop");
         let article_order_row = self.builder.get::<ActionRow>("article_order_row");
-        let article_order_list = self.builder.get::<ListBox>("article_order_list");
         if let Some(listbox) = article_order_row.get_parent() {
             if let Ok(listbox) = listbox.downcast::<ListBox>() {
                 listbox.connect_row_activated(move |_list, row| {
                     if let Some(name) = row.get_name() {
                         if name == "article_order_row" {
                             article_order_pop.popup();
-
-                            let settings = settings_8.clone();
-                            let main_window = main_window.clone();
-                            let article_order_pop = article_order_pop.clone();
-                            let article_order_label = article_order_label.clone();
-                            let error_bar_4 = error_bar_4.clone();
-                            article_order_list.connect_row_activated(move |_list, row| {
-                                article_order_pop.popdown();
-                                let new_order = match row.get_index() {
-                                    0 => ArticleOrder::NewestFirst,
-                                    _ => ArticleOrder::OldestFirst,
-                                };
-                                article_order_label.set_label(new_order.to_str());
-                                if settings.borrow_mut().set_article_list_order(new_order).is_ok() {
-                                    GtkUtil::execute_action_main_window(&main_window, "update-article-list", None);
-                                } else {
-                                    error_bar_4
-                                        .borrow()
-                                        .simple_message("Failed to set setting 'article order'.");
-                                }
-                            });
                         }
                     }
                 });
