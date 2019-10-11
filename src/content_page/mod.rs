@@ -184,6 +184,7 @@ impl ContentPage {
             SidebarSelection::All | SidebarSelection::Feed(_) | SidebarSelection::Cateogry(_) => None,
             SidebarSelection::Tag((id, _title)) => Some(id.clone()),
         };
+        let search_term = window_state.get_search_term().clone();
         let (feed_blacklist, category_blacklist) = match undo_bar.borrow().get_current_action() {
             Some(action) => match action {
                 UndoActionModel::DeleteFeed((feed_id, _label)) => (Some(vec![feed_id]), None),
@@ -208,6 +209,7 @@ impl ContentPage {
                 ids: None,
                 newer_than: None,
                 older_than: None,
+                search_term,
             })
             .context(ContentPageErrorKind::DataBase)?;
 
