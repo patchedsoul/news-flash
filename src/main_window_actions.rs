@@ -21,7 +21,7 @@ use gtk::{
     self, Application, ApplicationWindow, ButtonExt, Continue, DialogExt, FileChooserAction, FileChooserDialog,
     FileChooserExt, FileFilter, GtkWindowExt, GtkWindowExtManual, ResponseType, Stack, StackExt, StackTransitionType,
 };
-use log::{debug, error, info, warn};
+use log::{error, info, warn};
 use news_flash::models::{ArticleID, CategoryID, FeedID, LoginData, PluginID};
 use news_flash::{NewsFlash, NewsFlashError};
 use std::cell::RefCell;
@@ -387,7 +387,6 @@ impl MainWindowActions {
                     if data.is_empty() {
                         state.borrow_mut().set_search_term(None);
                     } else {
-                        debug!("Search term: {}", data);
                         state.borrow_mut().set_search_term(Some(data.to_owned()));
                     }
 
