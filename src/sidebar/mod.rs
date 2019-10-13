@@ -15,7 +15,7 @@ use gdk::{EventMask, EventType};
 use glib::{translate::ToGlib, Variant};
 use gtk::{
     Box, BoxExt, Button, Continue, EventBox, Image, ImageExt, Inhibit, Label, LabelExt, ListBoxExt, Revealer,
-    RevealerExt, StyleContextExt, WidgetExt, WidgetExtManual,
+    RevealerExt, StyleContextExt, WidgetExt, WidgetExtManual, ScrolledWindow,
 };
 pub use models::SidebarIterateItem;
 use models::SidebarSelection;
@@ -68,8 +68,9 @@ impl SideBar {
         let all_event_box = builder.get::<EventBox>("all_event_box");
         let feed_list_box = builder.get::<Box>("feed_list_box");
         let tag_list_box = builder.get::<Box>("tags_list_box");
+        let sidebar_scroll = builder.get::<ScrolledWindow>("sidebar_scroll");
 
-        let feed_list = FeedList::new();
+        let feed_list = FeedList::new(&sidebar_scroll);
         let tag_list = TagList::new();
         let footer = SidebarFooter::new(&builder);
 

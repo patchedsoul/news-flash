@@ -15,11 +15,12 @@ use crate::sidebar::feed_list::{
 };
 use crate::sidebar::SidebarIterateItem;
 use crate::util::{BuilderHelper, GtkHandle, GtkHandleMap, GtkUtil};
-use gdk::{DragAction, EventType};
+use gdk::{DragAction, EventType, WindowExt};
 use glib::translate::ToGlib;
 use gtk::{
     self, ContainerExt, Continue, DestDefaults, Inhibit, ListBox, ListBoxExt, ListBoxRowExt, SelectionMode,
-    StyleContextExt, TargetEntry, TargetFlags, WidgetExt, WidgetExtManual,
+    StyleContextExt, TargetEntry, TargetFlags, WidgetExt, WidgetExtManual, ScrolledWindow, ScrolledWindowExt,
+    AdjustmentExt,
 };
 use log::error;
 use news_flash::models::{CategoryID, FeedID};
@@ -30,6 +31,7 @@ use std::rc::Rc;
 #[derive(Clone, Debug)]
 pub struct FeedList {
     list: ListBox,
+    scroll: ScrolledWindow,
     categories: GtkHandleMap<CategoryID, GtkHandle<CategoryRow>>,
     feeds: GtkHandleMap<FeedID, GtkHandle<FeedRow>>,
     tree: GtkHandle<FeedListTree>,
@@ -38,7 +40,7 @@ pub struct FeedList {
 }
 
 impl FeedList {
-    pub fn new() -> Self {
+    pub fn new(sidebar_scroll: &ScrolledWindow) -> Self {
         let builder = BuilderHelper::new("sidebar_list");
         let list_box = builder.get::<ListBox>("sidebar_list");
 
@@ -54,6 +56,7 @@ impl FeedList {
 
         let feed_list = FeedList {
             list: list_box,
+            scroll: sidebar_scroll.clone(),
             categories: gtk_handle!(HashMap::new()),
             feeds: gtk_handle!(HashMap::new()),
             tree: gtk_handle!(FeedListTree::new()),
@@ -83,6 +86,7 @@ impl FeedList {
         let feeds = self.feeds.clone();
         let categories = self.categories.clone();
         let hovered_category_expand = self.hovered_category_expand.clone();
+        let scroll = self.scroll.clone();
         self.list
             .drag_dest_set(DestDefaults::DROP | DestDefaults::MOTION, &[entry], DragAction::MOVE);
         self.list.drag_dest_add_text_targets();
@@ -98,10 +102,23 @@ impl FeedList {
                     }
                 }
 
-                // let threshold = (0.9 * (widget.get_allocation().height as f32)) as i32;
-                // if y > threshold {
-                //     println!("below {}", y - threshold);
-                // }
+                let visible_list_rectangle = widget.get_window().unwrap().get_visible_region().unwrap().get_rectangle(0);
+                let visible_list_height = visible_list_rectangle.height;
+                let scroll_vadj = scroll.get_vadjustment().unwrap();
+                println!("visible list: {:?}", visible_list_rectangle);
+                println!("y: {}", y);
+                let upper_threshold = visible_list_height as i32 - 60;
+                if y > upper_threshold {
+                    let add_scroll_value = y - upper_threshold;
+                    println!("scroll down {}", add_scroll_value);
+                    scroll_vadj.set_value(scroll_vadj.get_value() + add_scroll_value as f64);
+                }
+                let lower_threshold = widget.get_allocated_height() - visible_list_height + 60;
+                if y < lower_threshold {
+                    let substract_scroll_value = widget.get_allocated_height() - y;
+                    println!("scroll up {}", substract_scroll_value);
+                    scroll_vadj.set_value(scroll_vadj.get_value() - substract_scroll_value as f64);
+                }
 
                 if let Some(row) = widget.get_row_at_y(y) {
                     let alloc = row.get_allocation();
