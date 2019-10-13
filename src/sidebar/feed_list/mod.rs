@@ -18,9 +18,9 @@ use crate::util::{BuilderHelper, GtkHandle, GtkHandleMap, GtkUtil};
 use gdk::{DragAction, EventType, WindowExt};
 use glib::translate::ToGlib;
 use gtk::{
-    self, ContainerExt, Continue, DestDefaults, Inhibit, ListBox, ListBoxExt, ListBoxRowExt, SelectionMode,
-    StyleContextExt, TargetEntry, TargetFlags, WidgetExt, WidgetExtManual, ScrolledWindow, ScrolledWindowExt,
-    AdjustmentExt,
+    self, AdjustmentExt, ContainerExt, Continue, DestDefaults, Inhibit, ListBox, ListBoxExt, ListBoxRowExt,
+    ScrolledWindow, ScrolledWindowExt, SelectionMode, StyleContextExt, TargetEntry, TargetFlags, WidgetExt,
+    WidgetExtManual,
 };
 use log::error;
 use news_flash::models::{CategoryID, FeedID};
@@ -102,7 +102,12 @@ impl FeedList {
                     }
                 }
 
-                let visible_list_rectangle = widget.get_window().unwrap().get_visible_region().unwrap().get_rectangle(0);
+                let visible_list_rectangle = widget
+                    .get_window()
+                    .unwrap()
+                    .get_visible_region()
+                    .unwrap()
+                    .get_rectangle(0);
                 let visible_list_height = visible_list_rectangle.height;
                 let scroll_vadj = scroll.get_vadjustment().unwrap();
                 println!("visible list: {:?}", visible_list_rectangle);

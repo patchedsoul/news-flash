@@ -15,7 +15,7 @@ use gdk::{EventMask, EventType};
 use glib::{translate::ToGlib, Variant};
 use gtk::{
     Box, BoxExt, Button, Continue, EventBox, Image, ImageExt, Inhibit, Label, LabelExt, ListBoxExt, Revealer,
-    RevealerExt, StyleContextExt, WidgetExt, WidgetExtManual, ScrolledWindow,
+    RevealerExt, ScrolledWindow, StyleContextExt, WidgetExt, WidgetExtManual,
 };
 pub use models::SidebarIterateItem;
 use models::SidebarSelection;
