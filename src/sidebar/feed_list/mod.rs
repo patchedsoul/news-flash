@@ -16,7 +16,7 @@ use crate::sidebar::feed_list::{
 use crate::sidebar::SidebarIterateItem;
 use crate::util::{BuilderHelper, GtkHandle, GtkHandleMap, GtkUtil};
 use gdk::{DragAction, EventType};
-use glib::translate::ToGlib;
+use glib::{translate::ToGlib, Variant};
 use gtk::{
     self, ContainerExt, Continue, DestDefaults, Inhibit, ListBox, ListBoxExt, ListBoxRowExt,
     ScrolledWindow, SelectionMode, StyleContextExt, TargetEntry, TargetFlags, WidgetExt,
@@ -86,7 +86,6 @@ impl FeedList {
         let feeds = self.feeds.clone();
         let categories = self.categories.clone();
         let hovered_category_expand = self.hovered_category_expand.clone();
-        //let scroll = self.scroll.clone();
         self.list
             .drag_dest_set(DestDefaults::DROP | DestDefaults::MOTION, &[entry], DragAction::MOVE);
         self.list.drag_dest_add_text_targets();
@@ -101,29 +100,6 @@ impl FeedList {
                         ctx.remove_class("drag-category");
                     }
                 }
-
-                // let visible_list_rectangle = widget
-                //     .get_window()
-                //     .unwrap()
-                //     .get_visible_region()
-                //     .unwrap()
-                //     .get_rectangle(0);
-                // let visible_list_height = visible_list_rectangle.height;
-                // let scroll_vadj = scroll.get_vadjustment().unwrap();
-                // println!("visible list: {:?}", visible_list_rectangle);
-                // println!("y: {}", y);
-                // let upper_threshold = visible_list_height as i32 - 60;
-                // if y > upper_threshold {
-                //     let add_scroll_value = y - upper_threshold;
-                //     println!("scroll down {}", add_scroll_value);
-                //     scroll_vadj.set_value(scroll_vadj.get_value() + add_scroll_value as f64);
-                // }
-                // let lower_threshold = widget.get_allocated_height() - visible_list_height + 60;
-                // if y < lower_threshold {
-                //     let substract_scroll_value = widget.get_allocated_height() - y;
-                //     println!("scroll up {}", substract_scroll_value);
-                //     scroll_vadj.set_value(scroll_vadj.get_value() - substract_scroll_value as f64);
-                // }
 
                 if let Some(row) = widget.get_row_at_y(y) {
                     let alloc = row.get_allocation();
@@ -229,6 +205,13 @@ impl FeedList {
                 }
             }
         });
+        self.list.connect_drag_drop(move |widget, drag_context, _x, _y, time| {
+            if let Some(target_type) = drag_context.list_targets().get(0) {
+                widget.drag_get_data(drag_context, target_type, time);
+                return Inhibit(true);
+            }
+            Inhibit(false)
+        });
         let tree = self.tree.clone();
         let hovered_category_expand = self.hovered_category_expand.clone();
         self.list
@@ -263,18 +246,33 @@ impl FeedList {
                     }) {
                         if let Some(dnd_data_string) = selection_data.get_text() {
                             if dnd_data_string.contains("FeedID") {
+                                let dnd_data_string = dnd_data_string.as_str().to_owned().split_off(6);
+                                let dnd_data_string : Vec<&str> = dnd_data_string.split(";").collect();
+                                let feed_string = dnd_data_string.get(0)
+                                    .expect("Didn't receive feed ID with DnD data.");
                                 let feed: FeedID =
-                                    serde_json::from_str(&dnd_data_string.as_str().to_owned().split_off(6))
+                                    serde_json::from_str(feed_string)
                                         .expect("Failed to deserialize FeedID.");
-                                let _fixme = FeedListDndAction::MoveFeed(feed, parent_category.clone(), sort_index);
+                                let category_string = dnd_data_string.get(1)
+                                    .expect("Didn't receive category ID with DnD data.");
+                                let current_category: CategoryID =
+                                    serde_json::from_str(category_string)
+                                        .expect("Failed to deserialize FeedID.");
+                                let dnd_data = FeedListDndAction::MoveFeed(feed, current_category, parent_category.clone(), sort_index);
+                                let dnd_data_json =
+                                    serde_json::to_string(&dnd_data).expect("Failed to serialize FeedListDndAction.");
+                                GtkUtil::execute_action(widget, "move", Some(&Variant::from(&dnd_data_json)));
                             }
 
                             if dnd_data_string.contains("CategoryID") {
                                 let category: CategoryID =
                                     serde_json::from_str(&dnd_data_string.as_str().to_owned().split_off(10))
                                         .expect("Failed to deserialize CategoryID.");
-                                let _fixme =
+                                let dnd_data =
                                     FeedListDndAction::MoveCategory(category, parent_category.clone(), sort_index);
+                                let dnd_data_json =
+                                    serde_json::to_string(&dnd_data).expect("Failed to serialize FeedListDndAction.");
+                                GtkUtil::execute_action(widget, "move", Some(&Variant::from(&dnd_data_json)));
                             }
                         }
                     }

@@ -13,6 +13,7 @@ use crate::rename_dialog::RenameDialog;
 use crate::responsive::ResponsiveLayout;
 use crate::settings::{NewsFlashShortcutWindow, Settings, SettingsDialog};
 use crate::sidebar::models::SidebarSelection;
+use crate::sidebar::FeedListDndAction;
 use crate::undo_bar::{UndoActionModel, UndoBar};
 use crate::util::{FileUtil, GtkHandle, GtkUtil};
 use gio::{ActionMapExt, ApplicationExt, SimpleAction};
@@ -1119,6 +1120,43 @@ impl MainWindowActions {
         });
         delete_feed_action.set_enabled(true);
         window.add_action(&delete_feed_action);
+    }
+
+    pub fn setup_move_action(
+        window: &ApplicationWindow,
+        news_flash: &GtkHandle<Option<NewsFlash>>,
+        error_bar: &GtkHandle<ErrorBar>,
+    ) {
+        let news_flash = news_flash.clone();
+        let error_bar = error_bar.clone();
+        let main_window = window.clone();
+        let move_action = SimpleAction::new("move", VariantTy::new("s").ok());
+        move_action.connect_activate(move |_action, data| {
+            if let Some(data) = data {
+                if let Some(data) = data.get_str() {
+                    let info: FeedListDndAction = serde_json::from_str(&data).expect("Invalid FeedListDndAction");
+                    match info {
+                        FeedListDndAction::MoveCategory(category_id, parent_id, _sort_index) => {
+                            if let Some(news_flash) = news_flash.borrow_mut().as_mut() {
+                                if let Err(error) = news_flash.move_category(&category_id, &parent_id) {
+                                    error_bar.borrow().news_flash_error("Failed to move category.", error);
+                                }
+                            }
+                        },
+                        FeedListDndAction::MoveFeed(feed_id, from_id, to_id, _sort_index) => {
+                            if let Some(news_flash) = news_flash.borrow_mut().as_mut() {
+                                if let Err(error) = news_flash.move_feed(&feed_id, &from_id, &to_id) {
+                                    error_bar.borrow().news_flash_error("Failed to move feed.", error);
+                                }
+                            }
+                        },
+                    }
+                    GtkUtil::execute_action_main_window(&main_window, "update-sidebar", None);
+                }
+            }
+        });
+        move_action.set_enabled(true);
+        window.add_action(&move_action);
     }
 
     pub fn setup_select_next_article_action(window: &ApplicationWindow, content_page: &GtkHandle<ContentPage>) {
