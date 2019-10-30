@@ -11,7 +11,7 @@ use gtk::{
     ListBoxRow, ListBoxRowExt, Popover, PopoverExt, PositionType, Revealer, RevealerExt, StateFlags, StyleContextExt,
     TargetEntry, TargetFlags, WidgetExt, WidgetExtManual,
 };
-use news_flash::models::{FavIcon, FeedID};
+use news_flash::models::{FavIcon, CategoryID, FeedID};
 use std::cell::RefCell;
 use std::rc::Rc;
 use std::str;
@@ -42,7 +42,7 @@ impl FeedRow {
 
         let mut feed = FeedRow {
             id: model.id.clone(),
-            widget: Self::create_row(&revealer, &model.id, &title_label),
+            widget: Self::create_row(&revealer, &model.id, &model.parent_id, &title_label),
             item_count: item_count_label,
             title: title_label,
             revealer,
@@ -59,7 +59,7 @@ impl FeedRow {
         gtk_handle!(feed)
     }
 
-    fn create_row(widget: &gtk::Revealer, id: &FeedID, label: &Label) -> ListBoxRow {
+    fn create_row(widget: &gtk::Revealer, id: &FeedID, parent_id: &CategoryID, label: &Label) -> ListBoxRow {
         let row = gtk::ListBoxRow::new();
         row.set_activatable(true);
         row.set_can_focus(false);
@@ -70,11 +70,16 @@ impl FeedRow {
         widget.drag_source_set(ModifierType::BUTTON1_MASK, &[entry], DragAction::MOVE);
         widget.drag_source_add_text_targets();
         let feed_id = id.clone();
+        let parent_id = parent_id.clone();
         widget.connect_drag_data_get(move |_widget, _ctx, selection_data, _info, _time| {
-            if let Ok(json) = serde_json::to_string(&feed_id.clone()) {
-                let mut data = String::from("FeedID ");
-                data.push_str(&json);
-                selection_data.set_text(&data);
+            if let Ok(feed_id_json) = serde_json::to_string(&feed_id.clone()) {
+                if let Ok(category_id_json) = serde_json::to_string(&parent_id.clone()) {
+                    let mut data = String::from("FeedID ");
+                    data.push_str(&feed_id_json);
+                    data.push_str(";");
+                    data.push_str(&category_id_json);
+                    selection_data.set_text(&data);
+                }
             }
         });
         let row_clone = row.clone();

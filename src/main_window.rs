@@ -185,6 +185,7 @@ impl MainWindow {
         MainWindowActions::setup_enqueue_undoable_action(&window, &undo_bar_handle, &content_page_handle, &state);
         MainWindowActions::setup_delete_feed_action(&window, &news_flash_handle, &error_bar_handle);
         MainWindowActions::setup_delete_category_action(&window, &news_flash_handle, &error_bar_handle);
+        MainWindowActions::setup_move_action(&window, &news_flash_handle, &error_bar_handle);
         MainWindowActions::setup_about_action(&window);
         MainWindowActions::setup_settings_action(&window, &settings, &error_bar_handle);
         MainWindowActions::setup_shortcut_window_action(&window, &settings);
