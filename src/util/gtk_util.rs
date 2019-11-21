@@ -1,5 +1,6 @@
 use super::error::{UtilError, UtilErrorKind};
 use crate::Resources;
+use std::future::Future;
 use cairo::{Context, Surface};
 use failure::ResultExt;
 use gdk::{ContextExt, Window};
@@ -197,5 +198,10 @@ impl GtkUtil {
             glib::source::source_remove(source_id);
         }
         //warn!("Source ID to remove is NONE");
+    }
+
+    pub fn spawn_future<F: Future<Output = ()> + 'static>(future: F) {
+        let ctx = glib::MainContext::default();
+        ctx.spawn_local(future);
     }
 }

@@ -91,6 +91,7 @@ impl ContentPage {
                         .iter()
                         .find(|&f| f.feed_id == article.feed_id)
                         .ok_or_else(|| ContentPageErrorKind::FeedTitle)?;
+                    // FIXME: move to article row and show placeholder
                     let favicon = match news_flash.get_icon_info(&feed) {
                         Ok(favicon) => Some(favicon),
                         Err(_) => None,
@@ -137,6 +138,7 @@ impl ContentPage {
                         .iter()
                         .find(|&f| f.feed_id == article.feed_id)
                         .ok_or_else(|| ContentPageErrorKind::FeedTitle)?;
+                    // FIXME: move to article row and show placeholder
                     let favicon = match news_flash.get_icon_info(&feed) {
                         Ok(favicon) => Some(favicon),
                         Err(_) => None,
@@ -283,6 +285,7 @@ impl ContentPage {
                     Some(count) => *count,
                     None => 0,
                 };
+                // FIXME: move to feed row and show placeholder
                 let favicon = match news_flash.get_icon_info(&feed) {
                     Ok(favicon) => Some(favicon),
                     Err(_) => None,

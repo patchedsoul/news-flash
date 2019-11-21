@@ -1,6 +1,7 @@
 use crate::gtk_handle;
 use crate::util::{BuilderHelper, GtkHandle, GtkUtil};
 use glib::object::Cast;
+use glib::futures::FutureExt;
 use gtk::{
     BinExt, Box, BoxExt, Button, ButtonExt, ComboBox, ComboBoxExt, ContainerExt, EditableSignals, Entry, EntryExt,
     GtkListStoreExt, GtkListStoreExtManual, IconSize, Image, ImageExt, Label, LabelExt, ListBox, ListBoxExt,
@@ -102,36 +103,39 @@ impl AddPopover {
                 if let Ok(url) = Url::parse(&url_text) {
                     let feed_id = FeedID::new(&url_text);
 
-                    match news_flash::feed_parser::download_and_parse_feed(&url, &feed_id, None, None) {
-                        Ok(result) => match result {
-                            ParsedUrl::MultipleFeeds(feed_vec) => {
-                                parse_button_add_feed_stack.set_visible_child_name("feed_selection_page");
-                                Self::fill_mupliple_feed_list(
-                                    feed_vec,
-                                    &parse_button_feed_list,
-                                    &parse_button_select_button,
-                                    &parse_button_add_feed_stack,
-                                    &parse_button_feed_title_entry,
-                                    &parse_button_favicon_image,
-                                    &parse_button_feed_url,
-                                );
+                    let future = news_flash::feed_parser::download_and_parse_feed(&url, &feed_id, None, None).map(move |parse_result| {
+                        match parse_result {
+                            Ok(result) => match result {
+                                ParsedUrl::MultipleFeeds(feed_vec) => {
+                                    parse_button_add_feed_stack.set_visible_child_name("feed_selection_page");
+                                    Self::fill_mupliple_feed_list(
+                                        feed_vec,
+                                        &parse_button_feed_list,
+                                        &parse_button_select_button,
+                                        &parse_button_add_feed_stack,
+                                        &parse_button_feed_title_entry,
+                                        &parse_button_favicon_image,
+                                        &parse_button_feed_url,
+                                    );
+                                }
+                                ParsedUrl::SingleFeed(feed) => {
+                                    parse_button_add_feed_stack.set_visible_child_name("feed_page");
+                                    Self::fill_feed_page(
+                                        feed,
+                                        &parse_button_feed_title_entry,
+                                        &parse_button_favicon_image,
+                                        &parse_button_feed_url,
+                                    );
+                                }
+                            },
+                            Err(error) => {
+                                error!("No feed found for url '{}': {}", url, error);
+                                url_entry.set_property_secondary_icon_name(Some(WARN_ICON));
+                                url_entry.set_property_secondary_icon_tooltip_text(Some("No Feed found."));
                             }
-                            ParsedUrl::SingleFeed(feed) => {
-                                parse_button_add_feed_stack.set_visible_child_name("feed_page");
-                                Self::fill_feed_page(
-                                    feed,
-                                    &parse_button_feed_title_entry,
-                                    &parse_button_favicon_image,
-                                    &parse_button_feed_url,
-                                );
-                            }
-                        },
-                        Err(error) => {
-                            error!("No feed found for url '{}': {}", url, error);
-                            url_entry.set_property_secondary_icon_name(Some(WARN_ICON));
-                            url_entry.set_property_secondary_icon_tooltip_text(Some("No Feed found."));
                         }
-                    }
+                    });
+                    GtkUtil::spawn_future(future);
                 } else {
                     error!("No valid url: '{}'", url_text);
                     url_entry.set_property_secondary_icon_name(Some(WARN_ICON));
@@ -206,23 +210,31 @@ impl AddPopover {
         title_entry.set_text(&feed.label);
         feed_url.replace(feed.feed_url.clone());
         let scale = GtkUtil::get_scale(favicon_image);
-
-        if let Some(favicon) = news_flash::util::favicon_cache::FavIconCache::scrap(&feed) {
-            if let Some(data) = &favicon.data {
-                if let Ok(surface) = GtkUtil::create_surface_from_bytes(data, 64, 64, scale) {
-                    favicon_image.set_from_surface(Some(&surface));
-                }
-            }
-        } else if let Some(icon_url) = feed.icon_url {
-            if let Ok(mut response) = reqwest::get(icon_url.get()) {
-                let mut buf: Vec<u8> = vec![];
-                if let Ok(_bytes_written) = response.copy_to(&mut buf) {
-                    if let Ok(surface) = GtkUtil::create_surface_from_bytes(&buf, 64, 64, scale) {
+        let favicon_image = favicon_image.clone();
+        let future = news_flash::util::favicon_cache::FavIconCache::scrap(&feed).map(move |icon_result| {
+            if let Some(favicon) = icon_result {
+                if let Some(data) = &favicon.data {
+                    if let Ok(surface) = GtkUtil::create_surface_from_bytes(data, 64, 64, scale) {
                         favicon_image.set_from_surface(Some(&surface));
                     }
                 }
+            } else if let Some(icon_url) = feed.icon_url {
+                let favicon_image = favicon_image.clone();
+                let future = reqwest::get(icon_url.get()).map(move |second_choice_icon_result| {
+                    if let Ok(mut response) = second_choice_icon_result {
+                        let future = response.bytes().map(move |bytes_result| {
+                            if let Ok(bytes) = bytes_result {
+                                if let Ok(surface) = GtkUtil::create_surface_from_bytes(bytes.as_ref(), 64, 64, scale) {
+                                    favicon_image.set_from_surface(Some(&surface));
+                                }
+                            }
+                        });
+                    }
+                });
+                GtkUtil::spawn_future(future);
             }
-        }
+        });
+        GtkUtil::spawn_future(future);
     }
 
     fn fill_mupliple_feed_list(
@@ -249,18 +261,19 @@ impl AddPopover {
                 if let Some(name) = row.get_name() {
                     let url = Url::parse(name.as_str()).expect("should never fail since it comes from 'url.as_str()'");
                     let feed_id = FeedID::new(url.get().as_str());
-                    if let Ok(ParsedUrl::SingleFeed(feed)) =
-                        news_flash::feed_parser::download_and_parse_feed(&url, &feed_id, None, None)
-                    {
-                        Self::fill_feed_page(feed, &title_entry, &favicon, &feed_url);
-                        add_feed_stack.set_visible_child_name("feed_page");
-                    } else if let Some(child) = row.get_child() {
-                        if let Ok(_box) = child.downcast::<Box>() {
-                            if let Some(icon) = _box.get_children().get(1) {
-                                icon.set_visible(true);
+                    let future = news_flash::feed_parser::download_and_parse_feed(&url, &feed_id, None, None).map(move |feed_result| {
+                        if let Ok(ParsedUrl::SingleFeed(feed)) = feed_result {
+                            Self::fill_feed_page(feed, &title_entry, &favicon, &feed_url);
+                            add_feed_stack.set_visible_child_name("feed_page");
+                        } else if let Some(child) = row.get_child() {
+                            if let Ok(_box) = child.downcast::<Box>() {
+                                if let Some(icon) = _box.get_children().get(1) {
+                                    icon.set_visible(true);
+                                }
                             }
                         }
-                    }
+                    });
+                    GtkUtil::spawn_future(future);
                 }
             }
         });

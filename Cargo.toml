@@ -9,12 +9,12 @@ log = "0.4"
 chrono = "0.4"
 rust-embed = { version = "5.1", features = ["debug-embed"] }
 failure = "0.1"
-serde = "1.0"
+serde = { version = "1.0", features = ["serde_derive"] }
 serde_json = "1.0"
-glib = "0.8"
 cairo-rs = "0.7"
-gdk-pixbuf = "0.7"
 pango = "0.7"
+glib = { version = "0.8", features = ["subclassing"] }
+gdk-pixbuf = { version = "0.7", features = ["futures", "v2_36"] }
 gtk = { version = "0.7", features = ["v3_24"] }
 gio = { version = "0.7", features = ["v2_58"] }
 gdk = { version = "0.11", features = ["v3_24"] }
@@ -22,7 +22,7 @@ libhandy = { version = "0.4", features=["v0_0_10"] }
 webkit2gtk = { version = "0.8", features = ["v2_16"] }
 log4rs = "0.8"
 dirs = "2.0"
-color-backtrace = "0.2"
+color-backtrace = "0.3"
 lazy_static = "1.4"
-reqwest = "0.9"
-news-flash = { git = "http://gitlab.com/news-flash/news_flash_base.git" }
+reqwest = "0.10.0-alpha.2"
+news-flash = { git = "http://gitlab.com/news-flash/news_flash_base.git", branch = "async" }
