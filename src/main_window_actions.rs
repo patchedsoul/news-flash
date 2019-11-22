@@ -17,6 +17,7 @@ use crate::sidebar::FeedListDndAction;
 use crate::undo_bar::{UndoActionModel, UndoBar};
 use crate::util::{FileUtil, GtkHandle, GtkUtil};
 use gio::{ActionMapExt, ApplicationExt, SimpleAction};
+use glib::futures::FutureExt;
 use glib::{translate::ToGlib, Variant, VariantTy};
 use gtk::{
     self, Application, ApplicationWindow, ButtonExt, Continue, DialogExt, FileChooserAction, FileChooserDialog,
@@ -189,30 +190,34 @@ impl MainWindowActions {
                             return;
                         }
                     };
-                    match news_flash_lib.login(info.clone()) {
-                        Ok(()) => {
-                            // create main obj
-                            *news_flash.borrow_mut() = Some(news_flash_lib);
 
-                            // show content page
-                            let id = Variant::from(id.to_str());
-                            GtkUtil::execute_action_main_window(&main_window, "show-content-page", Some(&id));
-                        }
-                        Err(error) => {
-                            error!("Login failed! Plguin: {}, Error: {}", id, error);
-                            match info {
-                                LoginData::OAuth(_) => {
-                                    oauth_page.borrow_mut().show_error(error);
-                                }
-                                LoginData::Password(_) => {
-                                    pw_page.borrow_mut().show_error(error);
-                                }
-                                LoginData::None(_) => {
-                                    // NOTHING
+                    let future = news_flash_lib.login(info.clone()).map(move |login_result| {
+                        match login_result {
+                            Ok(()) => {
+                                // create main obj
+                                *news_flash.borrow_mut() = Some(news_flash_lib);
+    
+                                // show content page
+                                let id = Variant::from(id.to_str());
+                                GtkUtil::execute_action_main_window(&main_window, "show-content-page", Some(&id));
+                            }
+                            Err(error) => {
+                                error!("Login failed! Plguin: {}, Error: {}", id, error);
+                                match info {
+                                    LoginData::OAuth(_) => {
+                                        oauth_page.borrow_mut().show_error(error);
+                                    }
+                                    LoginData::Password(_) => {
+                                        pw_page.borrow_mut().show_error(error);
+                                    }
+                                    LoginData::None(_) => {
+                                        // NOTHING
+                                    }
                                 }
                             }
                         }
-                    }
+                    });
+                    GtkUtil::spawn_future(future);
                 }
             }
         });
