@@ -1,6 +1,5 @@
 use super::error::{UtilError, UtilErrorKind};
 use crate::Resources;
-use std::future::Future;
 use cairo::{Context, Surface};
 use failure::ResultExt;
 use gdk::{ContextExt, Window};
@@ -15,6 +14,7 @@ use log::{error, warn};
 use news_flash::models::PixelIcon;
 use std::cell::RefCell;
 use std::collections::HashMap;
+use std::future::Future;
 use std::rc::Rc;
 
 pub type GtkHandle<T> = Rc<RefCell<T>>;
@@ -203,5 +203,10 @@ impl GtkUtil {
     pub fn spawn_future<F: Future<Output = ()> + 'static>(future: F) {
         let ctx = glib::MainContext::default();
         ctx.spawn_local(future);
+    }
+
+    pub fn block_on_future<F: Future>(future: F) -> F::Output {
+        let ctx = glib::MainContext::default();
+        ctx.block_on(future)
     }
 }

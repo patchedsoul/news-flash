@@ -9,7 +9,7 @@ use self::footer::SidebarFooter;
 use crate::gtk_handle;
 use crate::util::{BuilderHelper, GtkHandle, GtkUtil};
 use failure::ResultExt;
-pub use feed_list::models::{FeedListItemID, FeedListTree, FeedListDndAction};
+pub use feed_list::models::{FeedListDndAction, FeedListItemID, FeedListTree};
 use feed_list::FeedList;
 use gdk::{EventMask, EventType};
 use glib::{translate::ToGlib, Variant};

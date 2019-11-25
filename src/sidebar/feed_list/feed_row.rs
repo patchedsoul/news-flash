@@ -11,7 +11,7 @@ use gtk::{
     ListBoxRow, ListBoxRowExt, Popover, PopoverExt, PositionType, Revealer, RevealerExt, StateFlags, StyleContextExt,
     TargetEntry, TargetFlags, WidgetExt, WidgetExtManual,
 };
-use news_flash::models::{FavIcon, CategoryID, FeedID};
+use news_flash::models::{CategoryID, FavIcon, FeedID};
 use std::cell::RefCell;
 use std::rc::Rc;
 use std::str;

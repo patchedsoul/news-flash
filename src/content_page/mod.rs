@@ -13,7 +13,7 @@ use crate::settings::Settings;
 use crate::sidebar::models::SidebarSelection;
 use crate::sidebar::{FeedListTree, SideBar, TagListModel};
 use crate::undo_bar::{UndoActionModel, UndoBar};
-use crate::util::{BuilderHelper, GtkHandle, Util};
+use crate::util::{BuilderHelper, GtkHandle, GtkUtil, Util};
 use failure::ResultExt;
 use gtk::{Box, BoxExt, Button, WidgetExt};
 use libhandy::Leaflet;
@@ -92,7 +92,7 @@ impl ContentPage {
                         .find(|&f| f.feed_id == article.feed_id)
                         .ok_or_else(|| ContentPageErrorKind::FeedTitle)?;
                     // FIXME: move to article row and show placeholder
-                    let favicon = match news_flash.get_icon_info(&feed) {
+                    let favicon = match GtkUtil::block_on_future(news_flash.get_icon_info(&feed)) {
                         Ok(favicon) => Some(favicon),
                         Err(_) => None,
                     };
@@ -139,7 +139,7 @@ impl ContentPage {
                         .find(|&f| f.feed_id == article.feed_id)
                         .ok_or_else(|| ContentPageErrorKind::FeedTitle)?;
                     // FIXME: move to article row and show placeholder
-                    let favicon = match news_flash.get_icon_info(&feed) {
+                    let favicon = match GtkUtil::block_on_future(news_flash.get_icon_info(&feed)) {
                         Ok(favicon) => Some(favicon),
                         Err(_) => None,
                     };
@@ -286,7 +286,7 @@ impl ContentPage {
                     None => 0,
                 };
                 // FIXME: move to feed row and show placeholder
-                let favicon = match news_flash.get_icon_info(&feed) {
+                let favicon = match GtkUtil::block_on_future(news_flash.get_icon_info(&feed)) {
                     Ok(favicon) => Some(favicon),
                     Err(_) => None,
                 };

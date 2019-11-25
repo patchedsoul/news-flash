@@ -18,9 +18,8 @@ use crate::util::{BuilderHelper, GtkHandle, GtkHandleMap, GtkUtil};
 use gdk::{DragAction, EventType};
 use glib::{translate::ToGlib, Variant};
 use gtk::{
-    self, ContainerExt, Continue, DestDefaults, Inhibit, ListBox, ListBoxExt, ListBoxRowExt,
-    ScrolledWindow, SelectionMode, StyleContextExt, TargetEntry, TargetFlags, WidgetExt,
-    WidgetExtManual,
+    self, ContainerExt, Continue, DestDefaults, Inhibit, ListBox, ListBoxExt, ListBoxRowExt, ScrolledWindow,
+    SelectionMode, StyleContextExt, TargetEntry, TargetFlags, WidgetExt, WidgetExtManual,
 };
 use log::error;
 use news_flash::models::{CategoryID, FeedID};
@@ -247,18 +246,22 @@ impl FeedList {
                         if let Some(dnd_data_string) = selection_data.get_text() {
                             if dnd_data_string.contains("FeedID") {
                                 let dnd_data_string = dnd_data_string.as_str().to_owned().split_off(6);
-                                let dnd_data_string : Vec<&str> = dnd_data_string.split(";").collect();
-                                let feed_string = dnd_data_string.get(0)
-                                    .expect("Didn't receive feed ID with DnD data.");
+                                let dnd_data_string: Vec<&str> = dnd_data_string.split(";").collect();
+                                let feed_string =
+                                    dnd_data_string.get(0).expect("Didn't receive feed ID with DnD data.");
                                 let feed: FeedID =
-                                    serde_json::from_str(feed_string)
-                                        .expect("Failed to deserialize FeedID.");
-                                let category_string = dnd_data_string.get(1)
+                                    serde_json::from_str(feed_string).expect("Failed to deserialize FeedID.");
+                                let category_string = dnd_data_string
+                                    .get(1)
                                     .expect("Didn't receive category ID with DnD data.");
                                 let current_category: CategoryID =
-                                    serde_json::from_str(category_string)
-                                        .expect("Failed to deserialize FeedID.");
-                                let dnd_data = FeedListDndAction::MoveFeed(feed, current_category, parent_category.clone(), sort_index);
+                                    serde_json::from_str(category_string).expect("Failed to deserialize FeedID.");
+                                let dnd_data = FeedListDndAction::MoveFeed(
+                                    feed,
+                                    current_category,
+                                    parent_category.clone(),
+                                    sort_index,
+                                );
                                 let dnd_data_json =
                                     serde_json::to_string(&dnd_data).expect("Failed to serialize FeedListDndAction.");
                                 GtkUtil::execute_action(widget, "move", Some(&Variant::from(&dnd_data_json)));

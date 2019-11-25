@@ -16,7 +16,6 @@ use crate::Resources;
 use gdk::EventKey;
 use gio::{ApplicationExt, Notification, NotificationPriority, ThemedIcon};
 use glib::{self, Variant};
-use glib::futures::FutureExt;
 use gtk::{
     self, Application, ApplicationWindow, CssProvider, CssProviderExt, GtkWindowExt, GtkWindowExtManual, Inhibit,
     Settings as GtkSettings, SettingsExt, Stack, StackExt, StyleContext, StyleContextExt, WidgetExt,
@@ -228,19 +227,18 @@ impl MainWindow {
             header_stack.set_visible_child_name(CONTENT_PAGE);
 
             if let Some(id) = news_flash_lib.id() {
-
                 let content_page_handle_clone = content_page_handle.clone();
                 let error_bar_handle_clone = error_bar_handle.clone();
-                let future = news_flash_lib.user_name().map(move |user_name_option| {
-                    if content_page_handle_clone.borrow().set_service(&id, user_name_option).is_err()
-                    {
-                        error_bar_handle_clone
-                            .borrow()
-                            .simple_message("Failed to set sidebar service logo.");
-                    }
-                });
-                GtkUtil::spawn_future(future);
-                
+                if content_page_handle_clone
+                    .borrow()
+                    .set_service(&id, news_flash_lib.user_name())
+                    .is_err()
+                {
+                    error_bar_handle_clone
+                        .borrow()
+                        .simple_message("Failed to set sidebar service logo.");
+                }
+
                 *news_flash_handle.borrow_mut() = Some(news_flash_lib);
 
                 // try to fill content page with data

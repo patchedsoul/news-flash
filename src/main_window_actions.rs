@@ -191,33 +191,35 @@ impl MainWindowActions {
                         }
                     };
 
-                    let future = news_flash_lib.login(info.clone()).map(move |login_result| {
-                        match login_result {
-                            Ok(()) => {
-                                // create main obj
-                                *news_flash.borrow_mut() = Some(news_flash_lib);
-    
-                                // show content page
-                                let id = Variant::from(id.to_str());
-                                GtkUtil::execute_action_main_window(&main_window, "show-content-page", Some(&id));
-                            }
-                            Err(error) => {
-                                error!("Login failed! Plguin: {}, Error: {}", id, error);
-                                match info {
-                                    LoginData::OAuth(_) => {
-                                        oauth_page.borrow_mut().show_error(error);
-                                    }
-                                    LoginData::Password(_) => {
-                                        pw_page.borrow_mut().show_error(error);
-                                    }
-                                    LoginData::None(_) => {
-                                        // NOTHING
-                                    }
+                    let news_flash = news_flash.clone();
+                    let main_window = main_window.clone();
+                    let pw_page = pw_page.clone();
+                    let oauth_page = oauth_page.clone();
+                    let login_result = GtkUtil::block_on_future(news_flash_lib.login(info.clone()));
+                    match login_result {
+                        Ok(()) => {
+                            // create main obj
+                            *news_flash.borrow_mut() = Some(news_flash_lib);
+
+                            // show content page
+                            let id = Variant::from(id.to_str());
+                            GtkUtil::execute_action_main_window(&main_window, "show-content-page", Some(&id));
+                        }
+                        Err(error) => {
+                            error!("Login failed! Plguin: {}, Error: {}", id, error);
+                            match info {
+                                LoginData::OAuth(_) => {
+                                    oauth_page.borrow_mut().show_error(error);
+                                }
+                                LoginData::Password(_) => {
+                                    pw_page.borrow_mut().show_error(error);
+                                }
+                                LoginData::None(_) => {
+                                    // NOTHING
                                 }
                             }
                         }
-                    });
-                    GtkUtil::spawn_future(future);
+                    }
                 }
             }
         });
@@ -267,7 +269,7 @@ impl MainWindowActions {
             let mut result: Result<i64, NewsFlashError> = Ok(0);
             let mut unread_count = 0;
             if let Some(news_flash) = news_flash.borrow_mut().as_mut() {
-                result = news_flash.sync();
+                result = GtkUtil::block_on_future(news_flash.sync());
                 unread_count = match news_flash.unread_count_all() {
                     Ok(unread_count) => unread_count,
                     Err(_) => 0,
@@ -600,14 +602,19 @@ impl MainWindowActions {
                     let update: ReadUpdate = serde_json::from_str(&data).expect("Invalid ReadUpdate");
 
                     if let Some(news_flash) = news_flash.borrow_mut().as_mut() {
-                        match news_flash.set_article_read(&[update.article_id.clone()], update.read) {
-                            Ok(_) => {}
-                            Err(error) => {
-                                let message = format!("Failed to mark article read: '{}'", update.article_id);
-                                error!("{}", message);
-                                error_bar.borrow().news_flash_error(&message, error);
-                            }
-                        }
+                        let article_id_vec = vec![update.article_id.clone()];
+                        let future =
+                            news_flash
+                                .set_article_read(&article_id_vec, update.read)
+                                .map(|result| match result {
+                                    Ok(_) => {}
+                                    Err(error) => {
+                                        let message = format!("Failed to mark article read: '{}'", update.article_id);
+                                        error!("{}", message);
+                                        error_bar.borrow().news_flash_error(&message, error);
+                                    }
+                                });
+                        GtkUtil::block_on_future(future);
                     } else {
                         let message = "Failed to borrow NewsFlash.";
                         error!("{}", message);
@@ -652,14 +659,18 @@ impl MainWindowActions {
                     let update: MarkUpdate = serde_json::from_str(&data).expect("Invalid MarkUpdate");
 
                     if let Some(news_flash) = news_flash.borrow_mut().as_mut() {
-                        match news_flash.set_article_marked(&[update.article_id.clone()], update.marked) {
-                            Ok(_) => {}
-                            Err(error) => {
-                                let message = format!("Failed to star article: '{}'", update.article_id);
-                                error!("{}", message);
-                                error_bar.borrow().news_flash_error(&message, error);
-                            }
-                        }
+                        let article_id_vec = vec![update.article_id.clone()];
+                        let future = news_flash
+                            .set_article_marked(&article_id_vec, update.marked)
+                            .map(|result| match result {
+                                Ok(_) => {}
+                                Err(error) => {
+                                    let message = format!("Failed to star article: '{}'", update.article_id);
+                                    error!("{}", message);
+                                    error_bar.borrow().news_flash_error(&message, error);
+                                }
+                            });
+                        GtkUtil::block_on_future(future);
                     } else {
                         let message = "Failed to borrow NewsFlash.";
                         error!("{}", message);
@@ -705,40 +716,55 @@ impl MainWindowActions {
                 let sidebar_selection = state.borrow().get_sidebar_selection().clone();
 
                 match sidebar_selection {
-                    SidebarSelection::All => match news_flash.set_all_read() {
-                        Ok(_) => {}
-                        Err(error) => {
-                            let message = "Failed to mark all read";
-                            error_bar.borrow().news_flash_error(message, error);
-                            error!("{}", message);
-                        }
-                    },
-                    SidebarSelection::Cateogry((category_id, _title)) => {
-                        match news_flash.set_category_read(&[category_id.clone()]) {
+                    SidebarSelection::All => {
+                        let future = news_flash.set_all_read().map(|result| match result {
                             Ok(_) => {}
                             Err(error) => {
-                                let message = format!("Failed to mark category '{}' read", category_id);
+                                let message = "Failed to mark all read";
+                                error_bar.borrow().news_flash_error(message, error);
+                                error!("{}", message);
+                            }
+                        });
+                        GtkUtil::block_on_future(future);
+                    }
+                    SidebarSelection::Cateogry((category_id, _title)) => {
+                        let category_id_vec = vec![category_id.clone()];
+                        let future = news_flash
+                            .set_category_read(&category_id_vec)
+                            .map(|result| match result {
+                                Ok(_) => {}
+                                Err(error) => {
+                                    let message = format!("Failed to mark category '{}' read", category_id);
+                                    error_bar.borrow().news_flash_error(&message, error);
+                                    error!("{}", message);
+                                }
+                            });
+                        GtkUtil::block_on_future(future);
+                    }
+                    SidebarSelection::Feed((feed_id, _title)) => {
+                        let feed_id_vec = vec![feed_id.clone()];
+                        let future = news_flash.set_feed_read(&feed_id_vec).map(|result| match result {
+                            Ok(_) => {}
+                            Err(error) => {
+                                let message = format!("Failed to mark feed '{}' read", feed_id);
                                 error_bar.borrow().news_flash_error(&message, error);
                                 error!("{}", message);
                             }
-                        }
+                        });
+                        GtkUtil::block_on_future(future);
                     }
-                    SidebarSelection::Feed((feed_id, _title)) => match news_flash.set_feed_read(&[feed_id.clone()]) {
-                        Ok(_) => {}
-                        Err(error) => {
-                            let message = format!("Failed to mark feed '{}' read", feed_id);
-                            error_bar.borrow().news_flash_error(&message, error);
-                            error!("{}", message);
-                        }
-                    },
-                    SidebarSelection::Tag((tag_id, _title)) => match news_flash.set_tag_read(&[tag_id.clone()]) {
-                        Ok(_) => {}
-                        Err(error) => {
-                            let message = format!("Failed to mark tag '{}' read", tag_id);
-                            error_bar.borrow().news_flash_error(&message, error);
-                            error!("{}", message);
-                        }
-                    },
+                    SidebarSelection::Tag((tag_id, _title)) => {
+                        let tag_id_vec = vec![tag_id.clone()];
+                        let future = news_flash.set_tag_read(&tag_id_vec).map(|result| match result {
+                            Ok(_) => {}
+                            Err(error) => {
+                                let message = format!("Failed to mark tag '{}' read", tag_id);
+                                error_bar.borrow().news_flash_error(&message, error);
+                                error!("{}", message);
+                            }
+                        });
+                        GtkUtil::block_on_future(future);
+                    }
                 }
 
                 let visible_article = content_page.borrow().article_view_visible_article();
@@ -799,7 +825,8 @@ impl MainWindowActions {
                     if let Some(news_flash) = news_flash_handle.borrow_mut().as_mut() {
                         let category_id = match feed_category {
                             AddCategory::New(category_title) => {
-                                let category = match news_flash.add_category(&category_title, None, None) {
+                                let add_category_future = news_flash.add_category(&category_title, None, None);
+                                let category = match GtkUtil::block_on_future(add_category_future) {
                                     Ok(category) => category,
                                     Err(error) => {
                                         error!("{}: Can't add Category", error_message);
@@ -813,13 +840,17 @@ impl MainWindowActions {
                             AddCategory::None => None,
                         };
 
-                        match news_flash.add_feed(&feed_url, feed_title, category_id) {
-                            Ok(_) => {}
-                            Err(error) => {
-                                error!("{}: Can't add Feed", error_message);
-                                error_bar.borrow().news_flash_error(error_message, error);
-                            }
-                        }
+                        let add_feed_future =
+                            news_flash
+                                .add_feed(&feed_url, feed_title, category_id)
+                                .map(|result| match result {
+                                    Ok(_) => {}
+                                    Err(error) => {
+                                        error!("{}: Can't add Feed", error_message);
+                                        error_bar.borrow().news_flash_error(error_message, error);
+                                    }
+                                });
+                        GtkUtil::block_on_future(add_feed_future);
                     } else {
                         error!("{}: Can't borrow NewsFlash", error_message);
                         error_bar.borrow().simple_message(error_message);
@@ -883,9 +914,12 @@ impl MainWindowActions {
                                     }
                                 };
 
-                                if let Err(error) = news_flash.rename_feed(&feed, &new_label) {
-                                    error_bar.borrow().news_flash_error("Failed to rename feed.", error);
-                                }
+                                let future = news_flash.rename_feed(&feed, &new_label).map(|result| {
+                                    if let Err(error) = result {
+                                        error_bar.borrow().news_flash_error("Failed to rename feed.", error);
+                                    }
+                                });
+                                GtkUtil::block_on_future(future);
 
                                 dialog_handle.borrow().close();
                             }
@@ -954,9 +988,12 @@ impl MainWindowActions {
                                         return;
                                     }
                                 };
-                                if let Err(error) = news_flash.rename_category(&category, &new_label) {
-                                    error_bar.borrow().news_flash_error("Failed to rename category.", error);
-                                }
+                                let future = news_flash.rename_category(&category, &new_label).map(|result| {
+                                    if let Err(error) = result {
+                                        error_bar.borrow().news_flash_error("Failed to rename category.", error);
+                                    }
+                                });
+                                GtkUtil::block_on_future(future);
                                 dialog_handle.borrow().close();
                             }
 
@@ -1068,9 +1105,12 @@ impl MainWindowActions {
 
                         if let Some(feed) = feeds.iter().find(|f| f.feed_id == feed_id).cloned() {
                             info!("delete feed '{}' (id: {})", feed.label, feed.feed_id);
-                            if let Err(error) = news_flash.remove_feed(&feed) {
-                                error_bar.borrow().news_flash_error("Failed to delete feed.", error);
-                            }
+                            let future = news_flash.remove_feed(&feed).map(|remove_result| {
+                                if let Err(error) = remove_result {
+                                    error_bar.borrow().news_flash_error("Failed to delete feed.", error);
+                                }
+                            });
+                            GtkUtil::block_on_future(future);
                         } else {
                             error_bar.borrow().simple_message(&format!(
                                 "Failed to delete feed: feed with id '{}' not found.",
@@ -1109,9 +1149,13 @@ impl MainWindowActions {
 
                         if let Some(category) = categories.iter().find(|c| c.category_id == category_id).cloned() {
                             info!("delete category '{}' (id: {})", category.label, category.category_id);
-                            if let Err(error) = news_flash.remove_category(&category, true) {
-                                error_bar.borrow().news_flash_error("Failed to delete category.", error);
-                            }
+                            let future = news_flash.remove_category(&category, true).map(|remove_result| {
+                                if let Err(error) = remove_result {
+                                    error_bar.borrow().news_flash_error("Failed to delete category.", error);
+                                }
+                            });
+                            // FIXME
+                            GtkUtil::block_on_future(future);
                         } else {
                             error_bar.borrow().simple_message(&format!(
                                 "Failed to delete category: category with id '{}' not found.",
@@ -1143,18 +1187,26 @@ impl MainWindowActions {
                     match info {
                         FeedListDndAction::MoveCategory(category_id, parent_id, _sort_index) => {
                             if let Some(news_flash) = news_flash.borrow_mut().as_mut() {
-                                if let Err(error) = news_flash.move_category(&category_id, &parent_id) {
-                                    error_bar.borrow().news_flash_error("Failed to move category.", error);
-                                }
+                                let future = news_flash.move_category(&category_id, &parent_id).map(|move_result| {
+                                    if let Err(error) = move_result {
+                                        error_bar.borrow().news_flash_error("Failed to move category.", error);
+                                    }
+                                });
+                                // FIXME
+                                GtkUtil::block_on_future(future);
                             }
-                        },
+                        }
                         FeedListDndAction::MoveFeed(feed_id, from_id, to_id, _sort_index) => {
                             if let Some(news_flash) = news_flash.borrow_mut().as_mut() {
-                                if let Err(error) = news_flash.move_feed(&feed_id, &from_id, &to_id) {
-                                    error_bar.borrow().news_flash_error("Failed to move feed.", error);
-                                }
+                                let future = news_flash.move_feed(&feed_id, &from_id, &to_id).map(|move_result| {
+                                    if let Err(error) = move_result {
+                                        error_bar.borrow().news_flash_error("Failed to move feed.", error);
+                                    }
+                                });
+                                // FIXME
+                                GtkUtil::block_on_future(future);
                             }
-                        },
+                        }
                     }
                     GtkUtil::execute_action_main_window(&main_window, "update-sidebar", None);
                 }
@@ -1324,45 +1376,55 @@ impl MainWindowActions {
 
                 if let ResponseType::Ok = dialog.run() {
                     if let Some(news_flash) = news_flash.borrow().as_ref() {
-                        let article = match news_flash.article_download_images(&article.article_id) {
-                            Ok(opml) => opml,
-                            Err(error) => {
-                                error_bar
-                                    .borrow()
-                                    .news_flash_error("Failed to downlaod article images.", error);
-                                return;
-                            }
-                        };
+                        let error_bar = error_bar.clone();
+                        let settings = settings.clone();
+                        let dialog_clone = dialog.clone();
+                        let future =
+                            news_flash
+                                .article_download_images(&article.article_id)
+                                .map(move |article_result| {
+                                    let article = match article_result {
+                                        Ok(article) => article,
+                                        Err(error) => {
+                                            error_bar
+                                                .borrow()
+                                                .news_flash_error("Failed to downlaod article images.", error);
+                                            return;
+                                        }
+                                    };
 
-                        let (feeds, _) = match news_flash.get_feeds() {
-                            Ok(opml) => opml,
-                            Err(error) => {
-                                error_bar
-                                    .borrow()
-                                    .news_flash_error("Failed to load feeds from db.", error);
-                                return;
-                            }
-                        };
-                        let feed = match feeds.iter().find(|&f| f.feed_id == article.feed_id) {
-                            Some(feed) => feed,
-                            None => {
-                                error_bar.borrow().simple_message("Failed to find specific feed.");
-                                return;
-                            }
-                        };
-                        if let Some(filename) = dialog.get_filename() {
-                            let html = ArticleView::build_article_static(
-                                "article",
-                                &article,
-                                &feed.label,
-                                &settings,
-                                None,
-                                None,
-                            );
-                            if FileUtil::write_text_file(&filename, &html).is_err() {
-                                error_bar.borrow().simple_message("Failed to write OPML data to disc.")
-                            }
-                        }
+                                    let (feeds, _) = match news_flash.get_feeds() {
+                                        Ok(opml) => opml,
+                                        Err(error) => {
+                                            error_bar
+                                                .borrow()
+                                                .news_flash_error("Failed to load feeds from db.", error);
+                                            return;
+                                        }
+                                    };
+                                    let feed = match feeds.iter().find(|&f| f.feed_id == article.feed_id) {
+                                        Some(feed) => feed,
+                                        None => {
+                                            error_bar.borrow().simple_message("Failed to find specific feed.");
+                                            return;
+                                        }
+                                    };
+                                    if let Some(filename) = dialog_clone.get_filename() {
+                                        let html = ArticleView::build_article_static(
+                                            "article",
+                                            &article,
+                                            &feed.label,
+                                            &settings,
+                                            None,
+                                            None,
+                                        );
+                                        if FileUtil::write_text_file(&filename, &html).is_err() {
+                                            error_bar.borrow().simple_message("Failed to write OPML data to disc.")
+                                        }
+                                    }
+                                });
+                        //FIXME
+                        GtkUtil::block_on_future(future);
                     }
                 }
 
