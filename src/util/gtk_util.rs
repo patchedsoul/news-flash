@@ -200,13 +200,15 @@ impl GtkUtil {
         //warn!("Source ID to remove is NONE");
     }
 
-    pub fn spawn_future<F: Future<Output = ()> + 'static>(future: F) {
-        let ctx = glib::MainContext::default();
-        ctx.spawn_local(future);
-    }
+    // pub fn spawn_future<F: Future<Output = ()> + 'static>(future: F) {
+    //     let ctx = glib::MainContext::default();
+    //     ctx.spawn_local(future);
+    // }
 
     pub fn block_on_future<F: Future>(future: F) -> F::Output {
-        let ctx = glib::MainContext::default();
-        ctx.block_on(future)
+        // let ctx = glib::MainContext::default();
+        // ctx.block_on(future)
+        let rt = tokio::runtime::Runtime::new().unwrap();
+        rt.block_on(future)
     }
 }
