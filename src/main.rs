@@ -18,6 +18,7 @@ mod sidebar;
 mod undo_bar;
 mod util;
 mod welcome_screen;
+mod icon_promise;
 
 use crate::config::APP_ID;
 use crate::main_window::MainWindow;
