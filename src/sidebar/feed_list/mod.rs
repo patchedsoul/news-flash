@@ -3,6 +3,7 @@ pub mod error;
 pub mod feed_row;
 pub mod models;
 
+use crate::app::Action;
 use crate::gtk_handle;
 use crate::sidebar::feed_list::error::{FeedListError, FeedListErrorKind};
 use crate::sidebar::feed_list::{
@@ -16,7 +17,7 @@ use crate::sidebar::feed_list::{
 use crate::sidebar::SidebarIterateItem;
 use crate::util::{BuilderHelper, GtkHandle, GtkHandleMap, GtkUtil};
 use gdk::{DragAction, EventType};
-use glib::{translate::ToGlib, Variant};
+use glib::{translate::ToGlib, Sender, Variant};
 use gtk::{
     self, ContainerExt, Continue, DestDefaults, Inhibit, ListBox, ListBoxExt, ListBoxRowExt, ScrolledWindow,
     SelectionMode, StyleContextExt, TargetEntry, TargetFlags, WidgetExt, WidgetExtManual,
@@ -31,6 +32,7 @@ use std::rc::Rc;
 pub struct FeedList {
     list: ListBox,
     scroll: ScrolledWindow,
+    sender: Sender<Action>,
     categories: GtkHandleMap<CategoryID, GtkHandle<CategoryRow>>,
     feeds: GtkHandleMap<FeedID, GtkHandle<FeedRow>>,
     tree: GtkHandle<FeedListTree>,
@@ -39,7 +41,7 @@ pub struct FeedList {
 }
 
 impl FeedList {
-    pub fn new(sidebar_scroll: &ScrolledWindow) -> Self {
+    pub fn new(sidebar_scroll: &ScrolledWindow, sender: Sender<Action>) -> Self {
         let builder = BuilderHelper::new("sidebar_list");
         let list_box = builder.get::<ListBox>("sidebar_list");
 
@@ -56,6 +58,7 @@ impl FeedList {
         let feed_list = FeedList {
             list: list_box,
             scroll: sidebar_scroll.clone(),
+            sender,
             categories: gtk_handle!(HashMap::new()),
             feeds: gtk_handle!(HashMap::new()),
             tree: gtk_handle!(FeedListTree::new()),
@@ -331,7 +334,7 @@ impl FeedList {
     }
 
     fn add_category(&mut self, category: &FeedListCategoryModel, pos: i32, visible: bool) {
-        let category_widget = CategoryRow::new(category, visible);
+        let category_widget = CategoryRow::new(category, visible, self.sender.clone());
         let feeds = self.feeds.clone();
         let categories = self.categories.clone();
         let category_id = category.id.clone();
@@ -400,7 +403,7 @@ impl FeedList {
     }
 
     fn add_feed(&mut self, feed: &FeedListFeedModel, pos: i32, visible: bool) {
-        let feed_widget = FeedRow::new(feed, visible);
+        let feed_widget = FeedRow::new(feed, visible, self.sender.clone());
         self.list.insert(&feed_widget.borrow().widget(), pos);
         self.feeds.borrow_mut().insert(feed.id.clone(), feed_widget);
     }

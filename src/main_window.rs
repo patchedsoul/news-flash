@@ -1,4 +1,5 @@
 use crate::about_dialog::APP_NAME;
+use crate::app::Action;
 use crate::article_list::{MarkUpdate, ReadUpdate};
 use crate::config::{APP_ID, PROFILE};
 use crate::content_page::{ContentHeader, ContentPage};
@@ -9,20 +10,20 @@ use crate::main_window_actions::MainWindowActions;
 use crate::main_window_state::MainWindowState;
 use crate::responsive::ResponsiveLayout;
 use crate::settings::{Keybindings, Settings};
-use crate::undo_bar::UndoBar;
+use crate::sidebar::models::SidebarSelection;
+use crate::undo_bar::{UndoActionModel, UndoBar};
 use crate::util::{BuilderHelper, GtkHandle, GtkUtil, GTK_CSS_ERROR, GTK_RESOURCE_FILE_ERROR};
 use crate::welcome_screen::{WelcomeHeaderbar, WelcomePage};
 use crate::Resources;
 use gdk::EventKey;
-use gio::{ApplicationExt, Notification, NotificationPriority, ThemedIcon};
-use glib::{self, Variant};
+use glib::{self, Sender, Variant};
 use gtk::{
-    self, Application, ApplicationWindow, CssProvider, CssProviderExt, GtkWindowExt, GtkWindowExtManual, Inhibit,
-    Settings as GtkSettings, SettingsExt, Stack, StackExt, StyleContext, StyleContextExt, WidgetExt,
+    self, Application, ApplicationWindow, CssProvider, CssProviderExt, GtkWindowExt, Inhibit, Settings as GtkSettings,
+    SettingsExt, Stack, StackExt, StyleContext, StyleContextExt, WidgetExt,
 };
 use lazy_static::lazy_static;
 use log::{info, warn};
-use news_flash::NewsFlash;
+use news_flash::{NewsFlash, NewsFlashError};
 use std::cell::RefCell;
 use std::path::PathBuf;
 use std::rc::Rc;
@@ -37,10 +38,14 @@ const CONTENT_PAGE: &str = "content";
 
 pub struct MainWindow {
     widget: ApplicationWindow,
+    error_bar: ErrorBar,
+    undo_bar: GtkHandle<UndoBar>,
+    content_page: GtkHandle<ContentPage>,
+    state: GtkHandle<MainWindowState>,
 }
 
 impl MainWindow {
-    pub fn new(app: &Application) -> Self {
+    pub fn new(app: &Application, sender: Sender<Action>) -> Self {
         GtkUtil::register_symbolic_icons();
         let provider_handle = gtk_handle!(CssProvider::new());
         let settings = gtk_handle!(Settings::open().expect("Failed to access settings file"));
@@ -87,7 +92,7 @@ impl MainWindow {
         let _welcome = WelcomePage::new(&builder);
         let pw_login = PasswordLogin::new(&builder);
         let oauth_login = WebLogin::new(&builder);
-        let content = ContentPage::new(&builder, &settings);
+        let content = ContentPage::new(&builder, &settings, sender.clone());
 
         let pw_login_handle = gtk_handle!(pw_login);
         let oauht_login_handle = gtk_handle!(oauth_login);
@@ -95,7 +100,6 @@ impl MainWindow {
         let content_header_handle = gtk_handle!(content_header);
         let news_flash_handle = gtk_handle!(None);
         let undo_bar_handle = gtk_handle!(undo_bar);
-        let error_bar_handle = gtk_handle!(error_bar);
 
         let state = gtk_handle!(MainWindowState::new());
 
@@ -110,114 +114,107 @@ impl MainWindow {
         );
         MainWindowActions::setup_show_content_page_action(
             &window,
+            &sender,
             &news_flash_handle,
             &stack,
             &header_stack,
             &content_page_handle,
             &state,
             &undo_bar_handle,
-            &error_bar_handle,
         );
         MainWindowActions::setup_login_action(&window, &news_flash_handle, &oauht_login_handle, &pw_login_handle);
         MainWindowActions::setup_schedule_sync_action(&window, &settings);
-        MainWindowActions::setup_sync_action(
-            &window,
-            &app,
-            &content_header_handle,
-            &news_flash_handle,
-            &error_bar_handle,
-        );
+        MainWindowActions::setup_sync_action(&window, &sender, &content_header_handle, &news_flash_handle);
         MainWindowActions::setup_sidebar_selection_action(&window, &state, &responsive_layout);
         MainWindowActions::setup_update_sidebar_action(
             &window,
+            &sender,
             &content_page_handle,
             &news_flash_handle,
             &state,
             &undo_bar_handle,
-            &error_bar_handle,
         );
         MainWindowActions::setup_headerbar_selection_action(&window, &content_header_handle, &state);
         MainWindowActions::setup_search_action(&window, &state);
         MainWindowActions::setup_update_article_list_action(
             &window,
+            &sender,
             &state,
             &content_page_handle,
             &news_flash_handle,
             &undo_bar_handle,
-            &error_bar_handle,
         );
         MainWindowActions::setup_show_more_articles_action(
             &window,
+            &sender,
             &state,
             &content_page_handle,
             &news_flash_handle,
             &undo_bar_handle,
-            &error_bar_handle,
         );
         MainWindowActions::setup_show_article_action(
             &window,
+            &sender,
             &content_page_handle,
             &content_header_handle,
             &news_flash_handle,
             &responsive_layout,
-            &error_bar_handle,
         );
         MainWindowActions::setup_close_article_action(&window, &content_page_handle, &content_header_handle);
         MainWindowActions::setup_redraw_article_action(&window, &content_page_handle);
         MainWindowActions::setup_mark_article_read_action(
             &window,
+            &sender,
             &news_flash_handle,
             &content_page_handle,
             &content_header_handle,
-            &error_bar_handle,
         );
         MainWindowActions::setup_mark_article_action(
             &window,
+            &sender,
             &news_flash_handle,
             &content_page_handle,
             &content_header_handle,
-            &error_bar_handle,
         );
-        MainWindowActions::setup_rename_feed_action(&window, &news_flash_handle, &error_bar_handle);
-        MainWindowActions::setup_add_action(&window, &news_flash_handle, &content_page_handle, &error_bar_handle);
-        MainWindowActions::setup_rename_category_action(&window, &news_flash_handle, &error_bar_handle);
-        MainWindowActions::setup_delete_selection_action(&window, &content_page_handle);
-        MainWindowActions::setup_enqueue_undoable_action(&window, &undo_bar_handle, &content_page_handle, &state);
-        MainWindowActions::setup_delete_feed_action(&window, &news_flash_handle, &error_bar_handle);
-        MainWindowActions::setup_delete_category_action(&window, &news_flash_handle, &error_bar_handle);
-        MainWindowActions::setup_move_action(&window, &news_flash_handle, &error_bar_handle);
+        MainWindowActions::setup_rename_feed_action(&window, &sender, &news_flash_handle);
+        MainWindowActions::setup_add_action(&window, &sender, &news_flash_handle, &content_page_handle);
+        MainWindowActions::setup_rename_category_action(&window, &sender, &news_flash_handle);
+        MainWindowActions::setup_delete_selection_action(&window, &sender, &content_page_handle);
+        MainWindowActions::setup_delete_feed_action(&window, &sender, &news_flash_handle);
+        MainWindowActions::setup_delete_category_action(&window, &sender, &news_flash_handle);
+        MainWindowActions::setup_move_action(&window, &sender, &news_flash_handle);
         MainWindowActions::setup_about_action(&window);
-        MainWindowActions::setup_settings_action(&window, &settings, &error_bar_handle);
+        MainWindowActions::setup_settings_action(&window, &sender, &settings);
         MainWindowActions::setup_shortcut_window_action(&window, &settings);
         MainWindowActions::setup_quit_action(&window, app);
-        MainWindowActions::setup_export_action(&window, &news_flash_handle, &error_bar_handle);
+        MainWindowActions::setup_export_action(&window, &sender, &news_flash_handle);
         MainWindowActions::setup_export_article_action(
             &window,
+            &sender,
             &news_flash_handle,
             &content_page_handle,
             &settings,
-            &error_bar_handle,
         );
         MainWindowActions::setup_select_next_article_action(&window, &content_page_handle);
         MainWindowActions::setup_select_prev_article_action(&window, &content_page_handle);
         MainWindowActions::setup_sidebar_set_read_action(
             &window,
+            &sender,
             &news_flash_handle,
             &state,
             &content_page_handle,
             &content_header_handle,
-            &error_bar_handle,
         );
         MainWindowActions::setup_toggle_article_read_action(&window, &content_page_handle);
         MainWindowActions::setup_toggle_article_marked_action(&window, &content_page_handle);
 
         Self::setup_shortcuts(
             &window,
+            &sender,
             &content_page_handle,
             &stack,
             &settings,
             &content_header_handle,
-            &error_bar_handle,
         );
 
         if let Ok(news_flash_lib) = NewsFlash::try_load(&DATA_DIR) {
@@ -228,15 +225,16 @@ impl MainWindow {
 
             if let Some(id) = news_flash_lib.id() {
                 let content_page_handle_clone = content_page_handle.clone();
-                let error_bar_handle_clone = error_bar_handle.clone();
+                let sender = sender.clone();
                 if content_page_handle_clone
                     .borrow()
                     .set_service(&id, news_flash_lib.user_name())
                     .is_err()
                 {
-                    error_bar_handle_clone
-                        .borrow()
-                        .simple_message("Failed to set sidebar service logo.");
+                    GtkUtil::send(
+                        &sender,
+                        Action::ErrorSimpleMessage("Failed to set sidebar service logo.".to_owned()),
+                    );
                 }
 
                 *news_flash_handle.borrow_mut() = Some(news_flash_lib);
@@ -247,18 +245,20 @@ impl MainWindow {
                     .update_sidebar(&news_flash_handle, &state, &undo_bar_handle)
                     .is_err()
                 {
-                    error_bar_handle
-                        .borrow()
-                        .simple_message("Failed to populate sidebar with data.");
+                    GtkUtil::send(
+                        &sender,
+                        Action::ErrorSimpleMessage("Failed to populate sidebar with data.".to_owned()),
+                    );
                 }
                 if content_page_handle
                     .borrow_mut()
                     .update_article_list(&news_flash_handle, &state, &undo_bar_handle)
                     .is_err()
                 {
-                    error_bar_handle
-                        .borrow()
-                        .simple_message("Failed to populate article list with data.");
+                    GtkUtil::send(
+                        &sender,
+                        Action::ErrorSimpleMessage("Failed to populate article list with data.".to_owned()),
+                    );
                 }
 
                 // schedule background sync
@@ -285,28 +285,33 @@ impl MainWindow {
             });
         }
 
-        MainWindow { widget: window }
+        MainWindow {
+            widget: window,
+            error_bar,
+            undo_bar: undo_bar_handle,
+            content_page: content_page_handle,
+            state,
+        }
     }
 
-    pub fn present(&self) {
-        self.widget.show_all();
-        self.widget.present();
+    pub fn widget(&self) -> ApplicationWindow {
+        self.widget.clone()
     }
 
     fn setup_shortcuts(
         window: &ApplicationWindow,
+        sender: &Sender<Action>,
         content_page: &GtkHandle<ContentPage>,
         main_stack: &Stack,
         settings: &GtkHandle<Settings>,
         content_header: &GtkHandle<ContentHeader>,
-        error_bar: &GtkHandle<ErrorBar>,
     ) {
         let main_stack = main_stack.clone();
+        let sender = sender.clone();
         let settings = settings.clone();
         let content_page = content_page.clone();
         let main_window = window.clone();
         let content_header = content_header.clone();
-        let error_bar = error_bar.clone();
         window.connect_key_press_event(move |widget, event| {
             // ignore shortcuts when not on content page
             if let Some(visible_child) = main_stack.get_visible_child_name() {
@@ -399,7 +404,10 @@ impl MainWindow {
                 if let Some(article_model) = article_model {
                     if let Some(url) = article_model.url {
                         if gtk::show_uri_on_window(Some(&main_window), url.get().as_str(), 0).is_err() {
-                            error_bar.borrow().simple_message("Failed to open URL in browser.");
+                            GtkUtil::send(
+                                &sender,
+                                Action::ErrorSimpleMessage("Failed to open URL in browser.".to_owned()),
+                            );
                         }
                     } else {
                         warn!("Open selected article in browser: No url available.")
@@ -412,33 +420,37 @@ impl MainWindow {
             if Self::check_shortcut("next_item", &settings, event)
                 && content_page.borrow().sidebar_select_next_item().is_err()
             {
-                error_bar
-                    .borrow()
-                    .simple_message("Failed to select next item in sidebar.");
+                GtkUtil::send(
+                    &sender,
+                    Action::ErrorSimpleMessage("Failed to select next item in sidebar.".to_owned()),
+                );
             }
 
             if Self::check_shortcut("previous_item", &settings, event)
                 && content_page.borrow().sidebar_select_prev_item().is_err()
             {
-                error_bar
-                    .borrow()
-                    .simple_message("Failed to select previous item in sidebar.");
+                GtkUtil::send(
+                    &sender,
+                    Action::ErrorSimpleMessage("Failed to select previous item in sidebar.".to_owned()),
+                );
             }
 
             if Self::check_shortcut("scroll_up", &settings, event)
                 && content_page.borrow().article_view_scroll_diff(-150.0).is_err()
             {
-                error_bar
-                    .borrow()
-                    .simple_message("Failed to select scroll article view up.");
+                GtkUtil::send(
+                    &sender,
+                    Action::ErrorSimpleMessage("Failed to select scroll article view up.".to_owned()),
+                );
             }
 
             if Self::check_shortcut("scroll_down", &settings, event)
                 && content_page.borrow().article_view_scroll_diff(150.0).is_err()
             {
-                error_bar
-                    .borrow()
-                    .simple_message("Failed to select scroll article view down.");
+                GtkUtil::send(
+                    &sender,
+                    Action::ErrorSimpleMessage("Failed to select scroll article view down.".to_owned()),
+                );
             }
 
             if Self::check_shortcut("sidebar_set_read", &settings, event) {
@@ -492,22 +504,35 @@ impl MainWindow {
         StyleContext::add_provider_for_screen(&screen, &*provider.borrow(), 600);
     }
 
-    pub fn show_notification(app: &Application, new_articles: i64, unread_articles: i64) {
-        if new_articles > 0 && unread_articles > 0 {
-            let summary = "New Articles";
+    pub fn show_error_simple_message(&self, msg: &str) {
+        self.error_bar.simple_message(msg);
+    }
 
-            let message = if new_articles == 1 {
-                format!("There is 1 new article ({} unread)", unread_articles)
-            } else {
-                format!("There are {} new articles ({} unread)", new_articles, unread_articles)
-            };
+    pub fn show_error(&self, msg: &str, error: NewsFlashError) {
+        self.error_bar.news_flash_error(msg, error);
+    }
 
-            let notification = Notification::new(summary);
-            notification.set_body(Some(&message));
-            notification.set_priority(NotificationPriority::Normal);
-            notification.set_icon(&ThemedIcon::new(APP_ID));
-
-            app.send_notification(Some("newsflash_sync"), &notification);
+    pub fn show_undo_bar(&self, action: UndoActionModel) {
+        let select_all_button = match self.content_page.borrow().sidebar_get_selection() {
+            SidebarSelection::All => false,
+            SidebarSelection::Cateogry((selected_id, _label)) => match &action {
+                UndoActionModel::DeleteCategory((delete_id, _label)) => &selected_id == delete_id,
+                _ => false,
+            },
+            SidebarSelection::Feed((selected_id, _label)) => match &action {
+                UndoActionModel::DeleteFeed((delete_id, _label)) => &selected_id == delete_id,
+                _ => false,
+            },
+            SidebarSelection::Tag((selected_id, _label)) => match &action {
+                UndoActionModel::DeleteTag((delete_id, _label)) => &selected_id == delete_id,
+                _ => false,
+            },
+        };
+        if select_all_button {
+            self.state.borrow_mut().set_sidebar_selection(SidebarSelection::All);
+            self.content_page.borrow().sidebar_select_all_button_no_update();
         }
+
+        self.undo_bar.borrow().add_action(action);
     }
 }

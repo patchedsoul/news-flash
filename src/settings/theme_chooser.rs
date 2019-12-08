@@ -1,9 +1,9 @@
+use crate::app::Action;
 use crate::article_view::{ArticleTheme, ArticleView};
-use crate::error_bar::ErrorBar;
 use crate::settings::Settings;
-use crate::util::{BuilderHelper, GtkHandle};
+use crate::util::{BuilderHelper, GtkHandle, GtkUtil};
 use chrono::Utc;
-use glib::object::IsA;
+use glib::{object::IsA, Sender};
 use gtk::{Inhibit, ListBox, ListBoxExt, ListBoxRow, ListBoxRowExt, Popover, PopoverExt, Widget, WidgetExt};
 use news_flash::models::{ArticleID, FatArticle, FeedID, Marked, Read};
 use webkit2gtk::{WebView, WebViewExt};
@@ -13,7 +13,7 @@ pub struct ThemeChooser {
 }
 
 impl ThemeChooser {
-    pub fn new<D: IsA<Widget>>(parent: &D, settings: &GtkHandle<Settings>, error_bar: &GtkHandle<ErrorBar>) -> Self {
+    pub fn new<D: IsA<Widget>>(parent: &D, sender: &Sender<Action>, settings: &GtkHandle<Settings>) -> Self {
         let builder = BuilderHelper::new("theme_chooser");
 
         let pop = builder.get::<Popover>("popover");
@@ -68,7 +68,7 @@ impl ThemeChooser {
 
         let pop_clone = pop.clone();
         let settings = settings.clone();
-        let error_bar = error_bar.clone();
+        let sender = sender.clone();
         let theme_list = builder.get::<ListBox>("theme_list");
         theme_list.connect_row_activated(move |_list, row| {
             if let Some(row_name) = row.get_name() {
@@ -85,7 +85,10 @@ impl ThemeChooser {
                 };
 
                 if result.is_err() {
-                    error_bar.borrow().simple_message("Failed to set theme setting.");
+                    GtkUtil::send(
+                        &sender,
+                        Action::ErrorSimpleMessage("Failed to set theme setting.".to_owned()),
+                    );
                 }
                 pop_clone.popdown();
             }

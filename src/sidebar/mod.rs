@@ -6,13 +6,14 @@ mod tag_list;
 
 use self::error::{SidebarError, SidebarErrorKind};
 use self::footer::SidebarFooter;
+use crate::app::Action;
 use crate::gtk_handle;
 use crate::util::{BuilderHelper, GtkHandle, GtkUtil};
 use failure::ResultExt;
 pub use feed_list::models::{FeedListDndAction, FeedListItemID, FeedListTree};
 use feed_list::FeedList;
 use gdk::{EventMask, EventType};
-use glib::{translate::ToGlib, Variant};
+use glib::{translate::ToGlib, Sender, Variant};
 use gtk::{
     Box, BoxExt, Button, Continue, EventBox, Image, ImageExt, Inhibit, Label, LabelExt, ListBoxExt, Revealer,
     RevealerExt, ScrolledWindow, StyleContextExt, WidgetExt, WidgetExtManual,
@@ -50,7 +51,7 @@ pub struct SideBar {
 }
 
 impl SideBar {
-    pub fn new() -> Self {
+    pub fn new(sender: Sender<Action>) -> Self {
         let builder = BuilderHelper::new("sidebar");
 
         let sidebar = builder.get::<Box>("toplevel");
@@ -70,7 +71,7 @@ impl SideBar {
         let tag_list_box = builder.get::<Box>("tags_list_box");
         let sidebar_scroll = builder.get::<ScrolledWindow>("sidebar_scroll");
 
-        let feed_list = FeedList::new(&sidebar_scroll);
+        let feed_list = FeedList::new(&sidebar_scroll, sender);
         let tag_list = TagList::new();
         let footer = SidebarFooter::new(&builder);
 

@@ -1,11 +1,14 @@
 use super::error::{UtilError, UtilErrorKind};
+use crate::app::Action;
 use crate::Resources;
 use cairo::{Context, Surface};
 use failure::ResultExt;
 use gdk::{ContextExt, Window};
 use gdk_pixbuf::Pixbuf;
 use gio::{ActionExt, ActionMapExt, Cancellable, MemoryInputStream, Resource};
-use glib::{object::IsA, object::ObjectExt, signal::SignalHandlerId, source::SourceId, translate::FromGlib, Bytes};
+use glib::{
+    object::IsA, object::ObjectExt, signal::SignalHandlerId, source::SourceId, translate::FromGlib, Bytes, Sender,
+};
 use gtk::{
     BinExt, Cast, EntryExt, EventBox, IconTheme, IconThemeExt, ListBoxRow, Revealer, StyleContext, StyleContextExt,
     WidgetExt,
@@ -23,6 +26,7 @@ pub type GtkHandleMap<T, K> = GtkHandle<HashMap<T, K>>;
 pub const GTK_RESOURCE_FILE_ERROR: &str = "Could not load file from resources. This should never happen!";
 pub const GTK_BUILDER_ERROR: &str = "Could not build GTK widget from UI file. This should never happen!";
 pub const GTK_CSS_ERROR: &str = "Could not load CSS. This should never happen!";
+pub const GTK_CHANNEL_ERROR: &str = "Error sending message via glib channel";
 
 #[macro_export]
 macro_rules! gtk_handle {
@@ -200,15 +204,12 @@ impl GtkUtil {
         //warn!("Source ID to remove is NONE");
     }
 
-    // pub fn spawn_future<F: Future<Output = ()> + 'static>(future: F) {
-    //     let ctx = glib::MainContext::default();
-    //     ctx.spawn_local(future);
-    // }
-
     pub fn block_on_future<F: Future>(future: F) -> F::Output {
-        // let ctx = glib::MainContext::default();
-        // ctx.block_on(future)
         let rt = tokio::runtime::Runtime::new().unwrap();
         rt.block_on(future)
+    }
+
+    pub fn send(sender: &Sender<Action>, action: Action) {
+        sender.send(action).expect(GTK_CHANNEL_ERROR);
     }
 }

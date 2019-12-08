@@ -6,6 +6,7 @@ pub use self::content_header::ContentHeader;
 pub use self::header_selection::HeaderSelection;
 
 use self::error::{ContentPageError, ContentPageErrorKind};
+use crate::app::Action;
 use crate::article_list::{ArticleList, ArticleListArticleModel, ArticleListModel};
 use crate::article_view::ArticleView;
 use crate::main_window_state::MainWindowState;
@@ -15,6 +16,7 @@ use crate::sidebar::{FeedListTree, SideBar, TagListModel};
 use crate::undo_bar::{UndoActionModel, UndoBar};
 use crate::util::{BuilderHelper, GtkHandle, GtkUtil, Util};
 use failure::ResultExt;
+use glib::Sender;
 use gtk::{Box, BoxExt, Button, WidgetExt};
 use libhandy::Leaflet;
 use news_flash::models::{Article, ArticleFilter, FatArticle, Feed, Marked, PluginCapabilities, PluginID, Read};
@@ -28,7 +30,7 @@ pub struct ContentPage {
 }
 
 impl ContentPage {
-    pub fn new(builder: &BuilderHelper, settings: &GtkHandle<Settings>) -> Self {
+    pub fn new(builder: &BuilderHelper, settings: &GtkHandle<Settings>, sender: Sender<Action>) -> Self {
         let feed_list_box = builder.get::<Box>("feedlist_box");
         let article_list_box = builder.get::<Box>("articlelist_box");
         let articleview_box = builder.get::<Box>("articleview_box");
@@ -37,7 +39,7 @@ impl ContentPage {
         let minor_leaflet = builder.get::<Leaflet>("minor_leaflet");
         minor_leaflet.set_hexpand(false);
 
-        let sidebar = SideBar::new();
+        let sidebar = SideBar::new(sender);
         let article_list = ArticleList::new(settings);
         let article_view = ArticleView::new(settings);
 

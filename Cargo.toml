@@ -20,7 +20,7 @@ gio = { version = "0.7", features = ["v2_58"] }
 gdk = { version = "0.11", features = ["v3_24"] }
 libhandy = { version = "0.4", features=["v0_0_10"] }
 webkit2gtk = { version = "0.8", features = ["v2_16"] }
-log4rs = "0.8"
+log4rs = "0.9"
 dirs = "2.0"
 color-backtrace = "0.3"
 lazy_static = "1.4"

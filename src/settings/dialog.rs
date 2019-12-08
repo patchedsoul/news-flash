@@ -2,11 +2,11 @@ use super::general::SyncInterval;
 use super::keybinding_editor::{KeybindState, KeybindingEditor};
 use super::keybindings::Keybindings;
 use super::theme_chooser::ThemeChooser;
-use crate::error_bar::ErrorBar;
+use crate::app::Action;
 use crate::settings::Settings;
 use crate::util::{BuilderHelper, GtkHandle, GtkUtil, GTK_BUILDER_ERROR};
 use gdk::{EventMask, EventType};
-use glib::object::Cast;
+use glib::{object::Cast, Sender};
 use gtk::{
     DialogExt, EventBox, FontButton, FontButtonExt, FontChooserExt, GtkWindowExt, GtkWindowExtManual, Inhibit, Label,
     LabelExt, ListBox, ListBoxExt, ListBoxRowExt, Popover, PopoverExt, Settings as GtkSettings,
@@ -22,11 +22,7 @@ pub struct SettingsDialog {
 }
 
 impl SettingsDialog {
-    pub fn new(
-        window: &gtk::ApplicationWindow,
-        settings: &GtkHandle<Settings>,
-        error_bar: &GtkHandle<ErrorBar>,
-    ) -> Self {
+    pub fn new(window: &gtk::ApplicationWindow, sender: &Sender<Action>, settings: &GtkHandle<Settings>) -> Self {
         let builder = BuilderHelper::new("settings");
 
         let dialog = builder.get::<Window>("dialog");
@@ -38,8 +34,8 @@ impl SettingsDialog {
             builder,
         };
 
-        settings_dialog.setup_ui_section(window, error_bar);
-        settings_dialog.setup_keybindings_section(error_bar);
+        settings_dialog.setup_ui_section(window, sender);
+        settings_dialog.setup_keybindings_section(sender);
 
         settings_dialog
     }
@@ -48,7 +44,7 @@ impl SettingsDialog {
         self.widget.clone()
     }
 
-    fn setup_ui_section(&self, window: &gtk::ApplicationWindow, error_bar: &GtkHandle<ErrorBar>) {
+    fn setup_ui_section(&self, window: &gtk::ApplicationWindow, sender: &Sender<Action>) {
         let settings_1 = self.settings.clone();
         let settings_2 = self.settings.clone();
         let settings_3 = self.settings.clone();
@@ -59,23 +55,24 @@ impl SettingsDialog {
         let settings_8 = self.settings.clone();
         let settings_9 = self.settings.clone();
 
-        let error_bar_1 = error_bar.clone();
-        let error_bar_2 = error_bar.clone();
-        let error_bar_3 = error_bar.clone();
-        let error_bar_4 = error_bar.clone();
-        let error_bar_5 = error_bar.clone();
-        let error_bar_6 = error_bar.clone();
-        let error_bar_7 = error_bar.clone();
-        let error_bar_8 = error_bar.clone();
-        let error_bar_9 = error_bar.clone();
+        let sender_1 = sender.clone();
+        let sender_2 = sender.clone();
+        let sender_3 = sender.clone();
+        let sender_4 = sender.clone();
+        let sender_5 = sender.clone();
+        let sender_6 = sender.clone();
+        let sender_7 = sender.clone();
+        let sender_8 = sender.clone();
+        let sender_9 = sender.clone();
 
         let keep_running_switch = self.builder.get::<Switch>("keep_running_switch");
         keep_running_switch.set_state(self.settings.borrow().get_keep_running_in_background());
         keep_running_switch.connect_state_set(move |_switch, is_set| {
             if settings_6.borrow_mut().set_keep_running_in_background(is_set).is_err() {
-                error_bar_1
-                    .borrow()
-                    .simple_message("Failed to set setting 'keep running'.");
+                GtkUtil::send(
+                    &sender_1,
+                    Action::ErrorSimpleMessage("Failed to set setting 'keep running'.".to_owned()),
+                );
             }
             Inhibit(false)
         });
@@ -88,9 +85,10 @@ impl SettingsDialog {
                     settings.set_property_gtk_application_prefer_dark_theme(is_set);
                 }
             } else {
-                error_bar_2
-                    .borrow()
-                    .simple_message("Failed to set setting 'dark theme'.");
+                GtkUtil::send(
+                    &sender_2,
+                    Action::ErrorSimpleMessage("Failed to set setting 'dark theme'.".to_owned()),
+                );
             }
             Inhibit(false)
         });
@@ -114,9 +112,10 @@ impl SettingsDialog {
             if settings_8.borrow_mut().set_sync_interval(sync_interval).is_ok() {
                 GtkUtil::execute_action_main_window(&main_window, "schedule-sync", None);
             } else {
-                error_bar_4
-                    .borrow()
-                    .simple_message("Failed to set setting 'article order'.");
+                GtkUtil::send(
+                    &sender_3,
+                    Action::ErrorSimpleMessage("Failed to set setting 'sync interval'.".to_owned()),
+                );
             }
         });
 
@@ -168,9 +167,10 @@ impl SettingsDialog {
             if settings_1.borrow_mut().set_article_list_order(new_order).is_ok() {
                 GtkUtil::execute_action_main_window(&main_window, "update-article-list", None);
             } else {
-                error_bar_3
-                    .borrow()
-                    .simple_message("Failed to set setting 'article order'.");
+                GtkUtil::send(
+                    &sender_4,
+                    Action::ErrorSimpleMessage("Failed to set setting 'article order'.".to_owned()),
+                );
             }
         });
 
@@ -226,7 +226,7 @@ impl SettingsDialog {
             let main_window = main_window.clone();
             let settings = settings_2.clone();
             let article_theme_label = article_theme_label.clone();
-            let theme_chooser = ThemeChooser::new(eventbox, &settings, &error_bar_8);
+            let theme_chooser = ThemeChooser::new(eventbox, &sender_5, &settings);
             theme_chooser.widget().connect_closed(move |_pop| {
                 article_theme_label.set_label(settings.borrow().get_article_view_theme().name());
                 GtkUtil::execute_action_main_window(&main_window, "redraw-article", None);
@@ -248,7 +248,7 @@ impl SettingsDialog {
                             let main_window = main_window.clone();
                             let settings = settings_9.clone();
                             let article_theme_label = article_theme_label.clone();
-                            let theme_chooser = ThemeChooser::new(&article_theme_event, &settings, &error_bar_9);
+                            let theme_chooser = ThemeChooser::new(&article_theme_event, &sender_6, &settings);
                             theme_chooser.widget().connect_closed(move |_pop| {
                                 article_theme_label.set_label(settings.borrow().get_article_view_theme().name());
                                 GtkUtil::execute_action_main_window(&main_window, "redraw-article", None);
@@ -267,9 +267,10 @@ impl SettingsDialog {
             if settings_3.borrow_mut().set_article_view_allow_select(is_set).is_ok() {
                 GtkUtil::execute_action_main_window(&main_window, "redraw-article", None);
             } else {
-                error_bar_5
-                    .borrow()
-                    .simple_message("Failed to set setting 'allow article selection'.");
+                GtkUtil::send(
+                    &sender_7,
+                    Action::ErrorSimpleMessage("Failed to set setting 'allow article selection'.".to_owned()),
+                );
             }
             Inhibit(false)
         });
@@ -288,9 +289,10 @@ impl SettingsDialog {
             if settings_5.borrow_mut().set_article_view_font(font).is_ok() {
                 GtkUtil::execute_action_main_window(&main_window, "redraw-article", None);
             } else {
-                error_bar_6
-                    .borrow()
-                    .simple_message("Failed to set setting 'article font'.");
+                GtkUtil::send(
+                    &sender_8,
+                    Action::ErrorSimpleMessage("Failed to set setting 'article font'.".to_owned()),
+                );
             }
         });
 
@@ -314,96 +316,89 @@ impl SettingsDialog {
             if settings_4.borrow_mut().set_article_view_font(font).is_ok() {
                 GtkUtil::execute_action_main_window(&main_window, "redraw-article", None);
             } else {
-                error_bar_7
-                    .borrow()
-                    .simple_message("Failed to set setting 'use system font'.");
+                GtkUtil::send(
+                    &sender_9,
+                    Action::ErrorSimpleMessage("Failed to set setting 'use system font'.".to_owned()),
+                );
             }
             Inhibit(false)
         });
     }
 
-    fn setup_keybindings_section(&self, error_bar: &GtkHandle<ErrorBar>) {
+    fn setup_keybindings_section(&self, sender: &Sender<Action>) {
         self.setup_keybinding_row(
             "next_article",
             self.settings.borrow().get_keybind_article_list_next(),
-            error_bar,
+            sender,
         );
         self.setup_keybinding_row(
             "previous_article",
             self.settings.borrow().get_keybind_article_list_prev(),
-            error_bar,
+            sender,
         );
         self.setup_keybinding_row(
             "toggle_read",
             self.settings.borrow().get_keybind_article_list_read(),
-            error_bar,
+            sender,
         );
         self.setup_keybinding_row(
             "toggle_marked",
             self.settings.borrow().get_keybind_article_list_mark(),
-            error_bar,
+            sender,
         );
         self.setup_keybinding_row(
             "open_browser",
             self.settings.borrow().get_keybind_article_list_open(),
-            error_bar,
+            sender,
         );
 
-        self.setup_keybinding_row(
-            "next_item",
-            self.settings.borrow().get_keybind_feed_list_next(),
-            error_bar,
-        );
+        self.setup_keybinding_row("next_item", self.settings.borrow().get_keybind_feed_list_next(), sender);
         self.setup_keybinding_row(
             "previous_item",
             self.settings.borrow().get_keybind_feed_list_prev(),
-            error_bar,
+            sender,
         );
         self.setup_keybinding_row(
             "toggle_category_expanded",
             self.settings.borrow().get_keybind_feed_list_toggle_expanded(),
-            error_bar,
+            sender,
         );
         self.setup_keybinding_row(
             "sidebar_set_read",
             self.settings.borrow().get_keybind_sidebar_set_read(),
-            error_bar,
+            sender,
         );
 
-        self.setup_keybinding_row("shortcuts", self.settings.borrow().get_keybind_shortcut(), error_bar);
-        self.setup_keybinding_row("refresh", self.settings.borrow().get_keybind_refresh(), error_bar);
-        self.setup_keybinding_row("search", self.settings.borrow().get_keybind_search(), error_bar);
-        self.setup_keybinding_row("quit", self.settings.borrow().get_keybind_quit(), error_bar);
+        self.setup_keybinding_row("shortcuts", self.settings.borrow().get_keybind_shortcut(), sender);
+        self.setup_keybinding_row("refresh", self.settings.borrow().get_keybind_refresh(), sender);
+        self.setup_keybinding_row("search", self.settings.borrow().get_keybind_search(), sender);
+        self.setup_keybinding_row("quit", self.settings.borrow().get_keybind_quit(), sender);
 
         self.setup_keybinding_row(
             "all_articles",
             self.settings.borrow().get_keybind_all_articles(),
-            error_bar,
+            sender,
         );
-        self.setup_keybinding_row(
-            "only_unread",
-            self.settings.borrow().get_keybind_only_unread(),
-            error_bar,
-        );
+        self.setup_keybinding_row("only_unread", self.settings.borrow().get_keybind_only_unread(), sender);
         self.setup_keybinding_row(
             "only_starred",
             self.settings.borrow().get_keybind_only_starred(),
-            error_bar,
+            sender,
         );
 
         self.setup_keybinding_row(
             "scroll_up",
             self.settings.borrow().get_keybind_article_view_up(),
-            error_bar,
+            sender,
         );
         self.setup_keybinding_row(
             "scroll_down",
             self.settings.borrow().get_keybind_article_view_down(),
-            error_bar,
+            sender,
         );
     }
 
-    fn setup_keybinding_row(&self, id: &str, keybinding: Option<String>, error_bar: &GtkHandle<ErrorBar>) {
+    fn setup_keybinding_row(&self, id: &str, keybinding: Option<String>, sender: &Sender<Action>) {
         let label = self.builder.get::<Label>(&format!("{}_label", id));
         Self::keybind_label_text(keybinding.clone(), &label);
         let row_name = format!("{}_row", id);
@@ -414,14 +409,14 @@ impl SettingsDialog {
                 let id = id.to_owned();
                 let info_text = row.get_title().expect(GTK_BUILDER_ERROR);
                 let settings = self.settings.clone();
-                let error_bar = error_bar.clone();
+                let sender = sender.clone();
                 listbox.connect_row_activated(move |_list, row| {
                     if let Some(name) = row.get_name() {
                         if name.as_str() == row_name {
                             let id = id.clone();
                             let label = label.clone();
                             let settings = settings.clone();
-                            let error_bar = error_bar.clone();
+                            let sender = sender.clone();
                             let editor = KeybindingEditor::new(&dialog, &info_text);
                             editor.widget().present();
                             editor.widget().connect_close(move |_dialog| {
@@ -432,7 +427,10 @@ impl SettingsDialog {
                                         if Keybindings::write_keybinding(&id, None, &settings).is_ok() {
                                             Self::keybind_label_text(None, &label);
                                         } else {
-                                            error_bar.borrow().simple_message("Failed to write keybinding.");
+                                            GtkUtil::send(
+                                                &sender,
+                                                Action::ErrorSimpleMessage("Failed to write keybinding.".to_owned()),
+                                            );
                                         }
                                     }
                                     KeybindState::Enabled(keybind) => {
@@ -440,7 +438,10 @@ impl SettingsDialog {
                                         {
                                             Self::keybind_label_text(Some(keybind.clone()), &label);
                                         } else {
-                                            error_bar.borrow().simple_message("Failed to write keybinding.");
+                                            GtkUtil::send(
+                                                &sender,
+                                                Action::ErrorSimpleMessage("Failed to write keybinding.".to_owned()),
+                                            );
                                         }
                                     }
                                 }

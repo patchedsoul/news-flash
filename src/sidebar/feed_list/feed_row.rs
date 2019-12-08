@@ -1,11 +1,12 @@
+use crate::app::Action;
 use crate::gtk_handle;
 use crate::sidebar::feed_list::models::FeedListFeedModel;
 use crate::undo_bar::UndoActionModel;
 use crate::util::{BuilderHelper, GtkHandle, GtkUtil};
 use cairo::{self, Format, ImageSurface};
 use gdk::{DragAction, EventType, ModifierType};
-use gio::{Menu, MenuItem};
-use glib::{source::SourceId, translate::FromGlib, translate::ToGlib, Source, Variant};
+use gio::{ActionMapExt, Menu, MenuItem, SimpleAction};
+use glib::{source::SourceId, translate::FromGlib, translate::ToGlib, Sender, Source, Variant};
 use gtk::{
     self, Box, ContainerExt, Continue, DragContextExtManual, EventBox, Image, ImageExt, Inhibit, Label, LabelExt,
     ListBoxRow, ListBoxRowExt, Popover, PopoverExt, PositionType, Revealer, RevealerExt, StateFlags, StyleContextExt,
@@ -29,7 +30,7 @@ pub struct FeedRow {
 }
 
 impl FeedRow {
-    pub fn new(model: &FeedListFeedModel, visible: bool) -> GtkHandle<FeedRow> {
+    pub fn new(model: &FeedListFeedModel, visible: bool, sender: Sender<Action>) -> GtkHandle<FeedRow> {
         let builder = BuilderHelper::new("feed");
         let revealer = builder.get::<Revealer>("feed_row");
         let level_margin = builder.get::<Box>("level_margin");
@@ -42,7 +43,7 @@ impl FeedRow {
 
         let mut feed = FeedRow {
             id: model.id.clone(),
-            widget: Self::create_row(&revealer, &model.id, &model.parent_id, &title_label),
+            widget: Self::create_row(&revealer, &model.id, &model.parent_id, &title_label, sender),
             item_count: item_count_label,
             title: title_label,
             revealer,
@@ -59,7 +60,13 @@ impl FeedRow {
         gtk_handle!(feed)
     }
 
-    fn create_row(widget: &gtk::Revealer, id: &FeedID, parent_id: &CategoryID, label: &Label) -> ListBoxRow {
+    fn create_row(
+        widget: &gtk::Revealer,
+        id: &FeedID,
+        parent_id: &CategoryID,
+        label: &Label,
+        sender: Sender<Action>,
+    ) -> ListBoxRow {
         let row = gtk::ListBoxRow::new();
         row.set_activatable(true);
         row.set_can_focus(false);
@@ -117,19 +124,27 @@ impl FeedRow {
             rename_feed_item.set_action_and_target_value(Some("rename-feed"), Some(&variant));
             model.append_item(&rename_feed_item);
 
-            let label = match label.get_text() {
-                Some(label) => label.as_str().to_owned(),
-                None => "".to_owned(),
-            };
-            let remove_action = UndoActionModel::DeleteFeed((feed_id.clone(), label));
-            if let Ok(json) = serde_json::to_string(&remove_action) {
-                let variant = Variant::from(json);
-                let delete_feed_item = MenuItem::new(Some("Delete"), None);
-                delete_feed_item.set_action_and_target_value(Some("enqueue-undoable-action"), Some(&variant));
-                model.append_item(&delete_feed_item);
+            let delete_feed_item = MenuItem::new(Some("Delete"), None);
+            let delete_feed_action = SimpleAction::new("enqueue-delete-feed", None);
+            let sender = sender.clone();
+            let feed_id = feed_id.clone();
+            let label = label.clone();
+            let row = row.clone();
+            delete_feed_action.connect_activate(move |_action, _parameter| {
+                let label = match label.get_text() {
+                    Some(label) => label.as_str().to_owned(),
+                    None => "".to_owned(),
+                };
+                let remove_action = UndoActionModel::DeleteFeed((feed_id.clone(), label));
+                GtkUtil::send(&sender, Action::UndoableAction(remove_action));
+            });
+            if let Ok(main_window) = GtkUtil::get_main_window(&row) {
+                main_window.add_action(&delete_feed_action);
             }
+            delete_feed_item.set_action_and_target_value(Some("enqueue-delete-feed"), None);
+            model.append_item(&delete_feed_item);
 
-            let popover = Popover::new(Some(row));
+            let popover = Popover::new(Some(&row));
             popover.set_position(PositionType::Bottom);
             popover.bind_model(Some(&model), Some("win"));
             popover.show();

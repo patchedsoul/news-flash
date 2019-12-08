@@ -1,13 +1,14 @@
 use crate::about_dialog::NewsFlashAbout;
 use crate::add_dialog::{AddCategory, AddPopover};
+use crate::app::Action;
+use crate::app::NotificationCounts;
 use crate::article_list::{MarkUpdate, ReadUpdate};
 use crate::article_view::ArticleView;
 use crate::content_page::HeaderSelection;
 use crate::content_page::{ContentHeader, ContentPage};
-use crate::error_bar::ErrorBar;
 use crate::gtk_handle;
 use crate::login_screen::{PasswordLogin, WebLogin};
-use crate::main_window::{MainWindow, DATA_DIR};
+use crate::main_window::DATA_DIR;
 use crate::main_window_state::MainWindowState;
 use crate::rename_dialog::RenameDialog;
 use crate::responsive::ResponsiveLayout;
@@ -18,7 +19,7 @@ use crate::undo_bar::{UndoActionModel, UndoBar};
 use crate::util::{FileUtil, GtkHandle, GtkUtil};
 use gio::{ActionMapExt, ApplicationExt, SimpleAction};
 use glib::futures::FutureExt;
-use glib::{translate::ToGlib, Variant, VariantTy};
+use glib::{translate::ToGlib, Sender, Variant, VariantTy};
 use gtk::{
     self, Application, ApplicationWindow, ButtonExt, Continue, DialogExt, FileChooserAction, FileChooserDialog,
     FileChooserExt, FileFilter, GtkWindowExt, GtkWindowExtManual, ResponseType, Stack, StackExt, StackTransitionType,
@@ -113,21 +114,21 @@ impl MainWindowActions {
 
     pub fn setup_show_content_page_action(
         window: &ApplicationWindow,
+        sender: &Sender<Action>,
         news_flash: &GtkHandle<Option<NewsFlash>>,
         stack: &Stack,
         header_stack: &Stack,
         content_page: &GtkHandle<ContentPage>,
         state: &GtkHandle<MainWindowState>,
         undo_bar: &GtkHandle<UndoBar>,
-        error_bar: &GtkHandle<ErrorBar>,
     ) {
         let news_flash = news_flash.clone();
+        let sender = sender.clone();
         let stack = stack.clone();
         let header_stack = header_stack.clone();
         let content_page = content_page.clone();
         let state = state.clone();
         let undo_bar = undo_bar.clone();
-        let error_bar = error_bar.clone();
         let show_content_page = SimpleAction::new("show-content-page", VariantTy::new("s").ok());
         show_content_page.connect_activate(move |_action, data| {
             if let Some(data) = data {
@@ -146,11 +147,14 @@ impl MainWindowActions {
                         .update_sidebar(&news_flash, &state, &undo_bar)
                         .is_err()
                     {
-                        error_bar.borrow().simple_message("Failed to update sidebar.");
+                        GtkUtil::send(
+                            &sender,
+                            Action::ErrorSimpleMessage("Failed to update sidebar.".to_owned()),
+                        );
                     }
 
                     if content_page.borrow().set_service(&id, user_name).is_err() {
-                        error_bar.borrow().simple_message("Failed to set service.");
+                        GtkUtil::send(&sender, Action::ErrorSimpleMessage("Failed to set service.".to_owned()));
                     }
                 }
             }
@@ -254,16 +258,14 @@ impl MainWindowActions {
 
     pub fn setup_sync_action(
         window: &ApplicationWindow,
-        application: &Application,
+        sender: &Sender<Action>,
         content_header: &GtkHandle<ContentHeader>,
         news_flash: &GtkHandle<Option<NewsFlash>>,
-        error_bar: &GtkHandle<ErrorBar>,
     ) {
         let parent = window.clone();
-        let application = application.clone();
+        let sender = sender.clone();
         let content_header = content_header.clone();
         let news_flash = news_flash.clone();
-        let error_bar = error_bar.clone();
         let sync_action = SimpleAction::new("sync", None);
         sync_action.connect_activate(move |_action, _data| {
             let mut result: Result<i64, NewsFlashError> = Ok(0);
@@ -280,11 +282,15 @@ impl MainWindowActions {
                     content_header.borrow().finish_sync();
                     GtkUtil::execute_action_main_window(&parent, "update-sidebar", None);
                     GtkUtil::execute_action_main_window(&parent, "update-article-list", None);
-                    MainWindow::show_notification(&application, new_article_count, unread_count);
+                    let counts = NotificationCounts {
+                        new: new_article_count,
+                        unread: unread_count,
+                    };
+                    GtkUtil::send(&sender, Action::ShowNotification(counts));
                 }
                 Err(error) => {
                     content_header.borrow().finish_sync();
-                    error_bar.borrow().news_flash_error("Failed to sync.", error);
+                    GtkUtil::send(&sender, Action::Error("Failed to sync.".to_owned(), error));
                 }
             }
         });
@@ -294,17 +300,17 @@ impl MainWindowActions {
 
     pub fn setup_update_sidebar_action(
         window: &ApplicationWindow,
+        sender: &Sender<Action>,
         content_page: &GtkHandle<ContentPage>,
         news_flash: &GtkHandle<Option<NewsFlash>>,
         state: &GtkHandle<MainWindowState>,
         undo_bar: &GtkHandle<UndoBar>,
-        error_bar: &GtkHandle<ErrorBar>,
     ) {
         let state = state.clone();
+        let sender = sender.clone();
         let content_page = content_page.clone();
         let news_flash = news_flash.clone();
         let undo_bar = undo_bar.clone();
-        let error_bar = error_bar.clone();
         let update_sidebar_action = SimpleAction::new("update-sidebar", None);
         update_sidebar_action.connect_activate(move |_action, _data| {
             if content_page
@@ -312,7 +318,10 @@ impl MainWindowActions {
                 .update_sidebar(&news_flash, &state, &undo_bar)
                 .is_err()
             {
-                error_bar.borrow().simple_message("Failed to update sidebar.");
+                GtkUtil::send(
+                    &sender,
+                    Action::ErrorSimpleMessage("Failed to update sidebar.".to_owned()),
+                );
             }
         });
         update_sidebar_action.set_enabled(true);
@@ -408,17 +417,17 @@ impl MainWindowActions {
 
     pub fn setup_update_article_list_action(
         window: &ApplicationWindow,
+        sender: &Sender<Action>,
         state: &GtkHandle<MainWindowState>,
         content_page: &GtkHandle<ContentPage>,
         news_flash: &GtkHandle<Option<NewsFlash>>,
         undo_bar: &GtkHandle<UndoBar>,
-        error_bar: &GtkHandle<ErrorBar>,
     ) {
         let state = state.clone();
+        let sender = sender.clone();
         let content_page = content_page.clone();
         let news_flash = news_flash.clone();
         let undo_bar = undo_bar.clone();
-        let error_bar = error_bar.clone();
         let update_article_list_action = SimpleAction::new("update-article-list", None);
         update_article_list_action.connect_activate(move |_action, _data| {
             if content_page
@@ -426,7 +435,10 @@ impl MainWindowActions {
                 .update_article_list(&news_flash, &state, &undo_bar)
                 .is_err()
             {
-                error_bar.borrow().simple_message("Failed to update the article list.");
+                GtkUtil::send(
+                    &sender,
+                    Action::ErrorSimpleMessage("Failed to update the article list.".to_owned()),
+                );
             }
         });
         update_article_list_action.set_enabled(true);
@@ -435,17 +447,17 @@ impl MainWindowActions {
 
     pub fn setup_show_more_articles_action(
         window: &ApplicationWindow,
+        sender: &Sender<Action>,
         state: &GtkHandle<MainWindowState>,
         content_page: &GtkHandle<ContentPage>,
         news_flash: &GtkHandle<Option<NewsFlash>>,
         undo_bar: &GtkHandle<UndoBar>,
-        error_bar: &GtkHandle<ErrorBar>,
     ) {
         let state = state.clone();
+        let sender = sender.clone();
         let content_page = content_page.clone();
         let news_flash = news_flash.clone();
         let undo_bar = undo_bar.clone();
-        let error_bar = error_bar.clone();
         let show_more_articles_action = SimpleAction::new("show-more-articles", None);
         show_more_articles_action.connect_activate(move |_action, _data| {
             if content_page
@@ -453,7 +465,10 @@ impl MainWindowActions {
                 .load_more_articles(&news_flash, &state, &undo_bar)
                 .is_err()
             {
-                error_bar.borrow().simple_message("Failed to load more articles.");
+                GtkUtil::send(
+                    &sender,
+                    Action::ErrorSimpleMessage("Failed to load more articles.".to_owned()),
+                );
             }
         });
         show_more_articles_action.set_enabled(true);
@@ -462,17 +477,17 @@ impl MainWindowActions {
 
     pub fn setup_show_article_action(
         window: &ApplicationWindow,
+        sender: &Sender<Action>,
         content_page: &GtkHandle<ContentPage>,
         content_header: &GtkHandle<ContentHeader>,
         news_flash: &GtkHandle<Option<NewsFlash>>,
         responsive_layout: &GtkHandle<ResponsiveLayout>,
-        error_bar: &GtkHandle<ErrorBar>,
     ) {
         let content_page = content_page.clone();
+        let sender = sender.clone();
         let content_header = content_header.clone();
         let news_flash = news_flash.clone();
         let responsive_layout = responsive_layout.clone();
-        let error_bar = error_bar.clone();
         let show_article_action = SimpleAction::new("show-article", VariantTy::new("s").ok());
         show_article_action.connect_activate(move |_action, data| {
             if let Some(data) = data {
@@ -482,23 +497,24 @@ impl MainWindowActions {
                         let article = match news_flash.get_fat_article(&article_id) {
                             Ok(article) => article,
                             Err(error) => {
-                                error_bar.borrow().news_flash_error("Failed to read article.", error);
+                                GtkUtil::send(&sender, Action::Error("Failed to read article.".to_owned(), error));
                                 return;
                             }
                         };
                         let (feeds, _) = match news_flash.get_feeds() {
                             Ok(res) => res,
                             Err(error) => {
-                                error_bar.borrow().news_flash_error("Failed to read feeds.", error);
+                                GtkUtil::send(&sender, Action::Error("Failed to read feeds.".to_owned(), error));
                                 return;
                             }
                         };
                         let feed = match feeds.iter().find(|&f| f.feed_id == article.feed_id) {
                             Some(feed) => feed,
                             None => {
-                                error_bar
-                                    .borrow()
-                                    .simple_message(&format!("Failed to find feed: '{}'", article.feed_id));
+                                GtkUtil::send(
+                                    &sender,
+                                    Action::ErrorSimpleMessage(format!("Failed to find feed: '{}'", article.feed_id)),
+                                );
                                 return;
                             }
                         };
@@ -585,16 +601,16 @@ impl MainWindowActions {
 
     pub fn setup_mark_article_read_action(
         window: &ApplicationWindow,
+        sender: &Sender<Action>,
         news_flash: &GtkHandle<Option<NewsFlash>>,
         content_page: &GtkHandle<ContentPage>,
         content_header: &GtkHandle<ContentHeader>,
-        error_bar: &GtkHandle<ErrorBar>,
     ) {
         let news_flash = news_flash.clone();
+        let sender = sender.clone();
         let main_window = window.clone();
         let content_page = content_page.clone();
         let content_header = content_header.clone();
-        let error_bar = error_bar.clone();
         let mark_article_read_action = SimpleAction::new("mark-article-read", VariantTy::new("s").ok());
         mark_article_read_action.connect_activate(move |_action, data| {
             if let Some(data) = data {
@@ -611,14 +627,14 @@ impl MainWindowActions {
                                     Err(error) => {
                                         let message = format!("Failed to mark article read: '{}'", update.article_id);
                                         error!("{}", message);
-                                        error_bar.borrow().news_flash_error(&message, error);
+                                        GtkUtil::send(&sender, Action::Error(message, error));
                                     }
                                 });
                         GtkUtil::block_on_future(future);
                     } else {
-                        let message = "Failed to borrow NewsFlash.";
+                        let message = "Failed to borrow NewsFlash.".to_owned();
                         error!("{}", message);
-                        error_bar.borrow().simple_message(message);
+                        GtkUtil::send(&sender, Action::ErrorSimpleMessage(message));
                     }
 
                     GtkUtil::execute_action_main_window(&main_window, "update-sidebar", None);
@@ -642,16 +658,16 @@ impl MainWindowActions {
 
     pub fn setup_mark_article_action(
         window: &ApplicationWindow,
+        sender: &Sender<Action>,
         news_flash: &GtkHandle<Option<NewsFlash>>,
         content_page: &GtkHandle<ContentPage>,
         content_header: &GtkHandle<ContentHeader>,
-        error_bar: &GtkHandle<ErrorBar>,
     ) {
         let news_flash = news_flash.clone();
+        let sender = sender.clone();
         let main_window = window.clone();
         let content_page = content_page.clone();
         let content_header = content_header.clone();
-        let error_bar = error_bar.clone();
         let mark_article_action = SimpleAction::new("mark-article", VariantTy::new("s").ok());
         mark_article_action.connect_activate(move |_action, data| {
             if let Some(data) = data {
@@ -667,14 +683,14 @@ impl MainWindowActions {
                                 Err(error) => {
                                     let message = format!("Failed to star article: '{}'", update.article_id);
                                     error!("{}", message);
-                                    error_bar.borrow().news_flash_error(&message, error);
+                                    GtkUtil::send(&sender, Action::Error(message, error));
                                 }
                             });
                         GtkUtil::block_on_future(future);
                     } else {
-                        let message = "Failed to borrow NewsFlash.";
+                        let message = "Failed to borrow NewsFlash.".to_owned();
                         error!("{}", message);
-                        error_bar.borrow().simple_message(message);
+                        GtkUtil::send(&sender, Action::ErrorSimpleMessage(message));
                     }
 
                     GtkUtil::execute_action_main_window(&main_window, "update-sidebar", None);
@@ -698,18 +714,18 @@ impl MainWindowActions {
 
     pub fn setup_sidebar_set_read_action(
         window: &ApplicationWindow,
+        sender: &Sender<Action>,
         news_flash: &GtkHandle<Option<NewsFlash>>,
         state: &GtkHandle<MainWindowState>,
         content_page: &GtkHandle<ContentPage>,
         content_header: &GtkHandle<ContentHeader>,
-        error_bar: &GtkHandle<ErrorBar>,
     ) {
         let news_flash = news_flash.clone();
+        let sender = sender.clone();
         let main_window = window.clone();
         let state = state.clone();
         let content_page = content_page.clone();
         let content_header = content_header.clone();
-        let error_bar = error_bar.clone();
         let sidebar_set_read_action = SimpleAction::new("sidebar-set-read", None);
         sidebar_set_read_action.connect_activate(move |_action, _data| {
             if let Some(news_flash) = news_flash.borrow_mut().as_mut() {
@@ -720,9 +736,9 @@ impl MainWindowActions {
                         let future = news_flash.set_all_read().map(|result| match result {
                             Ok(_) => {}
                             Err(error) => {
-                                let message = "Failed to mark all read";
-                                error_bar.borrow().news_flash_error(message, error);
+                                let message = "Failed to mark all read".to_owned();
                                 error!("{}", message);
+                                GtkUtil::send(&sender, Action::Error(message, error));
                             }
                         });
                         GtkUtil::block_on_future(future);
@@ -735,8 +751,8 @@ impl MainWindowActions {
                                 Ok(_) => {}
                                 Err(error) => {
                                     let message = format!("Failed to mark category '{}' read", category_id);
-                                    error_bar.borrow().news_flash_error(&message, error);
                                     error!("{}", message);
+                                    GtkUtil::send(&sender, Action::Error(message, error));
                                 }
                             });
                         GtkUtil::block_on_future(future);
@@ -747,8 +763,8 @@ impl MainWindowActions {
                             Ok(_) => {}
                             Err(error) => {
                                 let message = format!("Failed to mark feed '{}' read", feed_id);
-                                error_bar.borrow().news_flash_error(&message, error);
                                 error!("{}", message);
+                                GtkUtil::send(&sender, Action::Error(message, error));
                             }
                         });
                         GtkUtil::block_on_future(future);
@@ -759,8 +775,8 @@ impl MainWindowActions {
                             Ok(_) => {}
                             Err(error) => {
                                 let message = format!("Failed to mark tag '{}' read", tag_id);
-                                error_bar.borrow().news_flash_error(&message, error);
                                 error!("{}", message);
+                                GtkUtil::send(&sender, Action::Error(message, error));
                             }
                         });
                         GtkUtil::block_on_future(future);
@@ -787,35 +803,35 @@ impl MainWindowActions {
 
     pub fn setup_add_action(
         window: &ApplicationWindow,
+        sender: &Sender<Action>,
         news_flash: &GtkHandle<Option<NewsFlash>>,
         content: &GtkHandle<ContentPage>,
-        error_bar: &GtkHandle<ErrorBar>,
     ) {
         let news_flash_handle = news_flash.clone();
+        let sender = sender.clone();
         let add_button = content.borrow().sidebar_get_add_button();
-        let error_bar = error_bar.clone();
         let add_action = SimpleAction::new("add-feed", None);
         add_action.connect_activate(move |_action, _data| {
             if let Some(news_flash) = news_flash_handle.borrow_mut().as_mut() {
                 let news_flash_handle = news_flash_handle.clone();
-                let error_message = "Failed to add feed";
+                let error_message = "Failed to add feed".to_owned();
 
                 let categories = match news_flash.get_categories() {
                     Ok(categories) => categories,
                     Err(error) => {
                         error!("{}", error_message);
-                        error_bar.borrow().news_flash_error(error_message, error);
+                        GtkUtil::send(&sender, Action::Error(error_message.clone(), error));
                         return;
                     }
                 };
                 let dialog = AddPopover::new(&add_button, categories);
-                let error_bar = error_bar.clone();
+                let sender = sender.clone();
                 dialog.add_button().connect_clicked(move |_button| {
                     let feed_url = match dialog.get_feed_url() {
                         Some(url) => url,
                         None => {
                             error!("{}: No valid url", error_message);
-                            error_bar.borrow().simple_message(error_message);
+                            GtkUtil::send(&sender, Action::ErrorSimpleMessage(error_message.clone()));
                             return;
                         }
                     };
@@ -830,7 +846,7 @@ impl MainWindowActions {
                                     Ok(category) => category,
                                     Err(error) => {
                                         error!("{}: Can't add Category", error_message);
-                                        error_bar.borrow().news_flash_error(error_message, error);
+                                        GtkUtil::send(&sender, Action::Error(error_message.clone(), error));
                                         return;
                                     }
                                 };
@@ -847,13 +863,13 @@ impl MainWindowActions {
                                     Ok(_) => {}
                                     Err(error) => {
                                         error!("{}: Can't add Feed", error_message);
-                                        error_bar.borrow().news_flash_error(error_message, error);
+                                        GtkUtil::send(&sender, Action::Error(error_message.clone(), error));
                                     }
                                 });
                         GtkUtil::block_on_future(add_feed_future);
                     } else {
                         error!("{}: Can't borrow NewsFlash", error_message);
-                        error_bar.borrow().simple_message(error_message);
+                        GtkUtil::send(&sender, Action::ErrorSimpleMessage(error_message.clone()));
                     }
                 });
             }
@@ -864,12 +880,12 @@ impl MainWindowActions {
 
     pub fn setup_rename_feed_action(
         window: &ApplicationWindow,
+        sender: &Sender<Action>,
         news_flash: &GtkHandle<Option<NewsFlash>>,
-        error_bar: &GtkHandle<ErrorBar>,
     ) {
         let news_flash = news_flash.clone();
+        let sender = sender.clone();
         let main_window = window.clone();
-        let error_bar = error_bar.clone();
         let rename_feed_action = SimpleAction::new("rename-feed", VariantTy::new("s").ok());
         rename_feed_action.connect_activate(move |_action, data| {
             if let Some(data) = data {
@@ -880,9 +896,8 @@ impl MainWindowActions {
                         let (feeds, _mappings) = match news_flash.get_feeds() {
                             Ok(result) => result,
                             Err(error) => {
-                                error_bar
-                                    .borrow()
-                                    .news_flash_error("Failed to laod list of feeds.", error);
+                                let message = "Failed to laod list of feeds.".to_owned();
+                                GtkUtil::send(&sender, Action::Error(message, error));
                                 return;
                             }
                         };
@@ -890,9 +905,8 @@ impl MainWindowActions {
                         let feed = match feeds.iter().find(|f| f.feed_id == feed_id).cloned() {
                             Some(feed) => feed,
                             None => {
-                                error_bar
-                                    .borrow()
-                                    .simple_message(&format!("Failed to find feed '{}'", feed_id));
+                                let message = format!("Failed to find feed '{}'", feed_id);
+                                GtkUtil::send(&sender, Action::ErrorSimpleMessage(message));
                                 return;
                             }
                         };
@@ -902,13 +916,16 @@ impl MainWindowActions {
                         let rename_button = dialog.rename_button();
                         let dialog_handle = gtk_handle!(dialog);
                         let main_window = main_window.clone();
-                        let error_bar = error_bar.clone();
+                        let sender = sender.clone();
                         rename_button.connect_clicked(move |_button| {
                             if let Some(news_flash) = dialog_news_flash.borrow_mut().as_mut() {
                                 let new_label = match dialog_handle.borrow().new_label() {
                                     Some(label) => label,
                                     None => {
-                                        error_bar.borrow().simple_message("No valid title to rename feed.");
+                                        GtkUtil::send(
+                                            &sender,
+                                            Action::ErrorSimpleMessage("No valid title to rename feed.".to_owned()),
+                                        );
                                         dialog_handle.borrow().close();
                                         return;
                                     }
@@ -916,7 +933,10 @@ impl MainWindowActions {
 
                                 let future = news_flash.rename_feed(&feed, &new_label).map(|result| {
                                     if let Err(error) = result {
-                                        error_bar.borrow().news_flash_error("Failed to rename feed.", error);
+                                        GtkUtil::send(
+                                            &sender,
+                                            Action::Error("Failed to rename feed.".to_owned(), error),
+                                        );
                                     }
                                 });
                                 GtkUtil::block_on_future(future);
@@ -937,12 +957,12 @@ impl MainWindowActions {
 
     pub fn setup_rename_category_action(
         window: &ApplicationWindow,
+        sender: &Sender<Action>,
         news_flash: &GtkHandle<Option<NewsFlash>>,
-        error_bar: &GtkHandle<ErrorBar>,
     ) {
         let news_flash = news_flash.clone();
+        let sender = sender.clone();
         let main_window = window.clone();
-        let error_bar = error_bar.clone();
         let rename_category_action = SimpleAction::new("rename-category", VariantTy::new("s").ok());
         rename_category_action.connect_activate(move |_action, data| {
             if let Some(data) = data {
@@ -953,9 +973,8 @@ impl MainWindowActions {
                         let categories = match news_flash.get_categories() {
                             Ok(categories) => categories,
                             Err(error) => {
-                                error_bar
-                                    .borrow()
-                                    .news_flash_error("Failed to load list of categories.", error);
+                                let message = "Failed to load list of categories.".to_owned();
+                                GtkUtil::send(&sender, Action::Error(message, error));
                                 return;
                             }
                         };
@@ -963,9 +982,8 @@ impl MainWindowActions {
                         let category = match categories.iter().find(|c| c.category_id == category_id).cloned() {
                             Some(category) => category,
                             None => {
-                                error_bar
-                                    .borrow()
-                                    .simple_message(&format!("Failed to find category '{}'", category_id));
+                                let message = format!("Failed to find category '{}'", category_id);
+                                GtkUtil::send(&sender, Action::ErrorSimpleMessage(message));
                                 return;
                             }
                         };
@@ -978,19 +996,25 @@ impl MainWindowActions {
                         let rename_button = dialog.rename_button();
                         let dialog_handle = gtk_handle!(dialog);
                         let main_window = main_window.clone();
-                        let error_bar = error_bar.clone();
+                        let sender = sender.clone();
                         rename_button.connect_clicked(move |_button| {
                             if let Some(news_flash) = dialog_news_flash.borrow_mut().as_mut() {
                                 let new_label = match dialog_handle.borrow().new_label() {
                                     Some(label) => label,
                                     None => {
-                                        error_bar.borrow().simple_message("No valid title to rename category.");
+                                        GtkUtil::send(
+                                            &sender,
+                                            Action::ErrorSimpleMessage("No valid title to rename category.".to_owned()),
+                                        );
                                         return;
                                     }
                                 };
                                 let future = news_flash.rename_category(&category, &new_label).map(|result| {
                                     if let Err(error) = result {
-                                        error_bar.borrow().news_flash_error("Failed to rename category.", error);
+                                        GtkUtil::send(
+                                            &sender,
+                                            Action::Error("Failed to rename category.".to_owned(), error),
+                                        );
                                     }
                                 });
                                 GtkUtil::block_on_future(future);
@@ -1007,9 +1031,13 @@ impl MainWindowActions {
         window.add_action(&rename_category_action);
     }
 
-    pub fn setup_delete_selection_action(window: &ApplicationWindow, content_page: &GtkHandle<ContentPage>) {
+    pub fn setup_delete_selection_action(
+        window: &ApplicationWindow,
+        sender: &Sender<Action>,
+        content_page: &GtkHandle<ContentPage>,
+    ) {
         let content_page = content_page.clone();
-        let main_window = window.clone();
+        let sender = sender.clone();
         let delete_selection_action = SimpleAction::new("delete-selection", None);
         delete_selection_action.connect_activate(move |_action, _data| {
             let selection = content_page.borrow().sidebar_get_selection();
@@ -1025,70 +1053,20 @@ impl MainWindowActions {
                 SidebarSelection::Tag((tag_id, label)) => Some(UndoActionModel::DeleteTag((tag_id, label))),
             };
             if let Some(undo_action) = undo_action {
-                let json = serde_json::to_string(&undo_action).expect("Failed to serialize UndoActionModel");
-                GtkUtil::execute_action_main_window(
-                    &main_window,
-                    "enqueue-undoable-action",
-                    Some(&Variant::from(&json)),
-                );
+                GtkUtil::send(&sender, Action::UndoableAction(undo_action));
             }
         });
         delete_selection_action.set_enabled(true);
         window.add_action(&delete_selection_action);
     }
 
-    pub fn setup_enqueue_undoable_action(
-        window: &ApplicationWindow,
-        undo_bar: &GtkHandle<UndoBar>,
-        content_page: &GtkHandle<ContentPage>,
-        state: &GtkHandle<MainWindowState>,
-    ) {
-        let undo_bar = undo_bar.clone();
-        let state = state.clone();
-        let content_page = content_page.clone();
-        let enqueue_undoable_action = SimpleAction::new("enqueue-undoable-action", VariantTy::new("s").ok());
-        enqueue_undoable_action.connect_activate(move |_action, data| {
-            if let Some(data) = data {
-                if let Some(data) = data.get_str() {
-                    let action: UndoActionModel =
-                        serde_json::from_str(&data).expect("Failed to deserialize UndoActionModel.");
-
-                    let select_all_button = match content_page.borrow().sidebar_get_selection() {
-                        SidebarSelection::All => false,
-                        SidebarSelection::Cateogry((selected_id, _label)) => match &action {
-                            UndoActionModel::DeleteCategory((delete_id, _label)) => &selected_id == delete_id,
-                            _ => false,
-                        },
-                        SidebarSelection::Feed((selected_id, _label)) => match &action {
-                            UndoActionModel::DeleteFeed((delete_id, _label)) => &selected_id == delete_id,
-                            _ => false,
-                        },
-                        SidebarSelection::Tag((selected_id, _label)) => match &action {
-                            UndoActionModel::DeleteTag((delete_id, _label)) => &selected_id == delete_id,
-                            _ => false,
-                        },
-                    };
-                    if select_all_button {
-                        state.borrow_mut().set_sidebar_selection(SidebarSelection::All);
-                        content_page.borrow().sidebar_select_all_button_no_update();
-                    }
-
-                    info!("enque new undoable action: {}", action);
-                    undo_bar.borrow().add_action(action);
-                }
-            }
-        });
-        enqueue_undoable_action.set_enabled(true);
-        window.add_action(&enqueue_undoable_action);
-    }
-
     pub fn setup_delete_feed_action(
         window: &ApplicationWindow,
+        sender: &Sender<Action>,
         news_flash: &GtkHandle<Option<NewsFlash>>,
-        error_bar: &GtkHandle<ErrorBar>,
     ) {
         let news_flash = news_flash.clone();
-        let error_bar = error_bar.clone();
+        let sender = sender.clone();
         let delete_feed_action = SimpleAction::new("delete-feed", VariantTy::new("s").ok());
         delete_feed_action.connect_activate(move |_action, data| {
             if let Some(data) = data {
@@ -1098,7 +1076,7 @@ impl MainWindowActions {
                         let (feeds, _mappings) = match news_flash.get_feeds() {
                             Ok(res) => res,
                             Err(error) => {
-                                error_bar.borrow().news_flash_error("Failed to delete feed.", error);
+                                GtkUtil::send(&sender, Action::Error("Failed to delete feed.".to_owned(), error));
                                 return;
                             }
                         };
@@ -1107,15 +1085,13 @@ impl MainWindowActions {
                             info!("delete feed '{}' (id: {})", feed.label, feed.feed_id);
                             let future = news_flash.remove_feed(&feed).map(|remove_result| {
                                 if let Err(error) = remove_result {
-                                    error_bar.borrow().news_flash_error("Failed to delete feed.", error);
+                                    GtkUtil::send(&sender, Action::Error("Failed to delete feed.".to_owned(), error));
                                 }
                             });
                             GtkUtil::block_on_future(future);
                         } else {
-                            error_bar.borrow().simple_message(&format!(
-                                "Failed to delete feed: feed with id '{}' not found.",
-                                feed_id
-                            ));
+                            let message = format!("Failed to delete feed: feed with id '{}' not found.", feed_id);
+                            GtkUtil::send(&sender, Action::ErrorSimpleMessage(message));
                             error!("feed not found: {}", feed_id);
                         }
                     }
@@ -1128,11 +1104,11 @@ impl MainWindowActions {
 
     pub fn setup_delete_category_action(
         window: &ApplicationWindow,
+        sender: &Sender<Action>,
         news_flash: &GtkHandle<Option<NewsFlash>>,
-        error_bar: &GtkHandle<ErrorBar>,
     ) {
         let news_flash = news_flash.clone();
-        let error_bar = error_bar.clone();
+        let sender = sender.clone();
         let delete_feed_action = SimpleAction::new("delete-category", VariantTy::new("s").ok());
         delete_feed_action.connect_activate(move |_action, data| {
             if let Some(data) = data {
@@ -1142,7 +1118,7 @@ impl MainWindowActions {
                         let categories = match news_flash.get_categories() {
                             Ok(res) => res,
                             Err(error) => {
-                                error_bar.borrow().news_flash_error("Failed to delete category.", error);
+                                GtkUtil::send(&sender, Action::Error("Failed to delete category.".to_owned(), error));
                                 return;
                             }
                         };
@@ -1151,16 +1127,20 @@ impl MainWindowActions {
                             info!("delete category '{}' (id: {})", category.label, category.category_id);
                             let future = news_flash.remove_category(&category, true).map(|remove_result| {
                                 if let Err(error) = remove_result {
-                                    error_bar.borrow().news_flash_error("Failed to delete category.", error);
+                                    GtkUtil::send(
+                                        &sender,
+                                        Action::Error("Failed to delete category.".to_owned(), error),
+                                    );
                                 }
                             });
                             // FIXME
                             GtkUtil::block_on_future(future);
                         } else {
-                            error_bar.borrow().simple_message(&format!(
+                            let message = format!(
                                 "Failed to delete category: category with id '{}' not found.",
                                 category_id
-                            ));
+                            );
+                            GtkUtil::send(&sender, Action::ErrorSimpleMessage(message));
                             error!("category not found: {}", category_id);
                         }
                     }
@@ -1173,11 +1153,11 @@ impl MainWindowActions {
 
     pub fn setup_move_action(
         window: &ApplicationWindow,
+        sender: &Sender<Action>,
         news_flash: &GtkHandle<Option<NewsFlash>>,
-        error_bar: &GtkHandle<ErrorBar>,
     ) {
         let news_flash = news_flash.clone();
-        let error_bar = error_bar.clone();
+        let sender = sender.clone();
         let main_window = window.clone();
         let move_action = SimpleAction::new("move", VariantTy::new("s").ok());
         move_action.connect_activate(move |_action, data| {
@@ -1189,7 +1169,10 @@ impl MainWindowActions {
                             if let Some(news_flash) = news_flash.borrow_mut().as_mut() {
                                 let future = news_flash.move_category(&category_id, &parent_id).map(|move_result| {
                                     if let Err(error) = move_result {
-                                        error_bar.borrow().news_flash_error("Failed to move category.", error);
+                                        GtkUtil::send(
+                                            &sender,
+                                            Action::Error("Failed to move category.".to_owned(), error),
+                                        );
                                     }
                                 });
                                 // FIXME
@@ -1200,7 +1183,7 @@ impl MainWindowActions {
                             if let Some(news_flash) = news_flash.borrow_mut().as_mut() {
                                 let future = news_flash.move_feed(&feed_id, &from_id, &to_id).map(|move_result| {
                                     if let Err(error) = move_result {
-                                        error_bar.borrow().news_flash_error("Failed to move feed.", error);
+                                        GtkUtil::send(&sender, Action::Error("Failed to move feed.".to_owned(), error));
                                     }
                                 });
                                 // FIXME
@@ -1247,17 +1230,13 @@ impl MainWindowActions {
         window.add_action(&about_action);
     }
 
-    pub fn setup_settings_action(
-        window: &ApplicationWindow,
-        settings: &GtkHandle<Settings>,
-        error_bar: &GtkHandle<ErrorBar>,
-    ) {
+    pub fn setup_settings_action(window: &ApplicationWindow, sender: &Sender<Action>, settings: &GtkHandle<Settings>) {
         let main_window = window.clone();
+        let sender = sender.clone();
         let settings = settings.clone();
-        let error_bar = error_bar.clone();
         let settings_action = SimpleAction::new("settings", None);
         settings_action.connect_activate(move |_action, _data| {
-            let dialog = SettingsDialog::new(&main_window, &settings, &error_bar).widget();
+            let dialog = SettingsDialog::new(&main_window, &sender, &settings).widget();
             dialog.present();
         });
         settings_action.set_enabled(true);
@@ -1291,12 +1270,12 @@ impl MainWindowActions {
 
     pub fn setup_export_action(
         window: &ApplicationWindow,
+        sender: &Sender<Action>,
         news_flash: &GtkHandle<Option<NewsFlash>>,
-        error_bar: &GtkHandle<ErrorBar>,
     ) {
         let main_window = window.clone();
+        let sender = sender.clone();
         let news_flash = news_flash.clone();
-        let error_bar = error_bar.clone();
         let export_action = SimpleAction::new("export", None);
         export_action.connect_activate(move |_action, _data| {
             let dialog = FileChooserDialog::with_buttons(
@@ -1322,13 +1301,16 @@ impl MainWindowActions {
                     let opml = match news_flash.export_opml() {
                         Ok(opml) => opml,
                         Err(error) => {
-                            error_bar.borrow().news_flash_error("Failed to get OPML data.", error);
+                            GtkUtil::send(&sender, Action::Error("Failed to get OPML data.".to_owned(), error));
                             return;
                         }
                     };
                     if let Some(filename) = dialog.get_filename() {
                         if FileUtil::write_text_file(&filename, &opml).is_err() {
-                            error_bar.borrow().simple_message("Failed to write OPML data to disc.")
+                            GtkUtil::send(
+                                &sender,
+                                Action::ErrorSimpleMessage("Failed to write OPML data to disc.".to_owned()),
+                            );
                         }
                     }
                 }
@@ -1342,16 +1324,16 @@ impl MainWindowActions {
 
     pub fn setup_export_article_action(
         window: &ApplicationWindow,
+        sender: &Sender<Action>,
         news_flash: &GtkHandle<Option<NewsFlash>>,
         content_page: &GtkHandle<ContentPage>,
         settings: &GtkHandle<Settings>,
-        error_bar: &GtkHandle<ErrorBar>,
     ) {
         let main_window = window.clone();
+        let sender = sender.clone();
         let news_flash = news_flash.clone();
         let content_page = content_page.clone();
         let settings = settings.clone();
-        let error_bar = error_bar.clone();
         let export_article_action = SimpleAction::new("export-article", None);
         export_article_action.connect_activate(move |_action, _data| {
             if let Some(article) = content_page.borrow().article_view_visible_article() {
@@ -1376,7 +1358,7 @@ impl MainWindowActions {
 
                 if let ResponseType::Ok = dialog.run() {
                     if let Some(news_flash) = news_flash.borrow().as_ref() {
-                        let error_bar = error_bar.clone();
+                        let sender = sender.clone();
                         let settings = settings.clone();
                         let dialog_clone = dialog.clone();
                         let future =
@@ -1386,9 +1368,10 @@ impl MainWindowActions {
                                     let article = match article_result {
                                         Ok(article) => article,
                                         Err(error) => {
-                                            error_bar
-                                                .borrow()
-                                                .news_flash_error("Failed to downlaod article images.", error);
+                                            GtkUtil::send(
+                                                &sender,
+                                                Action::Error("Failed to downlaod article images.".to_owned(), error),
+                                            );
                                             return;
                                         }
                                     };
@@ -1396,16 +1379,20 @@ impl MainWindowActions {
                                     let (feeds, _) = match news_flash.get_feeds() {
                                         Ok(opml) => opml,
                                         Err(error) => {
-                                            error_bar
-                                                .borrow()
-                                                .news_flash_error("Failed to load feeds from db.", error);
+                                            GtkUtil::send(
+                                                &sender,
+                                                Action::Error("Failed to load feeds from db.".to_owned(), error),
+                                            );
                                             return;
                                         }
                                     };
                                     let feed = match feeds.iter().find(|&f| f.feed_id == article.feed_id) {
                                         Some(feed) => feed,
                                         None => {
-                                            error_bar.borrow().simple_message("Failed to find specific feed.");
+                                            GtkUtil::send(
+                                                &sender,
+                                                Action::ErrorSimpleMessage("Failed to find specific feed.".to_owned()),
+                                            );
                                             return;
                                         }
                                     };
@@ -1419,7 +1406,12 @@ impl MainWindowActions {
                                             None,
                                         );
                                         if FileUtil::write_text_file(&filename, &html).is_err() {
-                                            error_bar.borrow().simple_message("Failed to write OPML data to disc.")
+                                            GtkUtil::send(
+                                                &sender,
+                                                Action::ErrorSimpleMessage(
+                                                    "Failed to write OPML data to disc.".to_owned(),
+                                                ),
+                                            );
                                         }
                                     }
                                 });
