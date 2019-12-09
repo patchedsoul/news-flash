@@ -7,8 +7,6 @@ use crate::article_view::ArticleView;
 use crate::content_page::HeaderSelection;
 use crate::content_page::{ContentHeader, ContentPage};
 use crate::gtk_handle;
-use crate::login_screen::{PasswordLogin, WebLogin};
-use crate::main_window::DATA_DIR;
 use crate::main_window_state::MainWindowState;
 use crate::rename_dialog::RenameDialog;
 use crate::responsive::ResponsiveLayout;
@@ -22,10 +20,10 @@ use glib::futures::FutureExt;
 use glib::{translate::ToGlib, Sender, Variant, VariantTy};
 use gtk::{
     self, Application, ApplicationWindow, ButtonExt, Continue, DialogExt, FileChooserAction, FileChooserDialog,
-    FileChooserExt, FileFilter, GtkWindowExt, GtkWindowExtManual, ResponseType, Stack, StackExt, StackTransitionType,
+    FileChooserExt, FileFilter, GtkWindowExt, GtkWindowExtManual, ResponseType,
 };
 use log::{error, info, warn};
-use news_flash::models::{ArticleID, CategoryID, FeedID, LoginData, PluginID};
+use news_flash::models::{ArticleID, CategoryID, FeedID};
 use news_flash::{NewsFlash, NewsFlashError};
 use std::cell::RefCell;
 use std::rc::Rc;
@@ -33,203 +31,6 @@ use std::rc::Rc;
 pub struct MainWindowActions;
 
 impl MainWindowActions {
-    pub fn setup_show_password_page_action(
-        window: &ApplicationWindow,
-        pw_page: &GtkHandle<PasswordLogin>,
-        stack: &Stack,
-        header_stack: &Stack,
-    ) {
-        let stack = stack.clone();
-        let header_stack = header_stack.clone();
-        let show_pw_page = SimpleAction::new("show-pw-page", VariantTy::new("s").ok());
-        let pw_page = pw_page.clone();
-        show_pw_page.connect_activate(move |_action, data| {
-            if let Some(data) = data {
-                if let Some(id_string) = data.get_str() {
-                    let id = PluginID::new(id_string);
-                    if let Some(service_meta) = NewsFlash::list_backends().get(&id) {
-                        if let Ok(()) = pw_page.borrow_mut().set_service(service_meta.clone()) {
-                            header_stack.set_visible_child_name("login");
-                            stack.set_transition_type(StackTransitionType::SlideLeft);
-                            stack.set_visible_child_name("password_login");
-                        }
-                    }
-                }
-            }
-        });
-        show_pw_page.set_enabled(true);
-        window.add_action(&show_pw_page);
-    }
-
-    pub fn setup_show_oauth_page_action(
-        window: &ApplicationWindow,
-        oauth_page: &GtkHandle<WebLogin>,
-        stack: &Stack,
-        header_stack: &Stack,
-    ) {
-        let stack = stack.clone();
-        let header_stack = header_stack.clone();
-        let oauth_page = oauth_page.clone();
-        let show_pw_page = SimpleAction::new("show-oauth-page", VariantTy::new("s").ok());
-        show_pw_page.connect_activate(move |_action, data| {
-            if let Some(data) = data {
-                if let Some(id_string) = data.get_str() {
-                    let id = PluginID::new(id_string);
-                    if let Some(service_meta) = NewsFlash::list_backends().get(&id) {
-                        if let Ok(()) = oauth_page.borrow_mut().set_service(service_meta.clone()) {
-                            header_stack.set_visible_child_name("login");
-                            stack.set_transition_type(StackTransitionType::SlideLeft);
-                            stack.set_visible_child_name("oauth_login");
-                        }
-                    }
-                }
-            }
-        });
-        show_pw_page.set_enabled(true);
-        window.add_action(&show_pw_page);
-    }
-
-    pub fn setup_show_welcome_page_action(
-        window: &ApplicationWindow,
-        oauth_page: &GtkHandle<WebLogin>,
-        pw_page: &GtkHandle<PasswordLogin>,
-        stack: &Stack,
-        header_stack: &Stack,
-    ) {
-        let stack = stack.clone();
-        let header_stack = header_stack.clone();
-        let show_welcome_page = SimpleAction::new("show-welcome-page", None);
-        let pw_page = pw_page.clone();
-        let oauth_page = oauth_page.clone();
-        show_welcome_page.connect_activate(move |_action, _data| {
-            header_stack.set_visible_child_name("welcome");
-            pw_page.borrow_mut().reset();
-            oauth_page.borrow_mut().reset();
-            stack.set_transition_type(StackTransitionType::SlideRight);
-            stack.set_visible_child_name("welcome");
-        });
-        show_welcome_page.set_enabled(true);
-        window.add_action(&show_welcome_page);
-    }
-
-    pub fn setup_show_content_page_action(
-        window: &ApplicationWindow,
-        sender: &Sender<Action>,
-        news_flash: &GtkHandle<Option<NewsFlash>>,
-        stack: &Stack,
-        header_stack: &Stack,
-        content_page: &GtkHandle<ContentPage>,
-        state: &GtkHandle<MainWindowState>,
-        undo_bar: &GtkHandle<UndoBar>,
-    ) {
-        let news_flash = news_flash.clone();
-        let sender = sender.clone();
-        let stack = stack.clone();
-        let header_stack = header_stack.clone();
-        let content_page = content_page.clone();
-        let state = state.clone();
-        let undo_bar = undo_bar.clone();
-        let show_content_page = SimpleAction::new("show-content-page", VariantTy::new("s").ok());
-        show_content_page.connect_activate(move |_action, data| {
-            if let Some(data) = data {
-                if let Some(id_string) = data.get_str() {
-                    let id = PluginID::new(id_string);
-                    let mut user_name: Option<String> = None;
-                    if let Some(api) = &*news_flash.borrow() {
-                        user_name = api.user_name();
-                    }
-                    stack.set_transition_type(StackTransitionType::SlideLeft);
-                    stack.set_visible_child_name("content");
-                    header_stack.set_visible_child_name("content");
-
-                    if content_page
-                        .borrow_mut()
-                        .update_sidebar(&news_flash, &state, &undo_bar)
-                        .is_err()
-                    {
-                        GtkUtil::send(
-                            &sender,
-                            Action::ErrorSimpleMessage("Failed to update sidebar.".to_owned()),
-                        );
-                    }
-
-                    if content_page.borrow().set_service(&id, user_name).is_err() {
-                        GtkUtil::send(&sender, Action::ErrorSimpleMessage("Failed to set service.".to_owned()));
-                    }
-                }
-            }
-        });
-        show_content_page.set_enabled(true);
-        window.add_action(&show_content_page);
-    }
-
-    pub fn setup_login_action(
-        window: &ApplicationWindow,
-        news_flash: &GtkHandle<Option<NewsFlash>>,
-        oauth_page: &GtkHandle<WebLogin>,
-        pw_page: &GtkHandle<PasswordLogin>,
-    ) {
-        let news_flash = news_flash.clone();
-        let main_window = window.clone();
-        let pw_page = pw_page.clone();
-        let oauth_page = oauth_page.clone();
-        let login_action = SimpleAction::new("login", VariantTy::new("s").ok());
-        login_action.connect_activate(move |_action, data| {
-            if let Some(data) = data {
-                if let Some(data) = data.get_str() {
-                    let info: LoginData = serde_json::from_str(&data).expect("Invalid LoginData");
-                    let id = match &info {
-                        LoginData::OAuth(oauth) => oauth.id.clone(),
-                        LoginData::Password(pass) => pass.id.clone(),
-                        LoginData::None(id) => id.clone(),
-                    };
-                    let mut news_flash_lib = match NewsFlash::new(&DATA_DIR, &id) {
-                        Ok(news_flash) => news_flash,
-                        Err(error) => {
-                            match &info {
-                                LoginData::OAuth(_) => oauth_page.borrow_mut().show_error(error),
-                                LoginData::Password(_) => pw_page.borrow_mut().show_error(error),
-                                LoginData::None(_) => {}
-                            }
-                            return;
-                        }
-                    };
-
-                    let news_flash = news_flash.clone();
-                    let main_window = main_window.clone();
-                    let pw_page = pw_page.clone();
-                    let oauth_page = oauth_page.clone();
-                    let login_result = GtkUtil::block_on_future(news_flash_lib.login(info.clone()));
-                    match login_result {
-                        Ok(()) => {
-                            // create main obj
-                            *news_flash.borrow_mut() = Some(news_flash_lib);
-
-                            // show content page
-                            let id = Variant::from(id.to_str());
-                            GtkUtil::execute_action_main_window(&main_window, "show-content-page", Some(&id));
-                        }
-                        Err(error) => {
-                            error!("Login failed! Plguin: {}, Error: {}", id, error);
-                            match info {
-                                LoginData::OAuth(_) => {
-                                    oauth_page.borrow_mut().show_error(error);
-                                }
-                                LoginData::Password(_) => {
-                                    pw_page.borrow_mut().show_error(error);
-                                }
-                                LoginData::None(_) => {
-                                    // NOTHING
-                                }
-                            }
-                        }
-                    }
-                }
-            }
-        });
-        login_action.set_enabled(true);
-        window.add_action(&login_action);
-    }
 
     pub fn setup_schedule_sync_action(window: &ApplicationWindow, settings: &GtkHandle<Settings>) {
         let main_window = window.clone();

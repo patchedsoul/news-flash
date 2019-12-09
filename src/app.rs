@@ -1,15 +1,27 @@
 use std::cell::RefCell;
 use std::env;
+use std::path::PathBuf;
 use std::rc::Rc;
 
 use gio::{ApplicationExt, ApplicationExtManual, Notification, NotificationPriority, ThemedIcon};
-use glib::Receiver;
+use glib::{Receiver, Sender};
 use gtk::{Application, GtkApplicationExt, GtkWindowExtManual, WidgetExt};
-use news_flash::NewsFlashError;
+use lazy_static::lazy_static;
+use log::error;
+use news_flash::models::{LoginData, PluginID};
+use news_flash::{NewsFlash, NewsFlashError};
+use parking_lot::RwLock;
 
 use crate::config::APP_ID;
 use crate::main_window::MainWindow;
 use crate::undo_bar::UndoActionModel;
+use crate::util::GtkUtil;
+
+lazy_static! {
+    pub static ref DATA_DIR: PathBuf = glib::get_user_config_dir()
+        .expect("Failed to find the config dir")
+        .join("news-flash");
+}
 
 #[derive(Debug, Clone)]
 pub struct NotificationCounts {
@@ -23,11 +35,18 @@ pub enum Action {
     ErrorSimpleMessage(String),
     Error(String, NewsFlashError),
     UndoableAction(UndoActionModel),
+    ShowWelcomePage,
+    ShowContentPage(PluginID),
+    ShowPasswordLogin(PluginID),
+    ShowOauthLogin(PluginID),
+    Login(LoginData),
 }
 pub struct App {
     application: gtk::Application,
     window: MainWindow,
+    sender: Sender<Action>,
     receiver: RefCell<Option<Receiver<Action>>>,
+    news_flash: RwLock<Option<NewsFlash>>,
 }
 
 impl App {
@@ -43,7 +62,9 @@ impl App {
         let app = Rc::new(Self {
             application,
             window,
+            sender,
             receiver,
+            news_flash: RwLock::new(None),
         });
         app.setup_signals();
 
@@ -74,6 +95,11 @@ impl App {
             Action::ErrorSimpleMessage(msg) => self.window.show_error_simple_message(&msg),
             Action::Error(msg, error) => self.window.show_error(&msg, error),
             Action::UndoableAction(action) => self.window.show_undo_bar(action),
+            Action::ShowWelcomePage => self.window.show_welcome_page(),
+            Action::ShowContentPage(plugin_id) => self.window.show_content_page(&plugin_id, &self.news_flash),
+            Action::ShowPasswordLogin(plugin_id) => self.window.show_password_login_page(&plugin_id),
+            Action::ShowOauthLogin(plugin_id) => self.window.show_oauth_login_page(&plugin_id),
+            Action::Login(data) => self.login(data),
         }
         glib::Continue(true)
     }
@@ -95,6 +121,50 @@ impl App {
 
             self.application
                 .send_notification(Some("newsflash_sync"), &notification);
+        }
+    }
+
+    fn login(&self, data: LoginData) {
+        let id = match &data {
+            LoginData::OAuth(oauth) => oauth.id.clone(),
+            LoginData::Password(pass) => pass.id.clone(),
+            LoginData::None(id) => id.clone(),
+        };
+        let mut news_flash_lib = match NewsFlash::new(&DATA_DIR, &id) {
+            Ok(news_flash) => news_flash,
+            Err(error) => {
+                match &data {
+                    LoginData::OAuth(_) => self.window.oauth_logn_page.show_error(error),
+                    LoginData::Password(_) => self.window.password_login_page.show_error(error),
+                    LoginData::None(_) => {}
+                }
+                return;
+            }
+        };
+
+        let login_result = GtkUtil::block_on_future(news_flash_lib.login(data.clone()));
+        match login_result {
+            Ok(()) => {
+                // create main obj
+                self.news_flash.write().replace(news_flash_lib);
+
+                // show content page
+                GtkUtil::send(&self.sender, Action::ShowContentPage(id));
+            }
+            Err(error) => {
+                error!("Login failed! Plguin: {}, Error: {}", id, error);
+                match data {
+                    LoginData::OAuth(_) => {
+                        self.window.oauth_logn_page.show_error(error);
+                    }
+                    LoginData::Password(_) => {
+                        self.window.password_login_page.show_error(error);
+                    }
+                    LoginData::None(_) => {
+                        // NOTHING
+                    }
+                }
+            }
         }
     }
 }

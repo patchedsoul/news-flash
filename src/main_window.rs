@@ -19,20 +19,14 @@ use gdk::EventKey;
 use glib::{self, Sender, Variant};
 use gtk::{
     self, Application, ApplicationWindow, CssProvider, CssProviderExt, GtkWindowExt, Inhibit, Settings as GtkSettings,
-    SettingsExt, Stack, StackExt, StyleContext, StyleContextExt, WidgetExt,
+    SettingsExt, Stack, StackExt, StackTransitionType, StyleContext, StyleContextExt, WidgetExt,
 };
-use lazy_static::lazy_static;
 use log::{info, warn};
+use news_flash::models::PluginID;
 use news_flash::{NewsFlash, NewsFlashError};
+use parking_lot::RwLock;
 use std::cell::RefCell;
-use std::path::PathBuf;
 use std::rc::Rc;
-
-lazy_static! {
-    pub static ref DATA_DIR: PathBuf = glib::get_user_config_dir()
-        .expect("Failed to find the config dir")
-        .join("news-flash");
-}
 
 const CONTENT_PAGE: &str = "content";
 
@@ -40,8 +34,13 @@ pub struct MainWindow {
     widget: ApplicationWindow,
     error_bar: ErrorBar,
     undo_bar: GtkHandle<UndoBar>,
-    content_page: GtkHandle<ContentPage>,
+    pub content_page: GtkHandle<ContentPage>,
+    pub oauth_logn_page: WebLogin,
+    pub password_login_page: PasswordLogin,
+    stack: Stack,
+    header_stack: Stack,
     state: GtkHandle<MainWindowState>,
+    sender: Sender<Action>,
 }
 
 impl MainWindow {
@@ -66,7 +65,7 @@ impl MainWindow {
 
         let responsive_layout = gtk_handle!(ResponsiveLayout::new(&builder));
 
-        let _login_header = LoginHeaderbar::new(&builder);
+        let _login_header = LoginHeaderbar::new(&builder, sender.clone());
         let _welcome_header = WelcomeHeaderbar::new(&builder);
         let content_header = ContentHeader::new(&builder);
 
@@ -89,13 +88,11 @@ impl MainWindow {
         });
 
         // setup pages
-        let _welcome = WelcomePage::new(&builder);
-        let pw_login = PasswordLogin::new(&builder);
-        let oauth_login = WebLogin::new(&builder);
+        let _welcome = WelcomePage::new(&builder, sender.clone());
+        let pw_login = PasswordLogin::new(&builder, sender.clone());
+        let oauth_login = WebLogin::new(&builder, sender.clone());
         let content = ContentPage::new(&builder, &settings, sender.clone());
 
-        let pw_login_handle = gtk_handle!(pw_login);
-        let oauht_login_handle = gtk_handle!(oauth_login);
         let content_page_handle = gtk_handle!(content);
         let content_header_handle = gtk_handle!(content_header);
         let news_flash_handle = gtk_handle!(None);
@@ -103,26 +100,6 @@ impl MainWindow {
 
         let state = gtk_handle!(MainWindowState::new());
 
-        MainWindowActions::setup_show_password_page_action(&window, &pw_login_handle, &stack, &header_stack);
-        MainWindowActions::setup_show_oauth_page_action(&window, &oauht_login_handle, &stack, &header_stack);
-        MainWindowActions::setup_show_welcome_page_action(
-            &window,
-            &oauht_login_handle,
-            &pw_login_handle,
-            &stack,
-            &header_stack,
-        );
-        MainWindowActions::setup_show_content_page_action(
-            &window,
-            &sender,
-            &news_flash_handle,
-            &stack,
-            &header_stack,
-            &content_page_handle,
-            &state,
-            &undo_bar_handle,
-        );
-        MainWindowActions::setup_login_action(&window, &news_flash_handle, &oauht_login_handle, &pw_login_handle);
         MainWindowActions::setup_schedule_sync_action(&window, &settings);
         MainWindowActions::setup_sync_action(&window, &sender, &content_header_handle, &news_flash_handle);
         MainWindowActions::setup_sidebar_selection_action(&window, &state, &responsive_layout);
@@ -217,7 +194,7 @@ impl MainWindow {
             &content_header_handle,
         );
 
-        if let Ok(news_flash_lib) = NewsFlash::try_load(&DATA_DIR) {
+        if let Ok(news_flash_lib) = NewsFlash::try_load(&crate::app::DATA_DIR) {
             info!("Successful load from config");
 
             stack.set_visible_child_name(CONTENT_PAGE);
@@ -290,7 +267,12 @@ impl MainWindow {
             error_bar,
             undo_bar: undo_bar_handle,
             content_page: content_page_handle,
+            oauth_logn_page: oauth_login,
+            password_login_page: pw_login,
+            stack,
+            header_stack,
             state,
+            sender,
         }
     }
 
@@ -534,5 +516,51 @@ impl MainWindow {
         }
 
         self.undo_bar.borrow().add_action(action);
+    }
+
+    pub fn show_welcome_page(&self) {
+        self.header_stack.set_visible_child_name("welcome");
+        self.password_login_page.reset();
+        self.oauth_logn_page.reset();
+        self.stack.set_transition_type(StackTransitionType::SlideRight);
+        self.stack.set_visible_child_name("welcome");
+    }
+
+    pub fn show_password_login_page(&self, plugin_id: &PluginID) {
+        if let Some(service_meta) = NewsFlash::list_backends().get(plugin_id) {
+            if let Ok(()) = self.password_login_page.set_service(service_meta.clone()) {
+                self.header_stack.set_visible_child_name("login");
+                self.stack.set_transition_type(StackTransitionType::SlideLeft);
+                self.stack.set_visible_child_name("password_login");
+            }
+        }
+    }
+
+    pub fn show_oauth_login_page(&self, plugin_id: &PluginID) {
+        if let Some(service_meta) = NewsFlash::list_backends().get(plugin_id) {
+            if let Ok(()) = self.oauth_logn_page.set_service(service_meta.clone()) {
+                self.header_stack.set_visible_child_name("login");
+                self.stack.set_transition_type(StackTransitionType::SlideLeft);
+                self.stack.set_visible_child_name("oauth_login");
+            }
+        }
+    }
+
+    pub fn show_content_page(&self, plugin_id: &PluginID, news_flash: &RwLock<Option<NewsFlash>>) {
+        if let Some(news_flash) = news_flash.read().as_ref() {
+            let user_name: Option<String> = news_flash.user_name();
+            self.stack.set_transition_type(StackTransitionType::SlideLeft);
+            self.stack.set_visible_child_name("content");
+            self.header_stack.set_visible_child_name("content");
+
+            GtkUtil::execute_action_main_window(&self.widget, "update-sidebar", None);
+
+            if self.content_page.borrow().set_service(&plugin_id, user_name).is_err() {
+                GtkUtil::send(
+                    &self.sender,
+                    Action::ErrorSimpleMessage("Failed to set service.".to_owned()),
+                );
+            }
+        }
     }
 }
