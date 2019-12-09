@@ -31,7 +31,7 @@ use std::rc::Rc;
 const CONTENT_PAGE: &str = "content";
 
 pub struct MainWindow {
-    widget: ApplicationWindow,
+    pub widget: ApplicationWindow,
     error_bar: ErrorBar,
     undo_bar: GtkHandle<UndoBar>,
     pub content_page: GtkHandle<ContentPage>,
@@ -44,13 +44,13 @@ pub struct MainWindow {
 }
 
 impl MainWindow {
-    pub fn new(app: &Application, sender: Sender<Action>) -> Self {
+    pub fn new(app: &Application, settings: &Settings, sender: Sender<Action>) -> Self {
         GtkUtil::register_symbolic_icons();
         let provider_handle = gtk_handle!(CssProvider::new());
-        let settings = gtk_handle!(Settings::open().expect("Failed to access settings file"));
+        let settings_handle = gtk_handle!(Settings::open().expect("Failed to access settings file"));
 
         if let Some(gtk_settings) = GtkSettings::get_default() {
-            gtk_settings.set_property_gtk_application_prefer_dark_theme(settings.borrow().get_prefer_dark_theme());
+            gtk_settings.set_property_gtk_application_prefer_dark_theme(settings.get_prefer_dark_theme());
         }
 
         // setup CSS for window
@@ -76,7 +76,7 @@ impl MainWindow {
             window.get_style_context().add_class("devel");
         }
 
-        let delete_event_settings = settings.clone();
+        let delete_event_settings = settings_handle.clone();
         window.connect_delete_event(move |win, _| {
             if delete_event_settings.borrow().get_keep_running_in_background() {
                 win.hide_on_delete();
@@ -91,7 +91,7 @@ impl MainWindow {
         let _welcome = WelcomePage::new(&builder, sender.clone());
         let pw_login = PasswordLogin::new(&builder, sender.clone());
         let oauth_login = WebLogin::new(&builder, sender.clone());
-        let content = ContentPage::new(&builder, &settings, sender.clone());
+        let content = ContentPage::new(&builder, &settings_handle, sender.clone());
 
         let content_page_handle = gtk_handle!(content);
         let content_header_handle = gtk_handle!(content_header);
@@ -100,7 +100,6 @@ impl MainWindow {
 
         let state = gtk_handle!(MainWindowState::new());
 
-        MainWindowActions::setup_schedule_sync_action(&window, &settings);
         MainWindowActions::setup_sync_action(&window, &sender, &content_header_handle, &news_flash_handle);
         MainWindowActions::setup_sidebar_selection_action(&window, &state, &responsive_layout);
         MainWindowActions::setup_update_sidebar_action(
@@ -161,8 +160,8 @@ impl MainWindow {
         MainWindowActions::setup_delete_category_action(&window, &sender, &news_flash_handle);
         MainWindowActions::setup_move_action(&window, &sender, &news_flash_handle);
         MainWindowActions::setup_about_action(&window);
-        MainWindowActions::setup_settings_action(&window, &sender, &settings);
-        MainWindowActions::setup_shortcut_window_action(&window, &settings);
+        MainWindowActions::setup_settings_action(&window, &sender, &settings_handle);
+        MainWindowActions::setup_shortcut_window_action(&window, &settings_handle);
         MainWindowActions::setup_quit_action(&window, app);
         MainWindowActions::setup_export_action(&window, &sender, &news_flash_handle);
         MainWindowActions::setup_export_article_action(
@@ -170,7 +169,7 @@ impl MainWindow {
             &sender,
             &news_flash_handle,
             &content_page_handle,
-            &settings,
+            &settings_handle,
         );
         MainWindowActions::setup_select_next_article_action(&window, &content_page_handle);
         MainWindowActions::setup_select_prev_article_action(&window, &content_page_handle);
@@ -190,7 +189,7 @@ impl MainWindow {
             &sender,
             &content_page_handle,
             &stack,
-            &settings,
+            &settings_handle,
             &content_header_handle,
         );
 
@@ -239,7 +238,7 @@ impl MainWindow {
                 }
 
                 // schedule background sync
-                GtkUtil::execute_action_main_window(&window, "schedule-sync", None);
+                GtkUtil::send(&sender, Action::ScheduleSync);
             } else {
                 warn!("No valid backend ID");
                 stack.set_visible_child_name("welcome");
@@ -252,7 +251,7 @@ impl MainWindow {
         }
 
         if let Some(gtk_settings) = GtkSettings::get_default() {
-            gtk_settings.set_property_gtk_application_prefer_dark_theme(settings.borrow().get_prefer_dark_theme());
+            gtk_settings.set_property_gtk_application_prefer_dark_theme(settings.get_prefer_dark_theme());
 
             let window = window.clone();
             let provider = provider_handle.clone();
@@ -274,10 +273,6 @@ impl MainWindow {
             state,
             sender,
         }
-    }
-
-    pub fn widget(&self) -> ApplicationWindow {
-        self.widget.clone()
     }
 
     fn setup_shortcuts(

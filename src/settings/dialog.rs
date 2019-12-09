@@ -93,7 +93,6 @@ impl SettingsDialog {
             Inhibit(false)
         });
 
-        let main_window = window.clone();
         let sync_label = self.builder.get::<Label>("sync_label");
         let sync_pop = self.builder.get::<Popover>("sync_pop");
         let sync_list = self.builder.get::<ListBox>("sync_list");
@@ -110,7 +109,7 @@ impl SettingsDialog {
             };
             sync_label.set_label(&sync_interval.to_string());
             if settings_8.borrow_mut().set_sync_interval(sync_interval).is_ok() {
-                GtkUtil::execute_action_main_window(&main_window, "schedule-sync", None);
+                GtkUtil::send(&sender_3, Action::ScheduleSync);
             } else {
                 GtkUtil::send(
                     &sender_3,

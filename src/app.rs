@@ -4,8 +4,8 @@ use std::path::PathBuf;
 use std::rc::Rc;
 
 use gio::{ApplicationExt, ApplicationExtManual, Notification, NotificationPriority, ThemedIcon};
-use glib::{Receiver, Sender};
-use gtk::{Application, GtkApplicationExt, GtkWindowExtManual, WidgetExt};
+use glib::{translate::ToGlib, Receiver, Sender};
+use gtk::{Application, Continue, GtkApplicationExt, GtkWindowExtManual, WidgetExt};
 use lazy_static::lazy_static;
 use log::error;
 use news_flash::models::{LoginData, PluginID};
@@ -14,6 +14,7 @@ use parking_lot::RwLock;
 
 use crate::config::APP_ID;
 use crate::main_window::MainWindow;
+use crate::settings::Settings;
 use crate::undo_bar::UndoActionModel;
 use crate::util::GtkUtil;
 
@@ -40,6 +41,7 @@ pub enum Action {
     ShowPasswordLogin(PluginID),
     ShowOauthLogin(PluginID),
     Login(LoginData),
+    ScheduleSync,
 }
 pub struct App {
     application: gtk::Application,
@@ -47,6 +49,8 @@ pub struct App {
     sender: Sender<Action>,
     receiver: RefCell<Option<Receiver<Action>>>,
     news_flash: RwLock<Option<NewsFlash>>,
+    settings: Settings,
+    sync_source_id: RwLock<Option<u32>>,
 }
 
 impl App {
@@ -57,7 +61,8 @@ impl App {
         let (sender, r) = glib::MainContext::channel(glib::PRIORITY_DEFAULT);
         let receiver = RefCell::new(Some(r));
 
-        let window = MainWindow::new(&application, sender.clone());
+        let settings = Settings::open().expect("Failed to access settings file");
+        let window = MainWindow::new(&application, &settings, sender.clone());
 
         let app = Rc::new(Self {
             application,
@@ -65,6 +70,8 @@ impl App {
             sender,
             receiver,
             news_flash: RwLock::new(None),
+            settings,
+            sync_source_id: RwLock::new(None),
         });
         app.setup_signals();
 
@@ -72,7 +79,7 @@ impl App {
     }
 
     fn setup_signals(&self) {
-        let window = self.window.widget();
+        let window = self.window.widget.clone();
         self.application.connect_activate(move |app| {
             app.add_window(&window);
             window.show_all();
@@ -100,6 +107,7 @@ impl App {
             Action::ShowPasswordLogin(plugin_id) => self.window.show_password_login_page(&plugin_id),
             Action::ShowOauthLogin(plugin_id) => self.window.show_oauth_login_page(&plugin_id),
             Action::Login(data) => self.login(data),
+            Action::ScheduleSync => self.schedule_sync(),
         }
         glib::Continue(true)
     }
@@ -165,6 +173,23 @@ impl App {
                     }
                 }
             }
+        }
+    }
+
+    fn schedule_sync(&self) {
+        GtkUtil::remove_source(*self.sync_source_id.read());
+        let sync_interval = self.settings.get_sync_interval();
+        if let Some(sync_interval) = sync_interval.to_seconds() {
+            let main_window = self.window.widget.clone();
+            self.sync_source_id.write().replace(
+                gtk::timeout_add_seconds(sync_interval, move || {
+                    GtkUtil::execute_action_main_window(&main_window, "sync", None);
+                    Continue(true)
+                })
+                .to_glib(),
+            );
+        } else {
+            self.sync_source_id.write().take();
         }
     }
 }
