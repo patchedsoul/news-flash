@@ -74,7 +74,7 @@ impl SideBar {
 
         let feed_list = FeedList::new(&sidebar_scroll, sender.clone());
         let tag_list = TagList::new();
-        let footer = SidebarFooter::new(&builder);
+        let footer = SidebarFooter::new(&builder, &sender);
 
         let feed_list_handle = gtk_handle!(feed_list);
         let tag_list_handle = gtk_handle!(tag_list);

@@ -303,11 +303,18 @@ impl ContentHeader {
             GtkUtil::send(&sender_clone, Action::Quit);
         });
 
+        let sender_clone = sender.clone();
+        let export_opml_action = SimpleAction::new("export-opml", None);
+        export_opml_action.connect_activate(move |_action, _parameter| {
+            GtkUtil::send(&sender_clone, Action::ExportOpml);
+        });
+
         if let Ok(main_window) = GtkUtil::get_main_window(button) {
             main_window.add_action(&show_shortcut_window_action);
             main_window.add_action(&show_about_window_action);
             main_window.add_action(&settings_window_action);
             main_window.add_action(&quit_action);
+            main_window.add_action(&export_opml_action);
         }
 
         about_model.append(Some("Shortcuts"), Some("win.shortcut-window"));
@@ -316,7 +323,7 @@ impl ContentHeader {
 
         let im_export_model = Menu::new();
         im_export_model.append(Some("Import OPML"), Some("win.import"));
-        im_export_model.append(Some("Export OPML"), Some("win.export"));
+        im_export_model.append(Some("Export OPML"), Some("win.export-opml"));
 
         let main_model = Menu::new();
         main_model.append(Some("Settings"), Some("win.settings"));
@@ -370,8 +377,15 @@ impl ContentHeader {
             GtkUtil::send(&sender_clone, Action::CloseArticle);
         });
 
+        let sender_clone = sender.clone();
+        let export_article_action = SimpleAction::new("export-article", None);
+        export_article_action.connect_activate(move |_action, _parameter| {
+            GtkUtil::send(&sender_clone, Action::ExportArticle);
+        });
+
         if let Ok(main_window) = GtkUtil::get_main_window(button) {
             main_window.add_action(&close_article_action);
+            main_window.add_action(&export_article_action);
         }
 
         let model = Menu::new();

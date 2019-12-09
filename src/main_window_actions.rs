@@ -1,108 +1,24 @@
-use crate::add_dialog::{AddCategory, AddPopover};
 use crate::app::Action;
-use crate::article_view::ArticleView;
 use crate::content_page::ContentPage;
 use crate::gtk_handle;
 use crate::rename_dialog::RenameDialog;
-use crate::settings::Settings;
 use crate::sidebar::models::SidebarSelection;
 use crate::sidebar::FeedListDndAction;
 use crate::undo_bar::UndoActionModel;
-use crate::util::{FileUtil, GtkHandle, GtkUtil};
+use crate::util::{GtkHandle, GtkUtil};
 use gio::{ActionMapExt, SimpleAction};
 use glib::futures::FutureExt;
 use glib::{Sender, VariantTy};
-use gtk::{
-    self, ApplicationWindow, ButtonExt, DialogExt, FileChooserAction, FileChooserDialog, FileChooserExt, FileFilter,
-    ResponseType,
-};
+use gtk::{self, ApplicationWindow, ButtonExt};
 use log::{error, info, warn};
 use news_flash::models::{CategoryID, FeedID};
 use news_flash::NewsFlash;
-use parking_lot::RwLock;
 use std::cell::RefCell;
 use std::rc::Rc;
 
 pub struct MainWindowActions;
 
 impl MainWindowActions {
-    pub fn setup_add_action(
-        window: &ApplicationWindow,
-        sender: &Sender<Action>,
-        news_flash: &GtkHandle<Option<NewsFlash>>,
-        content: &GtkHandle<ContentPage>,
-    ) {
-        let news_flash_handle = news_flash.clone();
-        let sender = sender.clone();
-        let add_button = content.borrow().sidebar_get_add_button();
-        let add_action = SimpleAction::new("add-feed", None);
-        add_action.connect_activate(move |_action, _data| {
-            if let Some(news_flash) = news_flash_handle.borrow_mut().as_mut() {
-                let news_flash_handle = news_flash_handle.clone();
-                let error_message = "Failed to add feed".to_owned();
-
-                let categories = match news_flash.get_categories() {
-                    Ok(categories) => categories,
-                    Err(error) => {
-                        error!("{}", error_message);
-                        GtkUtil::send(&sender, Action::Error(error_message.clone(), error));
-                        return;
-                    }
-                };
-                let dialog = AddPopover::new(&add_button, categories);
-                let sender = sender.clone();
-                dialog.add_button().connect_clicked(move |_button| {
-                    let feed_url = match dialog.get_feed_url() {
-                        Some(url) => url,
-                        None => {
-                            error!("{}: No valid url", error_message);
-                            GtkUtil::send(&sender, Action::ErrorSimpleMessage(error_message.clone()));
-                            return;
-                        }
-                    };
-                    let feed_title = dialog.get_feed_title();
-                    let feed_category = dialog.get_category();
-
-                    if let Some(news_flash) = news_flash_handle.borrow_mut().as_mut() {
-                        let category_id = match feed_category {
-                            AddCategory::New(category_title) => {
-                                let add_category_future = news_flash.add_category(&category_title, None, None);
-                                let category = match GtkUtil::block_on_future(add_category_future) {
-                                    Ok(category) => category,
-                                    Err(error) => {
-                                        error!("{}: Can't add Category", error_message);
-                                        GtkUtil::send(&sender, Action::Error(error_message.clone(), error));
-                                        return;
-                                    }
-                                };
-                                Some(category.category_id)
-                            }
-                            AddCategory::Existing(category_id) => Some(category_id),
-                            AddCategory::None => None,
-                        };
-
-                        let add_feed_future =
-                            news_flash
-                                .add_feed(&feed_url, feed_title, category_id)
-                                .map(|result| match result {
-                                    Ok(_) => {}
-                                    Err(error) => {
-                                        error!("{}: Can't add Feed", error_message);
-                                        GtkUtil::send(&sender, Action::Error(error_message.clone(), error));
-                                    }
-                                });
-                        GtkUtil::block_on_future(add_feed_future);
-                    } else {
-                        error!("{}: Can't borrow NewsFlash", error_message);
-                        GtkUtil::send(&sender, Action::ErrorSimpleMessage(error_message.clone()));
-                    }
-                });
-            }
-        });
-        add_action.set_enabled(true);
-        window.add_action(&add_action);
-    }
-
     pub fn setup_rename_feed_action(
         window: &ApplicationWindow,
         sender: &Sender<Action>,
@@ -439,164 +355,5 @@ impl MainWindowActions {
         });
         prev_article_action.set_enabled(true);
         window.add_action(&prev_article_action);
-    }
-
-    pub fn setup_export_action(
-        window: &ApplicationWindow,
-        sender: &Sender<Action>,
-        news_flash: &GtkHandle<Option<NewsFlash>>,
-    ) {
-        let main_window = window.clone();
-        let sender = sender.clone();
-        let news_flash = news_flash.clone();
-        let export_action = SimpleAction::new("export", None);
-        export_action.connect_activate(move |_action, _data| {
-            let dialog = FileChooserDialog::with_buttons(
-                Some("Export OPML"),
-                Some(&main_window),
-                FileChooserAction::Save,
-                &[("Cancel", ResponseType::Cancel), ("Save", ResponseType::Ok)],
-            );
-
-            let filter = FileFilter::new();
-            filter.add_pattern("*.OPML");
-            filter.add_pattern("*.opml");
-            filter.add_mime_type("application/xml");
-            filter.add_mime_type("text/xml");
-            filter.add_mime_type("text/x-opml");
-            filter.set_name(Some("OPML"));
-            dialog.add_filter(&filter);
-            dialog.set_filter(&filter);
-            dialog.set_current_name("NewsFlash.OPML");
-
-            if let ResponseType::Ok = dialog.run() {
-                if let Some(news_flash) = news_flash.borrow().as_ref() {
-                    let opml = match news_flash.export_opml() {
-                        Ok(opml) => opml,
-                        Err(error) => {
-                            GtkUtil::send(&sender, Action::Error("Failed to get OPML data.".to_owned(), error));
-                            return;
-                        }
-                    };
-                    if let Some(filename) = dialog.get_filename() {
-                        if FileUtil::write_text_file(&filename, &opml).is_err() {
-                            GtkUtil::send(
-                                &sender,
-                                Action::ErrorSimpleMessage("Failed to write OPML data to disc.".to_owned()),
-                            );
-                        }
-                    }
-                }
-            }
-
-            dialog.emit_close();
-        });
-        export_action.set_enabled(true);
-        window.add_action(&export_action);
-    }
-
-    pub fn setup_export_article_action(
-        window: &ApplicationWindow,
-        sender: &Sender<Action>,
-        news_flash: &GtkHandle<Option<NewsFlash>>,
-        content_page: &GtkHandle<ContentPage>,
-        settings: &Rc<RwLock<Settings>>,
-    ) {
-        let main_window = window.clone();
-        let sender = sender.clone();
-        let news_flash = news_flash.clone();
-        let content_page = content_page.clone();
-        let settings = settings.clone();
-        let export_article_action = SimpleAction::new("export-article", None);
-        export_article_action.connect_activate(move |_action, _data| {
-            if let Some(article) = content_page.borrow().article_view_visible_article() {
-                let dialog = FileChooserDialog::with_buttons(
-                    Some("Export Article"),
-                    Some(&main_window),
-                    FileChooserAction::Save,
-                    &[("Cancel", ResponseType::Cancel), ("Save", ResponseType::Ok)],
-                );
-
-                let filter = FileFilter::new();
-                filter.add_pattern("*.html");
-                filter.add_mime_type("text/html");
-                filter.set_name(Some("HTML"));
-                dialog.add_filter(&filter);
-                dialog.set_filter(&filter);
-                if let Some(title) = &article.title {
-                    dialog.set_current_name(&format!("{}.html", title));
-                } else {
-                    dialog.set_current_name("Article.html");
-                }
-
-                if let ResponseType::Ok = dialog.run() {
-                    if let Some(news_flash) = news_flash.borrow().as_ref() {
-                        let sender = sender.clone();
-                        let settings = settings.clone();
-                        let dialog_clone = dialog.clone();
-                        let future =
-                            news_flash
-                                .article_download_images(&article.article_id)
-                                .map(move |article_result| {
-                                    let article = match article_result {
-                                        Ok(article) => article,
-                                        Err(error) => {
-                                            GtkUtil::send(
-                                                &sender,
-                                                Action::Error("Failed to downlaod article images.".to_owned(), error),
-                                            );
-                                            return;
-                                        }
-                                    };
-
-                                    let (feeds, _) = match news_flash.get_feeds() {
-                                        Ok(opml) => opml,
-                                        Err(error) => {
-                                            GtkUtil::send(
-                                                &sender,
-                                                Action::Error("Failed to load feeds from db.".to_owned(), error),
-                                            );
-                                            return;
-                                        }
-                                    };
-                                    let feed = match feeds.iter().find(|&f| f.feed_id == article.feed_id) {
-                                        Some(feed) => feed,
-                                        None => {
-                                            GtkUtil::send(
-                                                &sender,
-                                                Action::ErrorSimpleMessage("Failed to find specific feed.".to_owned()),
-                                            );
-                                            return;
-                                        }
-                                    };
-                                    if let Some(filename) = dialog_clone.get_filename() {
-                                        let html = ArticleView::build_article_static(
-                                            "article",
-                                            &article,
-                                            &feed.label,
-                                            &settings,
-                                            None,
-                                            None,
-                                        );
-                                        if FileUtil::write_text_file(&filename, &html).is_err() {
-                                            GtkUtil::send(
-                                                &sender,
-                                                Action::ErrorSimpleMessage(
-                                                    "Failed to write OPML data to disc.".to_owned(),
-                                                ),
-                                            );
-                                        }
-                                    }
-                                });
-                        //FIXME
-                        GtkUtil::block_on_future(future);
-                    }
-                }
-
-                dialog.emit_close();
-            }
-        });
-        export_article_action.set_enabled(true);
-        window.add_action(&export_article_action);
     }
 }

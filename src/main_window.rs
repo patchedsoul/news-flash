@@ -100,20 +100,11 @@ impl MainWindow {
         let state = RwLock::new(MainWindowState::new());
 
         MainWindowActions::setup_rename_feed_action(&window, &sender, &news_flash_handle);
-        MainWindowActions::setup_add_action(&window, &sender, &news_flash_handle, &content_page_handle);
         MainWindowActions::setup_rename_category_action(&window, &sender, &news_flash_handle);
         MainWindowActions::setup_delete_selection_action(&window, &sender, &content_page_handle);
         MainWindowActions::setup_delete_feed_action(&window, &sender, &news_flash_handle);
         MainWindowActions::setup_delete_category_action(&window, &sender, &news_flash_handle);
         MainWindowActions::setup_move_action(&window, &sender, &news_flash_handle);
-        MainWindowActions::setup_export_action(&window, &sender, &news_flash_handle);
-        MainWindowActions::setup_export_article_action(
-            &window,
-            &sender,
-            &news_flash_handle,
-            &content_page_handle,
-            &settings,
-        );
         MainWindowActions::setup_select_next_article_action(&window, &content_page_handle);
         MainWindowActions::setup_select_prev_article_action(&window, &content_page_handle);
 
