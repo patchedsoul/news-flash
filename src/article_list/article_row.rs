@@ -1,8 +1,9 @@
 use super::models::{ArticleListArticleModel, ArticleListModel, MarkUpdate, ReadUpdate};
+use crate::app::Action;
 use crate::gtk_handle;
 use crate::util::{BuilderHelper, DateUtil, GtkHandle, GtkUtil};
 use gdk::{EventType, NotifyType};
-use glib::Variant;
+use glib::Sender;
 use gtk::{
     ContainerExt, EventBox, Image, ImageExt, Inhibit, Label, LabelExt, ListBoxRow, ListBoxRowExt, Stack, StackExt,
     StyleContextExt, WidgetExt,
@@ -22,7 +23,11 @@ pub struct ArticleRow {
 }
 
 impl ArticleRow {
-    pub fn new(article: &ArticleListArticleModel, list_model: &GtkHandle<ArticleListModel>) -> Self {
+    pub fn new(
+        article: &ArticleListArticleModel,
+        list_model: &GtkHandle<ArticleListModel>,
+        sender: Sender<Action>,
+    ) -> Self {
         let builder = BuilderHelper::new("article");
 
         let favicon = builder.get::<Image>("favicon");
@@ -83,6 +88,7 @@ impl ArticleRow {
             &row_hovered,
         );
         Self::setup_unread_eventbox(
+            &sender,
             &unread_eventbox,
             &read_handle,
             &unread_stack,
@@ -90,7 +96,14 @@ impl ArticleRow {
             &article.id,
             list_model,
         );
-        Self::setup_marked_eventbox(&marked_eventbox, &marked_handle, &marked_stack, &article.id, list_model);
+        Self::setup_marked_eventbox(
+            &sender,
+            &marked_eventbox,
+            &marked_handle,
+            &marked_stack,
+            &article.id,
+            list_model,
+        );
 
         ArticleRow {
             widget: row,
@@ -130,6 +143,7 @@ impl ArticleRow {
     }
 
     fn setup_unread_eventbox(
+        sender: &Sender<Action>,
         eventbox: &EventBox,
         read: &GtkHandle<Read>,
         unread_stack: &Stack,
@@ -159,7 +173,8 @@ impl ArticleRow {
         let read_3 = read.clone();
         let article_id = article_id.clone();
         let list_model = list_model.clone();
-        eventbox.connect_button_press_event(move |widget, event| {
+        let sender = sender.clone();
+        eventbox.connect_button_press_event(move |_widget, event| {
             if event.get_button() != 1 {
                 return Inhibit(false);
             }
@@ -181,14 +196,13 @@ impl ArticleRow {
                 article_id: article_id.clone(),
                 read,
             };
-            let update_data = serde_json::to_string(&update).expect("Failed to serialize ReadUpdate");
-            let update_data = Variant::from(&update_data);
-            GtkUtil::execute_action(widget, "mark-article-read", Some(&update_data));
+            GtkUtil::send(&sender, Action::MarkArticleRead(update));
             Inhibit(true)
         });
     }
 
     fn setup_marked_eventbox(
+        sender: &Sender<Action>,
         eventbox: &EventBox,
         marked: &GtkHandle<Marked>,
         marked_stack: &Stack,
@@ -216,7 +230,8 @@ impl ArticleRow {
         let marked_3 = marked.clone();
         let article_id = article_id.clone();
         let list_model = list_model.clone();
-        eventbox.connect_button_press_event(move |widget, event| {
+        let sender = sender.clone();
+        eventbox.connect_button_press_event(move |_widget, event| {
             if event.get_button() != 1 {
                 return Inhibit(false);
             }
@@ -238,9 +253,7 @@ impl ArticleRow {
                 article_id: article_id.clone(),
                 marked,
             };
-            let update_data = serde_json::to_string(&update).expect("Failed to serialize MarkUpdate");
-            let update_data = Variant::from(&update_data);
-            GtkUtil::execute_action(widget, "mark-article", Some(&update_data));
+            GtkUtil::send(&sender, Action::MarkArticle(update));
             Inhibit(true)
         });
     }

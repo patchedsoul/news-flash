@@ -25,6 +25,7 @@ use gtk::{
 use log::{error, warn};
 use news_flash::models::{FatArticle, Marked, Read};
 use pango::FontDescription;
+use parking_lot::RwLock;
 use std::cell::RefCell;
 use std::rc::Rc;
 use std::str;
@@ -50,7 +51,7 @@ struct ScrollAnimationProperties {
 
 #[derive(Clone)]
 pub struct ArticleView {
-    settings: GtkHandle<Settings>,
+    settings: Rc<RwLock<Settings>>,
     stack: Stack,
     top_overlay: Overlay,
     view_html_button: Button,
@@ -81,7 +82,7 @@ pub struct ArticleView {
 }
 
 impl ArticleView {
-    pub fn new(settings: &GtkHandle<Settings>) -> Self {
+    pub fn new(settings: &Rc<RwLock<Settings>>) -> Self {
         let builder = BuilderHelper::new("article_view");
 
         let url_overlay = builder.get::<Overlay>("url_overlay");
@@ -757,7 +758,7 @@ impl ArticleView {
         file_name: &str,
         article: &FatArticle,
         feed_name: &str,
-        settings: &GtkHandle<Settings>,
+        settings: &Rc<RwLock<Settings>>,
         theme_override: Option<ArticleTheme>,
         font_size_override: Option<i32>,
     ) -> String {
@@ -775,7 +776,7 @@ impl ArticleView {
         let mut font_size: Option<i32> = None;
 
         // Try to use the configured font if it exists
-        if let Some(font_setting) = settings.borrow().get_article_view_font() {
+        if let Some(font_setting) = settings.read().get_article_view_font() {
             font_options.push(font_setting);
         }
 
@@ -823,7 +824,7 @@ impl ArticleView {
         }
 
         // $UNSELECTABLE
-        if settings.borrow().get_article_view_allow_select() {
+        if settings.read().get_article_view_allow_select() {
             template_string = template_string.replacen("$UNSELECTABLE", "", 1);
         } else {
             template_string = template_string.replacen("$UNSELECTABLE", "unselectable", 1);
@@ -857,7 +858,7 @@ impl ArticleView {
         let theme = if let Some(theme_override) = &theme_override {
             theme_override.to_str().to_owned()
         } else {
-            settings.borrow().get_article_view_theme().to_str().to_owned()
+            settings.read().get_article_view_theme().to_str().to_owned()
         };
         template_string = template_string.replacen("$THEME", &theme, 1);
 

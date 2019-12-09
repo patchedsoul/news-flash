@@ -9,13 +9,13 @@ pub const AUTHORS: &[&str] = &["Jan Lukas Gernert", "Brendan Long"];
 
 #[derive(Clone, Debug)]
 pub struct NewsFlashAbout {
-    widget: AboutDialog,
+    pub widget: AboutDialog,
 }
 
 impl NewsFlashAbout {
-    pub fn new<W: IsA<Window> + GtkWindowExt>(window: Option<&W>) -> Self {
+    pub fn new<W: IsA<Window> + GtkWindowExt>(window: &W) -> Self {
         let widget = AboutDialog::new();
-        widget.set_transient_for(window);
+        widget.set_transient_for(Some(window));
         widget.set_modal(true);
         widget.set_authors(AUTHORS);
         widget.set_comments(Some(DESCRIPTION));
@@ -27,9 +27,5 @@ impl NewsFlashAbout {
         widget.set_wrap_license(true);
 
         NewsFlashAbout { widget }
-    }
-
-    pub fn widget(&self) -> AboutDialog {
-        self.widget.clone()
     }
 }

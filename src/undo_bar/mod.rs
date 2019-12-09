@@ -1,8 +1,9 @@
 mod models;
 
+use crate::app::Action;
 use crate::gtk_handle;
 use crate::util::{BuilderHelper, GtkHandle, GtkUtil};
-use glib::{translate::ToGlib, Variant};
+use glib::{translate::ToGlib, Sender, Variant};
 use gtk::{Button, ButtonExt, Continue, InfoBar, InfoBarExt, Label, LabelExt, WidgetExt};
 use log::debug;
 pub use models::{UndoAction, UndoActionModel};
@@ -17,15 +18,17 @@ pub struct UndoBar {
     label: Label,
     button: Button,
     current_action: GtkHandle<Option<UndoAction>>,
+    sender: Sender<Action>,
 }
 
 impl UndoBar {
-    pub fn new(builder: &BuilderHelper) -> Self {
+    pub fn new(builder: &BuilderHelper, sender: Sender<Action>) -> Self {
         let undo_bar = UndoBar {
             widget: builder.get::<InfoBar>("undo_bar"),
             label: builder.get::<Label>("undo_label"),
             button: builder.get::<Button>("undo_button"),
             current_action: gtk_handle!(None),
+            sender,
         };
         undo_bar.init();
 
@@ -35,7 +38,8 @@ impl UndoBar {
     fn init(&self) {
         let button_info_bar = self.widget.clone();
         let button_current_action = self.current_action.clone();
-        self.button.connect_clicked(move |button| {
+        let sender = self.sender.clone();
+        self.button.connect_clicked(move |_button| {
             if let Some(current_action) = button_current_action.borrow().as_ref() {
                 GtkUtil::remove_source(Some(current_action.get_timeout()));
             }
@@ -43,8 +47,8 @@ impl UndoBar {
             button_info_bar.set_revealed(false);
 
             // update lists
-            GtkUtil::execute_action(button, "update-sidebar", None);
-            GtkUtil::execute_action(button, "update-article-list", None);
+            GtkUtil::send(&sender, Action::UpdateSidebar);
+            GtkUtil::send(&sender, Action::UpdateArticleList);
         });
 
         self.widget.show();
@@ -99,8 +103,8 @@ impl UndoBar {
             .replace(UndoAction::new(action, source_id.to_glib()));
 
         // update lists
-        GtkUtil::execute_action(&self.widget, "update-sidebar", None);
-        GtkUtil::execute_action(&self.widget, "update-article-list", None);
+        GtkUtil::send(&self.sender, Action::UpdateSidebar);
+        GtkUtil::send(&self.sender, Action::UpdateArticleList);
     }
 
     pub fn get_current_action(&self) -> Option<UndoActionModel> {

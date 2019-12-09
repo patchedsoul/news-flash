@@ -1,11 +1,13 @@
 use crate::app::Action;
 use crate::article_view::{ArticleTheme, ArticleView};
 use crate::settings::Settings;
-use crate::util::{BuilderHelper, GtkHandle, GtkUtil};
+use crate::util::{BuilderHelper, GtkUtil};
 use chrono::Utc;
 use glib::{object::IsA, Sender};
 use gtk::{Inhibit, ListBox, ListBoxExt, ListBoxRow, ListBoxRowExt, Popover, PopoverExt, Widget, WidgetExt};
 use news_flash::models::{ArticleID, FatArticle, FeedID, Marked, Read};
+use parking_lot::RwLock;
+use std::rc::Rc;
 use webkit2gtk::{WebView, WebViewExt};
 
 pub struct ThemeChooser {
@@ -13,7 +15,7 @@ pub struct ThemeChooser {
 }
 
 impl ThemeChooser {
-    pub fn new<D: IsA<Widget>>(parent: &D, sender: &Sender<Action>, settings: &GtkHandle<Settings>) -> Self {
+    pub fn new<D: IsA<Widget>>(parent: &D, sender: &Sender<Action>, settings: &Rc<RwLock<Settings>>) -> Self {
         let builder = BuilderHelper::new("theme_chooser");
 
         let pop = builder.get::<Popover>("popover");
@@ -73,13 +75,13 @@ impl ThemeChooser {
         theme_list.connect_row_activated(move |_list, row| {
             if let Some(row_name) = row.get_name() {
                 let result = if "default" == row_name {
-                    settings.borrow_mut().set_article_view_theme(ArticleTheme::Default)
+                    settings.write().set_article_view_theme(ArticleTheme::Default)
                 } else if "spring" == row_name {
-                    settings.borrow_mut().set_article_view_theme(ArticleTheme::Spring)
+                    settings.write().set_article_view_theme(ArticleTheme::Spring)
                 } else if "midnight" == row_name {
-                    settings.borrow_mut().set_article_view_theme(ArticleTheme::Midnight)
+                    settings.write().set_article_view_theme(ArticleTheme::Midnight)
                 } else if "parchment" == row_name {
-                    settings.borrow_mut().set_article_view_theme(ArticleTheme::Parchment)
+                    settings.write().set_article_view_theme(ArticleTheme::Parchment)
                 } else {
                     Ok(())
                 };
@@ -103,7 +105,7 @@ impl ThemeChooser {
 
     fn prepare_theme_selection(
         builder: &BuilderHelper,
-        settings: &GtkHandle<Settings>,
+        settings: &Rc<RwLock<Settings>>,
         article: &mut FatArticle,
         theme: ArticleTheme,
         id: &str,

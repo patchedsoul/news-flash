@@ -2,7 +2,7 @@ use crate::about_dialog::APP_NAME;
 use crate::app::Action;
 use crate::article_list::{MarkUpdate, ReadUpdate};
 use crate::config::{APP_ID, PROFILE};
-use crate::content_page::{ContentHeader, ContentPage};
+use crate::content_page::{ContentHeader, ContentPage, HeaderSelection};
 use crate::error_bar::ErrorBar;
 use crate::gtk_handle;
 use crate::login_screen::{LoginHeaderbar, PasswordLogin, WebLogin};
@@ -16,13 +16,13 @@ use crate::util::{BuilderHelper, GtkHandle, GtkUtil, GTK_CSS_ERROR, GTK_RESOURCE
 use crate::welcome_screen::{WelcomeHeaderbar, WelcomePage};
 use crate::Resources;
 use gdk::EventKey;
-use glib::{self, Sender, Variant};
+use glib::{self, futures::FutureExt, Sender};
 use gtk::{
-    self, Application, ApplicationWindow, CssProvider, CssProviderExt, GtkWindowExt, Inhibit, Settings as GtkSettings,
-    SettingsExt, Stack, StackExt, StackTransitionType, StyleContext, StyleContextExt, WidgetExt,
+    self, ApplicationWindow, CssProvider, CssProviderExt, GtkWindowExt, Inhibit, Settings as GtkSettings, SettingsExt,
+    Stack, StackExt, StackTransitionType, StyleContext, StyleContextExt, WidgetExt,
 };
-use log::{info, warn};
-use news_flash::models::PluginID;
+use log::{error, warn};
+use news_flash::models::{ArticleID, PluginID};
 use news_flash::{NewsFlash, NewsFlashError};
 use parking_lot::RwLock;
 use std::cell::RefCell;
@@ -33,24 +33,25 @@ const CONTENT_PAGE: &str = "content";
 pub struct MainWindow {
     pub widget: ApplicationWindow,
     error_bar: ErrorBar,
-    undo_bar: GtkHandle<UndoBar>,
+    undo_bar: UndoBar,
     pub content_page: GtkHandle<ContentPage>,
     pub oauth_logn_page: WebLogin,
     pub password_login_page: PasswordLogin,
+    pub content_header: Rc<ContentHeader>,
     stack: Stack,
     header_stack: Stack,
-    state: GtkHandle<MainWindowState>,
+    responsive_layout: ResponsiveLayout,
+    state: RwLock<MainWindowState>,
     sender: Sender<Action>,
 }
 
 impl MainWindow {
-    pub fn new(app: &Application, settings: &Settings, sender: Sender<Action>) -> Self {
+    pub fn new(settings: &Rc<RwLock<Settings>>, sender: Sender<Action>) -> Self {
         GtkUtil::register_symbolic_icons();
         let provider_handle = gtk_handle!(CssProvider::new());
-        let settings_handle = gtk_handle!(Settings::open().expect("Failed to access settings file"));
 
         if let Some(gtk_settings) = GtkSettings::get_default() {
-            gtk_settings.set_property_gtk_application_prefer_dark_theme(settings.get_prefer_dark_theme());
+            gtk_settings.set_property_gtk_application_prefer_dark_theme(settings.read().get_prefer_dark_theme());
         }
 
         // setup CSS for window
@@ -60,28 +61,28 @@ impl MainWindow {
         let window = builder.get::<ApplicationWindow>("main_window");
         let stack = builder.get::<Stack>("main_stack");
         let header_stack = builder.get::<Stack>("header_stack");
-        let undo_bar = UndoBar::new(&builder);
+        let undo_bar = UndoBar::new(&builder, sender.clone());
         let error_bar = ErrorBar::new(&builder);
 
-        let responsive_layout = gtk_handle!(ResponsiveLayout::new(&builder));
+        let responsive_layout = ResponsiveLayout::new(&builder);
 
         let _login_header = LoginHeaderbar::new(&builder, sender.clone());
         let _welcome_header = WelcomeHeaderbar::new(&builder);
-        let content_header = ContentHeader::new(&builder);
+        let content_header = Rc::new(ContentHeader::new(&builder, sender.clone()));
 
-        window.set_application(Some(app));
         window.set_icon_name(Some(APP_ID));
         window.set_title(APP_NAME);
         if PROFILE == "Devel" {
             window.get_style_context().add_class("devel");
         }
 
-        let delete_event_settings = settings_handle.clone();
+        let delete_event_settings = settings.clone();
+        let sender_clone = sender.clone();
         window.connect_delete_event(move |win, _| {
-            if delete_event_settings.borrow().get_keep_running_in_background() {
+            if delete_event_settings.read().get_keep_running_in_background() {
                 win.hide_on_delete();
             } else {
-                GtkUtil::execute_action_main_window(win, "quit", None);
+                GtkUtil::send(&sender_clone, Action::Quit);
             }
 
             Inhibit(true)
@@ -91,67 +92,13 @@ impl MainWindow {
         let _welcome = WelcomePage::new(&builder, sender.clone());
         let pw_login = PasswordLogin::new(&builder, sender.clone());
         let oauth_login = WebLogin::new(&builder, sender.clone());
-        let content = ContentPage::new(&builder, &settings_handle, sender.clone());
+        let content = ContentPage::new(&builder, &settings, sender.clone());
 
         let content_page_handle = gtk_handle!(content);
-        let content_header_handle = gtk_handle!(content_header);
         let news_flash_handle = gtk_handle!(None);
-        let undo_bar_handle = gtk_handle!(undo_bar);
 
-        let state = gtk_handle!(MainWindowState::new());
+        let state = RwLock::new(MainWindowState::new());
 
-        MainWindowActions::setup_sync_action(&window, &sender, &content_header_handle, &news_flash_handle);
-        MainWindowActions::setup_sidebar_selection_action(&window, &state, &responsive_layout);
-        MainWindowActions::setup_update_sidebar_action(
-            &window,
-            &sender,
-            &content_page_handle,
-            &news_flash_handle,
-            &state,
-            &undo_bar_handle,
-        );
-        MainWindowActions::setup_headerbar_selection_action(&window, &content_header_handle, &state);
-        MainWindowActions::setup_search_action(&window, &state);
-        MainWindowActions::setup_update_article_list_action(
-            &window,
-            &sender,
-            &state,
-            &content_page_handle,
-            &news_flash_handle,
-            &undo_bar_handle,
-        );
-        MainWindowActions::setup_show_more_articles_action(
-            &window,
-            &sender,
-            &state,
-            &content_page_handle,
-            &news_flash_handle,
-            &undo_bar_handle,
-        );
-        MainWindowActions::setup_show_article_action(
-            &window,
-            &sender,
-            &content_page_handle,
-            &content_header_handle,
-            &news_flash_handle,
-            &responsive_layout,
-        );
-        MainWindowActions::setup_close_article_action(&window, &content_page_handle, &content_header_handle);
-        MainWindowActions::setup_redraw_article_action(&window, &content_page_handle);
-        MainWindowActions::setup_mark_article_read_action(
-            &window,
-            &sender,
-            &news_flash_handle,
-            &content_page_handle,
-            &content_header_handle,
-        );
-        MainWindowActions::setup_mark_article_action(
-            &window,
-            &sender,
-            &news_flash_handle,
-            &content_page_handle,
-            &content_header_handle,
-        );
         MainWindowActions::setup_rename_feed_action(&window, &sender, &news_flash_handle);
         MainWindowActions::setup_add_action(&window, &sender, &news_flash_handle, &content_page_handle);
         MainWindowActions::setup_rename_category_action(&window, &sender, &news_flash_handle);
@@ -159,117 +106,48 @@ impl MainWindow {
         MainWindowActions::setup_delete_feed_action(&window, &sender, &news_flash_handle);
         MainWindowActions::setup_delete_category_action(&window, &sender, &news_flash_handle);
         MainWindowActions::setup_move_action(&window, &sender, &news_flash_handle);
-        MainWindowActions::setup_about_action(&window);
-        MainWindowActions::setup_settings_action(&window, &sender, &settings_handle);
-        MainWindowActions::setup_shortcut_window_action(&window, &settings_handle);
-        MainWindowActions::setup_quit_action(&window, app);
         MainWindowActions::setup_export_action(&window, &sender, &news_flash_handle);
         MainWindowActions::setup_export_article_action(
             &window,
             &sender,
             &news_flash_handle,
             &content_page_handle,
-            &settings_handle,
+            &settings,
         );
         MainWindowActions::setup_select_next_article_action(&window, &content_page_handle);
         MainWindowActions::setup_select_prev_article_action(&window, &content_page_handle);
-        MainWindowActions::setup_sidebar_set_read_action(
-            &window,
-            &sender,
-            &news_flash_handle,
-            &state,
-            &content_page_handle,
-            &content_header_handle,
-        );
-        MainWindowActions::setup_toggle_article_read_action(&window, &content_page_handle);
-        MainWindowActions::setup_toggle_article_marked_action(&window, &content_page_handle);
 
         Self::setup_shortcuts(
             &window,
             &sender,
             &content_page_handle,
             &stack,
-            &settings_handle,
-            &content_header_handle,
+            &settings,
+            &content_header,
         );
 
-        if let Ok(news_flash_lib) = NewsFlash::try_load(&crate::app::DATA_DIR) {
-            info!("Successful load from config");
-
-            stack.set_visible_child_name(CONTENT_PAGE);
-            header_stack.set_visible_child_name(CONTENT_PAGE);
-
-            if let Some(id) = news_flash_lib.id() {
-                let content_page_handle_clone = content_page_handle.clone();
-                let sender = sender.clone();
-                if content_page_handle_clone
-                    .borrow()
-                    .set_service(&id, news_flash_lib.user_name())
-                    .is_err()
-                {
-                    GtkUtil::send(
-                        &sender,
-                        Action::ErrorSimpleMessage("Failed to set sidebar service logo.".to_owned()),
-                    );
-                }
-
-                *news_flash_handle.borrow_mut() = Some(news_flash_lib);
-
-                // try to fill content page with data
-                if content_page_handle
-                    .borrow_mut()
-                    .update_sidebar(&news_flash_handle, &state, &undo_bar_handle)
-                    .is_err()
-                {
-                    GtkUtil::send(
-                        &sender,
-                        Action::ErrorSimpleMessage("Failed to populate sidebar with data.".to_owned()),
-                    );
-                }
-                if content_page_handle
-                    .borrow_mut()
-                    .update_article_list(&news_flash_handle, &state, &undo_bar_handle)
-                    .is_err()
-                {
-                    GtkUtil::send(
-                        &sender,
-                        Action::ErrorSimpleMessage("Failed to populate article list with data.".to_owned()),
-                    );
-                }
-
-                // schedule background sync
-                GtkUtil::send(&sender, Action::ScheduleSync);
-            } else {
-                warn!("No valid backend ID");
-                stack.set_visible_child_name("welcome");
-                header_stack.set_visible_child_name("welcome");
-            }
-        } else {
-            warn!("No account configured");
-            stack.set_visible_child_name("welcome");
-            header_stack.set_visible_child_name("welcome");
-        }
-
         if let Some(gtk_settings) = GtkSettings::get_default() {
-            gtk_settings.set_property_gtk_application_prefer_dark_theme(settings.get_prefer_dark_theme());
+            gtk_settings.set_property_gtk_application_prefer_dark_theme(settings.read().get_prefer_dark_theme());
 
-            let window = window.clone();
             let provider = provider_handle.clone();
+            let sender_clone = sender.clone();
             gtk_settings.connect_property_gtk_application_prefer_dark_theme_notify(move |_settings| {
                 Self::load_css(&provider);
-                GtkUtil::execute_action_main_window(&window, "redraw-article", None);
+                GtkUtil::send(&sender_clone, Action::RedrawArticle);
             });
         }
 
         MainWindow {
             widget: window,
             error_bar,
-            undo_bar: undo_bar_handle,
+            undo_bar: undo_bar,
             content_page: content_page_handle,
             oauth_logn_page: oauth_login,
             password_login_page: pw_login,
+            content_header,
             stack,
             header_stack,
+            responsive_layout,
             state,
             sender,
         }
@@ -280,8 +158,8 @@ impl MainWindow {
         sender: &Sender<Action>,
         content_page: &GtkHandle<ContentPage>,
         main_stack: &Stack,
-        settings: &GtkHandle<Settings>,
-        content_header: &GtkHandle<ContentHeader>,
+        settings: &Rc<RwLock<Settings>>,
+        content_header: &Rc<ContentHeader>,
     ) {
         let main_stack = main_stack.clone();
         let sender = sender.clone();
@@ -298,36 +176,36 @@ impl MainWindow {
             }
 
             // ignore shortcuts when typing in search entry
-            if content_header.borrow().is_search_focused() {
+            if content_header.is_search_focused() {
                 return Inhibit(false);
             }
 
             if Self::check_shortcut("shortcuts", &settings, event) {
-                GtkUtil::execute_action_main_window(&widget, "shortcuts", None);
+                GtkUtil::send(&sender, Action::ShowShortcutWindow);
             }
 
             if Self::check_shortcut("refresh", &settings, event) {
-                GtkUtil::execute_action_main_window(&widget, "sync", None);
+                GtkUtil::send(&sender, Action::Sync);
             }
 
             if Self::check_shortcut("quit", &settings, event) {
-                GtkUtil::execute_action_main_window(&widget, "quit", None);
+                GtkUtil::send(&sender, Action::Quit);
             }
 
             if Self::check_shortcut("search", &settings, event) {
-                content_header.borrow().focus_search();
+                content_header.focus_search();
             }
 
             if Self::check_shortcut("all_articles", &settings, event) {
-                content_header.borrow().select_all_button();
+                content_header.select_all_button();
             }
 
             if Self::check_shortcut("only_unread", &settings, event) {
-                content_header.borrow().select_unread_button();
+                content_header.select_unread_button();
             }
 
             if Self::check_shortcut("only_starred", &settings, event) {
-                content_header.borrow().select_marked_button();
+                content_header.select_marked_button();
             }
 
             if Self::check_shortcut("next_article", &settings, event) {
@@ -345,34 +223,26 @@ impl MainWindow {
             if Self::check_shortcut("toggle_read", &settings, event) {
                 let article_model = content_page.borrow().get_selected_article_model();
                 if let Some(article_model) = article_model {
-                    if let Ok(main_window) = GtkUtil::get_main_window(&main_stack) {
-                        let update = ReadUpdate {
-                            article_id: article_model.id.clone(),
-                            read: article_model.read.invert(),
-                        };
+                    let update = ReadUpdate {
+                        article_id: article_model.id.clone(),
+                        read: article_model.read.invert(),
+                    };
 
-                        let update_data = serde_json::to_string(&update).expect("Failed to serialize ReadUpdate.");
-                        let update_data = Variant::from(&update_data);
-                        GtkUtil::execute_action_main_window(&main_window, "mark-article-read", Some(&update_data));
-                        GtkUtil::execute_action_main_window(&main_window, "update-article-list", None);
-                    }
+                    GtkUtil::send(&sender, Action::MarkArticleRead(update));
+                    GtkUtil::send(&sender, Action::UpdateArticleList);
                 }
             }
 
             if Self::check_shortcut("toggle_marked", &settings, event) {
                 let article_model = content_page.borrow().get_selected_article_model();
                 if let Some(article_model) = article_model {
-                    if let Ok(main_window) = GtkUtil::get_main_window(&main_stack) {
-                        let update = MarkUpdate {
-                            article_id: article_model.id.clone(),
-                            marked: article_model.marked.invert(),
-                        };
+                    let update = MarkUpdate {
+                        article_id: article_model.id.clone(),
+                        marked: article_model.marked.invert(),
+                    };
 
-                        let update_data = serde_json::to_string(&update).expect("Failed to serialize MarkUpdate.");
-                        let update_data = Variant::from(&update_data);
-                        GtkUtil::execute_action_main_window(&main_window, "mark-article", Some(&update_data));
-                        GtkUtil::execute_action_main_window(&main_window, "update-article-list", None);
-                    }
+                    GtkUtil::send(&sender, Action::MarkArticle(update));
+                    GtkUtil::send(&sender, Action::UpdateArticleList);
                 }
             }
 
@@ -431,14 +301,14 @@ impl MainWindow {
             }
 
             if Self::check_shortcut("sidebar_set_read", &settings, event) {
-                GtkUtil::execute_action_main_window(&main_window, "sidebar-set-read", None);
+                GtkUtil::send(&sender, Action::SetSidebarRead);
             }
 
             Inhibit(false)
         });
     }
 
-    fn check_shortcut(id: &str, settings: &GtkHandle<Settings>, event: &EventKey) -> bool {
+    fn check_shortcut(id: &str, settings: &Rc<RwLock<Settings>>, event: &EventKey) -> bool {
         if let Ok(keybinding) = Keybindings::read_keybinding(id, settings) {
             if let Some(keybinding) = keybinding {
                 let (keyval, modifier) = gtk::accelerator_parse(&keybinding);
@@ -481,6 +351,57 @@ impl MainWindow {
         StyleContext::add_provider_for_screen(&screen, &*provider.borrow(), 600);
     }
 
+    pub fn init(&self, news_flash: &RwLock<Option<NewsFlash>>) {
+        self.stack.set_visible_child_name(CONTENT_PAGE);
+        self.header_stack.set_visible_child_name(CONTENT_PAGE);
+
+        let id = news_flash.read().as_ref().map(|n| n.id());
+        let user_name = news_flash.read().as_ref().map(|n| n.user_name());
+        if let Some(Some(id)) = id {
+            if let Some(user_name) = user_name {
+                let content_page_handle_clone = self.content_page.clone();
+                let sender = self.sender.clone();
+                if content_page_handle_clone.borrow().set_service(&id, user_name).is_err() {
+                    GtkUtil::send(
+                        &sender,
+                        Action::ErrorSimpleMessage("Failed to set sidebar service logo.".to_owned()),
+                    );
+                }
+
+                // try to fill content page with data
+                if self
+                    .content_page
+                    .borrow_mut()
+                    .update_sidebar(&news_flash, &self.state, &self.undo_bar)
+                    .is_err()
+                {
+                    GtkUtil::send(
+                        &sender,
+                        Action::ErrorSimpleMessage("Failed to populate sidebar with data.".to_owned()),
+                    );
+                }
+                if self
+                    .content_page
+                    .borrow_mut()
+                    .update_article_list(&news_flash, &self.state, &self.undo_bar)
+                    .is_err()
+                {
+                    GtkUtil::send(
+                        &sender,
+                        Action::ErrorSimpleMessage("Failed to populate article list with data.".to_owned()),
+                    );
+                }
+                return;
+            }
+        } else {
+            warn!("No valid backend ID");
+        }
+
+        // in case of failure show 'welcome page'
+        self.stack.set_visible_child_name("welcome");
+        self.header_stack.set_visible_child_name("welcome");
+    }
+
     pub fn show_error_simple_message(&self, msg: &str) {
         self.error_bar.simple_message(msg);
     }
@@ -506,11 +427,11 @@ impl MainWindow {
             },
         };
         if select_all_button {
-            self.state.borrow_mut().set_sidebar_selection(SidebarSelection::All);
+            self.state.write().set_sidebar_selection(SidebarSelection::All);
             self.content_page.borrow().sidebar_select_all_button_no_update();
         }
 
-        self.undo_bar.borrow().add_action(action);
+        self.undo_bar.add_action(action);
     }
 
     pub fn show_welcome_page(&self) {
@@ -548,7 +469,7 @@ impl MainWindow {
             self.stack.set_visible_child_name("content");
             self.header_stack.set_visible_child_name("content");
 
-            GtkUtil::execute_action_main_window(&self.widget, "update-sidebar", None);
+            GtkUtil::send(&self.sender, Action::UpdateSidebar);
 
             if self.content_page.borrow().set_service(&plugin_id, user_name).is_err() {
                 GtkUtil::send(
@@ -557,5 +478,194 @@ impl MainWindow {
                 );
             }
         }
+    }
+
+    pub fn update_sidebar(&self, news_flash: &RwLock<Option<NewsFlash>>) {
+        if self
+            .content_page
+            .borrow_mut()
+            .update_sidebar(news_flash, &self.state, &self.undo_bar)
+            .is_err()
+        {
+            GtkUtil::send(
+                &self.sender,
+                Action::ErrorSimpleMessage("Failed to update sidebar.".to_owned()),
+            );
+        }
+    }
+
+    pub fn update_article_list(&self, news_flash: &RwLock<Option<NewsFlash>>) {
+        if self
+            .content_page
+            .borrow_mut()
+            .update_article_list(&news_flash, &self.state, &self.undo_bar)
+            .is_err()
+        {
+            GtkUtil::send(
+                &self.sender,
+                Action::ErrorSimpleMessage("Failed to update the article list.".to_owned()),
+            );
+        }
+    }
+
+    pub fn load_more_articles(&self, news_flash: &RwLock<Option<NewsFlash>>) {
+        if self
+            .content_page
+            .borrow_mut()
+            .load_more_articles(&news_flash, &self.state, &self.undo_bar)
+            .is_err()
+        {
+            GtkUtil::send(
+                &self.sender,
+                Action::ErrorSimpleMessage("Failed to load more articles.".to_owned()),
+            );
+        }
+    }
+
+    pub fn sidebar_selection(&self, selection: SidebarSelection) {
+        self.state.write().set_sidebar_selection(selection);
+        self.responsive_layout.state.borrow_mut().minor_leaflet_selected = true;
+        self.responsive_layout.process_state_change();
+        GtkUtil::send(&self.sender, Action::UpdateArticleList);
+    }
+
+    pub fn show_article(&self, article_id: ArticleID, news_flash: &RwLock<Option<NewsFlash>>) {
+        if let Some(news_flash) = news_flash.read().as_ref() {
+            let article = match news_flash.get_fat_article(&article_id) {
+                Ok(article) => article,
+                Err(error) => {
+                    GtkUtil::send(&self.sender, Action::Error("Failed to read article.".to_owned(), error));
+                    return;
+                }
+            };
+            let (feeds, _) = match news_flash.get_feeds() {
+                Ok(res) => res,
+                Err(error) => {
+                    GtkUtil::send(&self.sender, Action::Error("Failed to read feeds.".to_owned(), error));
+                    return;
+                }
+            };
+            let feed = match feeds.iter().find(|&f| f.feed_id == article.feed_id) {
+                Some(feed) => feed,
+                None => {
+                    GtkUtil::send(
+                        &self.sender,
+                        Action::ErrorSimpleMessage(format!("Failed to find feed: '{}'", article.feed_id)),
+                    );
+                    return;
+                }
+            };
+            self.content_header.show_article(Some(&article));
+            self.content_page.borrow_mut().article_view_show(article, feed);
+
+            self.responsive_layout.state.borrow_mut().major_leaflet_selected = true;
+            self.responsive_layout.process_state_change();
+        }
+    }
+
+    pub fn set_headerbar_selection(&self, new_selection: HeaderSelection) {
+        let old_selection = self.state.read().get_header_selection().clone();
+        self.state.write().set_header_selection(new_selection.clone());
+        match new_selection {
+            HeaderSelection::All => self.content_header.select_all_button(),
+            HeaderSelection::Unread => self.content_header.select_unread_button(),
+            HeaderSelection::Marked => self.content_header.select_marked_button(),
+        };
+        GtkUtil::send(&self.sender, Action::UpdateArticleList);
+
+        let update_sidebar = match old_selection {
+            HeaderSelection::All | HeaderSelection::Unread => match new_selection {
+                HeaderSelection::All | HeaderSelection::Unread => false,
+                HeaderSelection::Marked => true,
+            },
+            HeaderSelection::Marked => match new_selection {
+                HeaderSelection::All | HeaderSelection::Unread => true,
+                HeaderSelection::Marked => false,
+            },
+        };
+        if update_sidebar {
+            GtkUtil::send(&self.sender, Action::UpdateSidebar);
+        }
+    }
+
+    pub fn set_search_term(&self, search_term: String) {
+        if search_term.is_empty() {
+            self.state.write().set_search_term(None);
+        } else {
+            self.state.write().set_search_term(Some(search_term));
+        }
+
+        GtkUtil::send(&self.sender, Action::UpdateArticleList);
+    }
+
+    pub fn set_sidebar_read(&self, news_flash: &RwLock<Option<NewsFlash>>) {
+        if let Some(news_flash) = news_flash.write().as_mut() {
+            let sidebar_selection = self.state.read().get_sidebar_selection().clone();
+
+            match sidebar_selection {
+                SidebarSelection::All => {
+                    let future = news_flash.set_all_read().map(|result| match result {
+                        Ok(_) => {}
+                        Err(error) => {
+                            let message = "Failed to mark all read".to_owned();
+                            error!("{}", message);
+                            GtkUtil::send(&self.sender, Action::Error(message, error));
+                        }
+                    });
+                    GtkUtil::block_on_future(future);
+                }
+                SidebarSelection::Cateogry((category_id, _title)) => {
+                    let category_id_vec = vec![category_id.clone()];
+                    let future = news_flash
+                        .set_category_read(&category_id_vec)
+                        .map(|result| match result {
+                            Ok(_) => {}
+                            Err(error) => {
+                                let message = format!("Failed to mark category '{}' read", category_id);
+                                error!("{}", message);
+                                GtkUtil::send(&self.sender, Action::Error(message, error));
+                            }
+                        });
+                    GtkUtil::block_on_future(future);
+                }
+                SidebarSelection::Feed((feed_id, _title)) => {
+                    let feed_id_vec = vec![feed_id.clone()];
+                    let future = news_flash.set_feed_read(&feed_id_vec).map(|result| match result {
+                        Ok(_) => {}
+                        Err(error) => {
+                            let message = format!("Failed to mark feed '{}' read", feed_id);
+                            error!("{}", message);
+                            GtkUtil::send(&self.sender, Action::Error(message, error));
+                        }
+                    });
+                    GtkUtil::block_on_future(future);
+                }
+                SidebarSelection::Tag((tag_id, _title)) => {
+                    let tag_id_vec = vec![tag_id.clone()];
+                    let future = news_flash.set_tag_read(&tag_id_vec).map(|result| match result {
+                        Ok(_) => {}
+                        Err(error) => {
+                            let message = format!("Failed to mark tag '{}' read", tag_id);
+                            error!("{}", message);
+                            GtkUtil::send(&self.sender, Action::Error(message, error));
+                        }
+                    });
+                    GtkUtil::block_on_future(future);
+                }
+            }
+
+            let visible_article = self.content_page.borrow().article_view_visible_article();
+            if let Some(visible_article) = visible_article {
+                if let Ok(visible_article) = news_flash.get_fat_article(&visible_article.article_id) {
+                    self.content_header.show_article(Some(&visible_article));
+                    self.content_page
+                        .borrow_mut()
+                        .article_view_update_visible_article(Some(visible_article.unread), None);
+                }
+            }
+        }
+
+        GtkUtil::send(&self.sender, Action::UpdateArticleList);
+        GtkUtil::send(&self.sender, Action::UpdateSidebar);
     }
 }

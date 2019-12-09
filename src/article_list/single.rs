@@ -1,9 +1,10 @@
 use super::article_row::ArticleRow;
 use super::models::ArticleListArticleModel;
 use super::models::ArticleListModel;
+use crate::app::Action;
 use crate::gtk_handle;
 use crate::util::{BuilderHelper, GtkHandle, GtkUtil, Util};
-use glib::{object::Cast, translate::ToGlib};
+use glib::{object::Cast, translate::ToGlib, Sender};
 use gtk::{
     AdjustmentExt, ContainerExt, Continue, ListBox, ListBoxExt, ListBoxRowExt, ScrolledWindow, ScrolledWindowExt,
     SettingsExt, TickCallbackId, WidgetExt, WidgetExtManual,
@@ -29,6 +30,7 @@ struct ScrollAnimationProperties {
 }
 
 pub struct SingleArticleList {
+    sender: Sender<Action>,
     scroll: ScrolledWindow,
     articles: HashMap<ArticleID, GtkHandle<ArticleRow>>,
     list: ListBox,
@@ -38,15 +40,15 @@ pub struct SingleArticleList {
 }
 
 impl SingleArticleList {
-    pub fn new() -> Self {
+    pub fn new(sender: Sender<Action>) -> Self {
         let builder = BuilderHelper::new("article_list_single");
         let scroll = builder.get::<ScrolledWindow>("article_list_scroll");
         let list = builder.get::<ListBox>("article_list_box");
 
         let scroll_cooldown = gtk_handle!(false);
 
-        let vadj_scroll = scroll.clone();
         let cooldown = scroll_cooldown.clone();
+        let sender_clone = sender.clone();
         if let Some(vadjustment) = scroll.get_vadjustment() {
             vadjustment.connect_value_changed(move |vadj| {
                 let is_on_cooldown = *cooldown.borrow();
@@ -59,13 +61,14 @@ impl SingleArticleList {
                             *cooldown.borrow_mut() = false;
                             Continue(false)
                         });
-                        GtkUtil::execute_action(&vadj_scroll, "show-more-articles", None);
+                        GtkUtil::send(&sender_clone, Action::LoadMoreArticles);
                     }
                 }
             });
         }
 
         SingleArticleList {
+            sender,
             scroll,
             articles: HashMap::new(),
             list,
@@ -90,7 +93,7 @@ impl SingleArticleList {
     }
 
     pub fn add(&mut self, article: &ArticleListArticleModel, pos: i32, model: &GtkHandle<ArticleListModel>) {
-        let article_row = ArticleRow::new(&article, model);
+        let article_row = ArticleRow::new(&article, model, self.sender.clone());
         self.list.insert(&article_row.widget(), pos);
         article_row.widget().show();
         self.articles.insert(article.id.clone(), gtk_handle!(article_row));
