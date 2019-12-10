@@ -61,7 +61,7 @@ impl SingleArticleList {
                             *cooldown.borrow_mut() = false;
                             Continue(false)
                         });
-                        GtkUtil::send(&sender_clone, Action::LoadMoreArticles);
+                        Util::send(&sender_clone, Action::LoadMoreArticles);
                     }
                 }
             });

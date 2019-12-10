@@ -6,12 +6,12 @@ use std::rc::Rc;
 use gio::{ApplicationExt, ApplicationExtManual, Notification, NotificationPriority, ThemedIcon};
 use glib::{futures::FutureExt, translate::ToGlib, Receiver, Sender};
 use gtk::{
-    Application, ButtonExt, Continue, DialogExt, FileChooserAction, FileChooserDialog, FileChooserExt, FileFilter,
-    GtkApplicationExt, GtkWindowExt, GtkWindowExtManual, ResponseType, WidgetExt,
+    Application, ButtonExt, Continue, DialogExt, EntryExt, FileChooserAction, FileChooserDialog, FileChooserExt,
+    FileFilter, GtkApplicationExt, GtkWindowExt, GtkWindowExtManual, ResponseType, WidgetExt,
 };
 use lazy_static::lazy_static;
 use log::{error, info, warn};
-use news_flash::models::{ArticleID, LoginData, PluginID, Url};
+use news_flash::models::{ArticleID, Category, CategoryID, Feed, FeedID, LoginData, PluginID, Url};
 use news_flash::{NewsFlash, NewsFlashError};
 use parking_lot::RwLock;
 
@@ -22,10 +22,11 @@ use crate::article_view::ArticleView;
 use crate::config::APP_ID;
 use crate::content_page::HeaderSelection;
 use crate::main_window::MainWindow;
+use crate::rename_dialog::RenameDialog;
 use crate::settings::{NewsFlashShortcutWindow, Settings, SettingsDialog};
 use crate::sidebar::models::SidebarSelection;
 use crate::undo_bar::UndoActionModel;
-use crate::util::{FileUtil, GtkUtil};
+use crate::util::{FileUtil, GtkUtil, Util};
 
 lazy_static! {
     pub static ref DATA_DIR: PathBuf = glib::get_user_config_dir()
@@ -71,6 +72,10 @@ pub enum Action {
     SetSidebarRead,
     AddFeedDialog,
     AddFeed((Url, Option<String>, AddCategory)),
+    RenameFeedDialog(FeedID),
+    RenameFeed((Feed, String)),
+    RenameCategoryDialog(CategoryID),
+    RenameCategory((Category, String)),
     ExportArticle,
     ExportOpml,
     Quit,
@@ -112,7 +117,7 @@ impl App {
         if let Ok(news_flash_lib) = NewsFlash::try_load(&crate::app::DATA_DIR) {
             info!("Successful load from config");
             app.news_flash.write().replace(news_flash_lib);
-            GtkUtil::send(&app.sender, Action::ScheduleSync);
+            Util::send(&app.sender, Action::ScheduleSync);
         } else {
             warn!("No account configured");
         }
@@ -177,6 +182,10 @@ impl App {
             Action::SetSidebarRead => self.window.set_sidebar_read(&self.news_flash),
             Action::AddFeedDialog => self.add_feed_dialog(),
             Action::AddFeed((url, title, category)) => self.add_feed(url, title, category),
+            Action::RenameFeedDialog(feed_id) => self.rename_feed_dialog(feed_id),
+            Action::RenameFeed((feed, new_title)) => self.rename_feed(feed, new_title),
+            Action::RenameCategoryDialog(category_id) => self.rename_category_dialog(category_id),
+            Action::RenameCategory((category, new_title)) => self.rename_category(category, new_title),
             Action::ExportArticle => self.export_article(),
             Action::ExportOpml => self.export_opml(),
             Action::Quit => self.quit(),
@@ -229,7 +238,7 @@ impl App {
                 self.news_flash.write().replace(news_flash_lib);
 
                 // show content page
-                GtkUtil::send(&self.sender, Action::ShowContentPage(id));
+                Util::send(&self.sender, Action::ShowContentPage(id));
             }
             Err(error) => {
                 error!("Login failed! Plguin: {}, Error: {}", id, error);
@@ -255,7 +264,7 @@ impl App {
             let sender = self.sender.clone();
             self.sync_source_id.write().replace(
                 gtk::timeout_add_seconds(sync_interval, move || {
-                    GtkUtil::send(&sender, Action::Sync);
+                    Util::send(&sender, Action::Sync);
                     Continue(true)
                 })
                 .to_glib(),
@@ -267,6 +276,8 @@ impl App {
 
     fn sync(&self) {
         if let Some(news_flash) = self.news_flash.read().as_ref() {
+            //let ctx = glib::MainContext::default();
+            //let sync_result = ctx.block_on(news_flash.sync());
             let sync_result = GtkUtil::block_on_future(news_flash.sync());
             let unread_count = match news_flash.unread_count_all() {
                 Ok(unread_count) => unread_count,
@@ -275,17 +286,17 @@ impl App {
             match sync_result {
                 Ok(new_article_count) => {
                     self.window.content_header.finish_sync();
-                    GtkUtil::send(&self.sender, Action::UpdateSidebar);
-                    GtkUtil::send(&self.sender, Action::UpdateArticleList);
+                    Util::send(&self.sender, Action::UpdateSidebar);
+                    Util::send(&self.sender, Action::UpdateArticleList);
                     let counts = NotificationCounts {
                         new: new_article_count,
                         unread: unread_count,
                     };
-                    GtkUtil::send(&self.sender, Action::ShowNotification(counts));
+                    Util::send(&self.sender, Action::ShowNotification(counts));
                 }
                 Err(error) => {
                     self.window.content_header.finish_sync();
-                    GtkUtil::send(&self.sender, Action::Error("Failed to sync.".to_owned(), error));
+                    Util::send(&self.sender, Action::Error("Failed to sync.".to_owned(), error));
                 }
             }
         }
@@ -301,17 +312,17 @@ impl App {
                     Err(error) => {
                         let message = format!("Failed to mark article read: '{}'", update.article_id);
                         error!("{}", message);
-                        GtkUtil::send(&self.sender, Action::Error(message, error));
+                        Util::send(&self.sender, Action::Error(message, error));
                     }
                 });
             GtkUtil::block_on_future(future);
         } else {
             let message = "Failed to borrow NewsFlash.".to_owned();
             error!("{}", message);
-            GtkUtil::send(&self.sender, Action::ErrorSimpleMessage(message));
+            Util::send(&self.sender, Action::ErrorSimpleMessage(message));
         }
 
-        GtkUtil::send(&self.sender, Action::UpdateSidebar);
+        Util::send(&self.sender, Action::UpdateSidebar);
         let visible_article = self.window.content_page.borrow().article_view_visible_article();
         if let Some(visible_article) = visible_article {
             if visible_article.article_id == update.article_id {
@@ -336,17 +347,17 @@ impl App {
                     Err(error) => {
                         let message = format!("Failed to star article: '{}'", update.article_id);
                         error!("{}", message);
-                        GtkUtil::send(&self.sender, Action::Error(message, error));
+                        Util::send(&self.sender, Action::Error(message, error));
                     }
                 });
             GtkUtil::block_on_future(future);
         } else {
             let message = "Failed to borrow NewsFlash.".to_owned();
             error!("{}", message);
-            GtkUtil::send(&self.sender, Action::ErrorSimpleMessage(message));
+            Util::send(&self.sender, Action::ErrorSimpleMessage(message));
         }
 
-        GtkUtil::send(&self.sender, Action::UpdateSidebar);
+        Util::send(&self.sender, Action::UpdateSidebar);
         let visible_article = self.window.content_page.borrow().article_view_visible_article();
         if let Some(visible_article) = visible_article {
             if visible_article.article_id == update.article_id {
@@ -368,8 +379,8 @@ impl App {
                 article_id: visible_article.article_id.clone(),
                 read: visible_article.unread.invert(),
             };
-            GtkUtil::send(&self.sender, Action::MarkArticleRead(update));
-            GtkUtil::send(&self.sender, Action::UpdateArticleList);
+            Util::send(&self.sender, Action::MarkArticleRead(update));
+            Util::send(&self.sender, Action::UpdateArticleList);
         }
     }
 
@@ -381,8 +392,8 @@ impl App {
                 marked: visible_article.marked.invert(),
             };
 
-            GtkUtil::send(&self.sender, Action::MarkArticle(update));
-            GtkUtil::send(&self.sender, Action::UpdateArticleList);
+            Util::send(&self.sender, Action::MarkArticle(update));
+            Util::send(&self.sender, Action::UpdateArticleList);
         }
     }
 
@@ -410,7 +421,7 @@ impl App {
                 Ok(categories) => categories,
                 Err(error) => {
                     error!("{}", error_message);
-                    GtkUtil::send(&self.sender, Action::Error(error_message.clone(), error));
+                    Util::send(&self.sender, Action::Error(error_message.clone(), error));
                     return;
                 }
             };
@@ -421,14 +432,14 @@ impl App {
                     Some(url) => url,
                     None => {
                         error!("{}: No valid url", error_message);
-                        GtkUtil::send(&sender, Action::ErrorSimpleMessage(error_message.clone()));
+                        Util::send(&sender, Action::ErrorSimpleMessage(error_message.clone()));
                         return;
                     }
                 };
                 let feed_title = dialog.get_feed_title();
                 let feed_category = dialog.get_category();
 
-                GtkUtil::send(&sender, Action::AddFeed((feed_url, feed_title, feed_category)));
+                Util::send(&sender, Action::AddFeed((feed_url, feed_title, feed_category)));
             });
         }
     }
@@ -444,7 +455,7 @@ impl App {
                         Ok(category) => category,
                         Err(error) => {
                             error!("{}: Can't add Category", error_message);
-                            GtkUtil::send(&self.sender, Action::Error(error_message.clone(), error));
+                            Util::send(&self.sender, Action::Error(error_message.clone(), error));
                             return;
                         }
                     };
@@ -460,14 +471,141 @@ impl App {
                     Ok(_) => {}
                     Err(error) => {
                         error!("{}: Can't add Feed", error_message);
-                        GtkUtil::send(&self.sender, Action::Error(error_message.clone(), error));
+                        Util::send(&self.sender, Action::Error(error_message.clone(), error));
                     }
                 });
             GtkUtil::block_on_future(add_feed_future);
         } else {
             error!("{}: Can't borrow NewsFlash", error_message);
-            GtkUtil::send(&self.sender, Action::ErrorSimpleMessage(error_message.clone()));
+            Util::send(&self.sender, Action::ErrorSimpleMessage(error_message.clone()));
         }
+    }
+
+    fn rename_feed_dialog(&self, feed_id: FeedID) {
+        if let Some(news_flash) = self.news_flash.read().as_ref() {
+            let (feeds, _mappings) = match news_flash.get_feeds() {
+                Ok(result) => result,
+                Err(error) => {
+                    let message = "Failed to laod list of feeds.".to_owned();
+                    Util::send(&self.sender, Action::Error(message, error));
+                    return;
+                }
+            };
+
+            let feed = match feeds.iter().find(|f| f.feed_id == feed_id).cloned() {
+                Some(feed) => feed,
+                None => {
+                    let message = format!("Failed to find feed '{}'", feed_id);
+                    Util::send(&self.sender, Action::ErrorSimpleMessage(message));
+                    return;
+                }
+            };
+
+            let dialog = RenameDialog::new(
+                &self.window.widget,
+                &SidebarSelection::Feed((feed_id, feed.label.clone())),
+            );
+            let rename_button = dialog.rename_button();
+            let rename_entry = dialog.rename_entry();
+            let rename_dialog = dialog.dialog();
+            let sender = self.sender.clone();
+            rename_button.connect_clicked(move |_button| {
+                let new_label = match rename_entry.get_text().map(|label| label.to_owned()) {
+                    Some(label) => label,
+                    None => {
+                        Util::send(
+                            &sender,
+                            Action::ErrorSimpleMessage("No valid title to rename feed.".to_owned()),
+                        );
+                        rename_dialog.emit_close();
+                        return;
+                    }
+                };
+
+                let feed = feed.clone();
+                Util::send(&sender, Action::RenameFeed((feed, new_label)));
+                rename_dialog.emit_close();
+            });
+        }
+    }
+
+    fn rename_feed(&self, feed: Feed, new_title: String) {
+        if let Some(news_flash) = self.news_flash.read().as_ref() {
+            let future = news_flash.rename_feed(&feed, &new_title).map(|result| {
+                if let Err(error) = result {
+                    Util::send(&self.sender, Action::Error("Failed to rename feed.".to_owned(), error));
+                }
+            });
+            GtkUtil::block_on_future(future);
+        }
+
+        Util::send(&self.sender, Action::UpdateArticleList);
+        Util::send(&self.sender, Action::UpdateSidebar);
+    }
+
+    fn rename_category_dialog(&self, category_id: CategoryID) {
+        if let Some(news_flash) = self.news_flash.read().as_ref() {
+            let categories = match news_flash.get_categories() {
+                Ok(categories) => categories,
+                Err(error) => {
+                    let message = "Failed to load list of categories.".to_owned();
+                    Util::send(&self.sender, Action::Error(message, error));
+                    return;
+                }
+            };
+
+            let category = match categories.iter().find(|c| c.category_id == category_id).cloned() {
+                Some(category) => category,
+                None => {
+                    let message = format!("Failed to find category '{}'", category_id);
+                    Util::send(&self.sender, Action::ErrorSimpleMessage(message));
+                    return;
+                }
+            };
+
+            let dialog = RenameDialog::new(
+                &self.window.widget,
+                &SidebarSelection::Cateogry((category_id, category.label.clone())),
+            );
+
+            let rename_button = dialog.rename_button();
+            let rename_entry = dialog.rename_entry();
+            let rename_dialog = dialog.dialog();
+            let sender = self.sender.clone();
+            rename_button.connect_clicked(move |_button| {
+                let new_label = match rename_entry.get_text().map(|label| label.to_owned()) {
+                    Some(label) => label,
+                    None => {
+                        Util::send(
+                            &sender,
+                            Action::ErrorSimpleMessage("No valid title to rename feed.".to_owned()),
+                        );
+                        rename_dialog.emit_close();
+                        return;
+                    }
+                };
+
+                let category = category.clone();
+                Util::send(&sender, Action::RenameCategory((category, new_label)));
+                rename_dialog.emit_close();
+            });
+        }
+    }
+
+    fn rename_category(&self, category: Category, new_title: String) {
+        if let Some(news_flash) = self.news_flash.read().as_ref() {
+            let future = news_flash.rename_category(&category, &new_title).map(|result| {
+                if let Err(error) = result {
+                    Util::send(
+                        &self.sender,
+                        Action::Error("Failed to rename category.".to_owned(), error),
+                    );
+                }
+            });
+            GtkUtil::block_on_future(future);
+        }
+
+        Util::send(&self.sender, Action::UpdateSidebar);
     }
 
     fn export_article(&self) {
@@ -502,7 +640,7 @@ impl App {
                             let article = match article_result {
                                 Ok(article) => article,
                                 Err(error) => {
-                                    GtkUtil::send(
+                                    Util::send(
                                         &sender,
                                         Action::Error("Failed to downlaod article images.".to_owned(), error),
                                     );
@@ -513,7 +651,7 @@ impl App {
                             let (feeds, _) = match news_flash.get_feeds() {
                                 Ok(opml) => opml,
                                 Err(error) => {
-                                    GtkUtil::send(
+                                    Util::send(
                                         &sender,
                                         Action::Error("Failed to load feeds from db.".to_owned(), error),
                                     );
@@ -523,7 +661,7 @@ impl App {
                             let feed = match feeds.iter().find(|&f| f.feed_id == article.feed_id) {
                                 Some(feed) => feed,
                                 None => {
-                                    GtkUtil::send(
+                                    Util::send(
                                         &sender,
                                         Action::ErrorSimpleMessage("Failed to find specific feed.".to_owned()),
                                     );
@@ -540,7 +678,7 @@ impl App {
                                     None,
                                 );
                                 if FileUtil::write_text_file(&filename, &html).is_err() {
-                                    GtkUtil::send(
+                                    Util::send(
                                         &sender,
                                         Action::ErrorSimpleMessage("Failed to write OPML data to disc.".to_owned()),
                                     );
@@ -580,7 +718,7 @@ impl App {
                 let opml = match news_flash.export_opml() {
                     Ok(opml) => opml,
                     Err(error) => {
-                        GtkUtil::send(
+                        Util::send(
                             &self.sender,
                             Action::Error("Failed to get OPML data.".to_owned(), error),
                         );
@@ -589,7 +727,7 @@ impl App {
                 };
                 if let Some(filename) = dialog.get_filename() {
                     if FileUtil::write_text_file(&filename, &opml).is_err() {
-                        GtkUtil::send(
+                        Util::send(
                             &self.sender,
                             Action::ErrorSimpleMessage("Failed to write OPML data to disc.".to_owned()),
                         );

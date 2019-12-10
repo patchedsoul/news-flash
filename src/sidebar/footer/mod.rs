@@ -1,5 +1,5 @@
 use crate::app::Action;
-use crate::util::{BuilderHelper, GtkUtil};
+use crate::util::{BuilderHelper, GtkUtil, Util};
 use glib::Sender;
 use gtk::{Button, ButtonExt, WidgetExt};
 
@@ -20,7 +20,7 @@ impl SidebarFooter {
 
         let sender = sender.clone();
         add_button.connect_clicked(move |_button| {
-            GtkUtil::send(&sender, Action::AddFeedDialog);
+            Util::send(&sender, Action::AddFeedDialog);
         });
 
         SidebarFooter {

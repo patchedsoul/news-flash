@@ -1,7 +1,7 @@
 use crate::app::Action;
 use crate::article_view::{ArticleTheme, ArticleView};
 use crate::settings::Settings;
-use crate::util::{BuilderHelper, GtkUtil};
+use crate::util::{BuilderHelper, Util};
 use chrono::Utc;
 use glib::{object::IsA, Sender};
 use gtk::{Inhibit, ListBox, ListBoxExt, ListBoxRow, ListBoxRowExt, Popover, PopoverExt, Widget, WidgetExt};
@@ -87,7 +87,7 @@ impl ThemeChooser {
                 };
 
                 if result.is_err() {
-                    GtkUtil::send(
+                    Util::send(
                         &sender,
                         Action::ErrorSimpleMessage("Failed to set theme setting.".to_owned()),
                     );

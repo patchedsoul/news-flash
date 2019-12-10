@@ -1,7 +1,7 @@
 use super::header_selection::HeaderSelection;
 use crate::app::Action;
 use crate::gtk_handle;
-use crate::util::{BuilderHelper, GtkHandle, GtkUtil};
+use crate::util::{BuilderHelper, GtkHandle, GtkUtil, Util};
 use gio::{ActionMapExt, Menu, MenuItem, SimpleAction};
 use glib::{object::Cast, translate::ToGlib, Sender};
 use gtk::{
@@ -55,7 +55,7 @@ impl ContentHeader {
 
         let sender_clone = sender.clone();
         mark_all_read_button.connect_clicked(move |_button| {
-            GtkUtil::send(&sender_clone, Action::SetSidebarRead);
+            Util::send(&sender_clone, Action::SetSidebarRead);
         });
 
         let linked_button_timeout: GtkHandle<Option<u32>> = gtk_handle!(None);
@@ -208,7 +208,7 @@ impl ContentHeader {
         header_selection: &GtkHandle<HeaderSelection>,
         linked_button_timeout: &GtkHandle<Option<u32>>,
     ) {
-        GtkUtil::send(sender, Action::HeaderSelection((*header_selection.borrow()).clone()));
+        Util::send(sender, Action::HeaderSelection((*header_selection.borrow()).clone()));
 
         if linked_button_timeout.borrow().is_some() {
             return;
@@ -242,7 +242,7 @@ impl ContentHeader {
         button.connect_clicked(move |button| {
             button.set_sensitive(false);
             stack.set_visible_child_name("spinner");
-            GtkUtil::send(&sender, Action::Sync);
+            Util::send(&sender, Action::Sync);
         });
     }
 
@@ -271,7 +271,7 @@ impl ContentHeader {
         let sender = sender.clone();
         search_entry.connect_search_changed(move |search_entry| {
             if let Some(text) = search_entry.get_text() {
-                GtkUtil::send(&sender, Action::SearchTerm(text.as_str().to_owned()));
+                Util::send(&sender, Action::SearchTerm(text.as_str().to_owned()));
             }
         });
     }
@@ -282,31 +282,31 @@ impl ContentHeader {
         let sender_clone = sender.clone();
         let show_shortcut_window_action = SimpleAction::new("shortcut-window", None);
         show_shortcut_window_action.connect_activate(move |_action, _parameter| {
-            GtkUtil::send(&sender_clone, Action::ShowShortcutWindow);
+            Util::send(&sender_clone, Action::ShowShortcutWindow);
         });
 
         let sender_clone = sender.clone();
         let show_about_window_action = SimpleAction::new("about-window", None);
         show_about_window_action.connect_activate(move |_action, _parameter| {
-            GtkUtil::send(&sender_clone, Action::ShowAboutWindow);
+            Util::send(&sender_clone, Action::ShowAboutWindow);
         });
 
         let sender_clone = sender.clone();
         let settings_window_action = SimpleAction::new("settings", None);
         settings_window_action.connect_activate(move |_action, _parameter| {
-            GtkUtil::send(&sender_clone, Action::ShowSettingsWindow);
+            Util::send(&sender_clone, Action::ShowSettingsWindow);
         });
 
         let sender_clone = sender.clone();
         let quit_action = SimpleAction::new("quit-application", None);
         quit_action.connect_activate(move |_action, _parameter| {
-            GtkUtil::send(&sender_clone, Action::Quit);
+            Util::send(&sender_clone, Action::Quit);
         });
 
         let sender_clone = sender.clone();
         let export_opml_action = SimpleAction::new("export-opml", None);
         export_opml_action.connect_activate(move |_action, _parameter| {
-            GtkUtil::send(&sender_clone, Action::ExportOpml);
+            Util::send(&sender_clone, Action::ExportOpml);
         });
 
         if let Ok(main_window) = GtkUtil::get_main_window(button) {
@@ -339,7 +339,7 @@ impl ContentHeader {
         let sender_clone = sender.clone();
         let headerbar_selection_all_action = SimpleAction::new("headerbar-selection-all", None);
         headerbar_selection_all_action.connect_activate(move |_action, _parameter| {
-            GtkUtil::send(&sender_clone, Action::HeaderSelection(HeaderSelection::All));
+            Util::send(&sender_clone, Action::HeaderSelection(HeaderSelection::All));
         });
         let all_item = MenuItem::new(Some("All"), None);
         all_item.set_action_and_target_value(Some("win.headerbar-selection-all"), None);
@@ -348,7 +348,7 @@ impl ContentHeader {
         let sender_clone = sender.clone();
         let headerbar_selection_unread_action = SimpleAction::new("headerbar-selection-unread", None);
         headerbar_selection_unread_action.connect_activate(move |_action, _parameter| {
-            GtkUtil::send(&sender_clone, Action::HeaderSelection(HeaderSelection::Unread));
+            Util::send(&sender_clone, Action::HeaderSelection(HeaderSelection::Unread));
         });
         let unread_item = MenuItem::new(Some("Unread"), None);
         unread_item.set_action_and_target_value(Some("win.headerbar-selection-unread"), None);
@@ -357,7 +357,7 @@ impl ContentHeader {
         let sender_clone = sender.clone();
         let headerbar_selection_unread_action = SimpleAction::new("headerbar-selection-marked", None);
         headerbar_selection_unread_action.connect_activate(move |_action, _parameter| {
-            GtkUtil::send(&sender_clone, Action::HeaderSelection(HeaderSelection::Marked));
+            Util::send(&sender_clone, Action::HeaderSelection(HeaderSelection::Marked));
         });
         let marked_item = MenuItem::new(Some("Starred"), None);
         marked_item.set_action_and_target_value(Some("win.headerbar-selection-marked"), None);
@@ -374,13 +374,13 @@ impl ContentHeader {
         let sender_clone = sender.clone();
         let close_article_action = SimpleAction::new("close-article", None);
         close_article_action.connect_activate(move |_action, _parameter| {
-            GtkUtil::send(&sender_clone, Action::CloseArticle);
+            Util::send(&sender_clone, Action::CloseArticle);
         });
 
         let sender_clone = sender.clone();
         let export_article_action = SimpleAction::new("export-article", None);
         export_article_action.connect_activate(move |_action, _parameter| {
-            GtkUtil::send(&sender_clone, Action::ExportArticle);
+            Util::send(&sender_clone, Action::ExportArticle);
         });
 
         if let Ok(main_window) = GtkUtil::get_main_window(button) {
@@ -440,7 +440,7 @@ impl ContentHeader {
                     } else {
                         toggle_stack.set_visible_child_name("unmarked");
                     }
-                    GtkUtil::send(&sender_clone, Action::ToggleArticleMarked);
+                    Util::send(&sender_clone, Action::ToggleArticleMarked);
                 })
                 .to_glib(),
         );
@@ -455,7 +455,7 @@ impl ContentHeader {
                     } else {
                         toggle_stack.set_visible_child_name("read");
                     }
-                    GtkUtil::send(&sender_clone, Action::ToggleArticleRead);
+                    Util::send(&sender_clone, Action::ToggleArticleRead);
                 })
                 .to_glib(),
         );

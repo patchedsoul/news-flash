@@ -2,10 +2,10 @@ use crate::app::Action;
 use crate::gtk_handle;
 use crate::sidebar::feed_list::models::FeedListCategoryModel;
 use crate::undo_bar::UndoActionModel;
-use crate::util::{BuilderHelper, GtkHandle, GtkUtil};
+use crate::util::{BuilderHelper, GtkHandle, GtkUtil, Util};
 use gdk::{EventMask, EventType};
 use gio::{ActionMapExt, Menu, MenuItem, SimpleAction};
-use glib::{Sender, Variant};
+use glib::Sender;
 use gtk::{
     self, BinExt, Box, Cast, ContainerExt, EventBox, Image, Inhibit, Label, LabelExt, ListBoxRow, ListBoxRowExt,
     Popover, PopoverExt, PositionType, Revealer, RevealerExt, StateFlags, StyleContextExt, WidgetExt, WidgetExtManual,
@@ -135,9 +135,20 @@ impl CategoryRow {
 
             let model = Menu::new();
 
-            let variant = Variant::from(category_id.to_str());
+            let sender_clone = sender.clone();
+            let category_id_clone = category_id.clone();
+            let rename_category_dialog_action = SimpleAction::new("rename-category-dialog", None);
+            rename_category_dialog_action.connect_activate(move |_action, _parameter| {
+                let category_id = category_id_clone.clone();
+                Util::send(&sender_clone, Action::RenameCategoryDialog(category_id));
+            });
+
+            if let Ok(main_window) = GtkUtil::get_main_window(&listbox_row) {
+                main_window.add_action(&rename_category_dialog_action);
+            }
+
             let rename_category_item = MenuItem::new(Some("Rename"), None);
-            rename_category_item.set_action_and_target_value(Some("rename-category"), Some(&variant));
+            rename_category_item.set_action_and_target_value(Some("rename-category-dialog"), None);
             model.append_item(&rename_category_item);
 
             let delete_category_item = MenuItem::new(Some("Delete"), None);
@@ -151,7 +162,7 @@ impl CategoryRow {
                     None => "".to_owned(),
                 };
                 let remove_action = UndoActionModel::DeleteCategory((category_id.clone(), label));
-                GtkUtil::send(&sender, Action::UndoableAction(remove_action));
+                Util::send(&sender, Action::UndoableAction(remove_action));
             });
             if let Ok(main_window) = GtkUtil::get_main_window(&listbox_row) {
                 main_window.add_action(&delete_category_action);

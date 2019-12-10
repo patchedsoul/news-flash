@@ -8,7 +8,7 @@ use self::error::{SidebarError, SidebarErrorKind};
 use self::footer::SidebarFooter;
 use crate::app::Action;
 use crate::gtk_handle;
-use crate::util::{BuilderHelper, GtkHandle, GtkUtil};
+use crate::util::{BuilderHelper, GtkHandle, GtkUtil, Util};
 use failure::ResultExt;
 pub use feed_list::models::{FeedListDndAction, FeedListItemID, FeedListTree};
 use feed_list::FeedList;
@@ -91,7 +91,7 @@ impl SideBar {
             .borrow()
             .widget()
             .connect_row_activated(move |_list, _row| {
-                GtkUtil::send(
+                Util::send(
                     &sender_clone,
                     Action::SidebarSelection((*feed_list_selection_handle.borrow()).clone()),
                 );
@@ -128,7 +128,7 @@ impl SideBar {
             .borrow()
             .widget()
             .connect_row_activated(move |_list, _row| {
-                GtkUtil::send(
+                Util::send(
                     &sender_clone,
                     Action::SidebarSelection((*tag_list_selection_handle.borrow()).clone()),
                 );
@@ -388,7 +388,7 @@ impl SideBar {
             gtk::timeout_add(300, move || {
                 let sender = sender.clone();
                 gtk::idle_add(move || {
-                    GtkUtil::send(&sender, Action::SidebarSelection(SidebarSelection::All));
+                    Util::send(&sender, Action::SidebarSelection(SidebarSelection::All));
                     Continue(false)
                 });
 

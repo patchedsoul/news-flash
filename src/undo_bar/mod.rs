@@ -2,7 +2,7 @@ mod models;
 
 use crate::app::Action;
 use crate::gtk_handle;
-use crate::util::{BuilderHelper, GtkHandle, GtkUtil};
+use crate::util::{BuilderHelper, GtkHandle, GtkUtil, Util};
 use glib::{translate::ToGlib, Sender, Variant};
 use gtk::{Button, ButtonExt, Continue, InfoBar, InfoBarExt, Label, LabelExt, WidgetExt};
 use log::debug;
@@ -47,8 +47,8 @@ impl UndoBar {
             button_info_bar.set_revealed(false);
 
             // update lists
-            GtkUtil::send(&sender, Action::UpdateSidebar);
-            GtkUtil::send(&sender, Action::UpdateArticleList);
+            Util::send(&sender, Action::UpdateSidebar);
+            Util::send(&sender, Action::UpdateArticleList);
         });
 
         self.widget.show();
@@ -103,8 +103,8 @@ impl UndoBar {
             .replace(UndoAction::new(action, source_id.to_glib()));
 
         // update lists
-        GtkUtil::send(&self.sender, Action::UpdateSidebar);
-        GtkUtil::send(&self.sender, Action::UpdateArticleList);
+        Util::send(&self.sender, Action::UpdateSidebar);
+        Util::send(&self.sender, Action::UpdateArticleList);
     }
 
     pub fn get_current_action(&self) -> Option<UndoActionModel> {

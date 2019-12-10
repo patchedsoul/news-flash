@@ -4,7 +4,7 @@ use super::keybindings::Keybindings;
 use super::theme_chooser::ThemeChooser;
 use crate::app::Action;
 use crate::settings::Settings;
-use crate::util::{BuilderHelper, GtkUtil, GTK_BUILDER_ERROR};
+use crate::util::{BuilderHelper, Util, GTK_BUILDER_ERROR};
 use gdk::{EventMask, EventType};
 use glib::{object::Cast, Sender};
 use gtk::{
@@ -67,7 +67,7 @@ impl SettingsDialog {
         keep_running_switch.set_state(self.settings.read().get_keep_running_in_background());
         keep_running_switch.connect_state_set(move |_switch, is_set| {
             if settings_1.write().set_keep_running_in_background(is_set).is_err() {
-                GtkUtil::send(
+                Util::send(
                     &sender_1,
                     Action::ErrorSimpleMessage("Failed to set setting 'keep running'.".to_owned()),
                 );
@@ -83,7 +83,7 @@ impl SettingsDialog {
                     settings.set_property_gtk_application_prefer_dark_theme(is_set);
                 }
             } else {
-                GtkUtil::send(
+                Util::send(
                     &sender_2,
                     Action::ErrorSimpleMessage("Failed to set setting 'dark theme'.".to_owned()),
                 );
@@ -107,9 +107,9 @@ impl SettingsDialog {
             };
             sync_label.set_label(&sync_interval.to_string());
             if settings_3.write().set_sync_interval(sync_interval).is_ok() {
-                GtkUtil::send(&sender_3, Action::ScheduleSync);
+                Util::send(&sender_3, Action::ScheduleSync);
             } else {
-                GtkUtil::send(
+                Util::send(
                     &sender_3,
                     Action::ErrorSimpleMessage("Failed to set setting 'sync interval'.".to_owned()),
                 );
@@ -161,9 +161,9 @@ impl SettingsDialog {
             };
             article_order_label.set_label(new_order.to_str());
             if settings_4.write().set_article_list_order(new_order).is_ok() {
-                GtkUtil::send(&sender_4, Action::UpdateArticleList);
+                Util::send(&sender_4, Action::UpdateArticleList);
             } else {
-                GtkUtil::send(
+                Util::send(
                     &sender_4,
                     Action::ErrorSimpleMessage("Failed to set setting 'article order'.".to_owned()),
                 );
@@ -224,7 +224,7 @@ impl SettingsDialog {
             let sender = sender_5.clone();
             theme_chooser.widget().connect_closed(move |_pop| {
                 article_theme_label.set_label(settings.read().get_article_view_theme().name());
-                GtkUtil::send(&sender, Action::RedrawArticle);
+                Util::send(&sender, Action::RedrawArticle);
             });
             theme_chooser.widget().popup();
 
@@ -245,7 +245,7 @@ impl SettingsDialog {
                             let theme_chooser = ThemeChooser::new(&article_theme_event, &sender_6, &settings);
                             theme_chooser.widget().connect_closed(move |_pop| {
                                 article_theme_label.set_label(settings.read().get_article_view_theme().name());
-                                GtkUtil::send(&sender, Action::RedrawArticle);
+                                Util::send(&sender, Action::RedrawArticle);
                             });
                             theme_chooser.widget().popup();
                         }
@@ -258,9 +258,9 @@ impl SettingsDialog {
         allow_selection_switch.set_state(self.settings.read().get_article_view_allow_select());
         allow_selection_switch.connect_state_set(move |_switch, is_set| {
             if settings_7.write().set_article_view_allow_select(is_set).is_ok() {
-                GtkUtil::send(&sender_7, Action::RedrawArticle);
+                Util::send(&sender_7, Action::RedrawArticle);
             } else {
-                GtkUtil::send(
+                Util::send(
                     &sender_7,
                     Action::ErrorSimpleMessage("Failed to set setting 'allow article selection'.".to_owned()),
                 );
@@ -279,9 +279,9 @@ impl SettingsDialog {
                 None => None,
             };
             if settings_8.write().set_article_view_font(font).is_ok() {
-                GtkUtil::send(&sender_8, Action::RedrawArticle);
+                Util::send(&sender_8, Action::RedrawArticle);
             } else {
-                GtkUtil::send(
+                Util::send(
                     &sender_8,
                     Action::ErrorSimpleMessage("Failed to set setting 'article font'.".to_owned()),
                 );
@@ -305,9 +305,9 @@ impl SettingsDialog {
             font_button.set_sensitive(!is_set);
             font_row.set_sensitive(!is_set);
             if settings_9.write().set_article_view_font(font).is_ok() {
-                GtkUtil::send(&sender_9, Action::RedrawArticle);
+                Util::send(&sender_9, Action::RedrawArticle);
             } else {
-                GtkUtil::send(
+                Util::send(
                     &sender_9,
                     Action::ErrorSimpleMessage("Failed to set setting 'use system font'.".to_owned()),
                 );
@@ -406,7 +406,7 @@ impl SettingsDialog {
                                         if Keybindings::write_keybinding(&id, None, &settings).is_ok() {
                                             Self::keybind_label_text(None, &label);
                                         } else {
-                                            GtkUtil::send(
+                                            Util::send(
                                                 &sender,
                                                 Action::ErrorSimpleMessage("Failed to write keybinding.".to_owned()),
                                             );
@@ -417,7 +417,7 @@ impl SettingsDialog {
                                         {
                                             Self::keybind_label_text(Some(keybind.clone()), &label);
                                         } else {
-                                            GtkUtil::send(
+                                            Util::send(
                                                 &sender,
                                                 Action::ErrorSimpleMessage("Failed to write keybinding.".to_owned()),
                                             );

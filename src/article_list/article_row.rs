@@ -1,7 +1,7 @@
 use super::models::{ArticleListArticleModel, ArticleListModel, MarkUpdate, ReadUpdate};
 use crate::app::Action;
 use crate::gtk_handle;
-use crate::util::{BuilderHelper, DateUtil, GtkHandle, GtkUtil};
+use crate::util::{BuilderHelper, DateUtil, GtkHandle, GtkUtil, Util};
 use gdk::{EventType, NotifyType};
 use glib::Sender;
 use gtk::{
@@ -196,7 +196,7 @@ impl ArticleRow {
                 article_id: article_id.clone(),
                 read,
             };
-            GtkUtil::send(&sender, Action::MarkArticleRead(update));
+            Util::send(&sender, Action::MarkArticleRead(update));
             Inhibit(true)
         });
     }
@@ -253,7 +253,7 @@ impl ArticleRow {
                 article_id: article_id.clone(),
                 marked,
             };
-            GtkUtil::send(&sender, Action::MarkArticle(update));
+            Util::send(&sender, Action::MarkArticle(update));
             Inhibit(true)
         });
     }

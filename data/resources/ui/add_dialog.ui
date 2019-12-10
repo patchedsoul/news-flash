@@ -82,12 +82,40 @@
             </child>
             <child>
               <object class="GtkButton" id="parse_button">
-                <property name="label" translatable="yes">Next</property>
                 <property name="visible">True</property>
                 <property name="sensitive">False</property>
                 <property name="can_focus">True</property>
                 <property name="receives_default">True</property>
                 <property name="halign">end</property>
+                <child>
+                  <object class="GtkStack" id="parse_button_stack">
+                    <property name="visible">True</property>
+                    <property name="can_focus">False</property>
+                    <child>
+                      <object class="GtkLabel">
+                        <property name="visible">True</property>
+                        <property name="can_focus">False</property>
+                        <property name="label" translatable="yes">Next</property>
+                      </object>
+                      <packing>
+                        <property name="name">text</property>
+                        <property name="title" translatable="yes">text</property>
+                      </packing>
+                    </child>
+                    <child>
+                      <object class="GtkSpinner">
+                        <property name="visible">True</property>
+                        <property name="can_focus">False</property>
+                        <property name="active">True</property>
+                      </object>
+                      <packing>
+                        <property name="name">spinner</property>
+                        <property name="title" translatable="yes">spinner</property>
+                        <property name="position">1</property>
+                      </packing>
+                    </child>
+                  </object>
+                </child>
                 <style>
                   <class name="suggested-action"/>
                 </style>

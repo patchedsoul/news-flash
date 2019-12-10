@@ -2,11 +2,11 @@ use crate::app::Action;
 use crate::gtk_handle;
 use crate::sidebar::feed_list::models::FeedListFeedModel;
 use crate::undo_bar::UndoActionModel;
-use crate::util::{BuilderHelper, GtkHandle, GtkUtil};
+use crate::util::{BuilderHelper, GtkHandle, GtkUtil, Util};
 use cairo::{self, Format, ImageSurface};
 use gdk::{DragAction, EventType, ModifierType};
 use gio::{ActionMapExt, Menu, MenuItem, SimpleAction};
-use glib::{source::SourceId, translate::FromGlib, translate::ToGlib, Sender, Source, Variant};
+use glib::{source::SourceId, translate::FromGlib, translate::ToGlib, Sender, Source};
 use gtk::{
     self, Box, ContainerExt, Continue, DragContextExtManual, EventBox, Image, ImageExt, Inhibit, Label, LabelExt,
     ListBoxRow, ListBoxRowExt, Popover, PopoverExt, PositionType, Revealer, RevealerExt, StateFlags, StyleContextExt,
@@ -43,7 +43,7 @@ impl FeedRow {
 
         let mut feed = FeedRow {
             id: model.id.clone(),
-            widget: Self::create_row(&revealer, &model.id, &model.parent_id, &title_label, sender),
+            widget: Self::create_row(&sender, &revealer, &model.id, &model.parent_id, &title_label),
             item_count: item_count_label,
             title: title_label,
             revealer,
@@ -61,11 +61,11 @@ impl FeedRow {
     }
 
     fn create_row(
+        sender: &Sender<Action>,
         widget: &gtk::Revealer,
         id: &FeedID,
         parent_id: &CategoryID,
         label: &Label,
-        sender: Sender<Action>,
     ) -> ListBoxRow {
         let row = gtk::ListBoxRow::new();
         row.set_activatable(true);
@@ -104,6 +104,7 @@ impl FeedRow {
 
         let feed_id = id.clone();
         let label = label.clone();
+        let sender = sender.clone();
         row.connect_button_press_event(move |row, event| {
             if event.get_button() != 3 {
                 return Inhibit(false);
@@ -119,9 +120,20 @@ impl FeedRow {
             let model = Menu::new();
             model.append(Some("Move"), Some("move-feed"));
 
-            let variant = Variant::from(feed_id.to_str());
+            let sender_clone = sender.clone();
+            let feed_id_clone = feed_id.clone();
+            let rename_feed_dialog_action = SimpleAction::new("rename-feed-dialog", None);
+            rename_feed_dialog_action.connect_activate(move |_action, _parameter| {
+                let feed_id = feed_id_clone.clone();
+                Util::send(&sender_clone, Action::RenameFeedDialog(feed_id));
+            });
+
+            if let Ok(main_window) = GtkUtil::get_main_window(row) {
+                main_window.add_action(&rename_feed_dialog_action);
+            }
+
             let rename_feed_item = MenuItem::new(Some("Rename"), None);
-            rename_feed_item.set_action_and_target_value(Some("rename-feed"), Some(&variant));
+            rename_feed_item.set_action_and_target_value(Some("rename-feed-dialog"), None);
             model.append_item(&rename_feed_item);
 
             let delete_feed_item = MenuItem::new(Some("Delete"), None);
@@ -136,7 +148,7 @@ impl FeedRow {
                     None => "".to_owned(),
                 };
                 let remove_action = UndoActionModel::DeleteFeed((feed_id.clone(), label));
-                GtkUtil::send(&sender, Action::UndoableAction(remove_action));
+                Util::send(&sender, Action::UndoableAction(remove_action));
             });
             if let Ok(main_window) = GtkUtil::get_main_window(&row) {
                 main_window.add_action(&delete_feed_action);

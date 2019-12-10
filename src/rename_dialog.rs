@@ -1,6 +1,6 @@
 use crate::sidebar::models::SidebarSelection;
 use crate::util::BuilderHelper;
-use gtk::{Button, Dialog, DialogExt, Entry, EntryExt, GtkWindowExt, HeaderBar, HeaderBarExt, WidgetExt};
+use gtk::{Button, Dialog, Entry, EntryExt, GtkWindowExt, HeaderBar, HeaderBarExt, WidgetExt};
 
 #[derive(Clone, Debug)]
 pub struct RenameDialog {
@@ -45,11 +45,11 @@ impl RenameDialog {
         self.rename_button.clone()
     }
 
-    pub fn new_label(&self) -> Option<String> {
-        self.rename_entry.get_text().map(|label| label.to_owned())
+    pub fn rename_entry(&self) -> Entry {
+        self.rename_entry.clone()
     }
 
-    pub fn close(&self) {
-        self.dialog.emit_close()
+    pub fn dialog(&self) -> Dialog {
+        self.dialog.clone()
     }
 }

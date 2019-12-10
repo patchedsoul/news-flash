@@ -1,7 +1,7 @@
 use super::error::{LoginScreenError, LoginScreenErrorKind};
 use crate::app::Action;
 use crate::error_dialog::ErrorDialog;
-use crate::util::{BuilderHelper, GtkUtil};
+use crate::util::{BuilderHelper, GtkUtil, Util};
 use failure::{Fail, ResultExt};
 use glib::{signal::SignalHandlerId, translate::ToGlib, Sender};
 use gtk::{
@@ -220,7 +220,7 @@ impl PasswordLogin {
                             http_password,
                         };
                         let login_data = LoginData::Password(login_data);
-                        GtkUtil::send(&sender, Action::Login(login_data));
+                        Util::send(&sender, Action::Login(login_data));
                     })
                     .to_glib(),
             );

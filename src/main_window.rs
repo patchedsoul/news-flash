@@ -12,7 +12,7 @@ use crate::responsive::ResponsiveLayout;
 use crate::settings::{Keybindings, Settings};
 use crate::sidebar::models::SidebarSelection;
 use crate::undo_bar::{UndoActionModel, UndoBar};
-use crate::util::{BuilderHelper, GtkHandle, GtkUtil, GTK_CSS_ERROR, GTK_RESOURCE_FILE_ERROR};
+use crate::util::{BuilderHelper, GtkHandle, GtkUtil, Util, GTK_CSS_ERROR, GTK_RESOURCE_FILE_ERROR};
 use crate::welcome_screen::{WelcomeHeaderbar, WelcomePage};
 use crate::Resources;
 use gdk::EventKey;
@@ -82,7 +82,7 @@ impl MainWindow {
             if delete_event_settings.read().get_keep_running_in_background() {
                 win.hide_on_delete();
             } else {
-                GtkUtil::send(&sender_clone, Action::Quit);
+                Util::send(&sender_clone, Action::Quit);
             }
 
             Inhibit(true)
@@ -99,8 +99,6 @@ impl MainWindow {
 
         let state = RwLock::new(MainWindowState::new());
 
-        MainWindowActions::setup_rename_feed_action(&window, &sender, &news_flash_handle);
-        MainWindowActions::setup_rename_category_action(&window, &sender, &news_flash_handle);
         MainWindowActions::setup_delete_selection_action(&window, &sender, &content_page_handle);
         MainWindowActions::setup_delete_feed_action(&window, &sender, &news_flash_handle);
         MainWindowActions::setup_delete_category_action(&window, &sender, &news_flash_handle);
@@ -124,7 +122,7 @@ impl MainWindow {
             let sender_clone = sender.clone();
             gtk_settings.connect_property_gtk_application_prefer_dark_theme_notify(move |_settings| {
                 Self::load_css(&provider);
-                GtkUtil::send(&sender_clone, Action::RedrawArticle);
+                Util::send(&sender_clone, Action::RedrawArticle);
             });
         }
 
@@ -172,15 +170,15 @@ impl MainWindow {
             }
 
             if Self::check_shortcut("shortcuts", &settings, event) {
-                GtkUtil::send(&sender, Action::ShowShortcutWindow);
+                Util::send(&sender, Action::ShowShortcutWindow);
             }
 
             if Self::check_shortcut("refresh", &settings, event) {
-                GtkUtil::send(&sender, Action::Sync);
+                Util::send(&sender, Action::Sync);
             }
 
             if Self::check_shortcut("quit", &settings, event) {
-                GtkUtil::send(&sender, Action::Quit);
+                Util::send(&sender, Action::Quit);
             }
 
             if Self::check_shortcut("search", &settings, event) {
@@ -219,8 +217,8 @@ impl MainWindow {
                         read: article_model.read.invert(),
                     };
 
-                    GtkUtil::send(&sender, Action::MarkArticleRead(update));
-                    GtkUtil::send(&sender, Action::UpdateArticleList);
+                    Util::send(&sender, Action::MarkArticleRead(update));
+                    Util::send(&sender, Action::UpdateArticleList);
                 }
             }
 
@@ -232,8 +230,8 @@ impl MainWindow {
                         marked: article_model.marked.invert(),
                     };
 
-                    GtkUtil::send(&sender, Action::MarkArticle(update));
-                    GtkUtil::send(&sender, Action::UpdateArticleList);
+                    Util::send(&sender, Action::MarkArticle(update));
+                    Util::send(&sender, Action::UpdateArticleList);
                 }
             }
 
@@ -242,7 +240,7 @@ impl MainWindow {
                 if let Some(article_model) = article_model {
                     if let Some(url) = article_model.url {
                         if gtk::show_uri_on_window(Some(&main_window), url.get().as_str(), 0).is_err() {
-                            GtkUtil::send(
+                            Util::send(
                                 &sender,
                                 Action::ErrorSimpleMessage("Failed to open URL in browser.".to_owned()),
                             );
@@ -258,7 +256,7 @@ impl MainWindow {
             if Self::check_shortcut("next_item", &settings, event)
                 && content_page.borrow().sidebar_select_next_item().is_err()
             {
-                GtkUtil::send(
+                Util::send(
                     &sender,
                     Action::ErrorSimpleMessage("Failed to select next item in sidebar.".to_owned()),
                 );
@@ -267,7 +265,7 @@ impl MainWindow {
             if Self::check_shortcut("previous_item", &settings, event)
                 && content_page.borrow().sidebar_select_prev_item().is_err()
             {
-                GtkUtil::send(
+                Util::send(
                     &sender,
                     Action::ErrorSimpleMessage("Failed to select previous item in sidebar.".to_owned()),
                 );
@@ -276,7 +274,7 @@ impl MainWindow {
             if Self::check_shortcut("scroll_up", &settings, event)
                 && content_page.borrow().article_view_scroll_diff(-150.0).is_err()
             {
-                GtkUtil::send(
+                Util::send(
                     &sender,
                     Action::ErrorSimpleMessage("Failed to select scroll article view up.".to_owned()),
                 );
@@ -285,14 +283,14 @@ impl MainWindow {
             if Self::check_shortcut("scroll_down", &settings, event)
                 && content_page.borrow().article_view_scroll_diff(150.0).is_err()
             {
-                GtkUtil::send(
+                Util::send(
                     &sender,
                     Action::ErrorSimpleMessage("Failed to select scroll article view down.".to_owned()),
                 );
             }
 
             if Self::check_shortcut("sidebar_set_read", &settings, event) {
-                GtkUtil::send(&sender, Action::SetSidebarRead);
+                Util::send(&sender, Action::SetSidebarRead);
             }
 
             Inhibit(false)
@@ -353,7 +351,7 @@ impl MainWindow {
                 let content_page_handle_clone = self.content_page.clone();
                 let sender = self.sender.clone();
                 if content_page_handle_clone.borrow().set_service(&id, user_name).is_err() {
-                    GtkUtil::send(
+                    Util::send(
                         &sender,
                         Action::ErrorSimpleMessage("Failed to set sidebar service logo.".to_owned()),
                     );
@@ -366,7 +364,7 @@ impl MainWindow {
                     .update_sidebar(&news_flash, &self.state, &self.undo_bar)
                     .is_err()
                 {
-                    GtkUtil::send(
+                    Util::send(
                         &sender,
                         Action::ErrorSimpleMessage("Failed to populate sidebar with data.".to_owned()),
                     );
@@ -377,7 +375,7 @@ impl MainWindow {
                     .update_article_list(&news_flash, &self.state, &self.undo_bar)
                     .is_err()
                 {
-                    GtkUtil::send(
+                    Util::send(
                         &sender,
                         Action::ErrorSimpleMessage("Failed to populate article list with data.".to_owned()),
                     );
@@ -460,10 +458,10 @@ impl MainWindow {
             self.stack.set_visible_child_name("content");
             self.header_stack.set_visible_child_name("content");
 
-            GtkUtil::send(&self.sender, Action::UpdateSidebar);
+            Util::send(&self.sender, Action::UpdateSidebar);
 
             if self.content_page.borrow().set_service(&plugin_id, user_name).is_err() {
-                GtkUtil::send(
+                Util::send(
                     &self.sender,
                     Action::ErrorSimpleMessage("Failed to set service.".to_owned()),
                 );
@@ -478,7 +476,7 @@ impl MainWindow {
             .update_sidebar(news_flash, &self.state, &self.undo_bar)
             .is_err()
         {
-            GtkUtil::send(
+            Util::send(
                 &self.sender,
                 Action::ErrorSimpleMessage("Failed to update sidebar.".to_owned()),
             );
@@ -492,7 +490,7 @@ impl MainWindow {
             .update_article_list(&news_flash, &self.state, &self.undo_bar)
             .is_err()
         {
-            GtkUtil::send(
+            Util::send(
                 &self.sender,
                 Action::ErrorSimpleMessage("Failed to update the article list.".to_owned()),
             );
@@ -506,7 +504,7 @@ impl MainWindow {
             .load_more_articles(&news_flash, &self.state, &self.undo_bar)
             .is_err()
         {
-            GtkUtil::send(
+            Util::send(
                 &self.sender,
                 Action::ErrorSimpleMessage("Failed to load more articles.".to_owned()),
             );
@@ -517,7 +515,7 @@ impl MainWindow {
         self.state.write().set_sidebar_selection(selection);
         self.responsive_layout.state.borrow_mut().minor_leaflet_selected = true;
         self.responsive_layout.process_state_change();
-        GtkUtil::send(&self.sender, Action::UpdateArticleList);
+        Util::send(&self.sender, Action::UpdateArticleList);
     }
 
     pub fn show_article(&self, article_id: ArticleID, news_flash: &RwLock<Option<NewsFlash>>) {
@@ -525,21 +523,21 @@ impl MainWindow {
             let article = match news_flash.get_fat_article(&article_id) {
                 Ok(article) => article,
                 Err(error) => {
-                    GtkUtil::send(&self.sender, Action::Error("Failed to read article.".to_owned(), error));
+                    Util::send(&self.sender, Action::Error("Failed to read article.".to_owned(), error));
                     return;
                 }
             };
             let (feeds, _) = match news_flash.get_feeds() {
                 Ok(res) => res,
                 Err(error) => {
-                    GtkUtil::send(&self.sender, Action::Error("Failed to read feeds.".to_owned(), error));
+                    Util::send(&self.sender, Action::Error("Failed to read feeds.".to_owned(), error));
                     return;
                 }
             };
             let feed = match feeds.iter().find(|&f| f.feed_id == article.feed_id) {
                 Some(feed) => feed,
                 None => {
-                    GtkUtil::send(
+                    Util::send(
                         &self.sender,
                         Action::ErrorSimpleMessage(format!("Failed to find feed: '{}'", article.feed_id)),
                     );
@@ -562,7 +560,7 @@ impl MainWindow {
             HeaderSelection::Unread => self.content_header.select_unread_button(),
             HeaderSelection::Marked => self.content_header.select_marked_button(),
         };
-        GtkUtil::send(&self.sender, Action::UpdateArticleList);
+        Util::send(&self.sender, Action::UpdateArticleList);
 
         let update_sidebar = match old_selection {
             HeaderSelection::All | HeaderSelection::Unread => match new_selection {
@@ -575,7 +573,7 @@ impl MainWindow {
             },
         };
         if update_sidebar {
-            GtkUtil::send(&self.sender, Action::UpdateSidebar);
+            Util::send(&self.sender, Action::UpdateSidebar);
         }
     }
 
@@ -586,7 +584,7 @@ impl MainWindow {
             self.state.write().set_search_term(Some(search_term));
         }
 
-        GtkUtil::send(&self.sender, Action::UpdateArticleList);
+        Util::send(&self.sender, Action::UpdateArticleList);
     }
 
     pub fn set_sidebar_read(&self, news_flash: &RwLock<Option<NewsFlash>>) {
@@ -600,7 +598,7 @@ impl MainWindow {
                         Err(error) => {
                             let message = "Failed to mark all read".to_owned();
                             error!("{}", message);
-                            GtkUtil::send(&self.sender, Action::Error(message, error));
+                            Util::send(&self.sender, Action::Error(message, error));
                         }
                     });
                     GtkUtil::block_on_future(future);
@@ -614,7 +612,7 @@ impl MainWindow {
                             Err(error) => {
                                 let message = format!("Failed to mark category '{}' read", category_id);
                                 error!("{}", message);
-                                GtkUtil::send(&self.sender, Action::Error(message, error));
+                                Util::send(&self.sender, Action::Error(message, error));
                             }
                         });
                     GtkUtil::block_on_future(future);
@@ -626,7 +624,7 @@ impl MainWindow {
                         Err(error) => {
                             let message = format!("Failed to mark feed '{}' read", feed_id);
                             error!("{}", message);
-                            GtkUtil::send(&self.sender, Action::Error(message, error));
+                            Util::send(&self.sender, Action::Error(message, error));
                         }
                     });
                     GtkUtil::block_on_future(future);
@@ -638,7 +636,7 @@ impl MainWindow {
                         Err(error) => {
                             let message = format!("Failed to mark tag '{}' read", tag_id);
                             error!("{}", message);
-                            GtkUtil::send(&self.sender, Action::Error(message, error));
+                            Util::send(&self.sender, Action::Error(message, error));
                         }
                     });
                     GtkUtil::block_on_future(future);
@@ -656,7 +654,7 @@ impl MainWindow {
             }
         }
 
-        GtkUtil::send(&self.sender, Action::UpdateArticleList);
-        GtkUtil::send(&self.sender, Action::UpdateSidebar);
+        Util::send(&self.sender, Action::UpdateArticleList);
+        Util::send(&self.sender, Action::UpdateSidebar);
     }
 }

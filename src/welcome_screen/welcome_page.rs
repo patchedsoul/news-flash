@@ -1,6 +1,6 @@
 use super::service_row::ServiceRow;
 use crate::app::Action;
-use crate::util::{BuilderHelper, GtkUtil};
+use crate::util::{BuilderHelper, Util};
 use glib::Sender;
 use gtk::{Box, ListBox, ListBoxExt, ListBoxRowExt};
 use news_flash::models::{LoginGUI, PluginID};
@@ -51,10 +51,10 @@ impl WelcomePage {
             if let Some((id, login_desc)) = services.read().get(&row.get_index()) {
                 match login_desc {
                     LoginGUI::OAuth(_) => {
-                        GtkUtil::send(&sender, Action::ShowOauthLogin(id.clone()));
+                        Util::send(&sender, Action::ShowOauthLogin(id.clone()));
                     }
                     LoginGUI::Password(_) => {
-                        GtkUtil::send(&sender, Action::ShowPasswordLogin(id.clone()));
+                        Util::send(&sender, Action::ShowPasswordLogin(id.clone()));
                     }
                     LoginGUI::None => {
                         // FIXME: trigger "login" action directly

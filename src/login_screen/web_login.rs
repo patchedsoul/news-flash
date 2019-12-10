@@ -1,7 +1,7 @@
 use super::error::{LoginScreenError, LoginScreenErrorKind};
 use crate::app::Action;
 use crate::error_dialog::ErrorDialog;
-use crate::util::{BuilderHelper, GtkUtil, GTK_BUILDER_ERROR};
+use crate::util::{BuilderHelper, GtkUtil, Util, GTK_BUILDER_ERROR};
 use glib::{
     signal::SignalHandlerId,
     translate::{FromGlib, ToGlib},
@@ -126,7 +126,7 @@ impl WebLogin {
                                             webview.disconnect(signal_id);
                                         }
                                         webview.stop_loading();
-                                        GtkUtil::send(&sender, Action::Login(oauth_data));
+                                        Util::send(&sender, Action::Login(oauth_data));
                                     }
                                 }
                             }

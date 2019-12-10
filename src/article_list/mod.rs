@@ -10,7 +10,7 @@ use crate::gtk_handle;
 use crate::main_window_state::MainWindowState;
 use crate::settings::Settings;
 use crate::sidebar::models::SidebarSelection;
-use crate::util::{BuilderHelper, GtkHandle, GtkUtil};
+use crate::util::{BuilderHelper, GtkHandle, GtkUtil, Util};
 use failure::ResultExt;
 use glib::{translate::ToGlib, Sender};
 use gtk::{Continue, Label, LabelExt, ListBoxExt, ListBoxRowExt, ScrolledWindow, Stack, StackExt, StackTransitionType};
@@ -238,10 +238,10 @@ impl ArticleList {
                             CurrentList::List2 => list_2.borrow_mut().update_read(&selected_article.id, Read::Read),
                             CurrentList::Empty => return,
                         }
-                        GtkUtil::send(&sender, Action::MarkArticleRead(update));
+                        Util::send(&sender, Action::MarkArticleRead(update));
                     }
 
-                    GtkUtil::send(&sender, Action::ShowArticle(selected_article.id.clone()));
+                    Util::send(&sender, Action::ShowArticle(selected_article.id.clone()));
                 }
             })
             .to_glib();
