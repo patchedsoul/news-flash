@@ -355,8 +355,8 @@ impl ContentHeader {
         model.append_item(&unread_item);
 
         let sender_clone = sender.clone();
-        let headerbar_selection_unread_action = SimpleAction::new("headerbar-selection-marked", None);
-        headerbar_selection_unread_action.connect_activate(move |_action, _parameter| {
+        let headerbar_selection_marked_action = SimpleAction::new("headerbar-selection-marked", None);
+        headerbar_selection_marked_action.connect_activate(move |_action, _parameter| {
             Util::send(&sender_clone, Action::HeaderSelection(HeaderSelection::Marked));
         });
         let marked_item = MenuItem::new(Some("Starred"), None);
@@ -365,6 +365,8 @@ impl ContentHeader {
 
         if let Ok(main_window) = GtkUtil::get_main_window(button) {
             main_window.add_action(&headerbar_selection_all_action);
+            main_window.add_action(&headerbar_selection_unread_action);
+            main_window.add_action(&headerbar_selection_marked_action);
         }
 
         button.set_menu_model(Some(&model));
