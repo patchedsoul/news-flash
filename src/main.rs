@@ -10,7 +10,6 @@ mod error_bar;
 mod error_dialog;
 mod login_screen;
 mod main_window;
-mod main_window_actions;
 mod main_window_state;
 mod rename_dialog;
 mod responsive;

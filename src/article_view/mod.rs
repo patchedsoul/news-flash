@@ -167,7 +167,7 @@ impl ArticleView {
         self.top_overlay.clone()
     }
 
-    pub fn show_article(&mut self, article: FatArticle, feed_name: String) {
+    pub fn show_article(&self, article: FatArticle, feed_name: String) {
         let webview = self.switch_view();
         let html = self.build_article(&article, &feed_name);
         webview.load_html(&html, None);
@@ -175,7 +175,7 @@ impl ArticleView {
         self.visible_feed_name.replace(Some(feed_name));
     }
 
-    pub fn redraw_article(&mut self) {
+    pub fn redraw_article(&self) {
         let mut html = String::new();
         let mut success = false;
 
@@ -199,7 +199,7 @@ impl ArticleView {
         (*self.visible_article.borrow()).clone()
     }
 
-    pub fn update_visible_article(&mut self, read: Option<Read>, marked: Option<Marked>) {
+    pub fn update_visible_article(&self, read: Option<Read>, marked: Option<Marked>) {
         if let Some(visible_article) = &mut *self.visible_article.borrow_mut() {
             if let Some(marked) = marked {
                 visible_article.marked = marked;
@@ -216,7 +216,7 @@ impl ArticleView {
         self.stack.set_visible_child_name("empty");
     }
 
-    fn switch_view(&mut self) -> WebView {
+    fn switch_view(&self) -> WebView {
         self.remove_old_view(150);
 
         let webview = self.new_webview();
@@ -317,7 +317,7 @@ impl ArticleView {
         });
     }
 
-    fn new_webview(&mut self) -> WebView {
+    fn new_webview(&self) -> WebView {
         let settings = WebkitSettings::new();
         settings.set_enable_accelerated_2d_canvas(true);
         settings.set_enable_html5_database(false);
@@ -343,7 +343,7 @@ impl ArticleView {
         //----------------------------------
         // open link in external browser
         //----------------------------------
-        *self.load_changed_signal.borrow_mut() = Some(
+        self.load_changed_signal.borrow_mut().replace(
             webview
                 .connect_load_changed(|closure_webivew, event| {
                     match event {
@@ -374,7 +374,7 @@ impl ArticleView {
                 .to_glib(),
         );
 
-        *self.decide_policy_signal.borrow_mut() = Some(
+        self.decide_policy_signal.borrow_mut().replace(
             webview
                 .connect_decide_policy(|_closure_webivew, decision, decision_type| {
                     if decision_type == PolicyDecisionType::NewWindowAction {
@@ -413,7 +413,7 @@ impl ArticleView {
         let url_overlay_handle = self.url_overlay_label.clone();
         let stack = self.stack.clone();
         let pointer_pos = self.pointer_pos.clone();
-        *self.mouse_over_signal.borrow_mut() = Some(
+        self.mouse_over_signal.borrow_mut().replace(
             webview
                 .connect_mouse_target_changed(move |_closure_webivew, hit_test, _modifiers| {
                     if hit_test.context_is_link() {
@@ -441,7 +441,7 @@ impl ArticleView {
         //----------------------------------
         // zoom with ctrl+scroll
         //----------------------------------
-        *self.scroll_signal.borrow_mut() = Some(
+        self.scroll_signal.borrow_mut().replace(
             webview
                 .connect_scroll_event(|closure_webivew, event| {
                     if event.get_state().contains(ModifierType::CONTROL_MASK) {
@@ -467,7 +467,7 @@ impl ArticleView {
         //------------------------------------------------
         // zoom with ctrl+PLUS/MINUS & reset with ctrl+0
         //------------------------------------------------
-        *self.key_press_signal.borrow_mut() = Some(
+        self.key_press_signal.borrow_mut().replace(
             webview
                 .connect_key_press_event(|closure_webivew, event| {
                     if event.get_state().contains(ModifierType::CONTROL_MASK) {
@@ -488,7 +488,7 @@ impl ArticleView {
         //----------------------------------
         // clean up context menu
         //----------------------------------
-        *self.ctx_menu_signal.borrow_mut() = Some(
+        self.ctx_menu_signal.borrow_mut().replace(
             webview
                 .connect_context_menu(|_closure_webivew, ctx_menu, _event, _hit_test| {
                     let menu_items = ctx_menu.get_items();
@@ -524,7 +524,7 @@ impl ArticleView {
         let progress_overlay_delay_signal = self.progress_overlay_delay_signal.clone();
         let load_signal = self.load_signal.clone();
         let progress_webview = webview.clone();
-        *self.progress_overlay_delay_signal.borrow_mut() = Some(
+        self.progress_overlay_delay_signal.borrow_mut().replace(
             gtk::timeout_add(1500, move || {
                 *progress_overlay_delay_signal.borrow_mut() = None;
                 if (progress_webview.get_estimated_load_progress() - 1.0).abs() < 0.01 {
@@ -561,7 +561,7 @@ impl ArticleView {
         let drag_motion_notify_signal = self.drag_motion_notify_signal.clone();
         let drag_buffer_update_signal = self.drag_buffer_update_signal.clone();
         let scroll_animation_data = self.scroll_animation_data.clone();
-        *self.click_signal.borrow_mut() = Some(
+        self.click_signal.borrow_mut().replace(
             webview
                 .connect_button_press_event(move |closure_webview, event| {
                     if event.get_button() == MIDDLE_MOUSE_BUTTON {
@@ -641,7 +641,7 @@ impl ArticleView {
         let drag_ongoing = self.drag_ongoing.clone();
         let drag_momentum = self.drag_momentum.clone();
         let widget = self.top_overlay.clone();
-        *self.click_release_signal.borrow_mut() = Some(
+        self.click_release_signal.borrow_mut().replace(
             webview
                 .connect_button_release_event(move |closure_webivew, event| {
                     if event.get_button() == MIDDLE_MOUSE_BUTTON {

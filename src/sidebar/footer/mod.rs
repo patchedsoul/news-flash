@@ -1,5 +1,5 @@
 use crate::app::Action;
-use crate::util::{BuilderHelper, GtkUtil, Util};
+use crate::util::{BuilderHelper, Util};
 use glib::Sender;
 use gtk::{Button, ButtonExt, WidgetExt};
 
@@ -14,13 +14,14 @@ impl SidebarFooter {
         let add_button = builder.get::<Button>("add_button");
         let remove_button = builder.get::<Button>("remove_button");
 
-        remove_button.connect_clicked(|button| {
-            GtkUtil::execute_action(button, "delete-selection", None);
+        let sender_clone = sender.clone();
+        remove_button.connect_clicked(move |_button| {
+            Util::send(&sender_clone, Action::DeleteSidebarSelection);
         });
 
-        let sender = sender.clone();
+        let sender_clone = sender.clone();
         add_button.connect_clicked(move |_button| {
-            Util::send(&sender, Action::AddFeedDialog);
+            Util::send(&sender_clone, Action::AddFeedDialog);
         });
 
         SidebarFooter {

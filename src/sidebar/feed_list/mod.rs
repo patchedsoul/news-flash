@@ -15,9 +15,9 @@ use crate::sidebar::feed_list::{
     },
 };
 use crate::sidebar::SidebarIterateItem;
-use crate::util::{BuilderHelper, GtkHandle, GtkHandleMap, GtkUtil};
+use crate::util::{BuilderHelper, GtkHandle, GtkHandleMap, GtkUtil, Util};
 use gdk::{DragAction, EventType};
-use glib::{translate::ToGlib, Sender, Variant};
+use glib::{translate::ToGlib, Sender};
 use gtk::{
     self, ContainerExt, Continue, DestDefaults, Inhibit, ListBox, ListBoxExt, ListBoxRowExt, ScrolledWindow,
     SelectionMode, StyleContextExt, TargetEntry, TargetFlags, WidgetExt, WidgetExtManual,
@@ -215,6 +215,7 @@ impl FeedList {
             Inhibit(false)
         });
         let tree = self.tree.clone();
+        let sender = self.sender.clone();
         let hovered_category_expand = self.hovered_category_expand.clone();
         self.list
             .connect_drag_data_received(move |widget, _ctx, _x, y, selection_data, _info, _time| {
@@ -265,9 +266,7 @@ impl FeedList {
                                     parent_category.clone(),
                                     sort_index,
                                 );
-                                let dnd_data_json =
-                                    serde_json::to_string(&dnd_data).expect("Failed to serialize FeedListDndAction.");
-                                GtkUtil::execute_action(widget, "move", Some(&Variant::from(&dnd_data_json)));
+                                Util::send(&sender, Action::DragAndDrop(dnd_data));
                             }
 
                             if dnd_data_string.contains("CategoryID") {
@@ -276,9 +275,7 @@ impl FeedList {
                                         .expect("Failed to deserialize CategoryID.");
                                 let dnd_data =
                                     FeedListDndAction::MoveCategory(category, parent_category.clone(), sort_index);
-                                let dnd_data_json =
-                                    serde_json::to_string(&dnd_data).expect("Failed to serialize FeedListDndAction.");
-                                GtkUtil::execute_action(widget, "move", Some(&Variant::from(&dnd_data_json)));
+                                Util::send(&sender, Action::DragAndDrop(dnd_data));
                             }
                         }
                     }

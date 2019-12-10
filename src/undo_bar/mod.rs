@@ -3,7 +3,7 @@ mod models;
 use crate::app::Action;
 use crate::gtk_handle;
 use crate::util::{BuilderHelper, GtkHandle, GtkUtil, Util};
-use glib::{translate::ToGlib, Sender, Variant};
+use glib::{translate::ToGlib, Sender};
 use gtk::{Button, ButtonExt, Continue, InfoBar, InfoBarExt, Label, LabelExt, WidgetExt};
 use log::debug;
 pub use models::{UndoAction, UndoActionModel};
@@ -54,19 +54,17 @@ impl UndoBar {
         self.widget.show();
     }
 
-    fn execute_action(action: &UndoActionModel, info_bar: &InfoBar) {
+    fn execute_action(action: &UndoActionModel, sender: &Sender<Action>) {
+        let sender = sender.clone();
         match action {
             UndoActionModel::DeleteFeed((feed_id, _label)) => {
-                let variant = Variant::from(feed_id.to_str());
-                GtkUtil::execute_action(info_bar, "delete-feed", Some(&variant));
+                Util::send(&sender, Action::DeleteFeed(feed_id.clone()));
             }
             UndoActionModel::DeleteCategory((category_id, _label)) => {
-                let variant = Variant::from(category_id.to_str());
-                GtkUtil::execute_action(info_bar, "delete-category", Some(&variant));
+                Util::send(&sender, Action::DeleteCategory(category_id.clone()));
             }
             UndoActionModel::DeleteTag((tag_id, _label)) => {
-                let variant = Variant::from(tag_id.to_str());
-                GtkUtil::execute_action(info_bar, "delete-tag", Some(&variant));
+                Util::send(&sender, Action::DeleteTag(tag_id.clone()));
             }
         }
     }
@@ -75,7 +73,7 @@ impl UndoBar {
         if let Some(current_action) = self.current_action.borrow().as_ref() {
             debug!("remove current action: {}", current_action.get_model());
             GtkUtil::remove_source(Some(current_action.get_timeout()));
-            Self::execute_action(current_action.get_model(), &self.widget);
+            Self::execute_action(current_action.get_model(), &self.sender);
         }
 
         match &action {
@@ -91,8 +89,9 @@ impl UndoBar {
         let timeout_action = action.clone();
         let timeout_widget = self.widget.clone();
         let timeout_current_action = self.current_action.clone();
+        let sender = self.sender.clone();
         let source_id = gtk::timeout_add(ACTION_DELAY, move || {
-            Self::execute_action(&timeout_action, &timeout_widget);
+            Self::execute_action(&timeout_action, &sender);
             timeout_widget.set_revealed(false);
             timeout_current_action.replace(None);
             Continue(false)

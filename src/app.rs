@@ -11,7 +11,7 @@ use gtk::{
 };
 use lazy_static::lazy_static;
 use log::{error, info, warn};
-use news_flash::models::{ArticleID, Category, CategoryID, Feed, FeedID, LoginData, PluginID, Url};
+use news_flash::models::{ArticleID, Category, CategoryID, TagID, Feed, FeedID, LoginData, PluginID, Url};
 use news_flash::{NewsFlash, NewsFlashError};
 use parking_lot::RwLock;
 
@@ -24,7 +24,7 @@ use crate::content_page::HeaderSelection;
 use crate::main_window::MainWindow;
 use crate::rename_dialog::RenameDialog;
 use crate::settings::{NewsFlashShortcutWindow, Settings, SettingsDialog};
-use crate::sidebar::models::SidebarSelection;
+use crate::sidebar::{FeedListDndAction, models::SidebarSelection};
 use crate::undo_bar::UndoActionModel;
 use crate::util::{FileUtil, GtkUtil, Util};
 
@@ -64,6 +64,8 @@ pub enum Action {
     UpdateArticleList,
     LoadMoreArticles,
     SidebarSelection(SidebarSelection),
+    SidebarSelectNext,
+    SidebarSelectPrev,
     HeaderSelection(HeaderSelection),
     ShowArticle(ArticleID),
     RedrawArticle,
@@ -76,6 +78,11 @@ pub enum Action {
     RenameFeed((Feed, String)),
     RenameCategoryDialog(CategoryID),
     RenameCategory((Category, String)),
+    DeleteSidebarSelection,
+    DeleteFeed(FeedID),
+    DeleteCategory(CategoryID),
+    DeleteTag(TagID),
+    DragAndDrop(FeedListDndAction),
     ExportArticle,
     ExportOpml,
     Quit,
@@ -171,11 +178,13 @@ impl App {
             Action::UpdateArticleList => self.window.update_article_list(&self.news_flash),
             Action::LoadMoreArticles => self.window.load_more_articles(&self.news_flash),
             Action::SidebarSelection(selection) => self.window.sidebar_selection(selection),
+            Action::SidebarSelectNext => self.window.content_page.read().select_next_article(),
+            Action::SidebarSelectPrev => self.window.content_page.read().select_prev_article(),
             Action::HeaderSelection(selection) => self.window.set_headerbar_selection(selection),
             Action::ShowArticle(article_id) => self.window.show_article(article_id, &self.news_flash),
-            Action::RedrawArticle => self.window.content_page.borrow_mut().article_view_redraw(),
+            Action::RedrawArticle => self.window.content_page.read().article_view_redraw(),
             Action::CloseArticle => {
-                self.window.content_page.borrow().article_view_close();
+                self.window.content_page.read().article_view_close();
                 self.window.content_header.show_article(None);
             }
             Action::SearchTerm(search_term) => self.window.set_search_term(search_term),
@@ -186,6 +195,11 @@ impl App {
             Action::RenameFeed((feed, new_title)) => self.rename_feed(feed, new_title),
             Action::RenameCategoryDialog(category_id) => self.rename_category_dialog(category_id),
             Action::RenameCategory((category, new_title)) => self.rename_category(category, new_title),
+            Action::DeleteSidebarSelection => self.delete_selection(),
+            Action::DeleteFeed(feed_id) => self.delete_feed(feed_id),
+            Action::DeleteCategory(category_id) => self.delete_category(category_id),
+            Action::DeleteTag(tag_id) => self.delete_tag(tag_id),
+            Action::DragAndDrop(action) => self.drag_and_drop(action),
             Action::ExportArticle => self.export_article(),
             Action::ExportOpml => self.export_opml(),
             Action::Quit => self.quit(),
@@ -323,15 +337,14 @@ impl App {
         }
 
         Util::send(&self.sender, Action::UpdateSidebar);
-        let visible_article = self.window.content_page.borrow().article_view_visible_article();
+        let visible_article = self.window.content_page.read().article_view_visible_article();
         if let Some(visible_article) = visible_article {
             if visible_article.article_id == update.article_id {
                 let mut visible_article = visible_article.clone();
                 visible_article.unread = update.read;
                 self.window.content_header.show_article(Some(&visible_article));
                 self.window
-                    .content_page
-                    .borrow_mut()
+                    .content_page.read()
                     .article_view_update_visible_article(Some(visible_article.unread), None);
             }
         }
@@ -358,22 +371,21 @@ impl App {
         }
 
         Util::send(&self.sender, Action::UpdateSidebar);
-        let visible_article = self.window.content_page.borrow().article_view_visible_article();
+        let visible_article = self.window.content_page.read().article_view_visible_article();
         if let Some(visible_article) = visible_article {
             if visible_article.article_id == update.article_id {
                 let mut visible_article = visible_article.clone();
                 visible_article.marked = update.marked;
                 self.window.content_header.show_article(Some(&visible_article));
                 self.window
-                    .content_page
-                    .borrow_mut()
+                    .content_page.read()
                     .article_view_update_visible_article(None, Some(visible_article.marked));
             }
         }
     }
 
     fn toggle_article_read(&self) {
-        let visible_article = self.window.content_page.borrow().article_view_visible_article();
+        let visible_article = self.window.content_page.read().article_view_visible_article();
         if let Some(visible_article) = visible_article {
             let update = ReadUpdate {
                 article_id: visible_article.article_id.clone(),
@@ -385,7 +397,7 @@ impl App {
     }
 
     fn toggle_article_marked(&self) {
-        let visible_article = self.window.content_page.borrow().article_view_visible_article();
+        let visible_article = self.window.content_page.read().article_view_visible_article();
         if let Some(visible_article) = visible_article {
             let update = MarkUpdate {
                 article_id: visible_article.article_id.clone(),
@@ -415,7 +427,7 @@ impl App {
     fn add_feed_dialog(&self) {
         if let Some(news_flash) = self.news_flash.read().as_ref() {
             let error_message = "Failed to add feed".to_owned();
-            let add_button = self.window.content_page.borrow().sidebar_get_add_button();
+            let add_button = self.window.content_page.read().sidebar_get_add_button();
 
             let categories = match news_flash.get_categories() {
                 Ok(categories) => categories,
@@ -608,8 +620,143 @@ impl App {
         Util::send(&self.sender, Action::UpdateSidebar);
     }
 
+    fn delete_selection(&self) {
+        let selection = self.window.content_page.read().sidebar_get_selection();
+        let undo_action = match selection {
+            SidebarSelection::All => {
+                warn!("Trying to delete item while 'All Articles' is selected");
+                None
+            }
+            SidebarSelection::Feed((feed_id, label)) => Some(UndoActionModel::DeleteFeed((feed_id, label))),
+            SidebarSelection::Cateogry((category_id, label)) => {
+                Some(UndoActionModel::DeleteCategory((category_id, label)))
+            }
+            SidebarSelection::Tag((tag_id, label)) => Some(UndoActionModel::DeleteTag((tag_id, label))),
+        };
+        if let Some(undo_action) = undo_action {
+            Util::send(&self.sender, Action::UndoableAction(undo_action));
+        }
+    }
+
+    fn delete_feed(&self, feed_id: FeedID) {
+        if let Some(news_flash) = self.news_flash.read().as_ref() {
+            let (feeds, _mappings) = match news_flash.get_feeds() {
+                Ok(res) => res,
+                Err(error) => {
+                    Util::send(&self.sender, Action::Error("Failed to delete feed.".to_owned(), error));
+                    return;
+                }
+            };
+
+            if let Some(feed) = feeds.iter().find(|f| f.feed_id == feed_id).cloned() {
+                info!("delete feed '{}' (id: {})", feed.label, feed.feed_id);
+                let future = news_flash.remove_feed(&feed).map(|remove_result| {
+                    if let Err(error) = remove_result {
+                        Util::send(&self.sender, Action::Error("Failed to delete feed.".to_owned(), error));
+                    }
+                });
+                GtkUtil::block_on_future(future);
+            } else {
+                let message = format!("Failed to delete feed: feed with id '{}' not found.", feed_id);
+                Util::send(&self.sender, Action::ErrorSimpleMessage(message));
+                error!("feed not found: {}", feed_id);
+            }
+        }
+    }
+
+    fn delete_category(&self, category_id: CategoryID) {
+        if let Some(news_flash) = self.news_flash.read().as_ref() {
+            let categories = match news_flash.get_categories() {
+                Ok(res) => res,
+                Err(error) => {
+                    Util::send(&self.sender, Action::Error("Failed to delete category.".to_owned(), error));
+                    return;
+                }
+            };
+
+            if let Some(category) = categories.iter().find(|c| c.category_id == category_id).cloned() {
+                info!("delete category '{}' (id: {})", category.label, category.category_id);
+                let future = news_flash.remove_category(&category, true).map(|remove_result| {
+                    if let Err(error) = remove_result {
+                        Util::send(&self.sender, Action::Error("Failed to delete category.".to_owned(), error));
+                    }
+                });
+                // FIXME
+                GtkUtil::block_on_future(future);
+            } else {
+                let message = format!(
+                    "Failed to delete category: category with id '{}' not found.",
+                    category_id
+                );
+                Util::send(&self.sender, Action::ErrorSimpleMessage(message));
+                error!("category not found: {}", category_id);
+            }
+        }
+    }
+
+    fn delete_tag(&self, tag_id: TagID) {
+        if let Some(news_flash) = self.news_flash.read().as_ref() {
+            let tags = match news_flash.get_tags() {
+                Ok(res) => res,
+                Err(error) => {
+                    Util::send(&self.sender, Action::Error("Failed to delete tag.".to_owned(), error));
+                    return;
+                }
+            };
+
+            if let Some(tag) = tags.iter().find(|t| t.tag_id == tag_id).cloned() {
+                info!("delete tag '{}' (id: {})", tag.label, tag.tag_id);
+                let future = news_flash.remove_tag(&tag).map(|remove_result| {
+                    if let Err(error) = remove_result {
+                        Util::send(&self.sender, Action::Error("Failed to delete tag.".to_owned(), error));
+                    }
+                });
+                // FIXME
+                GtkUtil::block_on_future(future);
+            } else {
+                let message = format!(
+                    "Failed to delete tag: tag with id '{}' not found.",
+                    tag_id
+                );
+                Util::send(&self.sender, Action::ErrorSimpleMessage(message));
+                error!("tag not found: {}", tag_id);
+            }
+        }
+    }
+
+    fn drag_and_drop(&self, action: FeedListDndAction) {
+        match action {
+            FeedListDndAction::MoveCategory(category_id, parent_id, _sort_index) => {
+                if let Some(news_flash) = self.news_flash.read().as_ref() {
+                    let future = news_flash.move_category(&category_id, &parent_id).map(|move_result| {
+                        if let Err(error) = move_result {
+                            Util::send(
+                                &self.sender,
+                                Action::Error("Failed to move category.".to_owned(), error),
+                            );
+                        }
+                    });
+                    // FIXME
+                    GtkUtil::block_on_future(future);
+                }
+            }
+            FeedListDndAction::MoveFeed(feed_id, from_id, to_id, _sort_index) => {
+                if let Some(news_flash) = self.news_flash.read().as_ref() {
+                    let future = news_flash.move_feed(&feed_id, &from_id, &to_id).map(|move_result| {
+                        if let Err(error) = move_result {
+                            Util::send(&self.sender, Action::Error("Failed to move feed.".to_owned(), error));
+                        }
+                    });
+                    // FIXME
+                    GtkUtil::block_on_future(future);
+                }
+            }
+        }
+        Util::send(&self.sender, Action::UpdateSidebar);
+    }
+
     fn export_article(&self) {
-        if let Some(article) = self.window.content_page.borrow().article_view_visible_article() {
+        if let Some(article) = self.window.content_page.read().article_view_visible_article() {
             let dialog = FileChooserDialog::with_buttons(
                 Some("Export Article"),
                 Some(&self.window.widget),

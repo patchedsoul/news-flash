@@ -162,10 +162,10 @@ impl ArticleList {
         Ok(())
     }
 
-    fn execute_diff(&mut self, diff: Vec<ArticleListChangeSet>) {
+    fn execute_diff(&self, diff: Vec<ArticleListChangeSet>) {
         let list = match *self.current_list.borrow() {
-            CurrentList::List1 | CurrentList::Empty => &mut self.list_1,
-            CurrentList::List2 => &mut self.list_2,
+            CurrentList::List1 | CurrentList::Empty => &self.list_1,
+            CurrentList::List2 => &self.list_2,
         };
 
         for diff in diff {

@@ -333,7 +333,7 @@ impl ContentPage {
         Err(ContentPageErrorKind::NewsFlashHandle.into())
     }
 
-    pub fn article_view_show(&mut self, article: FatArticle, feed: &Feed) {
+    pub fn article_view_show(&self, article: FatArticle, feed: &Feed) {
         self.article_view.show_article(article, feed.label.clone());
     }
 
@@ -352,11 +352,11 @@ impl ContentPage {
         self.article_view.get_visible_article()
     }
 
-    pub fn article_view_update_visible_article(&mut self, read: Option<Read>, marked: Option<Marked>) {
+    pub fn article_view_update_visible_article(&self, read: Option<Read>, marked: Option<Marked>) {
         self.article_view.update_visible_article(read, marked);
     }
 
-    pub fn article_view_redraw(&mut self) {
+    pub fn article_view_redraw(&self) {
         self.article_view.redraw_article()
     }
 
