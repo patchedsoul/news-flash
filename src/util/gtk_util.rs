@@ -181,10 +181,4 @@ impl GtkUtil {
         let rt = tokio::runtime::Runtime::new().unwrap();
         rt.block_on(future)
     }
-
-    pub fn spawn_future<F: Future<Output = ()> + 'static>(future: F) {
-        let mut rt = tokio::runtime::current_thread::Runtime::new().unwrap();
-        rt.spawn(future);
-        rt.run().unwrap();
-    }
 }

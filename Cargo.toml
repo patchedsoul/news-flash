@@ -13,7 +13,7 @@ serde = { version = "1.0", features = ["serde_derive"] }
 serde_json = "1.0"
 cairo-rs = "0.7"
 pango = "0.7"
-glib = { version = "0.8", features = ["subclassing"] }
+glib = { version = "0.8", features = ["futures", "subclassing"] }
 gdk-pixbuf = { version = "0.7", features = ["futures", "v2_36"] }
 gtk = { version = "0.7", features = ["v3_24"] }
 gio = { version = "0.7", features = ["v2_58"] }

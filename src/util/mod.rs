@@ -18,6 +18,7 @@ use crate::app::Action;
 use glib::Sender;
 use news_flash::models::{Category, CategoryID, FeedID, FeedMapping};
 use std::collections::HashMap;
+use std::future::Future;
 
 pub const CHANNEL_ERROR: &str = "Error sending message via glib channel";
 
@@ -26,6 +27,17 @@ pub struct Util;
 impl Util {
     pub fn send(sender: &Sender<Action>, action: Action) {
         sender.send(action).expect(CHANNEL_ERROR);
+    }
+
+    pub fn tokio_spawn_future<F: Future<Output = ()> + 'static + Send>(future: F) {
+        let rt = tokio::runtime::Runtime::new().unwrap();
+        rt.spawn(future);
+        rt.shutdown_on_idle();
+    }
+
+    pub fn glib_spawn_future<F: Future<Output = ()> + 'static>(future: F) {
+        let ctx = glib::MainContext::default();
+        ctx.spawn_local(future);
     }
 
     pub fn some_or_default<T>(option: Option<T>, default: T) -> T {

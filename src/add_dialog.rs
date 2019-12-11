@@ -1,5 +1,5 @@
 use crate::gtk_handle;
-use crate::util::{BuilderHelper, GtkHandle, GtkUtil};
+use crate::util::{BuilderHelper, GtkHandle, GtkUtil, Util};
 use glib::object::Cast;
 use gtk::{
     BinExt, Box, BoxExt, Button, ButtonExt, ComboBox, ComboBoxExt, ContainerExt, EditableSignals, Entry, EntryExt,
@@ -8,6 +8,8 @@ use gtk::{
     StyleContextExt, Type, WidgetExt,
 };
 use log::error;
+use futures::channel::oneshot;
+use futures::future::FutureExt;
 use news_flash::models::{Category, CategoryID, Feed, FeedID, Url};
 use news_flash::ParsedUrl;
 use pango::EllipsizeMode;
@@ -143,8 +145,7 @@ impl AddPopover {
                                         &parse_button_feed_title_entry,
                                         &parse_button_favicon_image,
                                         &parse_button_feed_url,
-                                    )
-                                    .await;
+                                    );
                                 }
                             },
                             Err(error) => {
@@ -159,8 +160,7 @@ impl AddPopover {
                         parse_button.set_sensitive(true);
                     };
 
-                    //GtkUtil::block_on_future(future);
-                    GtkUtil::spawn_future(future);
+                    GtkUtil::block_on_future(future);
                 } else {
                     error!("No valid url: '{}'", url_text);
                     url_entry.set_property_secondary_icon_name(Some(WARN_ICON));
@@ -231,13 +231,13 @@ impl AddPopover {
         }
     }
 
-    async fn fill_feed_page(feed: Feed, title_entry: &Entry, favicon_image: &Image, feed_url: &GtkHandle<Option<Url>>) {
+    fn fill_feed_page(feed: Feed, title_entry: &Entry, favicon_image: &Image, feed_url: &GtkHandle<Option<Url>>) {
         title_entry.set_text(&feed.label);
         feed_url.replace(feed.feed_url.clone());
         let scale = GtkUtil::get_scale(favicon_image);
         let favicon_image = favicon_image.clone();
         let feed_clone = feed.clone();
-        if let Some(favicon) = news_flash::util::favicon_cache::FavIconCache::scrap(&feed).await {
+        if let Some(favicon) = GtkUtil::block_on_future(news_flash::util::favicon_cache::FavIconCache::scrap(&feed)) {
             if let Some(data) = &favicon.data {
                 if let Ok(surface) = GtkUtil::create_surface_from_bytes(data, 64, 64, scale) {
                     favicon_image.set_from_surface(Some(&surface));
@@ -245,8 +245,8 @@ impl AddPopover {
             }
         } else if let Some(icon_url) = feed_clone.icon_url {
             let favicon_image = favicon_image.clone();
-            if let Ok(response) = reqwest::get(icon_url.get()).await {
-                if let Ok(bytes) = response.bytes().await {
+            if let Ok(response) = GtkUtil::block_on_future(reqwest::get(icon_url.get())) {
+                if let Ok(bytes) = GtkUtil::block_on_future(response.bytes()) {
                     if let Ok(surface) = GtkUtil::create_surface_from_bytes(bytes.as_ref(), 64, 64, scale) {
                         favicon_image.set_from_surface(Some(&surface));
                     }
@@ -283,11 +283,17 @@ impl AddPopover {
                     let title_entry = title_entry.clone();
                     let favicon = favicon.clone();
                     let feed_url = feed_url.clone();
-                    let future = async {
-                        if let Ok(ParsedUrl::SingleFeed(feed)) =
-                            news_flash::feed_parser::download_and_parse_feed(&url, &feed_id, None, None).await
-                        {
-                            Self::fill_feed_page(feed, &title_entry, &favicon, &feed_url).await;
+
+                    let (sender, receiver) = oneshot::channel::<Option<ParsedUrl>>();
+
+                    let tokio_future = async move {
+                        let result = news_flash::feed_parser::download_and_parse_feed(&url, &feed_id, None, None).await.ok();
+                        sender.send(result).unwrap();
+                    };
+                    
+                    let glib_future = receiver.map(move |res| {
+                        if let Some(ParsedUrl::SingleFeed(feed)) = res.unwrap() {
+                            Self::fill_feed_page(feed, &title_entry, &favicon, &feed_url);
                             add_feed_stack.set_visible_child_name("feed_page");
                         } else if let Some(child) = row.get_child() {
                             if let Ok(_box) = child.downcast::<Box>() {
@@ -296,8 +302,10 @@ impl AddPopover {
                                 }
                             }
                         }
-                    };
-                    GtkUtil::block_on_future(future);
+                    });
+
+                    Util::tokio_spawn_future(tokio_future);
+                    Util::glib_spawn_future(glib_future);
                 }
             }
         });
