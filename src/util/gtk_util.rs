@@ -185,7 +185,6 @@ impl GtkUtil {
     pub fn spawn_future<F: Future<Output = ()> + 'static>(future: F) {
         let mut rt = tokio::runtime::current_thread::Runtime::new().unwrap();
         rt.spawn(future);
-        //let ctx = glib::MainContext::default();
-        //ctx.spawn_local(future);
+        rt.run().unwrap();
     }
 }
