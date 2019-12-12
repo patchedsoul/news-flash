@@ -29,10 +29,9 @@ impl Util {
         sender.send(action).expect(CHANNEL_ERROR);
     }
 
-    pub fn tokio_spawn_future<F: Future<Output = ()> + 'static + Send>(future: F) {
-        let rt = tokio::runtime::Runtime::new().unwrap();
-        rt.spawn(future);
-        rt.shutdown_on_idle();
+    pub fn threadpool_spawn_future<F: Future<Output = ()> + 'static + Send>(future: F) {
+        let pool = futures::executor::ThreadPool::new().unwrap();
+        pool.spawn_ok(future);
     }
 
     pub fn glib_spawn_future<F: Future<Output = ()> + 'static>(future: F) {

@@ -11,10 +11,12 @@ use log::error;
 use futures::channel::oneshot;
 use futures::future::FutureExt;
 use news_flash::models::{Category, CategoryID, Feed, FeedID, Url};
-use news_flash::ParsedUrl;
+use news_flash::{ParsedUrl, FeedParserError};
 use pango::EllipsizeMode;
+use tokio::runtime::Runtime;
 use std::cell::RefCell;
 use std::rc::Rc;
+use std::sync::Arc;
 
 pub const NEW_CATEGORY_ICON: &str = "folder-new-symbolic";
 pub const WARN_ICON: &str = "dialog-warning-symbolic";
@@ -35,7 +37,7 @@ pub struct AddPopover {
 }
 
 impl AddPopover {
-    pub fn new(parent: &Button, categories: Vec<Category>) -> Self {
+    pub fn new(parent: &Button, categories: Vec<Category>, runtime: Arc<Runtime>) -> Self {
         let builder = BuilderHelper::new("add_dialog");
         let popover = builder.get::<Popover>("add_pop");
         let url_entry = builder.get::<Entry>("url_entry");
@@ -97,6 +99,7 @@ impl AddPopover {
         let parse_button_select_button = select_button.clone();
         let parse_button_feed_url = feed_url.clone();
         let parse_button_parse_button_stack = parse_button_stack.clone();
+        let parse_button_runtime = runtime.clone();
         parse_button.connect_clicked(move |button| {
             if let Some(url_text) = url_entry.get_text() {
                 let mut url_text = url_text.as_str().to_owned();
@@ -104,8 +107,12 @@ impl AddPopover {
                     url_text.insert_str(0, "https://");
                 }
                 if let Ok(url) = Url::parse(&url_text) {
-                    let feed_id = FeedID::new(&url_text);
 
+                    // set 'next' button insensitive and show spinner
+                    parse_button_parse_button_stack.set_visible_child_name("spinner");
+                    button.set_sensitive(false);
+
+                    
                     let parse_button_add_feed_stack = parse_button_add_feed_stack.clone();
                     let parse_button_feed_list = parse_button_feed_list.clone();
                     let parse_button_feed_title_entry = parse_button_feed_title_entry.clone();
@@ -116,13 +123,23 @@ impl AddPopover {
                     let parse_button = button.clone();
                     let url_entry = url_entry.clone();
                     let parse_button_url = url.clone();
-                    let future = async move {
-                        // set 'next' button insensitive and show spinner
-                        parse_button_parse_button_stack.set_visible_child_name("spinner");
-                        parse_button.set_sensitive(false);
+                    
 
+                    let (sender, receiver) = oneshot::channel::<Result<ParsedUrl, FeedParserError>>();
+
+
+                    let feed_id = FeedID::new(&url_text);
+                    let runtime = parse_button_runtime.clone();
+                    let thread_future = async move {
+                        let result = runtime.block_on(news_flash::feed_parser::download_and_parse_feed(&url, &feed_id, None, None));
+                        sender.send(result).unwrap();
+                    };
+
+
+                    let parse_button_runtime = parse_button_runtime.clone();
+                    let glib_future = receiver.map(move |res| {
                         // parse url
-                        match news_flash::feed_parser::download_and_parse_feed(&url, &feed_id, None, None).await {
+                        match res.unwrap() {
                             Ok(result) => match result {
                                 ParsedUrl::MultipleFeeds(feed_vec) => {
                                     // url has multiple feeds: show selection page and list them there
@@ -135,6 +152,7 @@ impl AddPopover {
                                         &parse_button_feed_title_entry,
                                         &parse_button_favicon_image,
                                         &parse_button_feed_url,
+                                        parse_button_runtime,
                                     );
                                 }
                                 ParsedUrl::SingleFeed(feed) => {
@@ -158,9 +176,10 @@ impl AddPopover {
                         // set 'next' buton sensitive again and show label again
                         parse_button_parse_button_stack.set_visible_child_name("text");
                         parse_button.set_sensitive(true);
-                    };
+                    });
 
-                    GtkUtil::block_on_future(future);
+                    Util::threadpool_spawn_future(thread_future);
+                    Util::glib_spawn_future(glib_future);
                 } else {
                     error!("No valid url: '{}'", url_text);
                     url_entry.set_property_secondary_icon_name(Some(WARN_ICON));
@@ -263,6 +282,7 @@ impl AddPopover {
         title_entry: &Entry,
         favicon: &Image,
         feed_url: &GtkHandle<Option<Url>>,
+        runtime: Arc<Runtime>,
     ) {
         let list_select_button = select_button.clone();
         list.connect_row_selected(move |_list, row| {
@@ -286,8 +306,9 @@ impl AddPopover {
 
                     let (sender, receiver) = oneshot::channel::<Option<ParsedUrl>>();
 
-                    let tokio_future = async move {
-                        let result = news_flash::feed_parser::download_and_parse_feed(&url, &feed_id, None, None).await.ok();
+                    let runtime = runtime.clone();
+                    let thread_future = async move {
+                        let result = runtime.block_on(news_flash::feed_parser::download_and_parse_feed(&url, &feed_id, None, None)).ok();
                         sender.send(result).unwrap();
                     };
                     
@@ -304,7 +325,7 @@ impl AddPopover {
                         }
                     });
 
-                    Util::tokio_spawn_future(tokio_future);
+                    Util::threadpool_spawn_future(thread_future);
                     Util::glib_spawn_future(glib_future);
                 }
             }

@@ -2,6 +2,7 @@ use std::cell::RefCell;
 use std::env;
 use std::path::PathBuf;
 use std::rc::Rc;
+use std::sync::Arc;
 
 use gio::{ApplicationExt, ApplicationExtManual, Notification, NotificationPriority, ThemedIcon};
 use glib::{futures::FutureExt, translate::ToGlib, Receiver, Sender};
@@ -14,6 +15,7 @@ use log::{error, info, warn};
 use news_flash::models::{ArticleID, Category, CategoryID, TagID, Feed, FeedID, LoginData, PluginID, Url};
 use news_flash::{NewsFlash, NewsFlashError};
 use parking_lot::RwLock;
+use tokio::runtime::Runtime;
 
 use crate::about_dialog::NewsFlashAbout;
 use crate::add_dialog::{AddCategory, AddPopover};
@@ -95,6 +97,7 @@ pub struct App {
     news_flash: RwLock<Option<NewsFlash>>,
     settings: Rc<RwLock<Settings>>,
     sync_source_id: RwLock<Option<u32>>,
+    runtime: Arc<Runtime>,
 }
 
 impl App {
@@ -117,6 +120,7 @@ impl App {
             news_flash,
             settings,
             sync_source_id: RwLock::new(None),
+            runtime: Arc::new(Runtime::new().unwrap()),
         });
 
         app.setup_signals();
@@ -437,7 +441,7 @@ impl App {
                     return;
                 }
             };
-            let dialog = AddPopover::new(&add_button, categories);
+            let dialog = AddPopover::new(&add_button, categories, self.runtime.clone());
             let sender = self.sender.clone();
             dialog.add_button().connect_clicked(move |_button| {
                 let feed_url = match dialog.get_feed_url() {
