@@ -4,6 +4,7 @@ use std::path::PathBuf;
 use std::rc::Rc;
 use std::sync::Arc;
 
+use futures::executor::ThreadPool;
 use gio::{ApplicationExt, ApplicationExtManual, Notification, NotificationPriority, ThemedIcon};
 use glib::{futures::FutureExt, translate::ToGlib, Receiver, Sender};
 use gtk::{
@@ -12,11 +13,10 @@ use gtk::{
 };
 use lazy_static::lazy_static;
 use log::{error, info, warn};
-use news_flash::models::{ArticleID, Category, CategoryID, TagID, Feed, FeedID, LoginData, PluginID, Url};
+use news_flash::models::{ArticleID, Category, CategoryID, Feed, FeedID, LoginData, PluginID, TagID, Url};
 use news_flash::{NewsFlash, NewsFlashError};
 use parking_lot::RwLock;
 use tokio::runtime::Runtime;
-use futures::executor::ThreadPool;
 
 use crate::about_dialog::NewsFlashAbout;
 use crate::add_dialog::{AddCategory, AddPopover};
@@ -27,7 +27,7 @@ use crate::content_page::HeaderSelection;
 use crate::main_window::MainWindow;
 use crate::rename_dialog::RenameDialog;
 use crate::settings::{NewsFlashShortcutWindow, Settings, SettingsDialog};
-use crate::sidebar::{FeedListDndAction, models::SidebarSelection};
+use crate::sidebar::{models::SidebarSelection, FeedListDndAction};
 use crate::undo_bar::UndoActionModel;
 use crate::util::{FileUtil, GtkUtil, Util};
 
@@ -95,8 +95,8 @@ pub struct App {
     window: MainWindow,
     sender: Sender<Action>,
     receiver: RefCell<Option<Receiver<Action>>>,
-    news_flash: RwLock<Option<NewsFlash>>,
-    settings: Rc<RwLock<Settings>>,
+    news_flash: Arc<RwLock<Option<NewsFlash>>>,
+    settings: Arc<RwLock<Settings>>,
     sync_source_id: RwLock<Option<u32>>,
     runtime: Arc<Runtime>,
     threadpool: ThreadPool,
@@ -110,8 +110,8 @@ impl App {
         let (sender, r) = glib::MainContext::channel(glib::PRIORITY_DEFAULT);
         let receiver = RefCell::new(Some(r));
 
-        let news_flash = RwLock::new(None);
-        let settings = Rc::new(RwLock::new(Settings::open().expect("Failed to access settings file")));
+        let news_flash = Arc::new(RwLock::new(None));
+        let settings = Arc::new(RwLock::new(Settings::open().expect("Failed to access settings file")));
         let window = MainWindow::new(&settings, sender.clone());
 
         let app = Rc::new(Self {
@@ -195,7 +195,10 @@ impl App {
                 self.window.content_header.show_article(None);
             }
             Action::SearchTerm(search_term) => self.window.set_search_term(search_term),
-            Action::SetSidebarRead => self.window.set_sidebar_read(&self.news_flash),
+            Action::SetSidebarRead => {
+                self.window
+                    .set_sidebar_read(&self.news_flash, self.threadpool.clone(), self.runtime.clone())
+            }
             Action::AddFeedDialog => self.add_feed_dialog(),
             Action::AddFeed((url, title, category)) => self.add_feed(url, title, category),
             Action::RenameFeedDialog(feed_id) => self.rename_feed_dialog(feed_id),
@@ -351,7 +354,8 @@ impl App {
                 visible_article.unread = update.read;
                 self.window.content_header.show_article(Some(&visible_article));
                 self.window
-                    .content_page.read()
+                    .content_page
+                    .read()
                     .article_view_update_visible_article(Some(visible_article.unread), None);
             }
         }
@@ -385,7 +389,8 @@ impl App {
                 visible_article.marked = update.marked;
                 self.window.content_header.show_article(Some(&visible_article));
                 self.window
-                    .content_page.read()
+                    .content_page
+                    .read()
                     .article_view_update_visible_article(None, Some(visible_article.marked));
             }
         }
@@ -678,7 +683,10 @@ impl App {
             let categories = match news_flash.get_categories() {
                 Ok(res) => res,
                 Err(error) => {
-                    Util::send(&self.sender, Action::Error("Failed to delete category.".to_owned(), error));
+                    Util::send(
+                        &self.sender,
+                        Action::Error("Failed to delete category.".to_owned(), error),
+                    );
                     return;
                 }
             };
@@ -687,7 +695,10 @@ impl App {
                 info!("delete category '{}' (id: {})", category.label, category.category_id);
                 let future = news_flash.remove_category(&category, true).map(|remove_result| {
                     if let Err(error) = remove_result {
-                        Util::send(&self.sender, Action::Error("Failed to delete category.".to_owned(), error));
+                        Util::send(
+                            &self.sender,
+                            Action::Error("Failed to delete category.".to_owned(), error),
+                        );
                     }
                 });
                 // FIXME
@@ -723,10 +734,7 @@ impl App {
                 // FIXME
                 GtkUtil::block_on_future(future);
             } else {
-                let message = format!(
-                    "Failed to delete tag: tag with id '{}' not found.",
-                    tag_id
-                );
+                let message = format!("Failed to delete tag: tag with id '{}' not found.", tag_id);
                 Util::send(&self.sender, Action::ErrorSimpleMessage(message));
                 error!("tag not found: {}", tag_id);
             }

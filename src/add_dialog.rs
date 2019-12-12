@@ -1,4 +1,7 @@
 use crate::util::{BuilderHelper, GtkUtil, Util};
+use futures::channel::oneshot;
+use futures::executor::ThreadPool;
+use futures::future::FutureExt;
 use glib::object::Cast;
 use gtk::{
     BinExt, Box, BoxExt, Button, ButtonExt, ComboBox, ComboBoxExt, ContainerExt, EditableSignals, Entry, EntryExt,
@@ -7,16 +10,13 @@ use gtk::{
     StyleContextExt, Type, WidgetExt,
 };
 use log::error;
-use futures::channel::oneshot;
-use futures::future::FutureExt;
-use news_flash::models::{Category, CategoryID, Feed, FeedID, Url, FavIcon};
-use news_flash::{ParsedUrl, FeedParserError};
+use news_flash::models::{Category, CategoryID, FavIcon, Feed, FeedID, Url};
+use news_flash::{FeedParserError, ParsedUrl};
 use pango::EllipsizeMode;
-use tokio::runtime::Runtime;
-use futures::executor::ThreadPool;
 use parking_lot::RwLock;
 use std::rc::Rc;
 use std::sync::Arc;
+use tokio::runtime::Runtime;
 
 pub const NEW_CATEGORY_ICON: &str = "folder-new-symbolic";
 pub const WARN_ICON: &str = "dialog-warning-symbolic";
@@ -110,12 +110,10 @@ impl AddPopover {
                     url_text.insert_str(0, "https://");
                 }
                 if let Ok(url) = Url::parse(&url_text) {
-
                     // set 'next' button insensitive and show spinner
                     parse_button_parse_button_stack.set_visible_child_name("spinner");
                     button.set_sensitive(false);
 
-                    
                     let parse_button_add_feed_stack = parse_button_add_feed_stack.clone();
                     let parse_button_feed_list = parse_button_feed_list.clone();
                     let parse_button_feed_title_entry = parse_button_feed_title_entry.clone();
@@ -128,18 +126,17 @@ impl AddPopover {
                     let parse_button = button.clone();
                     let url_entry = url_entry.clone();
                     let parse_button_url = url.clone();
-                    
 
                     let (sender, receiver) = oneshot::channel::<Result<ParsedUrl, FeedParserError>>();
-
 
                     let feed_id = FeedID::new(&url_text);
                     let runtime = parse_button_runtime.clone();
                     let thread_future = async move {
-                        let result = runtime.block_on(news_flash::feed_parser::download_and_parse_feed(&url, &feed_id, None, None));
+                        let result = runtime.block_on(news_flash::feed_parser::download_and_parse_feed(
+                            &url, &feed_id, None, None,
+                        ));
                         sender.send(result).unwrap();
                     };
-
 
                     let parse_button_runtime = parse_button_runtime.clone();
                     let parse_button_threadpool = threadpool.clone();
@@ -218,7 +215,9 @@ impl AddPopover {
             let folder_icon = if category_entry_category_combo.get_active_id().is_some() {
                 if let Some(id) = category_entry_category_combo.get_active_id() {
                     let category_id = CategoryID::new(id.as_str());
-                    category_entry_feed_category.write().replace(AddCategory::Existing(category_id));
+                    category_entry_feed_category
+                        .write()
+                        .replace(AddCategory::Existing(category_id));
                 }
                 None
             } else if entry_text.is_none() {
@@ -231,7 +230,9 @@ impl AddPopover {
                     .map(|c| c.category_id.clone());
 
                 if let Some(category_id) = category_id {
-                    category_entry_feed_category.write().replace(AddCategory::Existing(category_id));
+                    category_entry_feed_category
+                        .write()
+                        .replace(AddCategory::Existing(category_id));
                 }
                 None
             } else {
@@ -292,9 +293,9 @@ impl AddPopover {
         let scale = GtkUtil::get_scale(favicon_image);
         let favicon_image = favicon_image.clone();
         let add_button_stack = add_button_stack.clone();
-        
+
         let threadpool_clone = threadpool.clone();
-        
+
         let glib_future = receiver.map(move |res| {
             if let Some(favicon) = res.unwrap() {
                 if let Some(data) = &favicon.data {
@@ -310,12 +311,10 @@ impl AddPopover {
 
                 let thread_future = async move {
                     let res = match runtime.block_on(reqwest::get(icon_url.get())) {
-                        Ok(response) => {
-                            match runtime.block_on(response.bytes()) {
-                                Ok(bytes) => Some(Vec::from(bytes.as_ref())),
-                                Err(_) => None,
-                            }
-                        }
+                        Ok(response) => match runtime.block_on(response.bytes()) {
+                            Ok(bytes) => Some(Vec::from(bytes.as_ref())),
+                            Err(_) => None,
+                        },
                         Err(_) => None,
                     };
                     sender.send(res).unwrap();
@@ -381,10 +380,14 @@ impl AddPopover {
 
                     let runtime_clone = runtime.clone();
                     let thread_future = async move {
-                        let result = runtime_clone.block_on(news_flash::feed_parser::download_and_parse_feed(&url, &feed_id, None, None)).ok();
+                        let result = runtime_clone
+                            .block_on(news_flash::feed_parser::download_and_parse_feed(
+                                &url, &feed_id, None, None,
+                            ))
+                            .ok();
                         sender.send(result).unwrap();
                     };
-                    
+
                     let select_button_stack = select_button_stack.clone();
                     let select_button = button.clone();
                     let add_button_stack = add_button_stack.clone();

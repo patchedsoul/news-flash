@@ -51,7 +51,7 @@ struct ScrollAnimationProperties {
 
 #[derive(Clone)]
 pub struct ArticleView {
-    settings: Rc<RwLock<Settings>>,
+    settings: Arc<RwLock<Settings>>,
     stack: Stack,
     top_overlay: Overlay,
     view_html_button: Button,
@@ -82,7 +82,7 @@ pub struct ArticleView {
 }
 
 impl ArticleView {
-    pub fn new(settings: &Rc<RwLock<Settings>>) -> Self {
+    pub fn new(settings: &Arc<RwLock<Settings>>) -> Self {
         let builder = BuilderHelper::new("article_view");
 
         let url_overlay = builder.get::<Overlay>("url_overlay");
@@ -758,7 +758,7 @@ impl ArticleView {
         file_name: &str,
         article: &FatArticle,
         feed_name: &str,
-        settings: &Rc<RwLock<Settings>>,
+        settings: &Arc<RwLock<Settings>>,
         theme_override: Option<ArticleTheme>,
         font_size_override: Option<i32>,
     ) -> String {

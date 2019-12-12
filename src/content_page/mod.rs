@@ -22,17 +22,17 @@ use libhandy::Leaflet;
 use news_flash::models::{Article, ArticleFilter, FatArticle, Feed, Marked, PluginCapabilities, PluginID, Read};
 use news_flash::NewsFlash;
 use parking_lot::RwLock;
-use std::rc::Rc;
+use std::sync::Arc;
 
 pub struct ContentPage {
     sidebar: SideBar,
     article_list: ArticleList,
     article_view: ArticleView,
-    settings: Rc<RwLock<Settings>>,
+    settings: Arc<RwLock<Settings>>,
 }
 
 impl ContentPage {
-    pub fn new(builder: &BuilderHelper, settings: &Rc<RwLock<Settings>>, sender: Sender<Action>) -> Self {
+    pub fn new(builder: &BuilderHelper, settings: &Arc<RwLock<Settings>>, sender: Sender<Action>) -> Self {
         let feed_list_box = builder.get::<Box>("feedlist_box");
         let article_list_box = builder.get::<Box>("articlelist_box");
         let articleview_box = builder.get::<Box>("articleview_box");
@@ -163,7 +163,7 @@ impl ContentPage {
     fn load_articles(
         news_flash: &mut NewsFlash,
         window_state: &RwLock<MainWindowState>,
-        settings: &Rc<RwLock<Settings>>,
+        settings: &Arc<RwLock<Settings>>,
         undo_bar: &UndoBar,
         limit: i64,
         offset: Option<i64>,

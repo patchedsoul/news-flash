@@ -267,10 +267,32 @@
                         <property name="receives_default">True</property>
                         <property name="tooltip_text" translatable="yes">Set All/Feed/Category as read</property>
                         <child>
-                          <object class="GtkImage">
+                          <object class="GtkStack" id="mark_all_stack">
                             <property name="visible">True</property>
                             <property name="can_focus">False</property>
-                            <property name="icon_name">emblem-ok-symbolic</property>
+                            <child>
+                              <object class="GtkImage">
+                                <property name="visible">True</property>
+                                <property name="can_focus">False</property>
+                                <property name="icon_name">emblem-ok-symbolic</property>
+                              </object>
+                              <packing>
+                                <property name="name">image</property>
+                                <property name="title" translatable="yes">image</property>
+                              </packing>
+                            </child>
+                            <child>
+                              <object class="GtkSpinner">
+                                <property name="visible">True</property>
+                                <property name="can_focus">False</property>
+                                <property name="active">True</property>
+                              </object>
+                              <packing>
+                                <property name="name">spinner</property>
+                                <property name="title" translatable="yes">spinner</property>
+                                <property name="position">1</property>
+                              </packing>
+                            </child>
                           </object>
                         </child>
                       </object>

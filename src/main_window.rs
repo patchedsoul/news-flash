@@ -14,6 +14,8 @@ use crate::undo_bar::{UndoActionModel, UndoBar};
 use crate::util::{BuilderHelper, GtkHandle, GtkUtil, Util, GTK_CSS_ERROR, GTK_RESOURCE_FILE_ERROR};
 use crate::welcome_screen::{WelcomeHeaderbar, WelcomePage};
 use crate::Resources;
+use futures::executor::ThreadPool;
+use futures::channel::oneshot;
 use gdk::EventKey;
 use glib::{self, futures::FutureExt, Sender};
 use gtk::{
@@ -26,6 +28,8 @@ use news_flash::{NewsFlash, NewsFlashError};
 use parking_lot::RwLock;
 use std::cell::RefCell;
 use std::rc::Rc;
+use std::sync::Arc;
+use tokio::runtime::Runtime;
 
 const CONTENT_PAGE: &str = "content";
 
@@ -45,7 +49,7 @@ pub struct MainWindow {
 }
 
 impl MainWindow {
-    pub fn new(settings: &Rc<RwLock<Settings>>, sender: Sender<Action>) -> Self {
+    pub fn new(settings: &Arc<RwLock<Settings>>, sender: Sender<Action>) -> Self {
         GtkUtil::register_symbolic_icons();
         let provider_handle = gtk_handle!(CssProvider::new());
 
@@ -94,14 +98,7 @@ impl MainWindow {
         let content_page = Rc::new(RwLock::new(ContentPage::new(&builder, &settings, sender.clone())));
         let state = RwLock::new(MainWindowState::new());
 
-        Self::setup_shortcuts(
-            &window,
-            &sender,
-            &content_page,
-            &stack,
-            &settings,
-            &content_header,
-        );
+        Self::setup_shortcuts(&window, &sender, &content_page, &stack, &settings, &content_header);
 
         if let Some(gtk_settings) = GtkSettings::get_default() {
             gtk_settings.set_property_gtk_application_prefer_dark_theme(settings.read().get_prefer_dark_theme());
@@ -135,7 +132,7 @@ impl MainWindow {
         sender: &Sender<Action>,
         content_page: &Rc<RwLock<ContentPage>>,
         main_stack: &Stack,
-        settings: &Rc<RwLock<Settings>>,
+        settings: &Arc<RwLock<Settings>>,
         content_header: &Rc<ContentHeader>,
     ) {
         let main_stack = main_stack.clone();
@@ -285,7 +282,7 @@ impl MainWindow {
         });
     }
 
-    fn check_shortcut(id: &str, settings: &Rc<RwLock<Settings>>, event: &EventKey) -> bool {
+    fn check_shortcut(id: &str, settings: &Arc<RwLock<Settings>>, event: &EventKey) -> bool {
         if let Ok(keybinding) = Keybindings::read_keybinding(id, settings) {
             if let Some(keybinding) = keybinding {
                 let (keyval, modifier) = gtk::accelerator_parse(&keybinding);
@@ -345,7 +342,8 @@ impl MainWindow {
 
                 // try to fill content page with data
                 if self
-                    .content_page.write()
+                    .content_page
+                    .write()
                     .update_sidebar(&news_flash, &self.state, &self.undo_bar)
                     .is_err()
                 {
@@ -355,7 +353,8 @@ impl MainWindow {
                     );
                 }
                 if self
-                    .content_page.write()
+                    .content_page
+                    .write()
                     .update_article_list(&news_flash, &self.state, &self.undo_bar)
                     .is_err()
                 {
@@ -455,7 +454,8 @@ impl MainWindow {
 
     pub fn update_sidebar(&self, news_flash: &RwLock<Option<NewsFlash>>) {
         if self
-            .content_page.write()
+            .content_page
+            .write()
             .update_sidebar(news_flash, &self.state, &self.undo_bar)
             .is_err()
         {
@@ -468,7 +468,8 @@ impl MainWindow {
 
     pub fn update_article_list(&self, news_flash: &RwLock<Option<NewsFlash>>) {
         if self
-            .content_page.write()
+            .content_page
+            .write()
             .update_article_list(&news_flash, &self.state, &self.undo_bar)
             .is_err()
         {
@@ -481,7 +482,8 @@ impl MainWindow {
 
     pub fn load_more_articles(&self, news_flash: &RwLock<Option<NewsFlash>>) {
         if self
-            .content_page.write()
+            .content_page
+            .write()
             .load_more_articles(&news_flash, &self.state, &self.undo_bar)
             .is_err()
         {
@@ -568,67 +570,127 @@ impl MainWindow {
         Util::send(&self.sender, Action::UpdateArticleList);
     }
 
-    pub fn set_sidebar_read(&self, news_flash: &RwLock<Option<NewsFlash>>) {
-        if let Some(news_flash) = news_flash.write().as_mut() {
-            let sidebar_selection = self.state.read().get_sidebar_selection().clone();
+    pub fn set_sidebar_read(
+        &self,
+        news_flash: &Arc<RwLock<Option<NewsFlash>>>,
+        threadpool: ThreadPool,
+        runtime: Arc<Runtime>,
+    ) {
+        let sidebar_selection = self.state.read().get_sidebar_selection().clone();
 
-            match sidebar_selection {
-                SidebarSelection::All => {
-                    let future = news_flash.set_all_read().map(|result| match result {
+        match sidebar_selection {
+            SidebarSelection::All => {
+                let (sender, receiver) = oneshot::channel::<Result<(), NewsFlashError>>();
+
+                let news_flash = news_flash.clone();
+                let thread_future = async move {
+                    if let Some(news_flash) = news_flash.read().as_ref() {
+                        sender.send(runtime.block_on(news_flash.set_all_read())).unwrap();
+                    }
+                };
+
+                let sender = self.sender.clone();
+                let glib_future = receiver.map(move |res| {
+                    res.map(|result| match result {
                         Ok(_) => {}
                         Err(error) => {
                             let message = "Failed to mark all read".to_owned();
                             error!("{}", message);
-                            Util::send(&self.sender, Action::Error(message, error));
-                        }
+                            Util::send(&sender, Action::Error(message, error));
+                        },
                     });
-                    GtkUtil::block_on_future(future);
-                }
-                SidebarSelection::Cateogry((category_id, _title)) => {
-                    let category_id_vec = vec![category_id.clone()];
-                    let future = news_flash
-                        .set_category_read(&category_id_vec)
-                        .map(|result| match result {
-                            Ok(_) => {}
-                            Err(error) => {
-                                let message = format!("Failed to mark category '{}' read", category_id);
-                                error!("{}", message);
-                                Util::send(&self.sender, Action::Error(message, error));
-                            }
-                        });
-                    GtkUtil::block_on_future(future);
-                }
-                SidebarSelection::Feed((feed_id, _title)) => {
-                    let feed_id_vec = vec![feed_id.clone()];
-                    let future = news_flash.set_feed_read(&feed_id_vec).map(|result| match result {
-                        Ok(_) => {}
-                        Err(error) => {
-                            let message = format!("Failed to mark feed '{}' read", feed_id);
-                            error!("{}", message);
-                            Util::send(&self.sender, Action::Error(message, error));
-                        }
-                    });
-                    GtkUtil::block_on_future(future);
-                }
-                SidebarSelection::Tag((tag_id, _title)) => {
-                    let tag_id_vec = vec![tag_id.clone()];
-                    let future = news_flash.set_tag_read(&tag_id_vec).map(|result| match result {
-                        Ok(_) => {}
-                        Err(error) => {
-                            let message = format!("Failed to mark tag '{}' read", tag_id);
-                            error!("{}", message);
-                            Util::send(&self.sender, Action::Error(message, error));
-                        }
-                    });
-                    GtkUtil::block_on_future(future);
-                }
-            }
+                });
 
-            let visible_article = self.content_page.read().article_view_visible_article();
-            if let Some(visible_article) = visible_article {
+                threadpool.spawn_ok(thread_future);
+                Util::glib_spawn_future(glib_future);
+            }
+            SidebarSelection::Cateogry((category_id, _title)) => {
+                let (sender, receiver) = oneshot::channel::<Result<(), NewsFlashError>>();
+
+                let news_flash = news_flash.clone();
+                let category_id_vec = vec![category_id.clone()];
+                let thread_future = async move {
+                    if let Some(news_flash) = news_flash.read().as_ref() {
+                        sender.send(runtime.block_on(news_flash.set_category_read(&category_id_vec))).unwrap();
+                    }
+                };
+
+                let sender = self.sender.clone();
+                let glib_future = receiver.map(move |res| {
+                    res.map(|result| match result {
+                        Ok(_) => {}
+                        Err(error) => {
+                            let message = "Failed to mark all read".to_owned();
+                            error!("{}", message);
+                            Util::send(&sender, Action::Error(message, error));
+                        },
+                    });
+                });
+
+                threadpool.spawn_ok(thread_future);
+                Util::glib_spawn_future(glib_future);
+            }
+            SidebarSelection::Feed((feed_id, _title)) => {
+                let (sender, receiver) = oneshot::channel::<Result<(), NewsFlashError>>();
+
+                let news_flash = news_flash.clone();
+                let feed_id_vec = vec![feed_id.clone()];
+                let thread_future = async move {
+                    if let Some(news_flash) = news_flash.read().as_ref() {
+                        sender.send(runtime.block_on(news_flash.set_feed_read(&feed_id_vec))).unwrap();
+                    }
+                };
+
+                let sender = self.sender.clone();
+                let glib_future = receiver.map(move |res| {
+                    res.map(|result| match result {
+                        Ok(_) => {}
+                        Err(error) => {
+                            let message = "Failed to mark all read".to_owned();
+                            error!("{}", message);
+                            Util::send(&sender, Action::Error(message, error));
+                        },
+                    });
+                });
+
+                threadpool.spawn_ok(thread_future);
+                Util::glib_spawn_future(glib_future);
+            }
+            SidebarSelection::Tag((tag_id, _title)) => {
+                let (sender, receiver) = oneshot::channel::<Result<(), NewsFlashError>>();
+
+                let news_flash = news_flash.clone();
+                let tag_id_vec = vec![tag_id.clone()];
+                let thread_future = async move {
+                    if let Some(news_flash) = news_flash.read().as_ref() {
+                        sender.send(runtime.block_on(news_flash.set_tag_read(&tag_id_vec))).unwrap();
+                    }
+                };
+
+                let sender = self.sender.clone();
+                let glib_future = receiver.map(move |res| {
+                    res.map(|result| match result {
+                        Ok(_) => {}
+                        Err(error) => {
+                            let message = "Failed to mark all read".to_owned();
+                            error!("{}", message);
+                            Util::send(&sender, Action::Error(message, error));
+                        },
+                    });
+                });
+
+                threadpool.spawn_ok(thread_future);
+                Util::glib_spawn_future(glib_future);
+            }
+        }
+
+        let visible_article = self.content_page.read().article_view_visible_article();
+        if let Some(visible_article) = visible_article {
+            if let Some(news_flash) = news_flash.read().as_ref() {
                 if let Ok(visible_article) = news_flash.get_fat_article(&visible_article.article_id) {
                     self.content_header.show_article(Some(&visible_article));
-                    self.content_page.read()
+                    self.content_page
+                        .read()
                         .article_view_update_visible_article(Some(visible_article.unread), None);
                 }
             }

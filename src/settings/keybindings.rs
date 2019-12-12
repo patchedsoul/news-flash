@@ -8,7 +8,7 @@ use gtk::{BinExt, Box, Cast, ContainerExt, GtkWindowExt, ShortcutsWindow, Stack,
 use log::warn;
 use parking_lot::RwLock;
 use serde::{Deserialize, Serialize};
-use std::rc::Rc;
+use std::sync::Arc;
 use std::str;
 
 #[derive(Debug, Serialize, Deserialize)]
@@ -189,7 +189,7 @@ impl Keybindings {
     pub fn write_keybinding(
         id: &str,
         keybinding: Option<String>,
-        settings: &Rc<RwLock<Settings>>,
+        settings: &Arc<RwLock<Settings>>,
     ) -> Result<(), SettingsError> {
         match id {
             "next_article" => settings.write().set_keybind_article_list_next(keybinding),
@@ -217,7 +217,7 @@ impl Keybindings {
         }
     }
 
-    pub fn read_keybinding(id: &str, settings: &Rc<RwLock<Settings>>) -> Result<Option<String>, SettingsError> {
+    pub fn read_keybinding(id: &str, settings: &Arc<RwLock<Settings>>) -> Result<Option<String>, SettingsError> {
         match id {
             "next_article" => Ok(settings.read().get_keybind_article_list_next()),
             "previous_article" => Ok(settings.read().get_keybind_article_list_prev()),

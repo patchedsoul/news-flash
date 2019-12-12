@@ -7,7 +7,7 @@ use glib::{object::IsA, Sender};
 use gtk::{Inhibit, ListBox, ListBoxExt, ListBoxRow, ListBoxRowExt, Popover, PopoverExt, Widget, WidgetExt};
 use news_flash::models::{ArticleID, FatArticle, FeedID, Marked, Read};
 use parking_lot::RwLock;
-use std::rc::Rc;
+use std::sync::Arc;
 use webkit2gtk::{WebView, WebViewExt};
 
 pub struct ThemeChooser {
@@ -15,7 +15,7 @@ pub struct ThemeChooser {
 }
 
 impl ThemeChooser {
-    pub fn new<D: IsA<Widget>>(parent: &D, sender: &Sender<Action>, settings: &Rc<RwLock<Settings>>) -> Self {
+    pub fn new<D: IsA<Widget>>(parent: &D, sender: &Sender<Action>, settings: &Arc<RwLock<Settings>>) -> Self {
         let builder = BuilderHelper::new("theme_chooser");
 
         let pop = builder.get::<Popover>("popover");
@@ -105,7 +105,7 @@ impl ThemeChooser {
 
     fn prepare_theme_selection(
         builder: &BuilderHelper,
-        settings: &Rc<RwLock<Settings>>,
+        settings: &Arc<RwLock<Settings>>,
         article: &mut FatArticle,
         theme: ArticleTheme,
         id: &str,

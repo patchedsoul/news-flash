@@ -20,6 +20,8 @@ pub struct ContentHeader {
     update_button: Button,
     search_button: ToggleButton,
     search_entry: SearchEntry,
+    mark_all_read_button: Button,
+    mark_all_read_stack: Stack,
     all_button: ToggleButton,
     unread_button: ToggleButton,
     marked_button: ToggleButton,
@@ -48,13 +50,17 @@ impl ContentHeader {
         let mode_button = builder.get::<MenuButton>("mode_switch_button");
         let mode_switch_stack = builder.get::<Stack>("mode_switch_stack");
         let mark_all_read_button = builder.get::<Button>("mark_all_button");
+        let mark_all_read_stack = builder.get::<Stack>("mark_all_stack");
         let mark_article_button = builder.get::<ToggleButton>("mark_article_button");
         let mark_article_read_button = builder.get::<ToggleButton>("mark_article_read_button");
         let mark_article_stack = builder.get::<Stack>("mark_article_stack");
         let mark_article_read_stack = builder.get::<Stack>("mark_article_read_stack");
 
         let sender_clone = sender.clone();
-        mark_all_read_button.connect_clicked(move |_button| {
+        let mark_all_read_stack_clone = mark_all_read_stack.clone();
+        mark_all_read_button.connect_clicked(move |button| {
+            button.set_sensitive(false);
+            mark_all_read_stack_clone.set_visible_child_name("spinner");
             Util::send(&sender_clone, Action::SetSidebarRead);
         });
 
@@ -103,6 +109,8 @@ impl ContentHeader {
             update_button,
             search_button,
             search_entry,
+            mark_all_read_button,
+            mark_all_read_stack,
             all_button,
             unread_button,
             marked_button,
@@ -465,5 +473,10 @@ impl ContentHeader {
         self.more_actions_button.set_sensitive(sensitive);
         self.mark_article_button.set_sensitive(sensitive);
         self.mark_article_read_button.set_sensitive(sensitive);
+    }
+
+    pub fn finish_mark_all_read(&self) {
+        self.mark_all_read_button.set_sensitive(true);
+        self.mark_all_read_stack.set_visible_child_name("image");
     }
 }

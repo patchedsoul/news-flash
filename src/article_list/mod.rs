@@ -21,6 +21,7 @@ use parking_lot::RwLock;
 use single::SingleArticleList;
 use std::cell::RefCell;
 use std::rc::Rc;
+use std::sync::Arc;
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub enum CurrentList {
@@ -38,12 +39,12 @@ pub struct ArticleList {
     list_select_signal: Option<u64>,
     window_state: MainWindowState,
     current_list: GtkHandle<CurrentList>,
-    settings: Rc<RwLock<Settings>>,
+    settings: Arc<RwLock<Settings>>,
     empty_label: Label,
 }
 
 impl ArticleList {
-    pub fn new(settings: &Rc<RwLock<Settings>>, sender: Sender<Action>) -> Self {
+    pub fn new(settings: &Arc<RwLock<Settings>>, sender: Sender<Action>) -> Self {
         let builder = BuilderHelper::new("article_list");
         let stack = builder.get::<Stack>("article_list_stack");
         let empty_scroll = builder.get::<ScrolledWindow>("empty_scroll");

@@ -15,16 +15,16 @@ use gtk::{
 use libhandy::{ActionRow, PreferencesRowExt};
 use news_flash::models::ArticleOrder;
 use parking_lot::RwLock;
-use std::rc::Rc;
+use std::sync::Arc;
 
 pub struct SettingsDialog {
     pub widget: Window,
-    settings: Rc<RwLock<Settings>>,
+    settings: Arc<RwLock<Settings>>,
     builder: BuilderHelper,
 }
 
 impl SettingsDialog {
-    pub fn new(window: &gtk::ApplicationWindow, sender: &Sender<Action>, settings: &Rc<RwLock<Settings>>) -> Self {
+    pub fn new(window: &gtk::ApplicationWindow, sender: &Sender<Action>, settings: &Arc<RwLock<Settings>>) -> Self {
         let builder = BuilderHelper::new("settings");
 
         let dialog = builder.get::<Window>("dialog");
