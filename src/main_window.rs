@@ -584,9 +584,13 @@ impl MainWindow {
 
                 let news_flash = news_flash.clone();
                 let thread_future = async move {
-                    if let Some(news_flash) = news_flash.read().as_ref() {
-                        sender.send(runtime.block_on(news_flash.set_all_read())).unwrap();
-                    }
+                    let news_flash = news_flash.clone();
+                    let future = async move {
+                        if let Some(news_flash) = news_flash.read().as_ref() {
+                            sender.send(news_flash.set_all_read().await).unwrap();
+                        }
+                    };
+                    runtime.block_on(future);
                 };
 
                 let sender = self.sender.clone();
