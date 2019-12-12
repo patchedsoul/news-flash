@@ -29,11 +29,6 @@ impl Util {
         sender.send(action).expect(CHANNEL_ERROR);
     }
 
-    pub fn threadpool_spawn_future<F: Future<Output = ()> + 'static + Send>(future: F) {
-        let pool = futures::executor::ThreadPool::new().unwrap();
-        pool.spawn_ok(future);
-    }
-
     pub fn glib_spawn_future<F: Future<Output = ()> + 'static>(future: F) {
         let ctx = glib::MainContext::default();
         ctx.spawn_local(future);

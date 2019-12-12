@@ -16,6 +16,7 @@ use news_flash::models::{ArticleID, Category, CategoryID, TagID, Feed, FeedID, L
 use news_flash::{NewsFlash, NewsFlashError};
 use parking_lot::RwLock;
 use tokio::runtime::Runtime;
+use futures::executor::ThreadPool;
 
 use crate::about_dialog::NewsFlashAbout;
 use crate::add_dialog::{AddCategory, AddPopover};
@@ -75,7 +76,7 @@ pub enum Action {
     SearchTerm(String),
     SetSidebarRead,
     AddFeedDialog,
-    AddFeed((Url, Option<String>, AddCategory)),
+    AddFeed((Url, Option<String>, Option<AddCategory>)),
     RenameFeedDialog(FeedID),
     RenameFeed((Feed, String)),
     RenameCategoryDialog(CategoryID),
@@ -98,6 +99,7 @@ pub struct App {
     settings: Rc<RwLock<Settings>>,
     sync_source_id: RwLock<Option<u32>>,
     runtime: Arc<Runtime>,
+    threadpool: ThreadPool,
 }
 
 impl App {
@@ -121,6 +123,7 @@ impl App {
             settings,
             sync_source_id: RwLock::new(None),
             runtime: Arc::new(Runtime::new().unwrap()),
+            threadpool: ThreadPool::new().unwrap(),
         });
 
         app.setup_signals();
@@ -441,7 +444,7 @@ impl App {
                     return;
                 }
             };
-            let dialog = AddPopover::new(&add_button, categories, self.runtime.clone());
+            let dialog = AddPopover::new(&add_button, categories, self.threadpool.clone(), self.runtime.clone());
             let sender = self.sender.clone();
             dialog.add_button().connect_clicked(move |_button| {
                 let feed_url = match dialog.get_feed_url() {
@@ -460,25 +463,27 @@ impl App {
         }
     }
 
-    fn add_feed(&self, feed_url: Url, title: Option<String>, category: AddCategory) {
+    fn add_feed(&self, feed_url: Url, title: Option<String>, category: Option<AddCategory>) {
         let error_message = "Failed to add feed".to_owned();
 
         if let Some(news_flash) = self.news_flash.read().as_ref() {
             let category_id = match category {
-                AddCategory::New(category_title) => {
-                    let add_category_future = news_flash.add_category(&category_title, None, None);
-                    let category = match GtkUtil::block_on_future(add_category_future) {
-                        Ok(category) => category,
-                        Err(error) => {
-                            error!("{}: Can't add Category", error_message);
-                            Util::send(&self.sender, Action::Error(error_message.clone(), error));
-                            return;
-                        }
-                    };
-                    Some(category.category_id)
-                }
-                AddCategory::Existing(category_id) => Some(category_id),
-                AddCategory::None => None,
+                Some(category) => match category {
+                    AddCategory::New(category_title) => {
+                        let add_category_future = news_flash.add_category(&category_title, None, None);
+                        let category = match GtkUtil::block_on_future(add_category_future) {
+                            Ok(category) => category,
+                            Err(error) => {
+                                error!("{}: Can't add Category", error_message);
+                                Util::send(&self.sender, Action::Error(error_message.clone(), error));
+                                return;
+                            }
+                        };
+                        Some(category.category_id)
+                    }
+                    AddCategory::Existing(category_id) => Some(category_id),
+                },
+                None => None,
             };
 
             let add_feed_future = news_flash
