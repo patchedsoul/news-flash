@@ -8,8 +8,8 @@ use gtk::{BinExt, Box, Cast, ContainerExt, GtkWindowExt, ShortcutsWindow, Stack,
 use log::warn;
 use parking_lot::RwLock;
 use serde::{Deserialize, Serialize};
-use std::sync::Arc;
 use std::str;
+use std::sync::Arc;
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct Keybindings {

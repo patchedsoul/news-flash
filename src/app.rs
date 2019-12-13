@@ -4,8 +4,8 @@ use std::path::PathBuf;
 use std::rc::Rc;
 use std::sync::Arc;
 
-use futures::executor::ThreadPool;
 use futures::channel::oneshot;
+use futures::executor::ThreadPool;
 use gio::{ApplicationExt, ApplicationExtManual, Notification, NotificationPriority, ThemedIcon};
 use glib::{futures::FutureExt, translate::ToGlib, Receiver, Sender};
 use gtk::{
@@ -339,7 +339,9 @@ impl App {
         let global_sender = self.sender.clone();
         let thread_future = async move {
             if let Some(news_flash) = news_flash.read().as_ref() {
-                sender.send(runtime.block_on(news_flash.set_article_read(&article_id_vec, read_status))).unwrap();
+                sender
+                    .send(runtime.block_on(news_flash.set_article_read(&article_id_vec, read_status)))
+                    .unwrap();
             } else {
                 let message = "Failed to lock NewsFlash.".to_owned();
                 error!("{}", message);
@@ -357,7 +359,7 @@ impl App {
                     let message = format!("Failed to mark article read: '{}'", update.article_id);
                     error!("{}", message);
                     Util::send(&global_sender, Action::Error(message, error));
-                },
+                }
                 Err(error) => {
                     let message = format!("Sender error: {}", error);
                     error!("{}", message);

@@ -14,8 +14,8 @@ use crate::undo_bar::{UndoActionModel, UndoBar};
 use crate::util::{BuilderHelper, GtkHandle, GtkUtil, Util, GTK_CSS_ERROR, GTK_RESOURCE_FILE_ERROR};
 use crate::welcome_screen::{WelcomeHeaderbar, WelcomePage};
 use crate::Resources;
-use futures::executor::ThreadPool;
 use futures::channel::oneshot;
+use futures::executor::ThreadPool;
 use gdk::EventKey;
 use glib::{self, futures::FutureExt, Sender};
 use gtk::{
@@ -603,8 +603,9 @@ impl MainWindow {
                             let message = "Failed to mark all read".to_owned();
                             error!("{}", message);
                             Util::send(&sender, Action::Error(message, error));
-                        },
-                    }).unwrap();
+                        }
+                    })
+                    .unwrap();
                     Util::send(&sender, Action::UpdateArticleHeader);
                     Util::send(&sender, Action::UpdateArticleList);
                     Util::send(&sender, Action::UpdateSidebar);
@@ -620,7 +621,9 @@ impl MainWindow {
                 let category_id_vec = vec![category_id.clone()];
                 let thread_future = async move {
                     if let Some(news_flash) = news_flash.read().as_ref() {
-                        sender.send(runtime.block_on(news_flash.set_category_read(&category_id_vec))).unwrap();
+                        sender
+                            .send(runtime.block_on(news_flash.set_category_read(&category_id_vec)))
+                            .unwrap();
                     }
                 };
 
@@ -634,8 +637,9 @@ impl MainWindow {
                             let message = "Failed to mark all read".to_owned();
                             error!("{}", message);
                             Util::send(&sender, Action::Error(message, error));
-                        },
-                    }).unwrap();
+                        }
+                    })
+                    .unwrap();
                     Util::send(&sender, Action::UpdateArticleHeader);
                     Util::send(&sender, Action::UpdateArticleList);
                     Util::send(&sender, Action::UpdateSidebar);
@@ -651,7 +655,9 @@ impl MainWindow {
                 let feed_id_vec = vec![feed_id.clone()];
                 let thread_future = async move {
                     if let Some(news_flash) = news_flash.read().as_ref() {
-                        sender.send(runtime.block_on(news_flash.set_feed_read(&feed_id_vec))).unwrap();
+                        sender
+                            .send(runtime.block_on(news_flash.set_feed_read(&feed_id_vec)))
+                            .unwrap();
                     }
                 };
 
@@ -665,8 +671,9 @@ impl MainWindow {
                             let message = "Failed to mark all read".to_owned();
                             error!("{}", message);
                             Util::send(&sender, Action::Error(message, error));
-                        },
-                    }).unwrap();
+                        }
+                    })
+                    .unwrap();
                     Util::send(&sender, Action::UpdateArticleHeader);
                     Util::send(&sender, Action::UpdateArticleList);
                     Util::send(&sender, Action::UpdateSidebar);
@@ -682,7 +689,9 @@ impl MainWindow {
                 let tag_id_vec = vec![tag_id.clone()];
                 let thread_future = async move {
                     if let Some(news_flash) = news_flash.read().as_ref() {
-                        sender.send(runtime.block_on(news_flash.set_tag_read(&tag_id_vec))).unwrap();
+                        sender
+                            .send(runtime.block_on(news_flash.set_tag_read(&tag_id_vec)))
+                            .unwrap();
                     }
                 };
 
@@ -696,8 +705,9 @@ impl MainWindow {
                             let message = "Failed to mark all read".to_owned();
                             error!("{}", message);
                             Util::send(&sender, Action::Error(message, error));
-                        },
-                    }).unwrap();
+                        }
+                    })
+                    .unwrap();
                     Util::send(&sender, Action::UpdateArticleHeader);
                     Util::send(&sender, Action::UpdateArticleList);
                     Util::send(&sender, Action::UpdateSidebar);
