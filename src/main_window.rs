@@ -594,7 +594,9 @@ impl MainWindow {
                 };
 
                 let sender = self.sender.clone();
+                let content_header = self.content_header.clone();
                 let glib_future = receiver.map(move |res| {
+                    content_header.finish_mark_all_read();
                     res.map(|result| match result {
                         Ok(_) => {}
                         Err(error) => {
@@ -602,7 +604,10 @@ impl MainWindow {
                             error!("{}", message);
                             Util::send(&sender, Action::Error(message, error));
                         },
-                    });
+                    }).unwrap();
+                    Util::send(&sender, Action::UpdateArticleHeader);
+                    Util::send(&sender, Action::UpdateArticleList);
+                    Util::send(&sender, Action::UpdateSidebar);
                 });
 
                 threadpool.spawn_ok(thread_future);
@@ -620,7 +625,9 @@ impl MainWindow {
                 };
 
                 let sender = self.sender.clone();
+                let content_header = self.content_header.clone();
                 let glib_future = receiver.map(move |res| {
+                    content_header.finish_mark_all_read();
                     res.map(|result| match result {
                         Ok(_) => {}
                         Err(error) => {
@@ -628,7 +635,10 @@ impl MainWindow {
                             error!("{}", message);
                             Util::send(&sender, Action::Error(message, error));
                         },
-                    });
+                    }).unwrap();
+                    Util::send(&sender, Action::UpdateArticleHeader);
+                    Util::send(&sender, Action::UpdateArticleList);
+                    Util::send(&sender, Action::UpdateSidebar);
                 });
 
                 threadpool.spawn_ok(thread_future);
@@ -646,7 +656,9 @@ impl MainWindow {
                 };
 
                 let sender = self.sender.clone();
+                let content_header = self.content_header.clone();
                 let glib_future = receiver.map(move |res| {
+                    content_header.finish_mark_all_read();
                     res.map(|result| match result {
                         Ok(_) => {}
                         Err(error) => {
@@ -654,7 +666,10 @@ impl MainWindow {
                             error!("{}", message);
                             Util::send(&sender, Action::Error(message, error));
                         },
-                    });
+                    }).unwrap();
+                    Util::send(&sender, Action::UpdateArticleHeader);
+                    Util::send(&sender, Action::UpdateArticleList);
+                    Util::send(&sender, Action::UpdateSidebar);
                 });
 
                 threadpool.spawn_ok(thread_future);
@@ -672,7 +687,9 @@ impl MainWindow {
                 };
 
                 let sender = self.sender.clone();
+                let content_header = self.content_header.clone();
                 let glib_future = receiver.map(move |res| {
+                    content_header.finish_mark_all_read();
                     res.map(|result| match result {
                         Ok(_) => {}
                         Err(error) => {
@@ -680,14 +697,19 @@ impl MainWindow {
                             error!("{}", message);
                             Util::send(&sender, Action::Error(message, error));
                         },
-                    });
+                    }).unwrap();
+                    Util::send(&sender, Action::UpdateArticleHeader);
+                    Util::send(&sender, Action::UpdateArticleList);
+                    Util::send(&sender, Action::UpdateSidebar);
                 });
 
                 threadpool.spawn_ok(thread_future);
                 Util::glib_spawn_future(glib_future);
             }
         }
+    }
 
+    pub fn update_article_header(&self, news_flash: &Arc<RwLock<Option<NewsFlash>>>) {
         let visible_article = self.content_page.read().article_view_visible_article();
         if let Some(visible_article) = visible_article {
             if let Some(news_flash) = news_flash.read().as_ref() {
@@ -699,8 +721,5 @@ impl MainWindow {
                 }
             }
         }
-
-        Util::send(&self.sender, Action::UpdateArticleList);
-        Util::send(&self.sender, Action::UpdateSidebar);
     }
 }

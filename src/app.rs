@@ -5,6 +5,7 @@ use std::rc::Rc;
 use std::sync::Arc;
 
 use futures::executor::ThreadPool;
+use futures::channel::oneshot;
 use gio::{ApplicationExt, ApplicationExtManual, Notification, NotificationPriority, ThemedIcon};
 use glib::{futures::FutureExt, translate::ToGlib, Receiver, Sender};
 use gtk::{
@@ -70,6 +71,7 @@ pub enum Action {
     SidebarSelectNext,
     SidebarSelectPrev,
     HeaderSelection(HeaderSelection),
+    UpdateArticleHeader,
     ShowArticle(ArticleID),
     RedrawArticle,
     CloseArticle,
@@ -188,6 +190,7 @@ impl App {
             Action::SidebarSelectNext => self.window.content_page.read().select_next_article(),
             Action::SidebarSelectPrev => self.window.content_page.read().select_prev_article(),
             Action::HeaderSelection(selection) => self.window.set_headerbar_selection(selection),
+            Action::UpdateArticleHeader => self.window.update_article_header(&self.news_flash),
             Action::ShowArticle(article_id) => self.window.show_article(article_id, &self.news_flash),
             Action::RedrawArticle => self.window.content_page.read().article_view_redraw(),
             Action::CloseArticle => {
@@ -327,38 +330,57 @@ impl App {
     }
 
     fn mark_article_read(&self, update: ReadUpdate) {
-        if let Some(news_flash) = self.news_flash.write().as_mut() {
-            let article_id_vec = vec![update.article_id.clone()];
-            let future = news_flash
-                .set_article_read(&article_id_vec, update.read)
-                .map(|result| match result {
-                    Ok(_) => {}
-                    Err(error) => {
-                        let message = format!("Failed to mark article read: '{}'", update.article_id);
-                        error!("{}", message);
-                        Util::send(&self.sender, Action::Error(message, error));
-                    }
-                });
-            GtkUtil::block_on_future(future);
-        } else {
-            let message = "Failed to borrow NewsFlash.".to_owned();
-            error!("{}", message);
-            Util::send(&self.sender, Action::ErrorSimpleMessage(message));
-        }
+        let (sender, receiver) = oneshot::channel::<Result<(), NewsFlashError>>();
 
-        Util::send(&self.sender, Action::UpdateSidebar);
-        let visible_article = self.window.content_page.read().article_view_visible_article();
-        if let Some(visible_article) = visible_article {
-            if visible_article.article_id == update.article_id {
-                let mut visible_article = visible_article.clone();
-                visible_article.unread = update.read;
-                self.window.content_header.show_article(Some(&visible_article));
-                self.window
-                    .content_page
-                    .read()
-                    .article_view_update_visible_article(Some(visible_article.unread), None);
+        let runtime = self.runtime.clone();
+        let news_flash = self.news_flash.clone();
+        let article_id_vec = vec![update.article_id.clone()];
+        let read_status = update.read;
+        let global_sender = self.sender.clone();
+        let thread_future = async move {
+            if let Some(news_flash) = news_flash.read().as_ref() {
+                sender.send(runtime.block_on(news_flash.set_article_read(&article_id_vec, read_status))).unwrap();
+            } else {
+                let message = "Failed to lock NewsFlash.".to_owned();
+                error!("{}", message);
+                Util::send(&global_sender, Action::ErrorSimpleMessage(message));
             }
-        }
+        };
+
+        let global_sender = self.sender.clone();
+        let content_page = self.window.content_page.clone();
+        let content_header = self.window.content_header.clone();
+        let glib_future = receiver.map(move |res| {
+            match res {
+                Ok(Ok(())) => {}
+                Ok(Err(error)) => {
+                    let message = format!("Failed to mark article read: '{}'", update.article_id);
+                    error!("{}", message);
+                    Util::send(&global_sender, Action::Error(message, error));
+                },
+                Err(error) => {
+                    let message = format!("Sender error: {}", error);
+                    error!("{}", message);
+                    Util::send(&global_sender, Action::ErrorSimpleMessage(message));
+                }
+            };
+
+            Util::send(&global_sender, Action::UpdateSidebar);
+            let visible_article = content_page.read().article_view_visible_article();
+            if let Some(visible_article) = visible_article {
+                if visible_article.article_id == update.article_id {
+                    let mut visible_article = visible_article.clone();
+                    visible_article.unread = update.read;
+                    content_header.show_article(Some(&visible_article));
+                    content_page
+                        .read()
+                        .article_view_update_visible_article(Some(visible_article.unread), None);
+                }
+            }
+        });
+
+        self.threadpool.spawn_ok(thread_future);
+        Util::glib_spawn_future(glib_future);
     }
 
     fn mark_article(&self, update: MarkUpdate) {
