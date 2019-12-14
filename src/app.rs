@@ -250,7 +250,7 @@ impl App {
             Ok(news_flash) => news_flash,
             Err(error) => {
                 match &data {
-                    LoginData::OAuth(_) => self.window.oauth_logn_page.show_error(error),
+                    LoginData::OAuth(_) => self.window.oauth_login_page.show_error(error),
                     LoginData::Password(_) => self.window.password_login_page.show_error(error),
                     LoginData::None(_) => {}
                 }
@@ -258,30 +258,48 @@ impl App {
             }
         };
 
-        let login_result = GtkUtil::block_on_future(news_flash_lib.login(data.clone()));
-        match login_result {
-            Ok(()) => {
-                // create main obj
-                self.news_flash.write().replace(news_flash_lib);
+        let (sender, receiver) = oneshot::channel::<Result<(), NewsFlashError>>();
 
-                // show content page
-                Util::send(&self.sender, Action::ShowContentPage(id));
+        let news_flash = self.news_flash.clone();
+        let global_sender = self.sender.clone();
+        let runtime = self.runtime.clone();
+        let data_clone = data.clone();
+        let thread_future = async move {
+            let result = runtime.block_on(news_flash_lib.login(data_clone));
+            match &result {
+                Ok(()) => {
+                    // create main obj
+                    news_flash.write().replace(news_flash_lib);
+                    // show content page
+                    Util::send(&global_sender, Action::ShowContentPage(id));
+                },
+                Err(error) => {
+                    error!("Login failed! Plguin: {}, Error: {}", id, error);
+                }
             }
-            Err(error) => {
-                error!("Login failed! Plguin: {}, Error: {}", id, error);
+            sender.send(result).unwrap();
+        };
+
+        let oauth_login_page = self.window.oauth_login_page.clone();
+        let password_login_page = self.window.password_login_page.clone();
+        let glib_future = receiver.map(move |res| {
+            if let Ok(Err(error)) = res {
                 match data {
                     LoginData::OAuth(_) => {
-                        self.window.oauth_logn_page.show_error(error);
+                        oauth_login_page.show_error(error);
                     }
                     LoginData::Password(_) => {
-                        self.window.password_login_page.show_error(error);
+                        password_login_page.show_error(error);
                     }
                     LoginData::None(_) => {
                         // NOTHING
                     }
                 }
             }
-        }
+        });
+
+        self.threadpool.spawn_ok(thread_future);
+        Util::glib_spawn_future(glib_future);
     }
 
     fn schedule_sync(&self) {
@@ -302,31 +320,50 @@ impl App {
     }
 
     fn sync(&self) {
-        if let Some(news_flash) = self.news_flash.read().as_ref() {
-            //let ctx = glib::MainContext::default();
-            //let sync_result = ctx.block_on(news_flash.sync());
-            let sync_result = GtkUtil::block_on_future(news_flash.sync());
-            let unread_count = match news_flash.unread_count_all() {
-                Ok(unread_count) => unread_count,
-                Err(_) => 0,
-            };
-            match sync_result {
-                Ok(new_article_count) => {
-                    self.window.content_header.finish_sync();
-                    Util::send(&self.sender, Action::UpdateSidebar);
-                    Util::send(&self.sender, Action::UpdateArticleList);
-                    let counts = NotificationCounts {
-                        new: new_article_count,
-                        unread: unread_count,
-                    };
-                    Util::send(&self.sender, Action::ShowNotification(counts));
-                }
-                Err(error) => {
-                    self.window.content_header.finish_sync();
-                    Util::send(&self.sender, Action::Error("Failed to sync.".to_owned(), error));
+        let (sender, receiver) = oneshot::channel::<Result<i64, NewsFlashError>>();
+
+        let news_flash = self.news_flash.clone();
+        let runtime = self.runtime.clone();
+        let thread_future = async move {
+            if let Some(news_flash) = news_flash.read().as_ref() {
+                let result = runtime.block_on(news_flash.sync());
+                sender.send(result).unwrap();
+            }
+        };
+
+        let news_flash = self.news_flash.clone();
+        let sender = self.sender.clone();
+        let content_header = self.window.content_header.clone();
+        let glib_future = receiver.map(move |res| {
+            if let Some(news_flash) = news_flash.read().as_ref() {
+                let unread_count = match news_flash.unread_count_all() {
+                    Ok(unread_count) => unread_count,
+                    Err(_) => 0,
+                };
+                match res {
+                    Ok(Ok(new_article_count)) => {
+                        content_header.finish_sync();
+                        Util::send(&sender, Action::UpdateSidebar);
+                        Util::send(&sender, Action::UpdateArticleList);
+                        let counts = NotificationCounts {
+                            new: new_article_count,
+                            unread: unread_count,
+                        };
+                        Util::send(&sender, Action::ShowNotification(counts));
+                    }
+                    Ok(Err(error)) => {
+                        content_header.finish_sync();
+                        Util::send(&sender, Action::Error("Failed to sync.".to_owned(), error));
+                    }
+                    Err(_) => {
+
+                    },
                 }
             }
-        }
+        });
+
+        self.threadpool.spawn_ok(thread_future);
+        Util::glib_spawn_future(glib_future);
     }
 
     fn mark_article_read(&self, update: ReadUpdate) {
@@ -386,38 +423,45 @@ impl App {
     }
 
     fn mark_article(&self, update: MarkUpdate) {
-        if let Some(news_flash) = self.news_flash.write().as_mut() {
-            let article_id_vec = vec![update.article_id.clone()];
-            let future = news_flash
-                .set_article_marked(&article_id_vec, update.marked)
-                .map(|result| match result {
-                    Ok(_) => {}
-                    Err(error) => {
-                        let message = format!("Failed to star article: '{}'", update.article_id);
-                        error!("{}", message);
-                        Util::send(&self.sender, Action::Error(message, error));
-                    }
-                });
-            GtkUtil::block_on_future(future);
-        } else {
-            let message = "Failed to borrow NewsFlash.".to_owned();
-            error!("{}", message);
-            Util::send(&self.sender, Action::ErrorSimpleMessage(message));
-        }
+        let (sender, receiver) = oneshot::channel::<Result<(), NewsFlashError>>();
 
-        Util::send(&self.sender, Action::UpdateSidebar);
-        let visible_article = self.window.content_page.read().article_view_visible_article();
-        if let Some(visible_article) = visible_article {
-            if visible_article.article_id == update.article_id {
-                let mut visible_article = visible_article.clone();
-                visible_article.marked = update.marked;
-                self.window.content_header.show_article(Some(&visible_article));
-                self.window
-                    .content_page
-                    .read()
-                    .article_view_update_visible_article(None, Some(visible_article.marked));
+        let runtime = self.runtime.clone();
+        let news_flash = self.news_flash.clone();
+        let article_id_vec = vec![update.article_id.clone()];
+        let mark_status = update.marked;
+        let global_sender = self.sender.clone();
+        let thread_future = async move {
+            if let Some(news_flash) = news_flash.read().as_ref() {
+                sender
+                    .send(runtime.block_on(news_flash.set_article_marked(&article_id_vec, mark_status)))
+                    .unwrap();
+            } else {
+                let message = "Failed to lock NewsFlash.".to_owned();
+                error!("{}", message);
+                Util::send(&global_sender, Action::ErrorSimpleMessage(message));
             }
-        }
+        };
+
+        let global_sender = self.sender.clone();
+        let content_page = self.window.content_page.clone();
+        let content_header = self.window.content_header.clone();
+        let glib_future = receiver.map(move |_res| {
+            Util::send(&global_sender, Action::UpdateSidebar);
+            let visible_article = content_page.read().article_view_visible_article();
+            if let Some(visible_article) = visible_article {
+                if visible_article.article_id == update.article_id {
+                    let mut visible_article = visible_article.clone();
+                    visible_article.marked = update.marked;
+                    content_header.show_article(Some(&visible_article));
+                    content_page
+                        .read()
+                        .article_view_update_visible_article(None, Some(visible_article.marked));
+                }
+            }
+        });
+
+        self.threadpool.spawn_ok(thread_future);
+        Util::glib_spawn_future(glib_future);
     }
 
     fn toggle_article_read(&self) {
@@ -493,42 +537,48 @@ impl App {
     }
 
     fn add_feed(&self, feed_url: Url, title: Option<String>, category: Option<AddCategory>) {
-        let error_message = "Failed to add feed".to_owned();
+        let runtime = self.runtime.clone();
+        let news_flash = self.news_flash.clone();
+        let global_sender = self.sender.clone();
+        let thread_future = async move {
+            let error_message = "Failed to add feed".to_owned();
+            if let Some(news_flash) = news_flash.read().as_ref() {
+                let category_id = match category {
+                    Some(category) => match category {
+                        AddCategory::New(category_title) => {
+                            let add_category_future = news_flash.add_category(&category_title, None, None);
+                            let category = match runtime.block_on(add_category_future) {
+                                Ok(category) => category,
+                                Err(error) => {
+                                    error!("{}: Can't add Category", error_message);
+                                    Util::send(&global_sender, Action::Error(error_message.clone(), error));
+                                    return;
+                                }
+                            };
+                            Some(category.category_id)
+                        }
+                        AddCategory::Existing(category_id) => Some(category_id),
+                    },
+                    None => None,
+                };
 
-        if let Some(news_flash) = self.news_flash.read().as_ref() {
-            let category_id = match category {
-                Some(category) => match category {
-                    AddCategory::New(category_title) => {
-                        let add_category_future = news_flash.add_category(&category_title, None, None);
-                        let category = match GtkUtil::block_on_future(add_category_future) {
-                            Ok(category) => category,
-                            Err(error) => {
-                                error!("{}: Can't add Category", error_message);
-                                Util::send(&self.sender, Action::Error(error_message.clone(), error));
-                                return;
-                            }
-                        };
-                        Some(category.category_id)
-                    }
-                    AddCategory::Existing(category_id) => Some(category_id),
-                },
-                None => None,
-            };
-
-            let add_feed_future = news_flash
-                .add_feed(&feed_url, title, category_id)
-                .map(|result| match result {
-                    Ok(_) => {}
-                    Err(error) => {
-                        error!("{}: Can't add Feed", error_message);
-                        Util::send(&self.sender, Action::Error(error_message.clone(), error));
-                    }
-                });
-            GtkUtil::block_on_future(add_feed_future);
-        } else {
-            error!("{}: Can't borrow NewsFlash", error_message);
-            Util::send(&self.sender, Action::ErrorSimpleMessage(error_message.clone()));
-        }
+                let add_feed_future = news_flash
+                    .add_feed(&feed_url, title, category_id)
+                    .map(|result| match result {
+                        Ok(_) => {}
+                        Err(error) => {
+                            error!("{}: Can't add Feed", error_message);
+                            Util::send(&global_sender, Action::Error(error_message.clone(), error));
+                        }
+                    });
+                runtime.block_on(add_feed_future);
+            } else {
+                let message = "Failed to lock NewsFlash.".to_owned();
+                error!("{}", message);
+                Util::send(&global_sender, Action::ErrorSimpleMessage(message));
+            }
+        };
+        self.threadpool.spawn_ok(thread_future);
     }
 
     fn rename_feed_dialog(&self, feed_id: FeedID) {
@@ -580,17 +630,21 @@ impl App {
     }
 
     fn rename_feed(&self, feed: Feed, new_title: String) {
-        if let Some(news_flash) = self.news_flash.read().as_ref() {
-            let future = news_flash.rename_feed(&feed, &new_title).map(|result| {
-                if let Err(error) = result {
-                    Util::send(&self.sender, Action::Error("Failed to rename feed.".to_owned(), error));
+        let runtime = self.runtime.clone();
+        let news_flash = self.news_flash.clone();
+        let sender = self.sender.clone();
+        let thread_future = async move {
+            if let Some(news_flash) = news_flash.read().as_ref() {
+                if let Err(error) = runtime.block_on(news_flash.rename_feed(&feed, &new_title)) {
+                    Util::send(&sender, Action::Error("Failed to rename feed.".to_owned(), error));
                 }
-            });
-            GtkUtil::block_on_future(future);
-        }
+            }
+    
+            Util::send(&sender, Action::UpdateArticleList);
+            Util::send(&sender, Action::UpdateSidebar);
+        };
 
-        Util::send(&self.sender, Action::UpdateArticleList);
-        Util::send(&self.sender, Action::UpdateSidebar);
+        self.threadpool.spawn_ok(thread_future);
     }
 
     fn rename_category_dialog(&self, category_id: CategoryID) {
@@ -643,19 +697,23 @@ impl App {
     }
 
     fn rename_category(&self, category: Category, new_title: String) {
-        if let Some(news_flash) = self.news_flash.read().as_ref() {
-            let future = news_flash.rename_category(&category, &new_title).map(|result| {
-                if let Err(error) = result {
+        let runtime = self.runtime.clone();
+        let news_flash = self.news_flash.clone();
+        let sender = self.sender.clone();
+        let thread_future = async move {
+            if let Some(news_flash) = news_flash.read().as_ref() {
+                if let Err(error) = runtime.block_on(news_flash.rename_category(&category, &new_title)) {
                     Util::send(
-                        &self.sender,
+                        &sender,
                         Action::Error("Failed to rename category.".to_owned(), error),
                     );
                 }
-            });
-            GtkUtil::block_on_future(future);
-        }
+            }
 
-        Util::send(&self.sender, Action::UpdateSidebar);
+            Util::send(&sender, Action::UpdateSidebar);
+        };
+
+        self.threadpool.spawn_ok(thread_future);
     }
 
     fn delete_selection(&self) {
@@ -677,126 +735,135 @@ impl App {
     }
 
     fn delete_feed(&self, feed_id: FeedID) {
-        if let Some(news_flash) = self.news_flash.read().as_ref() {
-            let (feeds, _mappings) = match news_flash.get_feeds() {
-                Ok(res) => res,
-                Err(error) => {
-                    Util::send(&self.sender, Action::Error("Failed to delete feed.".to_owned(), error));
-                    return;
-                }
-            };
-
-            if let Some(feed) = feeds.iter().find(|f| f.feed_id == feed_id).cloned() {
-                info!("delete feed '{}' (id: {})", feed.label, feed.feed_id);
-                let future = news_flash.remove_feed(&feed).map(|remove_result| {
-                    if let Err(error) = remove_result {
-                        Util::send(&self.sender, Action::Error("Failed to delete feed.".to_owned(), error));
+        let runtime = self.runtime.clone();
+        let news_flash = self.news_flash.clone();
+        let sender = self.sender.clone();
+        let thread_future = async move {
+            if let Some(news_flash) = news_flash.read().as_ref() {
+                let (feeds, _mappings) = match news_flash.get_feeds() {
+                    Ok(res) => res,
+                    Err(error) => {
+                        Util::send(&sender, Action::Error("Failed to delete feed.".to_owned(), error));
+                        return;
                     }
-                });
-                GtkUtil::block_on_future(future);
-            } else {
-                let message = format!("Failed to delete feed: feed with id '{}' not found.", feed_id);
-                Util::send(&self.sender, Action::ErrorSimpleMessage(message));
-                error!("feed not found: {}", feed_id);
+                };
+    
+                if let Some(feed) = feeds.iter().find(|f| f.feed_id == feed_id).cloned() {
+                    info!("delete feed '{}' (id: {})", feed.label, feed.feed_id);
+                    if let Err(error) = runtime.block_on(news_flash.remove_feed(&feed)) {
+                        Util::send(&sender, Action::Error("Failed to delete feed.".to_owned(), error));
+                    }
+                } else {
+                    let message = format!("Failed to delete feed: feed with id '{}' not found.", feed_id);
+                    Util::send(&sender, Action::ErrorSimpleMessage(message));
+                    error!("feed not found: {}", feed_id);
+                }
             }
-        }
+        };
+
+        self.threadpool.spawn_ok(thread_future);
     }
 
     fn delete_category(&self, category_id: CategoryID) {
-        if let Some(news_flash) = self.news_flash.read().as_ref() {
-            let categories = match news_flash.get_categories() {
-                Ok(res) => res,
-                Err(error) => {
-                    Util::send(
-                        &self.sender,
-                        Action::Error("Failed to delete category.".to_owned(), error),
-                    );
-                    return;
-                }
-            };
-
-            if let Some(category) = categories.iter().find(|c| c.category_id == category_id).cloned() {
-                info!("delete category '{}' (id: {})", category.label, category.category_id);
-                let future = news_flash.remove_category(&category, true).map(|remove_result| {
-                    if let Err(error) = remove_result {
+        let runtime = self.runtime.clone();
+        let news_flash = self.news_flash.clone();
+        let sender = self.sender.clone();
+        let thread_future = async move {
+            if let Some(news_flash) = news_flash.read().as_ref() {
+                let categories = match news_flash.get_categories() {
+                    Ok(res) => res,
+                    Err(error) => {
                         Util::send(
-                            &self.sender,
+                            &sender,
+                            Action::Error("Failed to delete category.".to_owned(), error),
+                        );
+                        return;
+                    }
+                };
+
+                if let Some(category) = categories.iter().find(|c| c.category_id == category_id).cloned() {
+                    info!("delete category '{}' (id: {})", category.label, category.category_id);
+                    if let Err(error) = runtime.block_on(news_flash.remove_category(&category, true)) {
+                        Util::send(
+                            &sender,
                             Action::Error("Failed to delete category.".to_owned(), error),
                         );
                     }
-                });
-                // FIXME
-                GtkUtil::block_on_future(future);
-            } else {
-                let message = format!(
-                    "Failed to delete category: category with id '{}' not found.",
-                    category_id
-                );
-                Util::send(&self.sender, Action::ErrorSimpleMessage(message));
-                error!("category not found: {}", category_id);
+                } else {
+                    let message = format!(
+                        "Failed to delete category: category with id '{}' not found.",
+                        category_id
+                    );
+                    Util::send(&sender, Action::ErrorSimpleMessage(message));
+                    error!("category not found: {}", category_id);
+                }
             }
-        }
+        };
+
+        self.threadpool.spawn_ok(thread_future);
     }
 
     fn delete_tag(&self, tag_id: TagID) {
-        if let Some(news_flash) = self.news_flash.read().as_ref() {
-            let tags = match news_flash.get_tags() {
-                Ok(res) => res,
-                Err(error) => {
-                    Util::send(&self.sender, Action::Error("Failed to delete tag.".to_owned(), error));
-                    return;
-                }
-            };
-
-            if let Some(tag) = tags.iter().find(|t| t.tag_id == tag_id).cloned() {
-                info!("delete tag '{}' (id: {})", tag.label, tag.tag_id);
-                let future = news_flash.remove_tag(&tag).map(|remove_result| {
-                    if let Err(error) = remove_result {
-                        Util::send(&self.sender, Action::Error("Failed to delete tag.".to_owned(), error));
+        let runtime = self.runtime.clone();
+        let news_flash = self.news_flash.clone();
+        let sender = self.sender.clone();
+        let thread_future = async move {
+            if let Some(news_flash) = news_flash.read().as_ref() {
+                let tags = match news_flash.get_tags() {
+                    Ok(res) => res,
+                    Err(error) => {
+                        Util::send(&sender, Action::Error("Failed to delete tag.".to_owned(), error));
+                        return;
                     }
-                });
-                // FIXME
-                GtkUtil::block_on_future(future);
-            } else {
-                let message = format!("Failed to delete tag: tag with id '{}' not found.", tag_id);
-                Util::send(&self.sender, Action::ErrorSimpleMessage(message));
-                error!("tag not found: {}", tag_id);
+                };
+
+                if let Some(tag) = tags.iter().find(|t| t.tag_id == tag_id).cloned() {
+                    info!("delete tag '{}' (id: {})", tag.label, tag.tag_id);
+                    if let Err(error) = runtime.block_on(news_flash.remove_tag(&tag)) {
+                        Util::send(&sender, Action::Error("Failed to delete tag.".to_owned(), error));
+                    }
+                } else {
+                    let message = format!("Failed to delete tag: tag with id '{}' not found.", tag_id);
+                    Util::send(&sender, Action::ErrorSimpleMessage(message));
+                    error!("tag not found: {}", tag_id);
+                }
             }
-        }
+        };
+
+        self.threadpool.spawn_ok(thread_future);
     }
 
     fn drag_and_drop(&self, action: FeedListDndAction) {
-        match action {
-            FeedListDndAction::MoveCategory(category_id, parent_id, _sort_index) => {
-                if let Some(news_flash) = self.news_flash.read().as_ref() {
-                    let future = news_flash.move_category(&category_id, &parent_id).map(|move_result| {
-                        if let Err(error) = move_result {
+        let runtime = self.runtime.clone();
+        let news_flash = self.news_flash.clone();
+        let sender = self.sender.clone();
+        let thread_future = async move {
+            if let Some(news_flash) = news_flash.read().as_ref() {
+                match action {
+                    FeedListDndAction::MoveCategory(category_id, parent_id, _sort_index) => {
+                        if let Err(error) = runtime.block_on(news_flash.move_category(&category_id, &parent_id)) {
                             Util::send(
-                                &self.sender,
+                                &sender,
                                 Action::Error("Failed to move category.".to_owned(), error),
                             );
                         }
-                    });
-                    // FIXME
-                    GtkUtil::block_on_future(future);
-                }
-            }
-            FeedListDndAction::MoveFeed(feed_id, from_id, to_id, _sort_index) => {
-                if let Some(news_flash) = self.news_flash.read().as_ref() {
-                    let future = news_flash.move_feed(&feed_id, &from_id, &to_id).map(|move_result| {
-                        if let Err(error) = move_result {
-                            Util::send(&self.sender, Action::Error("Failed to move feed.".to_owned(), error));
+                    }
+                    FeedListDndAction::MoveFeed(feed_id, from_id, to_id, _sort_index) => {
+                        if let Err(error) = runtime.block_on(news_flash.move_feed(&feed_id, &from_id, &to_id)) {
+                            Util::send(&sender, Action::Error("Failed to move feed.".to_owned(), error));
                         }
-                    });
-                    // FIXME
-                    GtkUtil::block_on_future(future);
+                    }
                 }
             }
-        }
-        Util::send(&self.sender, Action::UpdateSidebar);
+            Util::send(&sender, Action::UpdateSidebar);
+        };
+
+        self.threadpool.spawn_ok(thread_future);
     }
 
     fn export_article(&self) {
+        let (sender, receiver) = oneshot::channel::<()>();
+
         if let Some(article) = self.window.content_page.read().article_view_visible_article() {
             let dialog = FileChooserDialog::with_buttons(
                 Some("Export Article"),
@@ -818,66 +885,83 @@ impl App {
             }
 
             if let ResponseType::Ok = dialog.run() {
-                if let Some(news_flash) = self.news_flash.read().as_ref() {
-                    let sender = self.sender.clone();
-                    let settings = self.settings.clone();
-                    let dialog_clone = dialog.clone();
-                    let future = news_flash
-                        .article_download_images(&article.article_id)
-                        .map(move |article_result| {
-                            let article = match article_result {
-                                Ok(article) => article,
-                                Err(error) => {
-                                    Util::send(
-                                        &sender,
-                                        Action::Error("Failed to downlaod article images.".to_owned(), error),
-                                    );
-                                    return;
-                                }
-                            };
+                self.window.content_header.start_more_actions_spinner();
 
-                            let (feeds, _) = match news_flash.get_feeds() {
-                                Ok(opml) => opml,
-                                Err(error) => {
-                                    Util::send(
-                                        &sender,
-                                        Action::Error("Failed to load feeds from db.".to_owned(), error),
-                                    );
-                                    return;
-                                }
-                            };
-                            let feed = match feeds.iter().find(|&f| f.feed_id == article.feed_id) {
-                                Some(feed) => feed,
-                                None => {
-                                    Util::send(
-                                        &sender,
-                                        Action::ErrorSimpleMessage("Failed to find specific feed.".to_owned()),
-                                    );
-                                    return;
-                                }
-                            };
-                            if let Some(filename) = dialog_clone.get_filename() {
-                                let html = ArticleView::build_article_static(
-                                    "article",
-                                    &article,
-                                    &feed.label,
-                                    &settings,
-                                    None,
-                                    None,
+                let runtime = self.runtime.clone();
+                let news_flash = self.news_flash.clone();
+                let global_sender = self.sender.clone();
+                let settings = self.settings.clone();
+                let filename = match dialog.get_filename() {
+                    Some(filename) => filename,
+                    None => {
+                        Util::send(
+                            &self.sender,
+                            Action::ErrorSimpleMessage("No filename set.".to_owned()),
+                        );
+                        return;
+                    }
+                };
+                let thread_future = async move {
+                    if let Some(news_flash) = news_flash.read().as_ref() {
+                        let article = match runtime.block_on(news_flash.article_download_images(&article.article_id)) {
+                            Ok(article) => article,
+                            Err(error) => {
+                                Util::send(
+                                    &global_sender,
+                                    Action::Error("Failed to downlaod article images.".to_owned(), error),
                                 );
-                                if FileUtil::write_text_file(&filename, &html).is_err() {
-                                    Util::send(
-                                        &sender,
-                                        Action::ErrorSimpleMessage("Failed to write OPML data to disc.".to_owned()),
-                                    );
-                                }
+                                sender.send(()).unwrap();
+                                return;
                             }
-                        });
-                    //FIXME
-                    GtkUtil::block_on_future(future);
-                }
-            }
+                        };
 
+                        sender.send(()).unwrap();
+
+                        let (feeds, _) = match news_flash.get_feeds() {
+                            Ok(feeds) => feeds,
+                            Err(error) => {
+                                Util::send(
+                                    &global_sender,
+                                    Action::Error("Failed to load feeds from db.".to_owned(), error),
+                                );
+                                return;
+                            }
+                        };
+                        let feed = match feeds.iter().find(|&f| f.feed_id == article.feed_id) {
+                            Some(feed) => feed,
+                            None => {
+                                Util::send(
+                                    &global_sender,
+                                    Action::ErrorSimpleMessage("Failed to find specific feed.".to_owned()),
+                                );
+                                return;
+                            }
+                        };
+                        let html = ArticleView::build_article_static(
+                            "article",
+                            &article,
+                            &feed.label,
+                            &settings,
+                            None,
+                            None,
+                        );
+                        if FileUtil::write_text_file(&filename, &html).is_err() {
+                            Util::send(
+                                &global_sender,
+                                Action::ErrorSimpleMessage("Failed to write OPML data to disc.".to_owned()),
+                            );
+                        }
+                    }
+                };
+
+                let content_header = self.window.content_header.clone();
+                let glib_future = receiver.map(move |_res| {
+                    content_header.stop_more_actions_spinner();
+                });
+
+                self.threadpool.spawn_ok(thread_future);
+                Util::glib_spawn_future(glib_future);
+            }
             dialog.emit_close();
         }
     }

@@ -26,6 +26,7 @@ pub struct ContentHeader {
     unread_button: ToggleButton,
     marked_button: ToggleButton,
     more_actions_button: MenuButton,
+    more_actions_stack: Stack,
     mode_switch_stack: Stack,
     mark_article_button: ToggleButton,
     mark_article_read_button: ToggleButton,
@@ -44,6 +45,7 @@ impl ContentHeader {
         let update_stack = builder.get::<Stack>("update_stack");
         let menu_button = builder.get::<MenuButton>("menu_button");
         let more_actions_button = builder.get::<MenuButton>("more_actions_button");
+        let more_actions_stack = builder.get::<Stack>("more_actions_stack");
         let search_button = builder.get::<ToggleButton>("search_button");
         let search_bar = builder.get::<SearchBar>("search_bar");
         let search_entry = builder.get::<SearchEntry>("search_entry");
@@ -115,6 +117,7 @@ impl ContentHeader {
             unread_button,
             marked_button,
             more_actions_button,
+            more_actions_stack,
             mode_switch_stack,
             mark_article_button,
             mark_article_read_button,
@@ -473,6 +476,16 @@ impl ContentHeader {
         self.more_actions_button.set_sensitive(sensitive);
         self.mark_article_button.set_sensitive(sensitive);
         self.mark_article_read_button.set_sensitive(sensitive);
+    }
+
+    pub fn start_more_actions_spinner(&self) {
+        self.more_actions_button.set_sensitive(false);
+        self.more_actions_stack.set_visible_child_name("spinner");
+    }
+
+    pub fn stop_more_actions_spinner(&self) {
+        self.more_actions_button.set_sensitive(true);
+        self.more_actions_stack.set_visible_child_name("image");
     }
 
     pub fn finish_mark_all_read(&self) {

@@ -37,8 +37,8 @@ pub struct MainWindow {
     pub widget: ApplicationWindow,
     error_bar: ErrorBar,
     undo_bar: UndoBar,
-    pub oauth_logn_page: WebLogin,
-    pub password_login_page: PasswordLogin,
+    pub oauth_login_page: Rc<WebLogin>,
+    pub password_login_page: Rc<PasswordLogin>,
     pub content_page: Rc<RwLock<ContentPage>>,
     pub content_header: Rc<ContentHeader>,
     stack: Stack,
@@ -93,8 +93,8 @@ impl MainWindow {
 
         // setup pages
         let _welcome = WelcomePage::new(&builder, sender.clone());
-        let password_login_page = PasswordLogin::new(&builder, sender.clone());
-        let oauth_logn_page = WebLogin::new(&builder, sender.clone());
+        let password_login_page = Rc::new(PasswordLogin::new(&builder, sender.clone()));
+        let oauth_login_page = Rc::new(WebLogin::new(&builder, sender.clone()));
         let content_page = Rc::new(RwLock::new(ContentPage::new(&builder, &settings, sender.clone())));
         let state = RwLock::new(MainWindowState::new());
 
@@ -116,7 +116,7 @@ impl MainWindow {
             error_bar,
             undo_bar: undo_bar,
             content_page,
-            oauth_logn_page,
+            oauth_login_page,
             password_login_page,
             content_header,
             stack,
@@ -409,7 +409,7 @@ impl MainWindow {
     pub fn show_welcome_page(&self) {
         self.header_stack.set_visible_child_name("welcome");
         self.password_login_page.reset();
-        self.oauth_logn_page.reset();
+        self.oauth_login_page.reset();
         self.stack.set_transition_type(StackTransitionType::SlideRight);
         self.stack.set_visible_child_name("welcome");
     }
@@ -426,7 +426,7 @@ impl MainWindow {
 
     pub fn show_oauth_login_page(&self, plugin_id: &PluginID) {
         if let Some(service_meta) = NewsFlash::list_backends().get(plugin_id) {
-            if let Ok(()) = self.oauth_logn_page.set_service(service_meta.clone()) {
+            if let Ok(()) = self.oauth_login_page.set_service(service_meta.clone()) {
                 self.header_stack.set_visible_child_name("login");
                 self.stack.set_transition_type(StackTransitionType::SlideLeft);
                 self.stack.set_visible_child_name("oauth_login");

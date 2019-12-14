@@ -463,10 +463,32 @@
                         <property name="can_focus">True</property>
                         <property name="receives_default">True</property>
                         <child>
-                          <object class="GtkImage">
+                          <object class="GtkStack" id="more_actions_stack">
                             <property name="visible">True</property>
                             <property name="can_focus">False</property>
-                            <property name="icon_name">view-more-symbolic</property>
+                            <child>
+                              <object class="GtkImage">
+                                <property name="visible">True</property>
+                                <property name="can_focus">False</property>
+                                <property name="icon_name">view-more-symbolic</property>
+                              </object>
+                              <packing>
+                                <property name="name">image</property>
+                                <property name="title" translatable="yes">image</property>
+                              </packing>
+                            </child>
+                            <child>
+                              <object class="GtkSpinner">
+                                <property name="visible">True</property>
+                                <property name="can_focus">False</property>
+                                <property name="active">True</property>
+                              </object>
+                              <packing>
+                                <property name="name">spinner</property>
+                                <property name="title" translatable="yes">spinner</property>
+                                <property name="position">1</property>
+                              </packing>
+                            </child>
                           </object>
                         </child>
                       </object>

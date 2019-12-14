@@ -1,4 +1,3 @@
-use gtk::{Settings, SettingsExt};
 use serde::{Deserialize, Serialize};
 
 #[derive(Clone, Debug)]
@@ -38,15 +37,11 @@ pub enum ArticleTheme {
 }
 
 impl ArticleTheme {
-    pub fn to_str(&self) -> &str {
+    pub fn to_str(&self, prefer_dark_theme: bool) -> &str {
         match self {
             ArticleTheme::Default => {
-                if let Some(settings) = Settings::get_default() {
-                    if settings.get_property_gtk_application_prefer_dark_theme() {
-                        "theme dark"
-                    } else {
-                        "theme default"
-                    }
+                if prefer_dark_theme {
+                    "theme dark"
                 } else {
                     "theme default"
                 }
