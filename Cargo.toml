@@ -13,11 +13,20 @@ serde = { version = "1.0", features = ["serde_derive"] }
 serde_json = "1.0"
 cairo-rs = "0.7"
 pango = "0.7"
-glib = { version = "0.8", features = ["futures", "subclassing"] }
-gdk-pixbuf = { version = "0.7", features = ["futures", "v2_36"] }
+glib = { version = "0.8", features = ["futures"] }
+gdk-pixbuf = { version = "0.7", features = ["v2_36"] }
 gtk = { version = "0.7", features = ["v3_24"] }
 gio = { version = "0.7", features = ["v2_58"] }
 gdk = { version = "0.11", features = ["v3_24"] }
+# cairo-rs = "0.7"
+# pango = "0.7"
+# cairo-rs = "0.8"
+# pango = "0.8"
+# glib = { version = "0.9" }
+# gdk-pixbuf = { version = "0.8", features = ["v2_36"] }
+# gtk = { version = "0.8", features = ["v3_24"] }
+# gio = { version = "0.8", features = ["v2_58"] }
+# gdk = { version = "0.12", features = ["v3_24"] }
 libhandy = { version = "0.4", features=["v0_0_10"] }
 webkit2gtk = { version = "0.8", features = ["v2_16"] }
 log4rs = "0.9"

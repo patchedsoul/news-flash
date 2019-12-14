@@ -14,7 +14,6 @@ use log::{error, warn};
 use news_flash::models::PixelIcon;
 use std::cell::RefCell;
 use std::collections::HashMap;
-use std::future::Future;
 use std::rc::Rc;
 
 pub type GtkHandle<T> = Rc<RefCell<T>>;
@@ -175,10 +174,5 @@ impl GtkUtil {
             glib::source::source_remove(source_id);
         }
         //warn!("Source ID to remove is NONE");
-    }
-
-    pub fn block_on_future<F: Future>(future: F) -> F::Output {
-        let rt = tokio::runtime::Runtime::new().unwrap();
-        rt.block_on(future)
     }
 }

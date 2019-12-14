@@ -1,21 +1,21 @@
-use news_flash::models::{CategoryID, FavIcon, Feed, FeedID, FeedMapping};
+use news_flash::models::{CategoryID, Feed, FeedID, FeedMapping};
 use std;
 use std::cmp::Ordering;
 use std::fmt;
 
-#[derive(Eq, Clone, Debug)]
+#[derive(Clone, Debug)]
 pub struct FeedListFeedModel {
     pub id: FeedID,
     pub parent_id: CategoryID,
     pub label: String,
     pub sort_index: i32,
-    pub icon: Option<FavIcon>,
     pub level: i32,
     pub item_count: i64,
+    pub news_flash_model: Feed,
 }
 
 impl FeedListFeedModel {
-    pub fn new(feed: &Feed, mapping: &FeedMapping, item_count: i64, level: i32, icon: Option<FavIcon>) -> Self {
+    pub fn new(feed: &Feed, mapping: &FeedMapping, item_count: i64, level: i32) -> Self {
         FeedListFeedModel {
             id: feed.feed_id.clone(),
             parent_id: mapping.category_id.clone(),
@@ -24,9 +24,9 @@ impl FeedListFeedModel {
                 Some(index) => index,
                 None => std::i32::MAX,
             },
-            icon,
             level,
             item_count,
+            news_flash_model: feed.clone(),
         }
     }
 }
@@ -36,6 +36,8 @@ impl PartialEq for FeedListFeedModel {
         self.id == other.id //&& self.sort_index == other.sort_index
     }
 }
+
+impl Eq for FeedListFeedModel {}
 
 impl Ord for FeedListFeedModel {
     fn cmp(&self, other: &FeedListFeedModel) -> Ordering {

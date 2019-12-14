@@ -4,7 +4,7 @@ use std::path::PathBuf;
 use std::rc::Rc;
 use std::sync::Arc;
 
-use futures::channel::oneshot;
+use futures::channel::oneshot::{self, Sender as OneShotSender};
 use futures::executor::ThreadPool;
 use gio::{ApplicationExt, ApplicationExtManual, Notification, NotificationPriority, ThemedIcon};
 use glib::{futures::FutureExt, translate::ToGlib, Receiver, Sender};
@@ -14,7 +14,7 @@ use gtk::{
 };
 use lazy_static::lazy_static;
 use log::{error, info, warn};
-use news_flash::models::{ArticleID, Category, CategoryID, Feed, FeedID, LoginData, PluginID, TagID, Url};
+use news_flash::models::{ArticleID, Category, CategoryID, Feed, FeedID, LoginData, PluginID, TagID, Url, FavIcon};
 use news_flash::{NewsFlash, NewsFlashError};
 use parking_lot::RwLock;
 use tokio::runtime::Runtime;
@@ -50,6 +50,7 @@ pub enum Action {
     ErrorSimpleMessage(String),
     Error(String, NewsFlashError),
     UndoableAction(UndoActionModel),
+    LoadFavIcon((Feed, OneShotSender<Option<FavIcon>>)),
     ShowWelcomePage,
     ShowContentPage(PluginID),
     ShowPasswordLogin(PluginID),
@@ -169,6 +170,7 @@ impl App {
             Action::ErrorSimpleMessage(msg) => self.window.show_error_simple_message(&msg),
             Action::Error(msg, error) => self.window.show_error(&msg, error),
             Action::UndoableAction(action) => self.window.show_undo_bar(action),
+            Action::LoadFavIcon((feed, sender)) => self.load_favicon(feed, sender),
             Action::ShowWelcomePage => self.window.show_welcome_page(),
             Action::ShowContentPage(plugin_id) => self.window.show_content_page(&plugin_id, &self.news_flash),
             Action::ShowPasswordLogin(plugin_id) => self.window.show_password_login_page(&plugin_id),
@@ -364,6 +366,30 @@ impl App {
 
         self.threadpool.spawn_ok(thread_future);
         Util::glib_spawn_future(glib_future);
+    }
+
+    fn load_favicon(&self, feed: Feed, oneshot_sender: OneShotSender<Option<FavIcon>>) {
+        let runtime = self.runtime.clone();
+        let news_flash = self.news_flash.clone();
+        let global_sender = self.sender.clone();
+        let feed = feed.clone();
+        let thread_future = async move {
+            if let Some(news_flash) = news_flash.write().as_mut() {
+                let favicon = match runtime.block_on(news_flash.get_icon_info(&feed)) {
+                    Ok(favicon) => Some(favicon),
+                    Err(_) => None,
+                };
+                oneshot_sender
+                    .send(favicon)
+                    .unwrap();
+            } else {
+                let message = "Failed to lock NewsFlash.".to_owned();
+                error!("{}", message);
+                Util::send(&global_sender, Action::ErrorSimpleMessage(message));
+            }
+        };
+
+        self.threadpool.spawn_ok(thread_future);
     }
 
     fn mark_article_read(&self, update: ReadUpdate) {

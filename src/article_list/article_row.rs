@@ -8,7 +8,9 @@ use gtk::{
     ContainerExt, EventBox, Image, ImageExt, Inhibit, Label, LabelExt, ListBoxRow, ListBoxRowExt, Stack, StackExt,
     StyleContextExt, WidgetExt,
 };
-use news_flash::models::{ArticleID, Marked, Read};
+use futures::channel::oneshot;
+use futures::future::FutureExt;
+use news_flash::models::{ArticleID, Marked, Read, FavIcon};
 use std::cell::RefCell;
 use std::rc::Rc;
 
@@ -66,13 +68,18 @@ impl ArticleRow {
         feed_label.set_text(&article.feed_title);
         date_label.set_text(&DateUtil::format(&article.date));
 
-        if let Some(icon) = &article.favicon {
-            if let Some(data) = &icon.data {
-                if let Ok(surface) = GtkUtil::create_surface_from_bytes(data, 16, 16, scale) {
-                    favicon.set_from_surface(Some(&surface));
+        let (oneshot_sender, receiver) = oneshot::channel::<Option<FavIcon>>();
+        Util::send(&sender, Action::LoadFavIcon((article.news_flash_feed.clone(), oneshot_sender)));
+        let glib_future = receiver.map(move |res| {
+            if let Some(icon) = res.unwrap() {
+                if let Some(data) = &icon.data {
+                    if let Ok(surface) = GtkUtil::create_surface_from_bytes(data, 16, 16, scale) {
+                        favicon.set_from_surface(Some(&surface));
+                    }
                 }
             }
-        }
+        });
+        Util::glib_spawn_future(glib_future);
 
         let read_handle = gtk_handle!(article.read);
         let marked_handle = gtk_handle!(article.marked);

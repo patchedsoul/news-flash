@@ -12,7 +12,10 @@ use gtk::{
     ListBoxRow, ListBoxRowExt, Popover, PopoverExt, PositionType, Revealer, RevealerExt, StateFlags, StyleContextExt,
     TargetEntry, TargetFlags, WidgetExt, WidgetExtManual,
 };
-use news_flash::models::{CategoryID, FavIcon, FeedID};
+use news_flash::models::{CategoryID, FavIcon, FeedID, Feed};
+use futures::channel::oneshot;
+use futures::future::FutureExt;
+use parking_lot::RwLock;
 use std::cell::RefCell;
 use std::rc::Rc;
 use std::str;
@@ -25,7 +28,7 @@ pub struct FeedRow {
     item_count_event: EventBox,
     title: Label,
     revealer: Revealer,
-    hide_timeout: GtkHandle<Option<u32>>,
+    hide_timeout: Rc<RwLock<Option<u32>>>,
     favicon: Image,
 }
 
@@ -47,13 +50,13 @@ impl FeedRow {
             item_count: item_count_label,
             title: title_label,
             revealer,
-            hide_timeout: gtk_handle!(None),
+            hide_timeout: Rc::new(RwLock::new(None)),
             item_count_event,
             favicon,
         };
         feed.update_item_count(model.item_count);
         feed.update_title(&model.label);
-        feed.update_favicon(&model.icon);
+        feed.update_favicon(&model.news_flash_model, &sender);
         if !visible {
             feed.collapse();
         }
@@ -185,15 +188,23 @@ impl FeedRow {
         }
     }
 
-    pub fn update_favicon(&self, icon: &Option<FavIcon>) {
-        if let Some(icon) = icon {
-            if let Some(data) = &icon.data {
-                let scale = GtkUtil::get_scale(&self.widget());
-                if let Ok(surface) = GtkUtil::create_surface_from_bytes(data, 16, 16, scale) {
-                    self.favicon.set_from_surface(Some(&surface));
+    pub fn update_favicon(&self, feed: &Feed, global_sender: &Sender<Action>) {
+        let (sender, receiver) = oneshot::channel::<Option<FavIcon>>();
+        Util::send(global_sender, Action::LoadFavIcon((feed.clone(), sender)));
+
+        let favicon = self.favicon.clone();
+        let scale = GtkUtil::get_scale(&self.widget());
+        let glib_future = receiver.map(move |res| {
+            if let Some(icon) = res.unwrap() {
+                if let Some(data) = &icon.data {
+                    if let Ok(surface) = GtkUtil::create_surface_from_bytes(data, 16, 16, scale) {
+                        favicon.set_from_surface(Some(&surface));
+                    }
                 }
             }
-        }
+        });
+
+        Util::glib_spawn_future(glib_future);
     }
 
     pub fn update_title(&self, title: &str) {
@@ -212,23 +223,23 @@ impl FeedRow {
             let hide_timeout = self.hide_timeout.clone();
             let source_id = gtk::timeout_add(250, move || {
                 widget.set_visible(false);
-                *hide_timeout.borrow_mut() = None;
+                hide_timeout.write().take();
                 Continue(false)
             });
-            *self.hide_timeout.borrow_mut() = Some(source_id.to_glib());
+            self.hide_timeout.write().replace(source_id.to_glib());
         }
     }
 
     pub fn expand(&self) {
         // clear out timeout to fully hide row
         {
-            if let Some(source_id) = *self.hide_timeout.borrow() {
+            if let Some(source_id) = *self.hide_timeout.read() {
                 if Source::remove(SourceId::from_glib(source_id)).is_ok() {
                     // log something
                 };
                 // log something
             }
-            *self.hide_timeout.borrow_mut() = None;
+            self.hide_timeout.write().take();
         }
 
         self.widget.set_visible(true);

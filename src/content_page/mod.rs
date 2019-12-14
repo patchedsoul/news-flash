@@ -14,7 +14,7 @@ use crate::settings::Settings;
 use crate::sidebar::models::SidebarSelection;
 use crate::sidebar::{FeedListTree, SideBar, TagListModel};
 use crate::undo_bar::{UndoActionModel, UndoBar};
-use crate::util::{BuilderHelper, GtkUtil, Util};
+use crate::util::{BuilderHelper, Util};
 use failure::ResultExt;
 use glib::Sender;
 use gtk::{Box, BoxExt, Button, WidgetExt};
@@ -94,13 +94,8 @@ impl ContentPage {
                         .iter()
                         .find(|&f| f.feed_id == article.feed_id)
                         .ok_or_else(|| ContentPageErrorKind::FeedTitle)?;
-                    // FIXME: move to article row and show placeholder
-                    let favicon = match GtkUtil::block_on_future(news_flash.get_icon_info(&feed)) {
-                        Ok(favicon) => Some(favicon),
-                        Err(_) => None,
-                    };
                     list_model
-                        .add(article, feed.label.clone(), favicon)
+                        .add(article, &feed)
                         .context(ContentPageErrorKind::ArticleList)?;
                     Ok(())
                 })
@@ -140,13 +135,8 @@ impl ContentPage {
                         .iter()
                         .find(|&f| f.feed_id == article.feed_id)
                         .ok_or_else(|| ContentPageErrorKind::FeedTitle)?;
-                    // FIXME: move to article row and show placeholder
-                    let favicon = match GtkUtil::block_on_future(news_flash.get_icon_info(&feed)) {
-                        Ok(favicon) => Some(favicon),
-                        Err(_) => None,
-                    };
                     list_model
-                        .add(article, feed.label.clone(), favicon)
+                        .add(article, &feed)
                         .context(ContentPageErrorKind::ArticleList)?;
                     Ok(())
                 })
@@ -287,12 +277,7 @@ impl ContentPage {
                     Some(count) => *count,
                     None => 0,
                 };
-                // FIXME: move to feed row and show placeholder
-                let favicon = match GtkUtil::block_on_future(news_flash.get_icon_info(&feed)) {
-                    Ok(favicon) => Some(favicon),
-                    Err(_) => None,
-                };
-                tree.add_feed(&feed, &mapping, item_count, favicon)
+                tree.add_feed(&feed, &mapping, item_count)
                     .context(ContentPageErrorKind::SidebarModels)?
             }
 

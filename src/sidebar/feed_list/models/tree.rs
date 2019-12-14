@@ -5,7 +5,7 @@ use super::feed::FeedListFeedModel;
 use super::item::FeedListItem;
 use super::FeedListItemID;
 use crate::sidebar::SidebarIterateItem;
-use news_flash::models::{Category, CategoryID, FavIcon, Feed, FeedID, FeedMapping, NEWSFLASH_TOPLEVEL};
+use news_flash::models::{Category, CategoryID, Feed, FeedID, FeedMapping, NEWSFLASH_TOPLEVEL};
 
 #[derive(Clone, Debug)]
 pub struct FeedListTree {
@@ -41,7 +41,6 @@ impl FeedListTree {
         feed: &Feed,
         mapping: &FeedMapping,
         item_count: i64,
-        icon: Option<FavIcon>,
     ) -> Result<(), FeedListModelError> {
         if mapping.category_id == self.top_level_id {
             let contains_feed = self.top_level.iter().any(|item| {
@@ -51,7 +50,7 @@ impl FeedListTree {
                 false
             });
             if !contains_feed {
-                let feed = FeedListFeedModel::new(feed, mapping, item_count, 0, icon);
+                let feed = FeedListFeedModel::new(feed, mapping, item_count, 0);
                 let item = FeedListItem::Feed(feed);
                 self.top_level.push(item);
                 self.top_level.sort();
@@ -62,7 +61,7 @@ impl FeedListTree {
         }
 
         if let Some(parent) = self.find_category(&mapping.category_id) {
-            let feed = FeedListFeedModel::new(feed, mapping, item_count, parent.level + 1, icon);
+            let feed = FeedListFeedModel::new(feed, mapping, item_count, parent.level + 1);
             let item = FeedListItem::Feed(feed);
             parent.add_child(item);
             return Ok(());
@@ -638,7 +637,7 @@ mod tests {
             .add_category(&category_3, 0)
             .expect("Failed to add category_3 (old_tree)");
         old_tree
-            .add_feed(&feed_1, &mapping_1, 1, None)
+            .add_feed(&feed_1, &mapping_1, 1)
             .expect("Failed to add feed_1 with mapping_1 (old_tree)");
 
         let mut new_tree = FeedListTree::new();
@@ -655,7 +654,7 @@ mod tests {
             .add_category(&category_3, 1)
             .expect("Failed to add category_3 (new_tree)");
         new_tree
-            .add_feed(&feed_1, &mapping_2, 2, None)
+            .add_feed(&feed_1, &mapping_2, 2)
             .expect("Failed to add feed_1 with mapping_2 (new_tree)");
 
         let diff = old_tree.generate_diff(&mut new_tree);
@@ -678,7 +677,7 @@ mod tests {
         assert_eq!(
             diff.get(2),
             Some(&FeedListChangeSet::AddFeed(
-                FeedListFeedModel::new(&feed_1, &mapping_2, 2, 1, None),
+                FeedListFeedModel::new(&feed_1, &mapping_2, 2, 1),
                 1,
                 false
             ))
@@ -716,9 +715,9 @@ mod tests {
         tree.add_category(&category_1, 5).expect("Failed to add category_1");
         tree.add_category(&category_2, 0).expect("Failed to add category_2");
         tree.add_category(&category_3, 0).expect("Failed to add category_3");
-        tree.add_feed(&feed_1, &mapping_1, 1, None)
+        tree.add_feed(&feed_1, &mapping_1, 1)
             .expect("Failed to add feed_1 with mapping_1");
-        tree.add_feed(&feed_2, &mapping_3, 1, None)
+        tree.add_feed(&feed_2, &mapping_3, 1)
             .expect("Failed to add feed_2 with mapping_3");
 
         let (id, pos) = tree.calculate_dnd(2).expect("Failed to calculate drag&drop result");

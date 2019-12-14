@@ -9,7 +9,7 @@ pub use article_update_msg::{MarkUpdate, ReadUpdate};
 pub use change_set::ArticleListChangeSet;
 use error::{ArticleListModelError, ArticleListModelErrorKind};
 use log::warn;
-use news_flash::models::{Article, ArticleID, ArticleOrder, FavIcon, Marked, Read};
+use news_flash::models::{Article, ArticleID, ArticleOrder, Feed, Marked, Read};
 use std::collections::HashSet;
 
 #[derive(Debug)]
@@ -35,15 +35,14 @@ impl ArticleListModel {
     pub fn add(
         &mut self,
         article: Article,
-        feed_name: String,
-        icon: Option<FavIcon>,
+        feed: &Feed,
     ) -> Result<(), ArticleListModelError> {
         if self.contains(&article.article_id) {
             warn!("Listmodel already contains id {}", article.article_id);
             return Err(ArticleListModelErrorKind::AlreadyContainsArticle.into());
         }
         self.ids.insert(article.article_id.clone());
-        self.models.push(ArticleListArticleModel::new(article, feed_name, icon));
+        self.models.push(ArticleListArticleModel::new(article, feed));
         Ok(())
     }
 
