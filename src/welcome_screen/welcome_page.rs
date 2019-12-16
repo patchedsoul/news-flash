@@ -1,11 +1,11 @@
 use super::service_row::ServiceRow;
-use crate::gtk_handle;
-use crate::util::{BuilderHelper, GtkHandleMap, GtkUtil};
-use glib::Variant;
+use crate::app::Action;
+use crate::util::{BuilderHelper, Util};
+use glib::Sender;
 use gtk::{Box, ListBox, ListBoxExt, ListBoxRowExt};
 use news_flash::models::{LoginGUI, PluginID};
 use news_flash::NewsFlash;
-use std::cell::RefCell;
+use parking_lot::RwLock;
 use std::collections::HashMap;
 use std::rc::Rc;
 
@@ -13,49 +13,48 @@ use std::rc::Rc;
 pub struct WelcomePage {
     page: gtk::Box,
     list: gtk::ListBox,
-    services: GtkHandleMap<i32, (PluginID, LoginGUI)>,
+    services: Rc<RwLock<HashMap<i32, (PluginID, LoginGUI)>>>,
 }
 
 impl WelcomePage {
-    pub fn new(builder: &BuilderHelper) -> Self {
+    pub fn new(builder: &BuilderHelper, sender: Sender<Action>) -> Self {
         let page = builder.get::<Box>("welcome_page");
         let list = builder.get::<ListBox>("list");
 
-        let mut page = WelcomePage {
+        let page = WelcomePage {
             page,
             list,
-            services: gtk_handle!(HashMap::new()),
+            services: Rc::new(RwLock::new(HashMap::new())),
         };
 
         page.populate();
-        page.connect_signals();
+        page.connect_signals(sender);
 
         page
     }
 
-    fn populate(&mut self) {
+    fn populate(&self) {
         let services = NewsFlash::list_backends();
         for (index, (id, api_meta)) in services.iter().enumerate() {
             let row = ServiceRow::new(api_meta.clone());
             self.list.insert(&row.widget(), index as i32);
             self.services
-                .borrow_mut()
+                .write()
                 .insert(index as i32, (id.clone(), api_meta.login_gui.clone()));
         }
     }
 
-    fn connect_signals(&self) {
+    fn connect_signals(&self, sender: Sender<Action>) {
         let services = self.services.clone();
-        let page = self.page.clone();
+        let sender = sender.clone();
         self.list.connect_row_activated(move |_list, row| {
-            if let Some((id, login_desc)) = services.borrow().get(&row.get_index()) {
-                let id = Variant::from(id.to_str());
+            if let Some((id, login_desc)) = services.read().get(&row.get_index()) {
                 match login_desc {
                     LoginGUI::OAuth(_) => {
-                        GtkUtil::execute_action(&page, "show-oauth-page", Some(&id));
+                        Util::send(&sender, Action::ShowOauthLogin(id.clone()));
                     }
                     LoginGUI::Password(_) => {
-                        GtkUtil::execute_action(&page, "show-pw-page", Some(&id));
+                        Util::send(&sender, Action::ShowPasswordLogin(id.clone()));
                     }
                     LoginGUI::None => {
                         // FIXME: trigger "login" action directly

@@ -1,10 +1,11 @@
+use crate::app::Action;
 use crate::gtk_handle;
 use crate::sidebar::feed_list::models::FeedListCategoryModel;
 use crate::undo_bar::UndoActionModel;
-use crate::util::{BuilderHelper, GtkHandle};
+use crate::util::{BuilderHelper, GtkHandle, GtkUtil, Util};
 use gdk::{EventMask, EventType};
-use gio::{Menu, MenuItem};
-use glib::Variant;
+use gio::{ActionMapExt, Menu, MenuItem, SimpleAction};
+use glib::Sender;
 use gtk::{
     self, BinExt, Box, Cast, ContainerExt, EventBox, Image, Inhibit, Label, LabelExt, ListBoxRow, ListBoxRowExt,
     Popover, PopoverExt, PositionType, Revealer, RevealerExt, StateFlags, StyleContextExt, WidgetExt, WidgetExtManual,
@@ -27,7 +28,7 @@ pub struct CategoryRow {
 }
 
 impl CategoryRow {
-    pub fn new(model: &FeedListCategoryModel, visible: bool) -> GtkHandle<CategoryRow> {
+    pub fn new(model: &FeedListCategoryModel, visible: bool, sender: Sender<Action>) -> GtkHandle<CategoryRow> {
         let builder = BuilderHelper::new("category");
         let revealer = builder.get::<Revealer>("category_row");
         let level_margin = builder.get::<Box>("level_margin");
@@ -41,7 +42,7 @@ impl CategoryRow {
         let arrow_event = builder.get::<EventBox>("arrow_event");
         let category = CategoryRow {
             id: model.id.clone(),
-            widget: Self::create_row(&revealer, &model.id, &title_label),
+            widget: Self::create_row(&revealer, &model.id, &title_label, &sender),
             revealer,
             arrow_event: arrow_event.clone(),
             item_count: item_count_label,
@@ -104,7 +105,7 @@ impl CategoryRow {
         }
     }
 
-    fn create_row(widget: &Revealer, id: &CategoryID, label: &Label) -> ListBoxRow {
+    fn create_row(widget: &Revealer, id: &CategoryID, label: &Label, sender: &Sender<Action>) -> ListBoxRow {
         let row = ListBoxRow::new();
         row.set_activatable(true);
         row.set_can_focus(false);
@@ -119,6 +120,7 @@ impl CategoryRow {
         let category_id = id.clone();
         let label = label.clone();
         let listbox_row = row.clone();
+        let sender = sender.clone();
         eventbox.connect_button_press_event(move |_eventbox, event| {
             if event.get_button() != 3 {
                 return Inhibit(false);
@@ -133,22 +135,40 @@ impl CategoryRow {
 
             let model = Menu::new();
 
-            let variant = Variant::from(category_id.to_str());
-            let rename_feed_item = MenuItem::new(Some("Rename"), None);
-            rename_feed_item.set_action_and_target_value(Some("rename-category"), Some(&variant));
-            model.append_item(&rename_feed_item);
+            let sender_clone = sender.clone();
+            let category_id_clone = category_id.clone();
+            let rename_category_dialog_action = SimpleAction::new("rename-category-dialog", None);
+            rename_category_dialog_action.connect_activate(move |_action, _parameter| {
+                let category_id = category_id_clone.clone();
+                Util::send(&sender_clone, Action::RenameCategoryDialog(category_id));
+            });
 
-            let label = match label.get_text() {
-                Some(label) => label.as_str().to_owned(),
-                None => "".to_owned(),
-            };
-            let remove_action = UndoActionModel::DeleteCategory((category_id.clone(), label));
-            if let Ok(json) = serde_json::to_string(&remove_action) {
-                let variant = Variant::from(json);
-                let delete_feed_item = MenuItem::new(Some("Delete"), None);
-                delete_feed_item.set_action_and_target_value(Some("enqueue-undoable-action"), Some(&variant));
-                model.append_item(&delete_feed_item);
+            if let Ok(main_window) = GtkUtil::get_main_window(&listbox_row) {
+                main_window.add_action(&rename_category_dialog_action);
             }
+
+            let rename_category_item = MenuItem::new(Some("Rename"), None);
+            rename_category_item.set_action_and_target_value(Some("rename-category-dialog"), None);
+            model.append_item(&rename_category_item);
+
+            let delete_category_item = MenuItem::new(Some("Delete"), None);
+            let delete_category_action = SimpleAction::new("enqueue-delete-category", None);
+            let sender = sender.clone();
+            let category_id = category_id.clone();
+            let label = label.clone();
+            delete_category_action.connect_activate(move |_action, _parameter| {
+                let label = match label.get_text() {
+                    Some(label) => label.as_str().to_owned(),
+                    None => "".to_owned(),
+                };
+                let remove_action = UndoActionModel::DeleteCategory((category_id.clone(), label));
+                Util::send(&sender, Action::UndoableAction(remove_action));
+            });
+            if let Ok(main_window) = GtkUtil::get_main_window(&listbox_row) {
+                main_window.add_action(&delete_category_action);
+            }
+            delete_category_item.set_action_and_target_value(Some("enqueue-delete-category"), None);
+            model.append_item(&delete_category_item);
 
             let popover = Popover::new(Some(&listbox_row));
             popover.set_position(PositionType::Bottom);

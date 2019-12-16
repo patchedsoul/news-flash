@@ -6,13 +6,14 @@ mod tag_list;
 
 use self::error::{SidebarError, SidebarErrorKind};
 use self::footer::SidebarFooter;
+use crate::app::Action;
 use crate::gtk_handle;
-use crate::util::{BuilderHelper, GtkHandle, GtkUtil};
+use crate::util::{BuilderHelper, GtkHandle, GtkUtil, Util};
 use failure::ResultExt;
-pub use feed_list::models::{FeedListItemID, FeedListTree, FeedListDndAction};
+pub use feed_list::models::{FeedListDndAction, FeedListItemID, FeedListTree};
 use feed_list::FeedList;
 use gdk::{EventMask, EventType};
-use glib::{translate::ToGlib, Variant};
+use glib::{translate::ToGlib, Sender};
 use gtk::{
     Box, BoxExt, Button, Continue, EventBox, Image, ImageExt, Inhibit, Label, LabelExt, ListBoxExt, Revealer,
     RevealerExt, ScrolledWindow, StyleContextExt, WidgetExt, WidgetExtManual,
@@ -28,6 +29,7 @@ use tag_list::TagList;
 
 #[derive(Clone, Debug)]
 pub struct SideBar {
+    sender: Sender<Action>,
     sidebar: Box,
     tags_box: Box,
     logo: Image,
@@ -50,7 +52,7 @@ pub struct SideBar {
 }
 
 impl SideBar {
-    pub fn new() -> Self {
+    pub fn new(sender: Sender<Action>) -> Self {
         let builder = BuilderHelper::new("sidebar");
 
         let sidebar = builder.get::<Box>("toplevel");
@@ -70,9 +72,9 @@ impl SideBar {
         let tag_list_box = builder.get::<Box>("tags_list_box");
         let sidebar_scroll = builder.get::<ScrolledWindow>("sidebar_scroll");
 
-        let feed_list = FeedList::new(&sidebar_scroll);
+        let feed_list = FeedList::new(&sidebar_scroll, sender.clone());
         let tag_list = TagList::new();
-        let footer = SidebarFooter::new(&builder);
+        let footer = SidebarFooter::new(&builder, &sender);
 
         let feed_list_handle = gtk_handle!(feed_list);
         let tag_list_handle = gtk_handle!(tag_list);
@@ -84,14 +86,15 @@ impl SideBar {
         tag_list_box.pack_start(&tag_list_handle.borrow().widget(), false, true, 0);
 
         let feed_list_selection_handle = selection_handle.clone();
+        let sender_clone = sender.clone();
         feed_list_handle
             .borrow()
             .widget()
-            .connect_row_activated(move |list, _row| {
-                let selection_json = serde_json::to_string(&*feed_list_selection_handle.borrow())
-                    .expect("Failed to serialize SidebarSelection.");
-                let selection = Variant::from(&selection_json);
-                GtkUtil::execute_action(list, "sidebar-selection", Some(&selection));
+            .connect_row_activated(move |_list, _row| {
+                Util::send(
+                    &sender_clone,
+                    Action::SidebarSelection((*feed_list_selection_handle.borrow()).clone()),
+                );
             });
 
         let feed_list_all_event_box = all_event_box.clone();
@@ -120,14 +123,15 @@ impl SideBar {
             });
 
         let tag_list_selection_handle = selection_handle.clone();
+        let sender_clone = sender.clone();
         tag_list_handle
             .borrow()
             .widget()
-            .connect_row_activated(move |list, _row| {
-                let selection_json = serde_json::to_string(&*tag_list_selection_handle.borrow())
-                    .expect("Failed to serialize SidebarSelection.");
-                let selection = Variant::from(&selection_json);
-                GtkUtil::execute_action(list, "sidebar-selection", Some(&selection));
+            .connect_row_activated(move |_list, _row| {
+                Util::send(
+                    &sender_clone,
+                    Action::SidebarSelection((*tag_list_selection_handle.borrow()).clone()),
+                );
             });
 
         let tag_list_all_event_box = all_event_box.clone();
@@ -169,6 +173,7 @@ impl SideBar {
         Self::setup_expander(&tags_event_box, &tags_expander, &tags_revealer, &expanded_tags);
         Self::setup_all_button(
             &all_event_box,
+            &sender,
             feed_list_handle.clone(),
             tag_list_handle.clone(),
             selection_handle.clone(),
@@ -177,6 +182,7 @@ impl SideBar {
         );
 
         SideBar {
+            sender,
             sidebar,
             tags_box,
             logo,
@@ -315,6 +321,7 @@ impl SideBar {
 
     fn setup_all_button(
         event_box: &EventBox,
+        sender: &Sender<Action>,
         feed_list_handle: GtkHandle<FeedList>,
         tag_list_handle: GtkHandle<TagList>,
         selection_handle: GtkHandle<SidebarSelection>,
@@ -338,6 +345,7 @@ impl SideBar {
         });
 
         let delayed_selection = delayed_selection.clone();
+        let sender = sender.clone();
         event_box.connect_button_press_event(move |widget, event| {
             if event.get_button() != 1 {
                 return Inhibit(false);
@@ -350,7 +358,7 @@ impl SideBar {
             feed_list_handle.borrow().deselect();
             tag_list_handle.borrow().deselect();
 
-            Self::select_all_button(widget, &selection_handle, &delayed_selection);
+            Self::select_all_button(widget, &sender, &selection_handle, &delayed_selection);
             footer_handle.borrow().set_remove_button_sensitive(false);
             Inhibit(false)
         });
@@ -365,6 +373,7 @@ impl SideBar {
 
     fn select_all_button(
         all_event_box: &EventBox,
+        sender: &Sender<Action>,
         selection_handle: &GtkHandle<SidebarSelection>,
         delayed_selection: &GtkHandle<Option<u32>>,
     ) {
@@ -374,15 +383,12 @@ impl SideBar {
 
         GtkUtil::remove_source(*delayed_selection.borrow());
         let source_id = delayed_selection.clone();
-        let all_event_box = all_event_box.clone();
+        let sender = sender.clone();
         *delayed_selection.borrow_mut() = Some(
             gtk::timeout_add(300, move || {
-                let selection_json =
-                    serde_json::to_string(&SidebarSelection::All).expect("Failed to serialize SidebarSelection.");
-                let selection = Variant::from(&selection_json);
-                let all_event_box = all_event_box.clone();
+                let sender = sender.clone();
                 gtk::idle_add(move || {
-                    GtkUtil::execute_action(&all_event_box, "sidebar-selection", Some(&selection));
+                    Util::send(&sender, Action::SidebarSelection(SidebarSelection::All));
                     Continue(false)
                 });
 
@@ -423,7 +429,12 @@ impl SideBar {
 
         match selection {
             SidebarIterateItem::SelectAll => {
-                Self::select_all_button(&self.all_event_box, &self.selection, &self.delayed_all_selection);
+                Self::select_all_button(
+                    &self.all_event_box,
+                    &self.sender,
+                    &self.selection,
+                    &self.delayed_all_selection,
+                );
             }
             SidebarIterateItem::SelectFeedListFeed(id) => {
                 self.feed_list

@@ -1,4 +1,6 @@
-use crate::util::{BuilderHelper, GtkUtil};
+use crate::app::Action;
+use crate::util::{BuilderHelper, Util};
+use glib::Sender;
 use gtk::{Button, ButtonExt, HeaderBar};
 
 #[derive(Clone, Debug)]
@@ -7,11 +9,11 @@ pub struct LoginHeaderbar {
 }
 
 impl LoginHeaderbar {
-    pub fn new(builder: &BuilderHelper) -> Self {
+    pub fn new(builder: &BuilderHelper, sender: Sender<Action>) -> Self {
         let headerbar = builder.get::<HeaderBar>("login_headerbar");
         let button = builder.get::<Button>("back_button");
-        button.connect_clicked(|button| {
-            GtkUtil::execute_action(button, "show-welcome-page", None);
+        button.connect_clicked(move |_button| {
+            Util::send(&sender, Action::ShowWelcomePage);
         });
 
         LoginHeaderbar { widget: headerbar }

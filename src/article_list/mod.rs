@@ -4,21 +4,24 @@ mod models;
 mod single;
 
 use self::error::{ArticleListError, ArticleListErrorKind};
+use crate::app::Action;
 use crate::content_page::HeaderSelection;
 use crate::gtk_handle;
 use crate::main_window_state::MainWindowState;
 use crate::settings::Settings;
 use crate::sidebar::models::SidebarSelection;
-use crate::util::{BuilderHelper, GtkHandle, GtkUtil};
+use crate::util::{BuilderHelper, GtkHandle, GtkUtil, Util};
 use failure::ResultExt;
-use glib::{translate::ToGlib, Variant};
+use glib::{translate::ToGlib, Sender};
 use gtk::{Continue, Label, LabelExt, ListBoxExt, ListBoxRowExt, ScrolledWindow, Stack, StackExt, StackTransitionType};
 use models::ArticleListChangeSet;
 pub use models::{ArticleListArticleModel, ArticleListModel, MarkUpdate, ReadUpdate};
 use news_flash::models::Read;
+use parking_lot::RwLock;
 use single::SingleArticleList;
 use std::cell::RefCell;
 use std::rc::Rc;
+use std::sync::Arc;
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub enum CurrentList {
@@ -28,6 +31,7 @@ pub enum CurrentList {
 }
 
 pub struct ArticleList {
+    sender: Sender<Action>,
     stack: Stack,
     list_1: GtkHandle<SingleArticleList>,
     list_2: GtkHandle<SingleArticleList>,
@@ -35,22 +39,22 @@ pub struct ArticleList {
     list_select_signal: Option<u64>,
     window_state: MainWindowState,
     current_list: GtkHandle<CurrentList>,
-    settings: GtkHandle<Settings>,
+    settings: Arc<RwLock<Settings>>,
     empty_label: Label,
 }
 
 impl ArticleList {
-    pub fn new(settings: &GtkHandle<Settings>) -> Self {
+    pub fn new(settings: &Arc<RwLock<Settings>>, sender: Sender<Action>) -> Self {
         let builder = BuilderHelper::new("article_list");
         let stack = builder.get::<Stack>("article_list_stack");
         let empty_scroll = builder.get::<ScrolledWindow>("empty_scroll");
         let empty_label = builder.get::<Label>("empty_label");
 
-        let list_1 = SingleArticleList::new();
-        let list_2 = SingleArticleList::new();
+        let list_1 = SingleArticleList::new(sender.clone());
+        let list_2 = SingleArticleList::new(sender.clone());
 
         let window_state = MainWindowState::new();
-        let model = ArticleListModel::new(&settings.borrow().get_article_list_order());
+        let model = ArticleListModel::new(&settings.read().get_article_list_order());
 
         stack.add_named(&list_1.widget(), "list_1");
         stack.add_named(&list_2.widget(), "list_2");
@@ -59,6 +63,7 @@ impl ArticleList {
         let settings = settings.clone();
 
         let mut article_list = ArticleList {
+            sender,
             stack,
             list_1: gtk_handle!(list_1),
             list_2: gtk_handle!(list_2),
@@ -89,7 +94,7 @@ impl ArticleList {
             CurrentList::List2 | CurrentList::Empty => CurrentList::List1,
         };
         *self.current_list.borrow_mut() = current_list;
-        let mut empty_model = ArticleListModel::new(&self.settings.borrow().get_article_list_order());
+        let mut empty_model = ArticleListModel::new(&self.settings.read().get_article_list_order());
         let diff = empty_model.generate_diff(&mut new_list);
 
         self.execute_diff(diff);
@@ -99,7 +104,7 @@ impl ArticleList {
         self.switch_lists();
     }
 
-    pub fn update(&mut self, mut new_list: ArticleListModel, new_state: &MainWindowState) {
+    pub fn update(&mut self, mut new_list: ArticleListModel, new_state: &RwLock<MainWindowState>) {
         self.stack.set_transition_type(self.calc_transition_type(new_state));
 
         // check if list model is empty and display a message
@@ -112,14 +117,14 @@ impl ArticleList {
             }
             self.list_select_signal = None;
             *self.current_list.borrow_mut() = CurrentList::Empty;
-            self.window_state = new_state.clone();
+            self.window_state = new_state.read().clone();
             return;
         }
 
         // check if a new list is reqired or current list should be updated
         if self.require_new_list(&new_state) {
             self.new_list(new_list);
-            self.window_state = new_state.clone();
+            self.window_state = new_state.read().clone();
             return;
         }
 
@@ -131,7 +136,7 @@ impl ArticleList {
         }
 
         *self.list_model.borrow_mut() = new_list;
-        self.window_state = new_state.clone();
+        self.window_state = new_state.read().clone();
     }
 
     pub fn add_more_articles(&mut self, new_list: ArticleListModel) -> Result<(), ArticleListError> {
@@ -158,10 +163,10 @@ impl ArticleList {
         Ok(())
     }
 
-    fn execute_diff(&mut self, diff: Vec<ArticleListChangeSet>) {
+    fn execute_diff(&self, diff: Vec<ArticleListChangeSet>) {
         let list = match *self.current_list.borrow() {
-            CurrentList::List1 | CurrentList::Empty => &mut self.list_1,
-            CurrentList::List2 => &mut self.list_2,
+            CurrentList::List1 | CurrentList::Empty => &self.list_1,
+            CurrentList::List2 => &self.list_2,
         };
 
         for diff in diff {
@@ -215,10 +220,11 @@ impl ArticleList {
         let current_list = self.current_list.clone();
         let list_1 = self.list_1.clone();
         let list_2 = self.list_2.clone();
+        let sender = self.sender.clone();
         let select_signal_id = new_list
             .borrow()
             .list()
-            .connect_row_activated(move |list, row| {
+            .connect_row_activated(move |_list, row| {
                 let selected_index = row.get_index();
                 let selected_article = list_model.borrow_mut().calculate_selection(selected_index).cloned();
                 if let Some(selected_article) = selected_article {
@@ -227,28 +233,25 @@ impl ArticleList {
                             article_id: selected_article.id.clone(),
                             read: Read::Read,
                         };
-                        let update_data = serde_json::to_string(&update).expect("Failed to serialize ReadUpdate");
-                        let update_data = Variant::from(&update_data);
                         list_model.borrow_mut().set_read(&selected_article.id, Read::Read);
                         match *current_list.borrow() {
                             CurrentList::List1 => list_1.borrow_mut().update_read(&selected_article.id, Read::Read),
                             CurrentList::List2 => list_2.borrow_mut().update_read(&selected_article.id, Read::Read),
                             CurrentList::Empty => return,
                         }
-                        GtkUtil::execute_action(list, "mark-article-read", Some(&update_data));
+                        Util::send(&sender, Action::MarkArticleRead(update));
                     }
 
-                    let selected_article_id_variant = Variant::from(&selected_article.id.to_str());
-                    GtkUtil::execute_action(list, "show-article", Some(&selected_article_id_variant));
+                    Util::send(&sender, Action::ShowArticle(selected_article.id.clone()));
                 }
             })
             .to_glib();
         self.list_select_signal = Some(select_signal_id);
     }
 
-    fn require_new_list(&self, new_state: &MainWindowState) -> bool {
-        if &self.window_state == new_state
-            && self.settings.borrow().get_article_list_order() == self.list_model.borrow().order()
+    fn require_new_list(&self, new_state: &RwLock<MainWindowState>) -> bool {
+        if self.window_state == *new_state.read()
+            && self.settings.read().get_article_list_order() == self.list_model.borrow().order()
             && *self.current_list.borrow() != CurrentList::Empty
         {
             return false;
@@ -256,19 +259,19 @@ impl ArticleList {
         true
     }
 
-    fn calc_transition_type(&self, new_state: &MainWindowState) -> StackTransitionType {
+    fn calc_transition_type(&self, new_state: &RwLock<MainWindowState>) -> StackTransitionType {
         if self.require_new_list(new_state) {
             match self.window_state.get_header_selection() {
-                HeaderSelection::All => match new_state.get_header_selection() {
+                HeaderSelection::All => match new_state.read().get_header_selection() {
                     HeaderSelection::All => {}
                     HeaderSelection::Unread | HeaderSelection::Marked => return StackTransitionType::SlideLeft,
                 },
-                HeaderSelection::Unread => match new_state.get_header_selection() {
+                HeaderSelection::Unread => match new_state.read().get_header_selection() {
                     HeaderSelection::All => return StackTransitionType::SlideRight,
                     HeaderSelection::Unread => {}
                     HeaderSelection::Marked => return StackTransitionType::SlideLeft,
                 },
-                HeaderSelection::Marked => match new_state.get_header_selection() {
+                HeaderSelection::Marked => match new_state.read().get_header_selection() {
                     HeaderSelection::All | HeaderSelection::Unread => return StackTransitionType::SlideRight,
                     HeaderSelection::Marked => {}
                 },
@@ -277,60 +280,60 @@ impl ArticleList {
         StackTransitionType::Crossfade
     }
 
-    fn compose_empty_message(&self, new_state: &MainWindowState) -> String {
-        match new_state.get_sidebar_selection() {
-            SidebarSelection::All => match new_state.get_header_selection() {
-                HeaderSelection::All => match new_state.get_search_term() {
+    fn compose_empty_message(&self, new_state: &RwLock<MainWindowState>) -> String {
+        match new_state.read().get_sidebar_selection() {
+            SidebarSelection::All => match new_state.read().get_header_selection() {
+                HeaderSelection::All => match new_state.read().get_search_term() {
                     Some(search) => format!("No articles that fit \"{}\"", search),
                     None => "No articles".to_string(),
                 },
-                HeaderSelection::Unread => match new_state.get_search_term() {
+                HeaderSelection::Unread => match new_state.read().get_search_term() {
                     Some(search) => format!("No unread articles that fit \"{}\"", search),
                     None => "No unread articles".to_string(),
                 },
-                HeaderSelection::Marked => match new_state.get_search_term() {
+                HeaderSelection::Marked => match new_state.read().get_search_term() {
                     Some(search) => format!("No starred articles that fit \"{}\"", search),
                     None => "No starred articles".to_string(),
                 },
             },
-            SidebarSelection::Cateogry((_id, title)) => match new_state.get_header_selection() {
-                HeaderSelection::All => match new_state.get_search_term() {
+            SidebarSelection::Cateogry((_id, title)) => match new_state.read().get_header_selection() {
+                HeaderSelection::All => match new_state.read().get_search_term() {
                     Some(search) => format!("No articles that fit \"{}\" in category \"{}\"", search, title),
                     None => format!("No articles in category \"{}\"", title),
                 },
-                HeaderSelection::Unread => match new_state.get_search_term() {
+                HeaderSelection::Unread => match new_state.read().get_search_term() {
                     Some(search) => format!("No unread articles that fit \"{}\" in category \"{}\"", search, title),
                     None => format!("No unread articles in category \"{}\"", title),
                 },
-                HeaderSelection::Marked => match new_state.get_search_term() {
+                HeaderSelection::Marked => match new_state.read().get_search_term() {
                     Some(search) => format!("No starred articles that fit \"{}\" in category \"{}\"", search, title),
                     None => format!("No starred articles in category \"{}\"", title),
                 },
             },
-            SidebarSelection::Feed((_id, title)) => match new_state.get_header_selection() {
-                HeaderSelection::All => match new_state.get_search_term() {
+            SidebarSelection::Feed((_id, title)) => match new_state.read().get_header_selection() {
+                HeaderSelection::All => match new_state.read().get_search_term() {
                     Some(search) => format!("No articles that fit \"{}\" in feed \"{}\"", search, title),
                     None => format!("No articles in feed \"{}\"", title),
                 },
-                HeaderSelection::Unread => match new_state.get_search_term() {
+                HeaderSelection::Unread => match new_state.read().get_search_term() {
                     Some(search) => format!("No unread articles that fit \"{}\" in feed \"{}\"", search, title),
                     None => format!("No unread articles in feed \"{}\"", title),
                 },
-                HeaderSelection::Marked => match new_state.get_search_term() {
+                HeaderSelection::Marked => match new_state.read().get_search_term() {
                     Some(search) => format!("No starred articles that fit \"{}\" in feed \"{}\"", search, title),
                     None => format!("No starred articles in feed \"{}\"", title),
                 },
             },
-            SidebarSelection::Tag((_id, title)) => match new_state.get_header_selection() {
-                HeaderSelection::All => match new_state.get_search_term() {
+            SidebarSelection::Tag((_id, title)) => match new_state.read().get_header_selection() {
+                HeaderSelection::All => match new_state.read().get_search_term() {
                     Some(search) => format!("No articles that fit \"{}\" in tag \"{}\"", search, title),
                     None => format!("No articles in tag \"{}\"", title),
                 },
-                HeaderSelection::Unread => match new_state.get_search_term() {
+                HeaderSelection::Unread => match new_state.read().get_search_term() {
                     Some(search) => format!("No unread articles that fit \"{}\" in tag \"{}\"", search, title),
                     None => format!("No unread articles in tag \"{}\"", title),
                 },
-                HeaderSelection::Marked => match new_state.get_search_term() {
+                HeaderSelection::Marked => match new_state.read().get_search_term() {
                     Some(search) => format!("No starred articles that fit \"{}\" in tag \"{}\"", search, title),
                     None => format!("No starred articles in tag \"{}\"", title),
                 },

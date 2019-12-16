@@ -1,5 +1,7 @@
-use crate::gtk_handle;
-use crate::util::{BuilderHelper, GtkHandle, GtkUtil};
+use crate::util::{BuilderHelper, GtkUtil, Util};
+use futures::channel::oneshot;
+use futures::executor::ThreadPool;
+use futures::future::FutureExt;
 use glib::object::Cast;
 use gtk::{
     BinExt, Box, BoxExt, Button, ButtonExt, ComboBox, ComboBoxExt, ContainerExt, EditableSignals, Entry, EntryExt,
@@ -8,11 +10,13 @@ use gtk::{
     StyleContextExt, Type, WidgetExt,
 };
 use log::error;
-use news_flash::models::{Category, CategoryID, Feed, FeedID, Url};
-use news_flash::ParsedUrl;
+use news_flash::models::{Category, CategoryID, FavIcon, Feed, FeedID, Url};
+use news_flash::{FeedParserError, ParsedUrl};
 use pango::EllipsizeMode;
-use std::cell::RefCell;
+use parking_lot::RwLock;
 use std::rc::Rc;
+use std::sync::Arc;
+use tokio::runtime::Runtime;
 
 pub const NEW_CATEGORY_ICON: &str = "folder-new-symbolic";
 pub const WARN_ICON: &str = "dialog-warning-symbolic";
@@ -21,33 +25,35 @@ pub const WARN_ICON: &str = "dialog-warning-symbolic";
 pub enum AddCategory {
     New(String),
     Existing(CategoryID),
-    None,
 }
 
 #[derive(Clone, Debug)]
 pub struct AddPopover {
     add_button: Button,
     feed_title_entry: Entry,
-    feed_url: GtkHandle<Option<Url>>,
-    feed_category: GtkHandle<AddCategory>,
+    feed_url: Rc<RwLock<Option<Url>>>,
+    feed_category: Rc<RwLock<Option<AddCategory>>>,
 }
 
 impl AddPopover {
-    pub fn new(parent: &Button, categories: Vec<Category>) -> Self {
+    pub fn new(parent: &Button, categories: Vec<Category>, threadpool: ThreadPool, runtime: Arc<Runtime>) -> Self {
         let builder = BuilderHelper::new("add_dialog");
         let popover = builder.get::<Popover>("add_pop");
         let url_entry = builder.get::<Entry>("url_entry");
         let parse_button = builder.get::<Button>("parse_button");
+        let parse_button_stack = builder.get::<Stack>("parse_button_stack");
         let add_feed_stack = builder.get::<Stack>("add_feed_stack");
         let feed_list = builder.get::<ListBox>("feed_list");
         let select_button = builder.get::<Button>("select_button");
+        let select_button_stack = builder.get::<Stack>("select_button_stack");
         let feed_title_entry = builder.get::<Entry>("feed_title_entry");
         let favicon_image = builder.get::<Image>("favicon_image");
         let category_combo = builder.get::<ComboBox>("category_combo");
         let category_entry = builder.get::<Entry>("category_entry");
         let add_button = builder.get::<Button>("add_button");
-        let feed_url: GtkHandle<Option<Url>> = gtk_handle!(None);
-        let feed_category = gtk_handle!(AddCategory::None);
+        let add_button_stack = builder.get::<Stack>("add_button_stack");
+        let feed_url: Rc<RwLock<Option<Url>>> = Rc::new(RwLock::new(None));
+        let feed_category = Rc::new(RwLock::new(None));
 
         // setup list of categories to add feed to
         if categories.is_empty() {
@@ -92,46 +98,97 @@ impl AddPopover {
         let parse_button_feed_title_entry = feed_title_entry.clone();
         let parse_button_favicon_image = favicon_image.clone();
         let parse_button_select_button = select_button.clone();
+        let parse_button_select_button_stack = select_button_stack.clone();
         let parse_button_feed_url = feed_url.clone();
-        parse_button.connect_clicked(move |_button| {
+        let parse_button_parse_button_stack = parse_button_stack.clone();
+        let parse_button_add_button_stack = add_button_stack.clone();
+        let parse_button_runtime = runtime.clone();
+        parse_button.connect_clicked(move |button| {
             if let Some(url_text) = url_entry.get_text() {
                 let mut url_text = url_text.as_str().to_owned();
                 if !url_text.starts_with("http://") && !url_text.starts_with("https://") {
                     url_text.insert_str(0, "https://");
                 }
                 if let Ok(url) = Url::parse(&url_text) {
-                    let feed_id = FeedID::new(&url_text);
+                    // set 'next' button insensitive and show spinner
+                    parse_button_parse_button_stack.set_visible_child_name("spinner");
+                    button.set_sensitive(false);
 
-                    match news_flash::feed_parser::download_and_parse_feed(&url, &feed_id, None, None) {
-                        Ok(result) => match result {
-                            ParsedUrl::MultipleFeeds(feed_vec) => {
-                                parse_button_add_feed_stack.set_visible_child_name("feed_selection_page");
-                                Self::fill_mupliple_feed_list(
-                                    feed_vec,
-                                    &parse_button_feed_list,
-                                    &parse_button_select_button,
-                                    &parse_button_add_feed_stack,
-                                    &parse_button_feed_title_entry,
-                                    &parse_button_favicon_image,
-                                    &parse_button_feed_url,
-                                );
+                    let parse_button_add_feed_stack = parse_button_add_feed_stack.clone();
+                    let parse_button_feed_list = parse_button_feed_list.clone();
+                    let parse_button_feed_title_entry = parse_button_feed_title_entry.clone();
+                    let parse_button_select_button = parse_button_select_button.clone();
+                    let parse_button_select_button_stack = parse_button_select_button_stack.clone();
+                    let parse_button_favicon_image = parse_button_favicon_image.clone();
+                    let parse_button_feed_url = parse_button_feed_url.clone();
+                    let parse_button_parse_button_stack = parse_button_parse_button_stack.clone();
+                    let parse_button_add_button_stack = parse_button_add_button_stack.clone();
+                    let parse_button = button.clone();
+                    let url_entry = url_entry.clone();
+                    let parse_button_url = url.clone();
+
+                    let (sender, receiver) = oneshot::channel::<Result<ParsedUrl, FeedParserError>>();
+
+                    let feed_id = FeedID::new(&url_text);
+                    let runtime = parse_button_runtime.clone();
+                    let thread_future = async move {
+                        let result = runtime.block_on(news_flash::feed_parser::download_and_parse_feed(
+                            &url, &feed_id, None, None,
+                        ));
+                        sender.send(result).unwrap();
+                    };
+
+                    let parse_button_runtime = parse_button_runtime.clone();
+                    let parse_button_threadpool = threadpool.clone();
+                    let glib_future = receiver.map(move |res| {
+                        // parse url
+                        match res.unwrap() {
+                            Ok(result) => match result {
+                                ParsedUrl::MultipleFeeds(feed_vec) => {
+                                    // url has multiple feeds: show selection page and list them there
+                                    parse_button_add_feed_stack.set_visible_child_name("feed_selection_page");
+                                    Self::fill_mupliple_feed_list(
+                                        feed_vec,
+                                        &parse_button_feed_list,
+                                        &parse_button_select_button,
+                                        &parse_button_select_button_stack,
+                                        &parse_button_add_feed_stack,
+                                        &parse_button_feed_title_entry,
+                                        &parse_button_favicon_image,
+                                        &parse_button_add_button_stack,
+                                        &parse_button_feed_url,
+                                        parse_button_runtime,
+                                        parse_button_threadpool,
+                                    );
+                                }
+                                ParsedUrl::SingleFeed(feed) => {
+                                    // url has single feed: move to feed page
+                                    parse_button_add_feed_stack.set_visible_child_name("feed_page");
+                                    Self::fill_feed_page(
+                                        feed,
+                                        &parse_button_add_button_stack,
+                                        &parse_button_feed_title_entry,
+                                        &parse_button_favicon_image,
+                                        &parse_button_feed_url,
+                                        parse_button_runtime,
+                                        parse_button_threadpool,
+                                    );
+                                }
+                            },
+                            Err(error) => {
+                                error!("No feed found for url '{}': {}", parse_button_url, error);
+                                url_entry.set_property_secondary_icon_name(Some(WARN_ICON));
+                                url_entry.set_property_secondary_icon_tooltip_text(Some("No Feed found."));
                             }
-                            ParsedUrl::SingleFeed(feed) => {
-                                parse_button_add_feed_stack.set_visible_child_name("feed_page");
-                                Self::fill_feed_page(
-                                    feed,
-                                    &parse_button_feed_title_entry,
-                                    &parse_button_favicon_image,
-                                    &parse_button_feed_url,
-                                );
-                            }
-                        },
-                        Err(error) => {
-                            error!("No feed found for url '{}': {}", url, error);
-                            url_entry.set_property_secondary_icon_name(Some(WARN_ICON));
-                            url_entry.set_property_secondary_icon_tooltip_text(Some("No Feed found."));
                         }
-                    }
+
+                        // set 'next' buton sensitive again and show label again
+                        parse_button_parse_button_stack.set_visible_child_name("text");
+                        parse_button.set_sensitive(true);
+                    });
+
+                    threadpool.spawn_ok(thread_future);
+                    Util::glib_spawn_future(glib_future);
                 } else {
                     error!("No valid url: '{}'", url_text);
                     url_entry.set_property_secondary_icon_name(Some(WARN_ICON));
@@ -158,11 +215,13 @@ impl AddPopover {
             let folder_icon = if category_entry_category_combo.get_active_id().is_some() {
                 if let Some(id) = category_entry_category_combo.get_active_id() {
                     let category_id = CategoryID::new(id.as_str());
-                    category_entry_feed_category.replace(AddCategory::Existing(category_id));
+                    category_entry_feed_category
+                        .write()
+                        .replace(AddCategory::Existing(category_id));
                 }
                 None
             } else if entry_text.is_none() {
-                category_entry_feed_category.replace(AddCategory::None);
+                category_entry_feed_category.write().take();
                 None
             } else if categories.iter().any(|c| Some(c.label.clone()) == entry_text) {
                 let category_id = categories
@@ -171,11 +230,13 @@ impl AddPopover {
                     .map(|c| c.category_id.clone());
 
                 if let Some(category_id) = category_id {
-                    category_entry_feed_category.replace(AddCategory::Existing(category_id));
+                    category_entry_feed_category
+                        .write()
+                        .replace(AddCategory::Existing(category_id));
                 }
                 None
             } else {
-                category_entry_feed_category.replace(AddCategory::New(
+                category_entry_feed_category.write().replace(AddCategory::New(
                     entry_text.expect("entry_text already checked for None"),
                 ));
                 Some(NEW_CATEGORY_ICON)
@@ -202,37 +263,93 @@ impl AddPopover {
         }
     }
 
-    fn fill_feed_page(feed: Feed, title_entry: &Entry, favicon_image: &Image, feed_url: &GtkHandle<Option<Url>>) {
+    fn fill_feed_page(
+        feed: Feed,
+        add_button_stack: &Stack,
+        title_entry: &Entry,
+        favicon_image: &Image,
+        feed_url: &Rc<RwLock<Option<Url>>>,
+        runtime: Arc<Runtime>,
+        threadpool: ThreadPool,
+    ) {
         title_entry.set_text(&feed.label);
-        feed_url.replace(feed.feed_url.clone());
-        let scale = GtkUtil::get_scale(favicon_image);
+        if let Some(new_feed_url) = &feed.feed_url {
+            feed_url.write().replace(new_feed_url.clone());
+        } else {
+            feed_url.write().take();
+        }
 
-        if let Some(favicon) = news_flash::util::favicon_cache::FavIconCache::scrap(&feed) {
-            if let Some(data) = &favicon.data {
-                if let Ok(surface) = GtkUtil::create_surface_from_bytes(data, 64, 64, scale) {
-                    favicon_image.set_from_surface(Some(&surface));
-                }
-            }
-        } else if let Some(icon_url) = feed.icon_url {
-            if let Ok(mut response) = reqwest::get(icon_url.get()) {
-                let mut buf: Vec<u8> = vec![];
-                if let Ok(_bytes_written) = response.copy_to(&mut buf) {
-                    if let Ok(surface) = GtkUtil::create_surface_from_bytes(&buf, 64, 64, scale) {
+        add_button_stack.set_visible_child_name("spinner");
+
+        let (sender, receiver) = oneshot::channel::<Option<FavIcon>>();
+
+        let feed_clone = feed.clone();
+        let runtime_clone = runtime.clone();
+        let thread_future = async move {
+            let result = runtime_clone.block_on(news_flash::util::favicon_cache::FavIconCache::scrap(&feed_clone));
+            sender.send(result).unwrap();
+        };
+
+        let scale = GtkUtil::get_scale(favicon_image);
+        let favicon_image = favicon_image.clone();
+        let add_button_stack = add_button_stack.clone();
+
+        let threadpool_clone = threadpool.clone();
+
+        let glib_future = receiver.map(move |res| {
+            if let Some(favicon) = res.unwrap() {
+                if let Some(data) = &favicon.data {
+                    if let Ok(surface) = GtkUtil::create_surface_from_bytes(data, 64, 64, scale) {
                         favicon_image.set_from_surface(Some(&surface));
+                        add_button_stack.set_visible_child_name("text");
                     }
                 }
+            } else if let Some(icon_url) = feed.icon_url {
+                let favicon_image = favicon_image.clone();
+
+                let (sender, receiver) = oneshot::channel::<Option<Vec<u8>>>();
+
+                let thread_future = async move {
+                    let res = match runtime.block_on(reqwest::get(icon_url.get())) {
+                        Ok(response) => match runtime.block_on(response.bytes()) {
+                            Ok(bytes) => Some(Vec::from(bytes.as_ref())),
+                            Err(_) => None,
+                        },
+                        Err(_) => None,
+                    };
+                    sender.send(res).unwrap();
+                };
+
+                let glib_future = receiver.map(move |res| {
+                    if let Some(byte_vec) = res.unwrap() {
+                        if let Ok(surface) = GtkUtil::create_surface_from_bytes(&byte_vec, 64, 64, scale) {
+                            favicon_image.set_from_surface(Some(&surface));
+                            add_button_stack.set_visible_child_name("text");
+                        }
+                    }
+                });
+
+                threadpool_clone.spawn_ok(thread_future);
+                Util::glib_spawn_future(glib_future);
             }
-        }
+        });
+
+        threadpool.spawn_ok(thread_future);
+        Util::glib_spawn_future(glib_future);
     }
 
     fn fill_mupliple_feed_list(
         feed_vec: Vec<(String, Url)>,
         list: &ListBox,
         select_button: &Button,
+        select_button_stack: &Stack,
         stack: &Stack,
         title_entry: &Entry,
         favicon: &Image,
-        feed_url: &GtkHandle<Option<Url>>,
+        add_button_stack: &Stack,
+        feed_url: &Rc<RwLock<Option<Url>>>,
+        runtime: Arc<Runtime>,
+        threadpool: ThreadPool,
     ) {
         let list_select_button = select_button.clone();
         list.connect_row_selected(move |_list, row| {
@@ -244,23 +361,64 @@ impl AddPopover {
         let list_clone = list.clone();
         let favicon = favicon.clone();
         let feed_url = feed_url.clone();
-        select_button.connect_clicked(move |_button| {
+        let select_button_stack = select_button_stack.clone();
+        let add_button_stack = add_button_stack.clone();
+        select_button.connect_clicked(move |button| {
             if let Some(row) = list_clone.get_selected_row() {
                 if let Some(name) = row.get_name() {
+                    select_button_stack.set_visible_child_name("spinner");
+                    button.set_sensitive(false);
+
                     let url = Url::parse(name.as_str()).expect("should never fail since it comes from 'url.as_str()'");
                     let feed_id = FeedID::new(url.get().as_str());
-                    if let Ok(ParsedUrl::SingleFeed(feed)) =
-                        news_flash::feed_parser::download_and_parse_feed(&url, &feed_id, None, None)
-                    {
-                        Self::fill_feed_page(feed, &title_entry, &favicon, &feed_url);
-                        add_feed_stack.set_visible_child_name("feed_page");
-                    } else if let Some(child) = row.get_child() {
-                        if let Ok(_box) = child.downcast::<Box>() {
-                            if let Some(icon) = _box.get_children().get(1) {
-                                icon.set_visible(true);
+                    let add_feed_stack = add_feed_stack.clone();
+                    let title_entry = title_entry.clone();
+                    let favicon = favicon.clone();
+                    let feed_url = feed_url.clone();
+
+                    let (sender, receiver) = oneshot::channel::<Option<ParsedUrl>>();
+
+                    let runtime_clone = runtime.clone();
+                    let thread_future = async move {
+                        let result = runtime_clone
+                            .block_on(news_flash::feed_parser::download_and_parse_feed(
+                                &url, &feed_id, None, None,
+                            ))
+                            .ok();
+                        sender.send(result).unwrap();
+                    };
+
+                    let select_button_stack = select_button_stack.clone();
+                    let select_button = button.clone();
+                    let add_button_stack = add_button_stack.clone();
+                    let threadpool_clone = threadpool.clone();
+                    let runtime = runtime.clone();
+                    let glib_future = receiver.map(move |res| {
+                        if let Some(ParsedUrl::SingleFeed(feed)) = res.unwrap() {
+                            Self::fill_feed_page(
+                                feed,
+                                &add_button_stack,
+                                &title_entry,
+                                &favicon,
+                                &feed_url,
+                                runtime,
+                                threadpool_clone,
+                            );
+                            add_feed_stack.set_visible_child_name("feed_page");
+                        } else if let Some(child) = row.get_child() {
+                            if let Ok(_box) = child.downcast::<Box>() {
+                                if let Some(icon) = _box.get_children().get(1) {
+                                    icon.set_visible(true);
+                                }
                             }
                         }
-                    }
+
+                        select_button_stack.set_visible_child_name("text");
+                        select_button.set_sensitive(true);
+                    });
+
+                    threadpool.spawn_ok(thread_future);
+                    Util::glib_spawn_future(glib_future);
                 }
             }
         });
@@ -329,14 +487,14 @@ impl AddPopover {
     }
 
     pub fn get_feed_url(&self) -> Option<Url> {
-        (*self.feed_url.borrow()).clone()
+        self.feed_url.read().clone()
     }
 
     pub fn get_feed_title(&self) -> Option<String> {
         self.feed_title_entry.get_text().map(|title| title.as_str().to_owned())
     }
 
-    pub fn get_category(&self) -> AddCategory {
-        (*self.feed_category.borrow()).clone()
+    pub fn get_category(&self) -> Option<AddCategory> {
+        self.feed_category.read().clone()
     }
 }

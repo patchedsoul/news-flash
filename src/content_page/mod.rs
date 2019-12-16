@@ -6,6 +6,7 @@ pub use self::content_header::ContentHeader;
 pub use self::header_selection::HeaderSelection;
 
 use self::error::{ContentPageError, ContentPageErrorKind};
+use crate::app::Action;
 use crate::article_list::{ArticleList, ArticleListArticleModel, ArticleListModel};
 use crate::article_view::ArticleView;
 use crate::main_window_state::MainWindowState;
@@ -13,22 +14,25 @@ use crate::settings::Settings;
 use crate::sidebar::models::SidebarSelection;
 use crate::sidebar::{FeedListTree, SideBar, TagListModel};
 use crate::undo_bar::{UndoActionModel, UndoBar};
-use crate::util::{BuilderHelper, GtkHandle, Util};
+use crate::util::{BuilderHelper, Util};
 use failure::ResultExt;
+use glib::Sender;
 use gtk::{Box, BoxExt, Button, WidgetExt};
 use libhandy::Leaflet;
 use news_flash::models::{Article, ArticleFilter, FatArticle, Feed, Marked, PluginCapabilities, PluginID, Read};
 use news_flash::NewsFlash;
+use parking_lot::RwLock;
+use std::sync::Arc;
 
 pub struct ContentPage {
     sidebar: SideBar,
     article_list: ArticleList,
     article_view: ArticleView,
-    settings: GtkHandle<Settings>,
+    settings: Arc<RwLock<Settings>>,
 }
 
 impl ContentPage {
-    pub fn new(builder: &BuilderHelper, settings: &GtkHandle<Settings>) -> Self {
+    pub fn new(builder: &BuilderHelper, settings: &Arc<RwLock<Settings>>, sender: Sender<Action>) -> Self {
         let feed_list_box = builder.get::<Box>("feedlist_box");
         let article_list_box = builder.get::<Box>("articlelist_box");
         let articleview_box = builder.get::<Box>("articleview_box");
@@ -37,8 +41,8 @@ impl ContentPage {
         let minor_leaflet = builder.get::<Leaflet>("minor_leaflet");
         minor_leaflet.set_hexpand(false);
 
-        let sidebar = SideBar::new();
-        let article_list = ArticleList::new(settings);
+        let sidebar = SideBar::new(sender.clone());
+        let article_list = ArticleList::new(settings, sender.clone());
         let article_view = ArticleView::new(settings);
 
         feed_list_box.pack_start(&sidebar.widget(), false, true, 0);
@@ -64,23 +68,22 @@ impl ContentPage {
 
     pub fn update_article_list(
         &mut self,
-        news_flash_handle: &GtkHandle<Option<NewsFlash>>,
-        window_state: &GtkHandle<MainWindowState>,
-        undo_bar: &GtkHandle<UndoBar>,
+        news_flash: &RwLock<Option<NewsFlash>>,
+        window_state: &RwLock<MainWindowState>,
+        undo_bar: &UndoBar,
     ) -> Result<(), ContentPageError> {
-        if let Some(news_flash) = news_flash_handle.borrow_mut().as_mut() {
-            let window_state = &mut *window_state.borrow_mut();
+        if let Some(news_flash) = news_flash.write().as_mut() {
             let relevant_articles_loaded = self
                 .article_list
-                .get_relevant_article_count(window_state.get_header_selection());
-            let limit = if window_state.reset_article_list() {
+                .get_relevant_article_count(window_state.read().get_header_selection());
+            let limit = if window_state.write().reset_article_list() {
                 MainWindowState::page_size()
             } else if relevant_articles_loaded as i64 >= MainWindowState::page_size() {
                 relevant_articles_loaded as i64
             } else {
                 MainWindowState::page_size()
             };
-            let mut list_model = ArticleListModel::new(&self.settings.borrow().get_article_list_order());
+            let mut list_model = ArticleListModel::new(&self.settings.read().get_article_list_order());
             let mut articles = Self::load_articles(news_flash, &window_state, &self.settings, undo_bar, limit, None)?;
 
             let (feeds, _) = news_flash.get_feeds().context(ContentPageErrorKind::DataBase)?;
@@ -91,12 +94,8 @@ impl ContentPage {
                         .iter()
                         .find(|&f| f.feed_id == article.feed_id)
                         .ok_or_else(|| ContentPageErrorKind::FeedTitle)?;
-                    let favicon = match news_flash.get_icon_info(&feed) {
-                        Ok(favicon) => Some(favicon),
-                        Err(_) => None,
-                    };
                     list_model
-                        .add(article, feed.label.clone(), favicon)
+                        .add(article, &feed)
                         .context(ContentPageErrorKind::ArticleList)?;
                     Ok(())
                 })
@@ -110,17 +109,16 @@ impl ContentPage {
 
     pub fn load_more_articles(
         &mut self,
-        news_flash_handle: &GtkHandle<Option<NewsFlash>>,
-        window_state: &GtkHandle<MainWindowState>,
-        undo_bar: &GtkHandle<UndoBar>,
+        news_flash_handle: &RwLock<Option<NewsFlash>>,
+        window_state: &RwLock<MainWindowState>,
+        undo_bar: &UndoBar,
     ) -> Result<(), ContentPageError> {
-        let window_state = window_state.borrow().clone();
         let relevant_articles_loaded = self
             .article_list
-            .get_relevant_article_count(window_state.get_header_selection());
-        let mut list_model = ArticleListModel::new(&self.settings.borrow().get_article_list_order());
+            .get_relevant_article_count(window_state.read().get_header_selection());
+        let mut list_model = ArticleListModel::new(&self.settings.read().get_article_list_order());
 
-        if let Some(news_flash) = news_flash_handle.borrow_mut().as_mut() {
+        if let Some(news_flash) = news_flash_handle.write().as_mut() {
             let mut articles = Self::load_articles(
                 news_flash,
                 &window_state,
@@ -137,12 +135,8 @@ impl ContentPage {
                         .iter()
                         .find(|&f| f.feed_id == article.feed_id)
                         .ok_or_else(|| ContentPageErrorKind::FeedTitle)?;
-                    let favicon = match news_flash.get_icon_info(&feed) {
-                        Ok(favicon) => Some(favicon),
-                        Err(_) => None,
-                    };
                     list_model
-                        .add(article, feed.label.clone(), favicon)
+                        .add(article, &feed)
                         .context(ContentPageErrorKind::ArticleList)?;
                     Ok(())
                 })
@@ -158,34 +152,34 @@ impl ContentPage {
 
     fn load_articles(
         news_flash: &mut NewsFlash,
-        window_state: &MainWindowState,
-        settings: &GtkHandle<Settings>,
-        undo_bar: &GtkHandle<UndoBar>,
+        window_state: &RwLock<MainWindowState>,
+        settings: &Arc<RwLock<Settings>>,
+        undo_bar: &UndoBar,
         limit: i64,
         offset: Option<i64>,
     ) -> Result<Vec<Article>, ContentPageError> {
-        let unread = match window_state.get_header_selection() {
+        let unread = match window_state.read().get_header_selection() {
             HeaderSelection::All | HeaderSelection::Marked => None,
             HeaderSelection::Unread => Some(Read::Unread),
         };
-        let marked = match window_state.get_header_selection() {
+        let marked = match window_state.read().get_header_selection() {
             HeaderSelection::All | HeaderSelection::Unread => None,
             HeaderSelection::Marked => Some(Marked::Marked),
         };
-        let feed = match &window_state.get_sidebar_selection() {
+        let feed = match &window_state.read().get_sidebar_selection() {
             SidebarSelection::All | SidebarSelection::Cateogry(_) | SidebarSelection::Tag(_) => None,
             SidebarSelection::Feed((id, _title)) => Some(id.clone()),
         };
-        let category = match &window_state.get_sidebar_selection() {
+        let category = match &window_state.read().get_sidebar_selection() {
             SidebarSelection::All | SidebarSelection::Feed(_) | SidebarSelection::Tag(_) => None,
             SidebarSelection::Cateogry((id, _title)) => Some(id.clone()),
         };
-        let tag = match &window_state.get_sidebar_selection() {
+        let tag = match &window_state.read().get_sidebar_selection() {
             SidebarSelection::All | SidebarSelection::Feed(_) | SidebarSelection::Cateogry(_) => None,
             SidebarSelection::Tag((id, _title)) => Some(id.clone()),
         };
-        let search_term = window_state.get_search_term().clone();
-        let (feed_blacklist, category_blacklist) = match undo_bar.borrow().get_current_action() {
+        let search_term = window_state.read().get_search_term().clone();
+        let (feed_blacklist, category_blacklist) = match undo_bar.get_current_action() {
             Some(action) => match action {
                 UndoActionModel::DeleteFeed((feed_id, _label)) => (Some(vec![feed_id]), None),
                 UndoActionModel::DeleteCategory((category_id, _label)) => (None, Some(vec![category_id])),
@@ -198,7 +192,7 @@ impl ContentPage {
             .get_articles(ArticleFilter {
                 limit: Some(limit),
                 offset,
-                order: Some(settings.borrow().get_article_list_order()),
+                order: Some(settings.read().get_article_list_order()),
                 unread,
                 marked,
                 feed,
@@ -218,17 +212,17 @@ impl ContentPage {
 
     pub fn update_sidebar(
         &mut self,
-        news_flash_handle: &GtkHandle<Option<NewsFlash>>,
-        state: &GtkHandle<MainWindowState>,
-        undo_bar: &GtkHandle<UndoBar>,
+        news_flash: &RwLock<Option<NewsFlash>>,
+        state: &RwLock<MainWindowState>,
+        undo_bar: &UndoBar,
     ) -> Result<(), ContentPageError> {
-        if let Some(news_flash) = news_flash_handle.borrow_mut().as_mut() {
+        if let Some(news_flash) = news_flash.write().as_mut() {
             let mut tree = FeedListTree::new();
             let categories = news_flash.get_categories().context(ContentPageErrorKind::DataBase)?;
             let (feeds, mappings) = news_flash.get_feeds().context(ContentPageErrorKind::DataBase)?;
 
             // collect unread and marked counts
-            let feed_count_map = match state.borrow().get_header_selection() {
+            let feed_count_map = match state.read().get_header_selection() {
                 HeaderSelection::All | HeaderSelection::Unread => news_flash
                     .unread_count_feed_map()
                     .context(ContentPageErrorKind::DataBase)?,
@@ -239,7 +233,7 @@ impl ContentPage {
 
             // feedlist: Categories
             for category in &categories {
-                if let Some(UndoActionModel::DeleteCategory((id, _label))) = undo_bar.borrow().get_current_action() {
+                if let Some(UndoActionModel::DeleteCategory((id, _label))) = undo_bar.get_current_action() {
                     if id == category.category_id {
                         continue;
                     }
@@ -258,7 +252,7 @@ impl ContentPage {
 
             // feedlist: Feeds
             for mapping in &mappings {
-                if let Some(undo_action) = undo_bar.borrow().get_current_action() {
+                if let Some(undo_action) = undo_bar.get_current_action() {
                     match undo_action {
                         UndoActionModel::DeleteFeed((id, _label)) => {
                             if id == mapping.feed_id {
@@ -283,11 +277,7 @@ impl ContentPage {
                     Some(count) => *count,
                     None => 0,
                 };
-                let favicon = match news_flash.get_icon_info(&feed) {
-                    Ok(favicon) => Some(favicon),
-                    Err(_) => None,
-                };
-                tree.add_feed(&feed, &mapping, item_count, favicon)
+                tree.add_feed(&feed, &mapping, item_count)
                     .context(ContentPageErrorKind::SidebarModels)?
             }
 
@@ -305,7 +295,7 @@ impl ContentPage {
                     self.sidebar.hide_taglist();
                 } else {
                     for tag in tags {
-                        if let Some(UndoActionModel::DeleteTag((id, _label))) = undo_bar.borrow().get_current_action() {
+                        if let Some(UndoActionModel::DeleteTag((id, _label))) = undo_bar.get_current_action() {
                             if id == tag.tag_id {
                                 continue;
                             }
@@ -328,7 +318,7 @@ impl ContentPage {
         Err(ContentPageErrorKind::NewsFlashHandle.into())
     }
 
-    pub fn article_view_show(&mut self, article: FatArticle, feed: &Feed) {
+    pub fn article_view_show(&self, article: FatArticle, feed: &Feed) {
         self.article_view.show_article(article, feed.label.clone());
     }
 
@@ -347,11 +337,11 @@ impl ContentPage {
         self.article_view.get_visible_article()
     }
 
-    pub fn article_view_update_visible_article(&mut self, read: Option<Read>, marked: Option<Marked>) {
+    pub fn article_view_update_visible_article(&self, read: Option<Read>, marked: Option<Marked>) {
         self.article_view.update_visible_article(read, marked);
     }
 
-    pub fn article_view_redraw(&mut self) {
+    pub fn article_view_redraw(&self) {
         self.article_view.redraw_article()
     }
 

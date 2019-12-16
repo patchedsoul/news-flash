@@ -1,8 +1,9 @@
 use super::error::{LoginScreenError, LoginScreenErrorKind};
+use crate::app::Action;
 use crate::error_dialog::ErrorDialog;
-use crate::util::{BuilderHelper, GtkUtil};
+use crate::util::{BuilderHelper, GtkUtil, Util};
 use failure::{Fail, ResultExt};
-use glib::{signal::SignalHandlerId, translate::ToGlib, Variant};
+use glib::{signal::SignalHandlerId, translate::ToGlib, Sender};
 use gtk::{
     self, Box, Button, ButtonExt, Entry, EntryExt, Image, ImageExt, InfoBar, InfoBarExt, Label, LabelExt, ResponseType,
     Revealer, RevealerExt, WidgetExt,
@@ -11,9 +12,11 @@ use news_flash::models::{
     LoginData, LoginGUI, PasswordLogin as PasswordLoginData, PasswordLoginGUI, PluginIcon, PluginInfo,
 };
 use news_flash::{FeedApiError, FeedApiErrorKind, NewsFlashError, NewsFlashErrorKind};
+use parking_lot::RwLock;
 
-#[derive(Clone, Debug)]
+#[derive(Debug)]
 pub struct PasswordLogin {
+    sender: Sender<Action>,
     page: gtk::Box,
     logo: gtk::Image,
     headline: gtk::Label,
@@ -30,20 +33,20 @@ pub struct PasswordLogin {
     login_button: gtk::Button,
     ignore_tls_button: gtk::Button,
     error_details_button: gtk::Button,
-    info_bar_close_signal: Option<u64>,
-    info_bar_response_signal: Option<u64>,
-    url_entry_signal: Option<u64>,
-    user_entry_signal: Option<u64>,
-    pass_entry_signal: Option<u64>,
-    http_user_entry_signal: Option<u64>,
-    http_pass_entry_signal: Option<u64>,
-    login_button_signal: Option<u64>,
-    ignore_tls_signal: Option<u64>,
-    error_details_signal: Option<u64>,
+    info_bar_close_signal: RwLock<Option<u64>>,
+    info_bar_response_signal: RwLock<Option<u64>>,
+    url_entry_signal: RwLock<Option<u64>>,
+    user_entry_signal: RwLock<Option<u64>>,
+    pass_entry_signal: RwLock<Option<u64>>,
+    http_user_entry_signal: RwLock<Option<u64>>,
+    http_pass_entry_signal: RwLock<Option<u64>>,
+    login_button_signal: RwLock<Option<u64>>,
+    ignore_tls_signal: RwLock<Option<u64>>,
+    error_details_signal: RwLock<Option<u64>>,
 }
 
 impl PasswordLogin {
-    pub fn new(builder: &BuilderHelper) -> Self {
+    pub fn new(builder: &BuilderHelper, sender: Sender<Action>) -> Self {
         let page = builder.get::<Box>("password_login");
         let logo = builder.get::<Image>("logo");
         let headline = builder.get::<Label>("headline");
@@ -65,6 +68,7 @@ impl PasswordLogin {
         logo.set_from_surface(Some(&surface));
 
         PasswordLogin {
+            sender,
             page,
             logo,
             headline,
@@ -81,20 +85,20 @@ impl PasswordLogin {
             login_button,
             ignore_tls_button,
             error_details_button,
-            info_bar_close_signal: None,
-            info_bar_response_signal: None,
-            url_entry_signal: None,
-            user_entry_signal: None,
-            pass_entry_signal: None,
-            http_user_entry_signal: None,
-            http_pass_entry_signal: None,
-            login_button_signal: None,
-            ignore_tls_signal: None,
-            error_details_signal: None,
+            info_bar_close_signal: RwLock::new(None),
+            info_bar_response_signal: RwLock::new(None),
+            url_entry_signal: RwLock::new(None),
+            user_entry_signal: RwLock::new(None),
+            pass_entry_signal: RwLock::new(None),
+            http_user_entry_signal: RwLock::new(None),
+            http_pass_entry_signal: RwLock::new(None),
+            login_button_signal: RwLock::new(None),
+            ignore_tls_signal: RwLock::new(None),
+            error_details_signal: RwLock::new(None),
         }
     }
 
-    pub fn set_service(&mut self, info: PluginInfo) -> Result<(), LoginScreenError> {
+    pub fn set_service(&self, info: PluginInfo) -> Result<(), LoginScreenError> {
         // set Icon
         if let Some(icon) = info.icon {
             let surface = match icon {
@@ -113,14 +117,14 @@ impl PasswordLogin {
             .set_text(&format!("Please log into {} and enjoy using NewsFlash", info.name));
 
         // setup infobar
-        self.info_bar_close_signal = Some(
+        self.info_bar_close_signal.write().replace(
             self.info_bar
                 .connect_close(|info_bar| {
                     PasswordLogin::hide_info_bar(info_bar);
                 })
                 .to_glib(),
         );
-        self.info_bar_response_signal = Some(
+        self.info_bar_response_signal.write().replace(
             self.info_bar
                 .connect_response(|info_bar, response| {
                     if let ResponseType::Close = response {
@@ -143,12 +147,22 @@ impl PasswordLogin {
                 self.user_entry.grab_focus();
             }
 
-            // check if "login" should be clickable
-            self.url_entry_signal = Some(self.setup_entry(&self.url_entry, &pw_gui_desc).to_glib());
-            self.user_entry_signal = Some(self.setup_entry(&self.user_entry, &pw_gui_desc).to_glib());
-            self.pass_entry_signal = Some(self.setup_entry(&self.pass_entry, &pw_gui_desc).to_glib());
-            self.http_user_entry_signal = Some(self.setup_entry(&self.http_user_entry, &pw_gui_desc).to_glib());
-            self.http_pass_entry_signal = Some(self.setup_entry(&self.http_pass_entry, &pw_gui_desc).to_glib());
+            // check if 'login' should be clickable
+            self.url_entry_signal
+                .write()
+                .replace(self.setup_entry(&self.url_entry, &pw_gui_desc).to_glib());
+            self.user_entry_signal
+                .write()
+                .replace(self.setup_entry(&self.user_entry, &pw_gui_desc).to_glib());
+            self.pass_entry_signal
+                .write()
+                .replace(self.setup_entry(&self.pass_entry, &pw_gui_desc).to_glib());
+            self.http_user_entry_signal
+                .write()
+                .replace(self.setup_entry(&self.http_user_entry, &pw_gui_desc).to_glib());
+            self.http_pass_entry_signal
+                .write()
+                .replace(self.setup_entry(&self.http_pass_entry, &pw_gui_desc).to_glib());
 
             // harvest login data
             let url_entry = self.url_entry.clone();
@@ -157,8 +171,9 @@ impl PasswordLogin {
             let http_user_entry = self.http_user_entry.clone();
             let http_pass_entry = self.http_pass_entry.clone();
             let pw_gui_desc = pw_gui_desc.clone();
+            let sender = self.sender.clone();
             let plugin_id = info.id;
-            self.login_button_signal = Some(
+            self.login_button_signal.write().replace(
                 self.login_button
                     .connect_clicked(move |_button| {
                         let url: Option<String> = if pw_gui_desc.url {
@@ -205,9 +220,7 @@ impl PasswordLogin {
                             http_password,
                         };
                         let login_data = LoginData::Password(login_data);
-                        let login_data_json =
-                            serde_json::to_string(&login_data).expect("Failed to serialize LoginData.");
-                        GtkUtil::execute_action(&url_entry, "login", Some(&Variant::from(&login_data_json)));
+                        Util::send(&sender, Action::Login(login_data));
                     })
                     .to_glib(),
             );
@@ -218,7 +231,7 @@ impl PasswordLogin {
         Err(LoginScreenErrorKind::LoginGUI.into())
     }
 
-    pub fn reset(&mut self) {
+    pub fn reset(&self) {
         self.info_bar.set_revealed(false);
         self.info_bar.set_visible(false);
         self.url_entry.set_text("");
@@ -227,26 +240,26 @@ impl PasswordLogin {
         self.http_user_entry.set_text("");
         self.http_pass_entry.set_text("");
 
-        GtkUtil::disconnect_signal(self.info_bar_close_signal, &self.info_bar);
-        GtkUtil::disconnect_signal(self.info_bar_response_signal, &self.info_bar);
-        GtkUtil::disconnect_signal(self.url_entry_signal, &self.url_entry);
-        GtkUtil::disconnect_signal(self.user_entry_signal, &self.user_entry);
-        GtkUtil::disconnect_signal(self.pass_entry_signal, &self.pass_entry);
-        GtkUtil::disconnect_signal(self.http_user_entry_signal, &self.http_user_entry);
-        GtkUtil::disconnect_signal(self.http_pass_entry_signal, &self.http_pass_entry);
-        GtkUtil::disconnect_signal(self.login_button_signal, &self.login_button);
-        GtkUtil::disconnect_signal(self.ignore_tls_signal, &self.ignore_tls_button);
-        GtkUtil::disconnect_signal(self.error_details_signal, &self.error_details_button);
-        self.info_bar_close_signal = None;
-        self.info_bar_response_signal = None;
-        self.url_entry_signal = None;
-        self.user_entry_signal = None;
-        self.pass_entry_signal = None;
-        self.http_user_entry_signal = None;
-        self.http_pass_entry_signal = None;
-        self.login_button_signal = None;
-        self.ignore_tls_signal = None;
-        self.error_details_signal = None;
+        GtkUtil::disconnect_signal(*self.info_bar_close_signal.read(), &self.info_bar);
+        GtkUtil::disconnect_signal(*self.info_bar_response_signal.read(), &self.info_bar);
+        GtkUtil::disconnect_signal(*self.url_entry_signal.read(), &self.url_entry);
+        GtkUtil::disconnect_signal(*self.user_entry_signal.read(), &self.user_entry);
+        GtkUtil::disconnect_signal(*self.pass_entry_signal.read(), &self.pass_entry);
+        GtkUtil::disconnect_signal(*self.http_user_entry_signal.read(), &self.http_user_entry);
+        GtkUtil::disconnect_signal(*self.http_pass_entry_signal.read(), &self.http_pass_entry);
+        GtkUtil::disconnect_signal(*self.login_button_signal.read(), &self.login_button);
+        GtkUtil::disconnect_signal(*self.ignore_tls_signal.read(), &self.ignore_tls_button);
+        GtkUtil::disconnect_signal(*self.error_details_signal.read(), &self.error_details_button);
+        self.info_bar_close_signal.write().take();
+        self.info_bar_response_signal.write().take();
+        self.url_entry_signal.write().take();
+        self.user_entry_signal.write().take();
+        self.pass_entry_signal.write().take();
+        self.http_user_entry_signal.write().take();
+        self.http_pass_entry_signal.write().take();
+        self.login_button_signal.write().take();
+        self.ignore_tls_signal.write().take();
+        self.error_details_signal.write().take();
     }
 
     fn hide_info_bar(info_bar: &gtk::InfoBar) {
@@ -258,11 +271,11 @@ impl PasswordLogin {
         });
     }
 
-    pub fn show_error(&mut self, error: NewsFlashError) {
-        GtkUtil::disconnect_signal(self.ignore_tls_signal, &self.ignore_tls_button);
-        GtkUtil::disconnect_signal(self.error_details_signal, &self.error_details_button);
-        self.ignore_tls_signal = None;
-        self.error_details_signal = None;
+    pub fn show_error(&self, error: NewsFlashError) {
+        GtkUtil::disconnect_signal(*self.ignore_tls_signal.read(), &self.ignore_tls_button);
+        GtkUtil::disconnect_signal(*self.error_details_signal.read(), &self.error_details_button);
+        self.ignore_tls_signal.write().take();
+        self.error_details_signal.write().take();
 
         self.ignore_tls_button.set_visible(false);
         self.error_details_button.set_visible(false);
@@ -294,7 +307,7 @@ impl PasswordLogin {
         }
 
         self.error_details_button.set_visible(true);
-        self.error_details_signal = Some(
+        self.error_details_signal.write().replace(
             self.error_details_button
                 .connect_clicked(move |button| {
                     let parent = GtkUtil::get_main_window(button)

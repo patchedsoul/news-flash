@@ -1,13 +1,15 @@
 use super::error::{SettingsError, SettingsErrorKind};
 use crate::settings::Settings;
-use crate::util::{BuilderHelper, GtkHandle, GTK_RESOURCE_FILE_ERROR};
+use crate::util::{BuilderHelper, GTK_RESOURCE_FILE_ERROR};
 use crate::Resources;
 use gdk::{enums::key, ModifierType};
 use glib::object::IsA;
 use gtk::{BinExt, Box, Cast, ContainerExt, GtkWindowExt, ShortcutsWindow, Stack, StackExt, WidgetExt, Window};
 use log::warn;
+use parking_lot::RwLock;
 use serde::{Deserialize, Serialize};
 use std::str;
+use std::sync::Arc;
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct Keybindings {
@@ -187,27 +189,27 @@ impl Keybindings {
     pub fn write_keybinding(
         id: &str,
         keybinding: Option<String>,
-        settings: &GtkHandle<Settings>,
+        settings: &Arc<RwLock<Settings>>,
     ) -> Result<(), SettingsError> {
         match id {
-            "next_article" => settings.borrow_mut().set_keybind_article_list_next(keybinding),
-            "previous_article" => settings.borrow_mut().set_keybind_article_list_prev(keybinding),
-            "toggle_read" => settings.borrow_mut().set_keybind_article_list_read(keybinding),
-            "toggle_marked" => settings.borrow_mut().set_keybind_article_list_mark(keybinding),
-            "open_browser" => settings.borrow_mut().set_keybind_article_list_open(keybinding),
-            "feed_keys_list" => settings.borrow_mut().set_keybind_feed_list_next(keybinding),
-            "previous_item" => settings.borrow_mut().set_keybind_feed_list_prev(keybinding),
-            "toggle_category_expanded" => settings.borrow_mut().set_keybind_feed_list_toggle_expanded(keybinding),
-            "sidebar_set_read" => settings.borrow_mut().set_keybind_sidebar_set_read(keybinding),
-            "shortcuts" => settings.borrow_mut().set_keybind_shortcut(keybinding),
-            "refresh" => settings.borrow_mut().set_keybind_refresh(keybinding),
-            "search" => settings.borrow_mut().set_keybind_search(keybinding),
-            "quit" => settings.borrow_mut().set_keybind_quit(keybinding),
-            "all_articles" => settings.borrow_mut().set_keybind_all_articles(keybinding),
-            "only_unread" => settings.borrow_mut().set_keybind_only_unread(keybinding),
-            "only_starred" => settings.borrow_mut().set_keybind_only_starred(keybinding),
-            "scroll_up" => settings.borrow_mut().set_keybind_article_view_up(keybinding),
-            "scroll_down" => settings.borrow_mut().set_keybind_article_view_down(keybinding),
+            "next_article" => settings.write().set_keybind_article_list_next(keybinding),
+            "previous_article" => settings.write().set_keybind_article_list_prev(keybinding),
+            "toggle_read" => settings.write().set_keybind_article_list_read(keybinding),
+            "toggle_marked" => settings.write().set_keybind_article_list_mark(keybinding),
+            "open_browser" => settings.write().set_keybind_article_list_open(keybinding),
+            "feed_keys_list" => settings.write().set_keybind_feed_list_next(keybinding),
+            "previous_item" => settings.write().set_keybind_feed_list_prev(keybinding),
+            "toggle_category_expanded" => settings.write().set_keybind_feed_list_toggle_expanded(keybinding),
+            "sidebar_set_read" => settings.write().set_keybind_sidebar_set_read(keybinding),
+            "shortcuts" => settings.write().set_keybind_shortcut(keybinding),
+            "refresh" => settings.write().set_keybind_refresh(keybinding),
+            "search" => settings.write().set_keybind_search(keybinding),
+            "quit" => settings.write().set_keybind_quit(keybinding),
+            "all_articles" => settings.write().set_keybind_all_articles(keybinding),
+            "only_unread" => settings.write().set_keybind_only_unread(keybinding),
+            "only_starred" => settings.write().set_keybind_only_starred(keybinding),
+            "scroll_up" => settings.write().set_keybind_article_view_up(keybinding),
+            "scroll_down" => settings.write().set_keybind_article_view_down(keybinding),
             _ => {
                 warn!("unexpected keybind id: {}", id);
                 Err(SettingsErrorKind::InvalidKeybind.into())
@@ -215,26 +217,26 @@ impl Keybindings {
         }
     }
 
-    pub fn read_keybinding(id: &str, settings: &GtkHandle<Settings>) -> Result<Option<String>, SettingsError> {
+    pub fn read_keybinding(id: &str, settings: &Arc<RwLock<Settings>>) -> Result<Option<String>, SettingsError> {
         match id {
-            "next_article" => Ok(settings.borrow_mut().get_keybind_article_list_next()),
-            "previous_article" => Ok(settings.borrow_mut().get_keybind_article_list_prev()),
-            "toggle_read" => Ok(settings.borrow_mut().get_keybind_article_list_read()),
-            "toggle_marked" => Ok(settings.borrow_mut().get_keybind_article_list_mark()),
-            "open_browser" => Ok(settings.borrow_mut().get_keybind_article_list_open()),
-            "next_item" => Ok(settings.borrow_mut().get_keybind_feed_list_next()),
-            "previous_item" => Ok(settings.borrow_mut().get_keybind_feed_list_prev()),
-            "toggle_category_expanded" => Ok(settings.borrow_mut().get_keybind_feed_list_toggle_expanded()),
-            "sidebar_set_read" => Ok(settings.borrow_mut().get_keybind_sidebar_set_read()),
-            "shortcuts" => Ok(settings.borrow_mut().get_keybind_shortcut()),
-            "refresh" => Ok(settings.borrow_mut().get_keybind_refresh()),
-            "search" => Ok(settings.borrow_mut().get_keybind_search()),
-            "quit" => Ok(settings.borrow_mut().get_keybind_quit()),
-            "all_articles" => Ok(settings.borrow_mut().get_keybind_all_articles()),
-            "only_unread" => Ok(settings.borrow_mut().get_keybind_only_unread()),
-            "only_starred" => Ok(settings.borrow_mut().get_keybind_only_starred()),
-            "scroll_up" => Ok(settings.borrow_mut().get_keybind_article_view_up()),
-            "scroll_down" => Ok(settings.borrow_mut().get_keybind_article_view_down()),
+            "next_article" => Ok(settings.read().get_keybind_article_list_next()),
+            "previous_article" => Ok(settings.read().get_keybind_article_list_prev()),
+            "toggle_read" => Ok(settings.read().get_keybind_article_list_read()),
+            "toggle_marked" => Ok(settings.read().get_keybind_article_list_mark()),
+            "open_browser" => Ok(settings.read().get_keybind_article_list_open()),
+            "next_item" => Ok(settings.read().get_keybind_feed_list_next()),
+            "previous_item" => Ok(settings.read().get_keybind_feed_list_prev()),
+            "toggle_category_expanded" => Ok(settings.read().get_keybind_feed_list_toggle_expanded()),
+            "sidebar_set_read" => Ok(settings.read().get_keybind_sidebar_set_read()),
+            "shortcuts" => Ok(settings.read().get_keybind_shortcut()),
+            "refresh" => Ok(settings.read().get_keybind_refresh()),
+            "search" => Ok(settings.read().get_keybind_search()),
+            "quit" => Ok(settings.read().get_keybind_quit()),
+            "all_articles" => Ok(settings.read().get_keybind_all_articles()),
+            "only_unread" => Ok(settings.read().get_keybind_only_unread()),
+            "only_starred" => Ok(settings.read().get_keybind_only_starred()),
+            "scroll_up" => Ok(settings.read().get_keybind_article_view_up()),
+            "scroll_down" => Ok(settings.read().get_keybind_article_view_down()),
             _ => {
                 warn!("unexpected keybind id: {}", id);
                 Err(SettingsErrorKind::InvalidKeybind.into())
@@ -380,54 +382,38 @@ impl KeybindingsFeedList {
 //--------------------------------------------
 
 pub struct NewsFlashShortcutWindow {
-    widget: ShortcutsWindow,
+    pub widget: ShortcutsWindow,
 }
 
 impl NewsFlashShortcutWindow {
-    pub fn new<D: IsA<Window> + GtkWindowExt>(settings_dialog: &D, settings: &GtkHandle<Settings>) -> Self {
+    pub fn new<D: IsA<Window> + GtkWindowExt>(settings_dialog: &D, settings: &Settings) -> Self {
         let ui_data = Resources::get("ui/shorcuts_window.ui").expect(GTK_RESOURCE_FILE_ERROR);
         let mut ui_xml = str::from_utf8(ui_data.as_ref())
             .expect(GTK_RESOURCE_FILE_ERROR)
             .to_owned();
 
-        ui_xml = Self::setup_shortcut(&ui_xml, "$SHORTCUT", settings.borrow().get_keybind_shortcut());
-        ui_xml = Self::setup_shortcut(&ui_xml, "$REFRESH", settings.borrow().get_keybind_refresh());
-        ui_xml = Self::setup_shortcut(&ui_xml, "$SEARCH", settings.borrow().get_keybind_search());
-        ui_xml = Self::setup_shortcut(&ui_xml, "$QUIT", settings.borrow().get_keybind_quit());
-        ui_xml = Self::setup_shortcut(&ui_xml, "$ALLARTICLES", settings.borrow().get_keybind_all_articles());
-        ui_xml = Self::setup_shortcut(&ui_xml, "$ONLYUNREAD", settings.borrow().get_keybind_only_unread());
-        ui_xml = Self::setup_shortcut(&ui_xml, "$ONLYSTARRED", settings.borrow().get_keybind_only_starred());
-        ui_xml = Self::setup_shortcut(&ui_xml, "$NEXTART", settings.borrow().get_keybind_article_list_next());
-        ui_xml = Self::setup_shortcut(&ui_xml, "$PREVART", settings.borrow().get_keybind_article_list_prev());
-        ui_xml = Self::setup_shortcut(
-            &ui_xml,
-            "$TOGGLEREAD",
-            settings.borrow().get_keybind_article_list_read(),
-        );
-        ui_xml = Self::setup_shortcut(
-            &ui_xml,
-            "$TOGGLEMARKED",
-            settings.borrow().get_keybind_article_list_mark(),
-        );
-        ui_xml = Self::setup_shortcut(
-            &ui_xml,
-            "$OPENBROWSER",
-            settings.borrow().get_keybind_article_list_open(),
-        );
-        ui_xml = Self::setup_shortcut(&ui_xml, "$SCROLLUP", settings.borrow().get_keybind_article_view_up());
-        ui_xml = Self::setup_shortcut(
-            &ui_xml,
-            "$SCROLLDOWN",
-            settings.borrow().get_keybind_article_view_down(),
-        );
-        ui_xml = Self::setup_shortcut(&ui_xml, "$NEXTFEED", settings.borrow().get_keybind_feed_list_next());
-        ui_xml = Self::setup_shortcut(&ui_xml, "$PREVFEED", settings.borrow().get_keybind_feed_list_prev());
+        ui_xml = Self::setup_shortcut(&ui_xml, "$SHORTCUT", settings.get_keybind_shortcut());
+        ui_xml = Self::setup_shortcut(&ui_xml, "$REFRESH", settings.get_keybind_refresh());
+        ui_xml = Self::setup_shortcut(&ui_xml, "$SEARCH", settings.get_keybind_search());
+        ui_xml = Self::setup_shortcut(&ui_xml, "$QUIT", settings.get_keybind_quit());
+        ui_xml = Self::setup_shortcut(&ui_xml, "$ALLARTICLES", settings.get_keybind_all_articles());
+        ui_xml = Self::setup_shortcut(&ui_xml, "$ONLYUNREAD", settings.get_keybind_only_unread());
+        ui_xml = Self::setup_shortcut(&ui_xml, "$ONLYSTARRED", settings.get_keybind_only_starred());
+        ui_xml = Self::setup_shortcut(&ui_xml, "$NEXTART", settings.get_keybind_article_list_next());
+        ui_xml = Self::setup_shortcut(&ui_xml, "$PREVART", settings.get_keybind_article_list_prev());
+        ui_xml = Self::setup_shortcut(&ui_xml, "$TOGGLEREAD", settings.get_keybind_article_list_read());
+        ui_xml = Self::setup_shortcut(&ui_xml, "$TOGGLEMARKED", settings.get_keybind_article_list_mark());
+        ui_xml = Self::setup_shortcut(&ui_xml, "$OPENBROWSER", settings.get_keybind_article_list_open());
+        ui_xml = Self::setup_shortcut(&ui_xml, "$SCROLLUP", settings.get_keybind_article_view_up());
+        ui_xml = Self::setup_shortcut(&ui_xml, "$SCROLLDOWN", settings.get_keybind_article_view_down());
+        ui_xml = Self::setup_shortcut(&ui_xml, "$NEXTFEED", settings.get_keybind_feed_list_next());
+        ui_xml = Self::setup_shortcut(&ui_xml, "$PREVFEED", settings.get_keybind_feed_list_prev());
         ui_xml = Self::setup_shortcut(
             &ui_xml,
             "$TOGGLEEXPAND",
-            settings.borrow().get_keybind_feed_list_toggle_expanded(),
+            settings.get_keybind_feed_list_toggle_expanded(),
         );
-        ui_xml = Self::setup_shortcut(&ui_xml, "$ITEMREAD", settings.borrow().get_keybind_sidebar_set_read());
+        ui_xml = Self::setup_shortcut(&ui_xml, "$ITEMREAD", settings.get_keybind_sidebar_set_read());
 
         let builder = BuilderHelper::new_from_xml(&ui_xml);
         let widget = builder.get::<ShortcutsWindow>("shortcuts-window");
@@ -447,10 +433,6 @@ impl NewsFlashShortcutWindow {
         }
 
         NewsFlashShortcutWindow { widget }
-    }
-
-    pub fn widget(&self) -> ShortcutsWindow {
-        self.widget.clone()
     }
 
     fn setup_shortcut(xml: &str, needle: &str, shortcut: Option<String>) -> String {

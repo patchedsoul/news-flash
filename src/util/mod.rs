@@ -14,12 +14,26 @@ pub use gtk_util::GTK_BUILDER_ERROR;
 pub use gtk_util::GTK_CSS_ERROR;
 pub use gtk_util::GTK_RESOURCE_FILE_ERROR;
 
+use crate::app::Action;
+use glib::Sender;
 use news_flash::models::{Category, CategoryID, FeedID, FeedMapping};
 use std::collections::HashMap;
+use std::future::Future;
+
+pub const CHANNEL_ERROR: &str = "Error sending message via glib channel";
 
 pub struct Util;
 
 impl Util {
+    pub fn send(sender: &Sender<Action>, action: Action) {
+        sender.send(action).expect(CHANNEL_ERROR);
+    }
+
+    pub fn glib_spawn_future<F: Future<Output = ()> + 'static>(future: F) {
+        let ctx = glib::MainContext::default();
+        ctx.spawn_local(future);
+    }
+
     pub fn some_or_default<T>(option: Option<T>, default: T) -> T {
         match option {
             Some(value) => value,

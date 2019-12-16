@@ -89,87 +89,87 @@ impl ResponsiveLayout {
         });
     }
 
-    pub fn process_state_change(layout: &ResponsiveLayout) {
-        if layout.state.borrow().major_leaflet_folded {
+    pub fn process_state_change(&self) {
+        if self.state.borrow().major_leaflet_folded {
             // article view (dis)appeared
-            if !layout.major_leaflet.get_property_folded() {
-                layout.right_button.set_visible(false);
-                layout.major_leaflet.set_visible_child(&layout.minor_leaflet);
-                layout.header_leaflet.set_visible_child(&layout.left_header);
-                layout.mode_switch_box.set_visible(true);
-                layout.mode_switch_button.set_visible(false);
+            if !self.major_leaflet.get_property_folded() {
+                self.right_button.set_visible(false);
+                self.major_leaflet.set_visible_child(&self.minor_leaflet);
+                self.header_leaflet.set_visible_child(&self.left_header);
+                self.mode_switch_box.set_visible(true);
+                self.mode_switch_button.set_visible(false);
             } else {
-                layout.mode_switch_box.set_visible(false);
-                layout.mode_switch_button.set_visible(true);
+                self.mode_switch_box.set_visible(false);
+                self.mode_switch_button.set_visible(true);
             }
 
-            layout.state.borrow_mut().major_leaflet_folded = false;
+            self.state.borrow_mut().major_leaflet_folded = false;
             return;
         }
 
-        if layout.state.borrow().minor_leaflet_folded {
+        if self.state.borrow().minor_leaflet_folded {
             // article list (dis)appeared
-            if !layout.minor_leaflet.get_property_folded() {
-                layout.left_button.set_visible(false);
-                layout.search_button.set_visible(true);
-                layout.mode_switch_button.set_visible(true);
-                layout.minor_leaflet.set_visible_child(&layout.sidebar_box);
-                layout.mark_all_read_button.set_visible(true);
+            if !self.minor_leaflet.get_property_folded() {
+                self.left_button.set_visible(false);
+                self.search_button.set_visible(true);
+                self.mode_switch_button.set_visible(true);
+                self.minor_leaflet.set_visible_child(&self.sidebar_box);
+                self.mark_all_read_button.set_visible(true);
             } else {
-                layout.search_button.set_visible(false);
-                layout.mode_switch_button.set_visible(false);
-                layout.mark_all_read_button.set_visible(false);
+                self.search_button.set_visible(false);
+                self.mode_switch_button.set_visible(false);
+                self.mark_all_read_button.set_visible(false);
             }
 
-            layout.state.borrow_mut().minor_leaflet_folded = false;
+            self.state.borrow_mut().minor_leaflet_folded = false;
             return;
         }
 
-        if layout.state.borrow().left_button_clicked {
+        if self.state.borrow().left_button_clicked {
             // left back
-            layout.minor_leaflet.set_visible_child(&layout.sidebar_box);
-            layout.left_button.set_visible(false);
-            layout.search_button.set_visible(false);
-            layout.mode_switch_button.set_visible(false);
-            layout.mark_all_read_button.set_visible(false);
+            self.minor_leaflet.set_visible_child(&self.sidebar_box);
+            self.left_button.set_visible(false);
+            self.search_button.set_visible(false);
+            self.mode_switch_button.set_visible(false);
+            self.mark_all_read_button.set_visible(false);
 
-            layout.state.borrow_mut().left_button_clicked = false;
+            self.state.borrow_mut().left_button_clicked = false;
             return;
         }
 
-        if layout.state.borrow().right_button_clicked {
+        if self.state.borrow().right_button_clicked {
             // right back
-            layout.major_leaflet.set_visible_child(&layout.minor_leaflet);
-            layout.header_leaflet.set_visible_child(&layout.left_header);
-            layout.right_button.set_visible(false);
+            self.major_leaflet.set_visible_child(&self.minor_leaflet);
+            self.header_leaflet.set_visible_child(&self.left_header);
+            self.right_button.set_visible(false);
 
-            layout.state.borrow_mut().right_button_clicked = false;
+            self.state.borrow_mut().right_button_clicked = false;
             return;
         }
 
-        if layout.state.borrow().major_leaflet_selected {
+        if self.state.borrow().major_leaflet_selected {
             // article selected
-            if layout.major_leaflet.get_property_folded() {
-                layout.major_leaflet.set_visible_child(&layout.article_view_box);
-                layout.header_leaflet.set_visible_child(&layout.right_header);
-                layout.right_button.set_visible(true);
+            if self.major_leaflet.get_property_folded() {
+                self.major_leaflet.set_visible_child(&self.article_view_box);
+                self.header_leaflet.set_visible_child(&self.right_header);
+                self.right_button.set_visible(true);
             }
 
-            layout.state.borrow_mut().major_leaflet_selected = false;
+            self.state.borrow_mut().major_leaflet_selected = false;
             return;
         }
 
-        if layout.state.borrow().minor_leaflet_selected {
+        if self.state.borrow().minor_leaflet_selected {
             // sidebar selected
-            if layout.minor_leaflet.get_property_folded() {
-                layout.minor_leaflet.set_visible_child(&layout.article_list_box);
-                layout.left_button.set_visible(true);
-                layout.search_button.set_visible(true);
-                layout.mode_switch_button.set_visible(true);
-                layout.mark_all_read_button.set_visible(true);
+            if self.minor_leaflet.get_property_folded() {
+                self.minor_leaflet.set_visible_child(&self.article_list_box);
+                self.left_button.set_visible(true);
+                self.search_button.set_visible(true);
+                self.mode_switch_button.set_visible(true);
+                self.mark_all_read_button.set_visible(true);
             }
 
-            layout.state.borrow_mut().minor_leaflet_selected = false;
+            self.state.borrow_mut().minor_leaflet_selected = false;
             return;
         }
     }

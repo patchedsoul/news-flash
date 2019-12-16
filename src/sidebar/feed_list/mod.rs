@@ -3,6 +3,7 @@ pub mod error;
 pub mod feed_row;
 pub mod models;
 
+use crate::app::Action;
 use crate::gtk_handle;
 use crate::sidebar::feed_list::error::{FeedListError, FeedListErrorKind};
 use crate::sidebar::feed_list::{
@@ -14,13 +15,12 @@ use crate::sidebar::feed_list::{
     },
 };
 use crate::sidebar::SidebarIterateItem;
-use crate::util::{BuilderHelper, GtkHandle, GtkHandleMap, GtkUtil};
+use crate::util::{BuilderHelper, GtkHandle, GtkHandleMap, GtkUtil, Util};
 use gdk::{DragAction, EventType};
-use glib::{translate::ToGlib, Variant};
+use glib::{translate::ToGlib, Sender};
 use gtk::{
-    self, ContainerExt, Continue, DestDefaults, Inhibit, ListBox, ListBoxExt, ListBoxRowExt,
-    ScrolledWindow, SelectionMode, StyleContextExt, TargetEntry, TargetFlags, WidgetExt,
-    WidgetExtManual,
+    self, ContainerExt, Continue, DestDefaults, Inhibit, ListBox, ListBoxExt, ListBoxRowExt, ScrolledWindow,
+    SelectionMode, StyleContextExt, TargetEntry, TargetFlags, WidgetExt, WidgetExtManual,
 };
 use log::error;
 use news_flash::models::{CategoryID, FeedID};
@@ -32,6 +32,7 @@ use std::rc::Rc;
 pub struct FeedList {
     list: ListBox,
     scroll: ScrolledWindow,
+    sender: Sender<Action>,
     categories: GtkHandleMap<CategoryID, GtkHandle<CategoryRow>>,
     feeds: GtkHandleMap<FeedID, GtkHandle<FeedRow>>,
     tree: GtkHandle<FeedListTree>,
@@ -40,7 +41,7 @@ pub struct FeedList {
 }
 
 impl FeedList {
-    pub fn new(sidebar_scroll: &ScrolledWindow) -> Self {
+    pub fn new(sidebar_scroll: &ScrolledWindow, sender: Sender<Action>) -> Self {
         let builder = BuilderHelper::new("sidebar_list");
         let list_box = builder.get::<ListBox>("sidebar_list");
 
@@ -57,6 +58,7 @@ impl FeedList {
         let feed_list = FeedList {
             list: list_box,
             scroll: sidebar_scroll.clone(),
+            sender,
             categories: gtk_handle!(HashMap::new()),
             feeds: gtk_handle!(HashMap::new()),
             tree: gtk_handle!(FeedListTree::new()),
@@ -213,6 +215,7 @@ impl FeedList {
             Inhibit(false)
         });
         let tree = self.tree.clone();
+        let sender = self.sender.clone();
         let hovered_category_expand = self.hovered_category_expand.clone();
         self.list
             .connect_drag_data_received(move |widget, _ctx, _x, y, selection_data, _info, _time| {
@@ -247,21 +250,23 @@ impl FeedList {
                         if let Some(dnd_data_string) = selection_data.get_text() {
                             if dnd_data_string.contains("FeedID") {
                                 let dnd_data_string = dnd_data_string.as_str().to_owned().split_off(6);
-                                let dnd_data_string : Vec<&str> = dnd_data_string.split(";").collect();
-                                let feed_string = dnd_data_string.get(0)
-                                    .expect("Didn't receive feed ID with DnD data.");
+                                let dnd_data_string: Vec<&str> = dnd_data_string.split(";").collect();
+                                let feed_string =
+                                    dnd_data_string.get(0).expect("Didn't receive feed ID with DnD data.");
                                 let feed: FeedID =
-                                    serde_json::from_str(feed_string)
-                                        .expect("Failed to deserialize FeedID.");
-                                let category_string = dnd_data_string.get(1)
+                                    serde_json::from_str(feed_string).expect("Failed to deserialize FeedID.");
+                                let category_string = dnd_data_string
+                                    .get(1)
                                     .expect("Didn't receive category ID with DnD data.");
                                 let current_category: CategoryID =
-                                    serde_json::from_str(category_string)
-                                        .expect("Failed to deserialize FeedID.");
-                                let dnd_data = FeedListDndAction::MoveFeed(feed, current_category, parent_category.clone(), sort_index);
-                                let dnd_data_json =
-                                    serde_json::to_string(&dnd_data).expect("Failed to serialize FeedListDndAction.");
-                                GtkUtil::execute_action(widget, "move", Some(&Variant::from(&dnd_data_json)));
+                                    serde_json::from_str(category_string).expect("Failed to deserialize FeedID.");
+                                let dnd_data = FeedListDndAction::MoveFeed(
+                                    feed,
+                                    current_category,
+                                    parent_category.clone(),
+                                    sort_index,
+                                );
+                                Util::send(&sender, Action::DragAndDrop(dnd_data));
                             }
 
                             if dnd_data_string.contains("CategoryID") {
@@ -270,9 +275,7 @@ impl FeedList {
                                         .expect("Failed to deserialize CategoryID.");
                                 let dnd_data =
                                     FeedListDndAction::MoveCategory(category, parent_category.clone(), sort_index);
-                                let dnd_data_json =
-                                    serde_json::to_string(&dnd_data).expect("Failed to serialize FeedListDndAction.");
-                                GtkUtil::execute_action(widget, "move", Some(&Variant::from(&dnd_data_json)));
+                                Util::send(&sender, Action::DragAndDrop(dnd_data));
                             }
                         }
                     }
@@ -328,7 +331,7 @@ impl FeedList {
     }
 
     fn add_category(&mut self, category: &FeedListCategoryModel, pos: i32, visible: bool) {
-        let category_widget = CategoryRow::new(category, visible);
+        let category_widget = CategoryRow::new(category, visible, self.sender.clone());
         let feeds = self.feeds.clone();
         let categories = self.categories.clone();
         let category_id = category.id.clone();
@@ -397,7 +400,7 @@ impl FeedList {
     }
 
     fn add_feed(&mut self, feed: &FeedListFeedModel, pos: i32, visible: bool) {
-        let feed_widget = FeedRow::new(feed, visible);
+        let feed_widget = FeedRow::new(feed, visible, self.sender.clone());
         self.list.insert(&feed_widget.borrow().widget(), pos);
         self.feeds.borrow_mut().insert(feed.id.clone(), feed_widget);
     }

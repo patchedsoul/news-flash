@@ -1,11 +1,13 @@
+use crate::app::Action;
 use crate::article_view::{ArticleTheme, ArticleView};
-use crate::error_bar::ErrorBar;
 use crate::settings::Settings;
-use crate::util::{BuilderHelper, GtkHandle};
+use crate::util::{BuilderHelper, Util};
 use chrono::Utc;
-use glib::object::IsA;
+use glib::{object::IsA, Sender};
 use gtk::{Inhibit, ListBox, ListBoxExt, ListBoxRow, ListBoxRowExt, Popover, PopoverExt, Widget, WidgetExt};
 use news_flash::models::{ArticleID, FatArticle, FeedID, Marked, Read};
+use parking_lot::RwLock;
+use std::sync::Arc;
 use webkit2gtk::{WebView, WebViewExt};
 
 pub struct ThemeChooser {
@@ -13,7 +15,7 @@ pub struct ThemeChooser {
 }
 
 impl ThemeChooser {
-    pub fn new<D: IsA<Widget>>(parent: &D, settings: &GtkHandle<Settings>, error_bar: &GtkHandle<ErrorBar>) -> Self {
+    pub fn new<D: IsA<Widget>>(parent: &D, sender: &Sender<Action>, settings: &Arc<RwLock<Settings>>) -> Self {
         let builder = BuilderHelper::new("theme_chooser");
 
         let pop = builder.get::<Popover>("popover");
@@ -68,24 +70,27 @@ impl ThemeChooser {
 
         let pop_clone = pop.clone();
         let settings = settings.clone();
-        let error_bar = error_bar.clone();
+        let sender = sender.clone();
         let theme_list = builder.get::<ListBox>("theme_list");
         theme_list.connect_row_activated(move |_list, row| {
             if let Some(row_name) = row.get_name() {
                 let result = if "default" == row_name {
-                    settings.borrow_mut().set_article_view_theme(ArticleTheme::Default)
+                    settings.write().set_article_view_theme(ArticleTheme::Default)
                 } else if "spring" == row_name {
-                    settings.borrow_mut().set_article_view_theme(ArticleTheme::Spring)
+                    settings.write().set_article_view_theme(ArticleTheme::Spring)
                 } else if "midnight" == row_name {
-                    settings.borrow_mut().set_article_view_theme(ArticleTheme::Midnight)
+                    settings.write().set_article_view_theme(ArticleTheme::Midnight)
                 } else if "parchment" == row_name {
-                    settings.borrow_mut().set_article_view_theme(ArticleTheme::Parchment)
+                    settings.write().set_article_view_theme(ArticleTheme::Parchment)
                 } else {
                     Ok(())
                 };
 
                 if result.is_err() {
-                    error_bar.borrow().simple_message("Failed to set theme setting.");
+                    Util::send(
+                        &sender,
+                        Action::ErrorSimpleMessage("Failed to set theme setting.".to_owned()),
+                    );
                 }
                 pop_clone.popdown();
             }
@@ -100,7 +105,7 @@ impl ThemeChooser {
 
     fn prepare_theme_selection(
         builder: &BuilderHelper,
-        settings: &GtkHandle<Settings>,
+        settings: &Arc<RwLock<Settings>>,
         article: &mut FatArticle,
         theme: ArticleTheme,
         id: &str,

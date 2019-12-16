@@ -1,5 +1,5 @@
 use chrono::NaiveDateTime;
-use news_flash::models::{Article, ArticleID, FavIcon, FeedID, Marked, Read, Url};
+use news_flash::models::{Article, ArticleID, Feed, FeedID, Marked, Read, Url};
 
 #[derive(Debug, Clone)]
 pub struct ArticleListArticleModel {
@@ -7,16 +7,16 @@ pub struct ArticleListArticleModel {
     pub title: String,
     pub feed_id: FeedID,
     pub feed_title: String,
-    pub favicon: Option<FavIcon>,
     pub date: NaiveDateTime,
     pub summary: String,
     pub read: Read,
     pub marked: Marked,
     pub url: Option<Url>,
+    pub news_flash_feed: Feed,
 }
 
 impl ArticleListArticleModel {
-    pub fn new(article: Article, feed_title: String, favicon: Option<FavIcon>) -> Self {
+    pub fn new(article: Article, feed: &Feed) -> Self {
         let (article_id, title, _author, feed_id, url, date, summary, _direction, read, marked) = article.decompose();
 
         ArticleListArticleModel {
@@ -26,8 +26,7 @@ impl ArticleListArticleModel {
                 None => "No Title".to_owned(),
             },
             feed_id,
-            feed_title,
-            favicon,
+            feed_title: feed.label.clone(),
             date,
             summary: match summary {
                 Some(summary) => summary,
@@ -36,6 +35,7 @@ impl ArticleListArticleModel {
             read,
             marked,
             url,
+            news_flash_feed: feed.clone(),
         }
     }
 }

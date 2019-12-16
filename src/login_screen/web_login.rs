@@ -1,34 +1,35 @@
 use super::error::{LoginScreenError, LoginScreenErrorKind};
+use crate::app::Action;
 use crate::error_dialog::ErrorDialog;
-use crate::gtk_handle;
-use crate::util::{BuilderHelper, GtkHandle, GtkUtil, GTK_BUILDER_ERROR};
+use crate::util::{BuilderHelper, GtkUtil, Util, GTK_BUILDER_ERROR};
 use glib::{
     signal::SignalHandlerId,
     translate::{FromGlib, ToGlib},
-    Variant,
+    Sender,
 };
 use gtk::{Box, BoxExt, Button, ButtonExt, InfoBar, InfoBarExt, Label, LabelExt, ObjectExt, ResponseType, WidgetExt};
 use news_flash::models::{LoginData, LoginGUI, OAuthData, PluginInfo};
 use news_flash::{NewsFlashError, NewsFlashErrorKind};
-use std::cell::RefCell;
+use parking_lot::RwLock;
 use std::rc::Rc;
 use webkit2gtk::{LoadEvent, UserContentManager, WebContext, WebView, WebViewExt, WebViewExtManual};
 
-#[derive(Clone, Debug)]
+#[derive(Debug)]
 pub struct WebLogin {
+    sender: Sender<Action>,
     webview: WebView,
     page: gtk::Box,
     info_bar: gtk::InfoBar,
     info_bar_label: gtk::Label,
     error_details_button: gtk::Button,
-    redirect_signal_id: GtkHandle<Option<u64>>,
-    info_bar_close_signal: Option<u64>,
-    info_bar_response_signal: Option<u64>,
-    error_details_signal: Option<u64>,
+    redirect_signal_id: Rc<RwLock<Option<u64>>>,
+    info_bar_close_signal: RwLock<Option<u64>>,
+    info_bar_response_signal: RwLock<Option<u64>>,
+    error_details_signal: RwLock<Option<u64>>,
 }
 
 impl WebLogin {
-    pub fn new(builder: &BuilderHelper) -> Self {
+    pub fn new(builder: &BuilderHelper, sender: Sender<Action>) -> Self {
         let page = builder.get::<Box>("oauth_box");
         let info_bar = builder.get::<InfoBar>("oauth_info_bar");
         let error_details_button = builder.get::<Button>("oauth_details_button");
@@ -41,15 +42,16 @@ impl WebLogin {
         page.pack_start(&webview, true, true, 0);
 
         WebLogin {
+            sender,
             webview,
             page,
             info_bar,
             info_bar_label,
             error_details_button,
-            redirect_signal_id: gtk_handle!(None),
-            info_bar_close_signal: None,
-            info_bar_response_signal: None,
-            error_details_signal: None,
+            redirect_signal_id: Rc::new(RwLock::new(None)),
+            info_bar_close_signal: RwLock::new(None),
+            info_bar_response_signal: RwLock::new(None),
+            error_details_signal: RwLock::new(None),
         }
     }
 
@@ -62,16 +64,16 @@ impl WebLogin {
         });
     }
 
-    pub fn show_error(&mut self, error: NewsFlashError) {
-        GtkUtil::disconnect_signal(self.error_details_signal, &self.error_details_button);
-        self.error_details_signal = None;
+    pub fn show_error(&self, error: NewsFlashError) {
+        GtkUtil::disconnect_signal(*self.error_details_signal.read(), &self.error_details_button);
+        self.error_details_signal.write().take();
 
         match error.kind() {
             NewsFlashErrorKind::Login => self.info_bar_label.set_text("Failed to log in"),
             _ => self.info_bar_label.set_text("Unknown error."),
         }
 
-        self.error_details_signal = Some(
+        self.error_details_signal.write().replace(
             self.error_details_button
                 .connect_clicked(move |button| {
                     let parent = GtkUtil::get_main_window(button).expect("MainWindow is not parent of details button.");
@@ -84,16 +86,16 @@ impl WebLogin {
         self.info_bar.set_revealed(true);
     }
 
-    pub fn set_service(&mut self, info: PluginInfo) -> Result<(), LoginScreenError> {
+    pub fn set_service(&self, info: PluginInfo) -> Result<(), LoginScreenError> {
         // setup infobar
-        self.info_bar_close_signal = Some(
+        self.info_bar_close_signal.write().replace(
             self.info_bar
                 .connect_close(|info_bar| {
                     WebLogin::hide_info_bar(info_bar);
                 })
                 .to_glib(),
         );
-        self.info_bar_response_signal = Some(
+        self.info_bar_response_signal.write().replace(
             self.info_bar
                 .connect_response(|info_bar, response| {
                     if let ResponseType::Close = response {
@@ -107,6 +109,7 @@ impl WebLogin {
             if let Some(url) = web_login_desc.clone().login_website {
                 self.webview.load_uri(url.as_str());
                 let redirect_signal_id = self.redirect_signal_id.clone();
+                let sender = self.sender.clone();
                 let signal_id = self.webview.connect_load_changed(move |webview, event| {
                     match event {
                         LoadEvent::Started | LoadEvent::Redirected => {
@@ -118,16 +121,12 @@ impl WebLogin {
                                             url: uri.as_str().to_owned(),
                                         };
                                         let oauth_data = LoginData::OAuth(oauth_data);
-                                        let oauth_data_json =
-                                            serde_json::to_string(&oauth_data).expect("Failed to serialize LoginData.");
-                                        let login_data_json = Variant::from(&oauth_data_json);
-                                        if let Some(signal_id) = *redirect_signal_id.borrow() {
+                                        if let Some(signal_id) = *redirect_signal_id.read() {
                                             let signal_id = SignalHandlerId::from_glib(signal_id);
                                             webview.disconnect(signal_id);
                                         }
                                         webview.stop_loading();
-
-                                        GtkUtil::execute_action(webview, "login", Some(&login_data_json));
+                                        Util::send(&sender, Action::Login(oauth_data));
                                     }
                                 }
                             }
@@ -138,7 +137,7 @@ impl WebLogin {
                     }
                 });
 
-                *self.redirect_signal_id.borrow_mut() = Some(signal_id.to_glib());
+                self.redirect_signal_id.write().replace(signal_id.to_glib());
                 return Ok(());
             }
 
@@ -151,8 +150,8 @@ impl WebLogin {
     pub fn reset(&self) {
         self.info_bar.set_revealed(false);
         self.info_bar.set_visible(false);
-        GtkUtil::disconnect_signal(self.info_bar_close_signal, &self.info_bar);
-        GtkUtil::disconnect_signal(self.info_bar_response_signal, &self.info_bar);
+        GtkUtil::disconnect_signal(*self.info_bar_close_signal.read(), &self.info_bar);
+        GtkUtil::disconnect_signal(*self.info_bar_response_signal.read(), &self.info_bar);
         self.webview.load_plain_text("");
     }
 }

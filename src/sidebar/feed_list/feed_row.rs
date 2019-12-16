@@ -1,17 +1,21 @@
+use crate::app::Action;
 use crate::gtk_handle;
 use crate::sidebar::feed_list::models::FeedListFeedModel;
 use crate::undo_bar::UndoActionModel;
-use crate::util::{BuilderHelper, GtkHandle, GtkUtil};
+use crate::util::{BuilderHelper, GtkHandle, GtkUtil, Util};
 use cairo::{self, Format, ImageSurface};
 use gdk::{DragAction, EventType, ModifierType};
-use gio::{Menu, MenuItem};
-use glib::{source::SourceId, translate::FromGlib, translate::ToGlib, Source, Variant};
+use gio::{ActionMapExt, Menu, MenuItem, SimpleAction};
+use glib::{source::SourceId, translate::FromGlib, translate::ToGlib, Sender, Source};
 use gtk::{
     self, Box, ContainerExt, Continue, DragContextExtManual, EventBox, Image, ImageExt, Inhibit, Label, LabelExt,
     ListBoxRow, ListBoxRowExt, Popover, PopoverExt, PositionType, Revealer, RevealerExt, StateFlags, StyleContextExt,
     TargetEntry, TargetFlags, WidgetExt, WidgetExtManual,
 };
-use news_flash::models::{FavIcon, CategoryID, FeedID};
+use news_flash::models::{CategoryID, FavIcon, FeedID, Feed};
+use futures::channel::oneshot;
+use futures::future::FutureExt;
+use parking_lot::RwLock;
 use std::cell::RefCell;
 use std::rc::Rc;
 use std::str;
@@ -24,12 +28,12 @@ pub struct FeedRow {
     item_count_event: EventBox,
     title: Label,
     revealer: Revealer,
-    hide_timeout: GtkHandle<Option<u32>>,
+    hide_timeout: Rc<RwLock<Option<u32>>>,
     favicon: Image,
 }
 
 impl FeedRow {
-    pub fn new(model: &FeedListFeedModel, visible: bool) -> GtkHandle<FeedRow> {
+    pub fn new(model: &FeedListFeedModel, visible: bool, sender: Sender<Action>) -> GtkHandle<FeedRow> {
         let builder = BuilderHelper::new("feed");
         let revealer = builder.get::<Revealer>("feed_row");
         let level_margin = builder.get::<Box>("level_margin");
@@ -42,24 +46,30 @@ impl FeedRow {
 
         let mut feed = FeedRow {
             id: model.id.clone(),
-            widget: Self::create_row(&revealer, &model.id, &model.parent_id, &title_label),
+            widget: Self::create_row(&sender, &revealer, &model.id, &model.parent_id, &title_label),
             item_count: item_count_label,
             title: title_label,
             revealer,
-            hide_timeout: gtk_handle!(None),
+            hide_timeout: Rc::new(RwLock::new(None)),
             item_count_event,
             favicon,
         };
         feed.update_item_count(model.item_count);
         feed.update_title(&model.label);
-        feed.update_favicon(&model.icon);
+        feed.update_favicon(&model.news_flash_model, &sender);
         if !visible {
             feed.collapse();
         }
         gtk_handle!(feed)
     }
 
-    fn create_row(widget: &gtk::Revealer, id: &FeedID, parent_id: &CategoryID, label: &Label) -> ListBoxRow {
+    fn create_row(
+        sender: &Sender<Action>,
+        widget: &gtk::Revealer,
+        id: &FeedID,
+        parent_id: &CategoryID,
+        label: &Label,
+    ) -> ListBoxRow {
         let row = gtk::ListBoxRow::new();
         row.set_activatable(true);
         row.set_can_focus(false);
@@ -97,6 +107,7 @@ impl FeedRow {
 
         let feed_id = id.clone();
         let label = label.clone();
+        let sender = sender.clone();
         row.connect_button_press_event(move |row, event| {
             if event.get_button() != 3 {
                 return Inhibit(false);
@@ -112,24 +123,43 @@ impl FeedRow {
             let model = Menu::new();
             model.append(Some("Move"), Some("move-feed"));
 
-            let variant = Variant::from(feed_id.to_str());
-            let rename_feed_item = MenuItem::new(Some("Rename"), None);
-            rename_feed_item.set_action_and_target_value(Some("rename-feed"), Some(&variant));
-            model.append_item(&rename_feed_item);
+            let sender_clone = sender.clone();
+            let feed_id_clone = feed_id.clone();
+            let rename_feed_dialog_action = SimpleAction::new("rename-feed-dialog", None);
+            rename_feed_dialog_action.connect_activate(move |_action, _parameter| {
+                let feed_id = feed_id_clone.clone();
+                Util::send(&sender_clone, Action::RenameFeedDialog(feed_id));
+            });
 
-            let label = match label.get_text() {
-                Some(label) => label.as_str().to_owned(),
-                None => "".to_owned(),
-            };
-            let remove_action = UndoActionModel::DeleteFeed((feed_id.clone(), label));
-            if let Ok(json) = serde_json::to_string(&remove_action) {
-                let variant = Variant::from(json);
-                let delete_feed_item = MenuItem::new(Some("Delete"), None);
-                delete_feed_item.set_action_and_target_value(Some("enqueue-undoable-action"), Some(&variant));
-                model.append_item(&delete_feed_item);
+            if let Ok(main_window) = GtkUtil::get_main_window(row) {
+                main_window.add_action(&rename_feed_dialog_action);
             }
 
-            let popover = Popover::new(Some(row));
+            let rename_feed_item = MenuItem::new(Some("Rename"), None);
+            rename_feed_item.set_action_and_target_value(Some("rename-feed-dialog"), None);
+            model.append_item(&rename_feed_item);
+
+            let delete_feed_item = MenuItem::new(Some("Delete"), None);
+            let delete_feed_action = SimpleAction::new("enqueue-delete-feed", None);
+            let sender = sender.clone();
+            let feed_id = feed_id.clone();
+            let label = label.clone();
+            let row = row.clone();
+            delete_feed_action.connect_activate(move |_action, _parameter| {
+                let label = match label.get_text() {
+                    Some(label) => label.as_str().to_owned(),
+                    None => "".to_owned(),
+                };
+                let remove_action = UndoActionModel::DeleteFeed((feed_id.clone(), label));
+                Util::send(&sender, Action::UndoableAction(remove_action));
+            });
+            if let Ok(main_window) = GtkUtil::get_main_window(&row) {
+                main_window.add_action(&delete_feed_action);
+            }
+            delete_feed_item.set_action_and_target_value(Some("enqueue-delete-feed"), None);
+            model.append_item(&delete_feed_item);
+
+            let popover = Popover::new(Some(&row));
             popover.set_position(PositionType::Bottom);
             popover.bind_model(Some(&model), Some("win"));
             popover.show();
@@ -158,15 +188,23 @@ impl FeedRow {
         }
     }
 
-    pub fn update_favicon(&self, icon: &Option<FavIcon>) {
-        if let Some(icon) = icon {
-            if let Some(data) = &icon.data {
-                let scale = GtkUtil::get_scale(&self.widget());
-                if let Ok(surface) = GtkUtil::create_surface_from_bytes(data, 16, 16, scale) {
-                    self.favicon.set_from_surface(Some(&surface));
+    pub fn update_favicon(&self, feed: &Feed, global_sender: &Sender<Action>) {
+        let (sender, receiver) = oneshot::channel::<Option<FavIcon>>();
+        Util::send(global_sender, Action::LoadFavIcon((feed.clone(), sender)));
+
+        let favicon = self.favicon.clone();
+        let scale = GtkUtil::get_scale(&self.widget());
+        let glib_future = receiver.map(move |res| {
+            if let Some(icon) = res.unwrap() {
+                if let Some(data) = &icon.data {
+                    if let Ok(surface) = GtkUtil::create_surface_from_bytes(data, 16, 16, scale) {
+                        favicon.set_from_surface(Some(&surface));
+                    }
                 }
             }
-        }
+        });
+
+        Util::glib_spawn_future(glib_future);
     }
 
     pub fn update_title(&self, title: &str) {
@@ -185,23 +223,23 @@ impl FeedRow {
             let hide_timeout = self.hide_timeout.clone();
             let source_id = gtk::timeout_add(250, move || {
                 widget.set_visible(false);
-                *hide_timeout.borrow_mut() = None;
+                hide_timeout.write().take();
                 Continue(false)
             });
-            *self.hide_timeout.borrow_mut() = Some(source_id.to_glib());
+            self.hide_timeout.write().replace(source_id.to_glib());
         }
     }
 
     pub fn expand(&self) {
         // clear out timeout to fully hide row
         {
-            if let Some(source_id) = *self.hide_timeout.borrow() {
+            if let Some(source_id) = *self.hide_timeout.read() {
                 if Source::remove(SourceId::from_glib(source_id)).is_ok() {
                     // log something
                 };
                 // log something
             }
-            *self.hide_timeout.borrow_mut() = None;
+            self.hide_timeout.write().take();
         }
 
         self.widget.set_visible(true);

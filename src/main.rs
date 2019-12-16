@@ -1,5 +1,6 @@
 mod about_dialog;
 mod add_dialog;
+mod app;
 mod article_list;
 mod article_view;
 mod color;
@@ -9,7 +10,6 @@ mod error_bar;
 mod error_dialog;
 mod login_screen;
 mod main_window;
-mod main_window_actions;
 mod main_window_state;
 mod rename_dialog;
 mod responsive;
@@ -19,19 +19,13 @@ mod undo_bar;
 mod util;
 mod welcome_screen;
 
+use crate::app::App;
 use crate::config::APP_ID;
-use crate::main_window::MainWindow;
-use crate::util::GtkHandle;
-use gio::{self, ApplicationExt, ApplicationExtManual};
-use gtk::{self, Application};
 use log::LevelFilter;
 use log4rs::append::console::ConsoleAppender;
 use log4rs::config::{Appender, Config, Root};
 use log4rs::encode::pattern::PatternEncoder;
 use rust_embed::RustEmbed;
-use std::cell::RefCell;
-use std::env::args;
-use std::rc::Rc;
 use std::str;
 
 #[derive(RustEmbed)]
@@ -42,43 +36,24 @@ fn main() {
     // nicer backtrace
     color_backtrace::install();
 
-    gtk::init().expect("Error initializing gtk.");
-
-    let application =
-        Application::new(Some(APP_ID), gio::ApplicationFlags::empty()).expect("Initialization gtk-app failed");
-
+    // Logging
     let encoder = PatternEncoder::new("{d(%H:%M:%S)} - {h({({l}):5.5})} - {m:<35.} (({M}:{L}))\n");
-
     let stdout = ConsoleAppender::builder().encoder(Box::new(encoder)).build();
-
     let appender = Appender::builder().build("stdout", Box::new(stdout));
-
     let root = Root::builder().appender("stdout").build(LevelFilter::Debug);
-
     let config = Config::builder()
         .appender(appender)
         .build(root)
         .expect("Failed to create log4rs config.");
-
     let _handle = log4rs::init_config(config).expect("Failed to init log4rs config.");
 
-    let window_handle: GtkHandle<Option<MainWindow>> = gtk_handle!(None);
-
-    application.connect_startup(|_app| {});
-    application.connect_activate(move |app| {
-        let no_window = window_handle.borrow().is_none();
-
-        if no_window {
-            window_handle.replace(Some(MainWindow::new(&app)));
-        }
-
-        if let Some(main_window) = window_handle.borrow().as_ref() {
-            main_window.present();
-        }
-    });
-
+    // Gtk setup
+    gtk::init().expect("Error initializing gtk.");
     glib::set_application_name("NewsFlash");
     glib::set_prgname(Some("NewsFlashGTK"));
+    gtk::Window::set_default_icon_name(APP_ID);
 
-    application.run(&args().collect::<Vec<_>>());
+    // Run app itself
+    let app = App::new();
+    app.run(app.clone());
 }
