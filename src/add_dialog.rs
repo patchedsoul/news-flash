@@ -1,4 +1,4 @@
-use crate::util::{BuilderHelper, GtkUtil, Util};
+use crate::util::{BuilderHelper, GtkUtil, Util, RUNTIME_ERROR};
 use futures::channel::oneshot;
 use futures::executor::ThreadPool;
 use futures::future::FutureExt;
@@ -15,7 +15,6 @@ use news_flash::{FeedParserError, ParsedUrl};
 use pango::EllipsizeMode;
 use parking_lot::RwLock;
 use std::rc::Rc;
-use std::sync::Arc;
 use tokio::runtime::Runtime;
 
 pub const NEW_CATEGORY_ICON: &str = "folder-new-symbolic";
@@ -36,7 +35,7 @@ pub struct AddPopover {
 }
 
 impl AddPopover {
-    pub fn new(parent: &Button, categories: Vec<Category>, threadpool: ThreadPool, runtime: Arc<Runtime>) -> Self {
+    pub fn new(parent: &Button, categories: Vec<Category>, threadpool: ThreadPool) -> Self {
         let builder = BuilderHelper::new("add_dialog");
         let popover = builder.get::<Popover>("add_pop");
         let url_entry = builder.get::<Entry>("url_entry");
@@ -102,7 +101,6 @@ impl AddPopover {
         let parse_button_feed_url = feed_url.clone();
         let parse_button_parse_button_stack = parse_button_stack.clone();
         let parse_button_add_button_stack = add_button_stack.clone();
-        let parse_button_runtime = runtime.clone();
         parse_button.connect_clicked(move |button| {
             if let Some(url_text) = url_entry.get_text() {
                 let mut url_text = url_text.as_str().to_owned();
@@ -130,15 +128,13 @@ impl AddPopover {
                     let (sender, receiver) = oneshot::channel::<Result<ParsedUrl, FeedParserError>>();
 
                     let feed_id = FeedID::new(&url_text);
-                    let runtime = parse_button_runtime.clone();
                     let thread_future = async move {
-                        let result = runtime.block_on(news_flash::feed_parser::download_and_parse_feed(
-                            &url, &feed_id, None, None,
-                        ));
+                        let result = Runtime::new().expect(RUNTIME_ERROR).block_on(
+                            news_flash::feed_parser::download_and_parse_feed(&url, &feed_id, None, None),
+                        );
                         sender.send(result).unwrap();
                     };
 
-                    let parse_button_runtime = parse_button_runtime.clone();
                     let parse_button_threadpool = threadpool.clone();
                     let glib_future = receiver.map(move |res| {
                         // parse url
@@ -157,7 +153,6 @@ impl AddPopover {
                                         &parse_button_favicon_image,
                                         &parse_button_add_button_stack,
                                         &parse_button_feed_url,
-                                        parse_button_runtime,
                                         parse_button_threadpool,
                                     );
                                 }
@@ -170,7 +165,6 @@ impl AddPopover {
                                         &parse_button_feed_title_entry,
                                         &parse_button_favicon_image,
                                         &parse_button_feed_url,
-                                        parse_button_runtime,
                                         parse_button_threadpool,
                                     );
                                 }
@@ -269,7 +263,6 @@ impl AddPopover {
         title_entry: &Entry,
         favicon_image: &Image,
         feed_url: &Rc<RwLock<Option<Url>>>,
-        runtime: Arc<Runtime>,
         threadpool: ThreadPool,
     ) {
         title_entry.set_text(&feed.label);
@@ -284,9 +277,10 @@ impl AddPopover {
         let (sender, receiver) = oneshot::channel::<Option<FavIcon>>();
 
         let feed_clone = feed.clone();
-        let runtime_clone = runtime.clone();
         let thread_future = async move {
-            let result = runtime_clone.block_on(news_flash::util::favicon_cache::FavIconCache::scrap(&feed_clone));
+            let result = Runtime::new()
+                .expect(RUNTIME_ERROR)
+                .block_on(news_flash::util::favicon_cache::FavIconCache::scrap(&feed_clone));
             sender.send(result).unwrap();
         };
 
@@ -310,6 +304,7 @@ impl AddPopover {
                 let (sender, receiver) = oneshot::channel::<Option<Vec<u8>>>();
 
                 let thread_future = async move {
+                    let mut runtime = Runtime::new().expect(RUNTIME_ERROR);
                     let res = match runtime.block_on(reqwest::get(icon_url.get())) {
                         Ok(response) => match runtime.block_on(response.bytes()) {
                             Ok(bytes) => Some(Vec::from(bytes.as_ref())),
@@ -348,7 +343,6 @@ impl AddPopover {
         favicon: &Image,
         add_button_stack: &Stack,
         feed_url: &Rc<RwLock<Option<Url>>>,
-        runtime: Arc<Runtime>,
         threadpool: ThreadPool,
     ) {
         let list_select_button = select_button.clone();
@@ -378,9 +372,9 @@ impl AddPopover {
 
                     let (sender, receiver) = oneshot::channel::<Option<ParsedUrl>>();
 
-                    let runtime_clone = runtime.clone();
                     let thread_future = async move {
-                        let result = runtime_clone
+                        let result = Runtime::new()
+                            .expect(RUNTIME_ERROR)
                             .block_on(news_flash::feed_parser::download_and_parse_feed(
                                 &url, &feed_id, None, None,
                             ))
@@ -392,7 +386,6 @@ impl AddPopover {
                     let select_button = button.clone();
                     let add_button_stack = add_button_stack.clone();
                     let threadpool_clone = threadpool.clone();
-                    let runtime = runtime.clone();
                     let glib_future = receiver.map(move |res| {
                         if let Some(ParsedUrl::SingleFeed(feed)) = res.unwrap() {
                             Self::fill_feed_page(
@@ -401,7 +394,6 @@ impl AddPopover {
                                 &title_entry,
                                 &favicon,
                                 &feed_url,
-                                runtime,
                                 threadpool_clone,
                             );
                             add_feed_stack.set_visible_child_name("feed_page");

@@ -21,6 +21,7 @@ use std::collections::HashMap;
 use std::future::Future;
 
 pub const CHANNEL_ERROR: &str = "Error sending message via glib channel";
+pub const RUNTIME_ERROR: &str = "Error creating tokio runtime";
 
 pub struct Util;
 

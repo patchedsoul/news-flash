@@ -14,7 +14,7 @@ use gtk::{
 };
 use lazy_static::lazy_static;
 use log::{error, info, warn};
-use news_flash::models::{ArticleID, Category, CategoryID, Feed, FeedID, LoginData, PluginID, TagID, Url, FavIcon};
+use news_flash::models::{ArticleID, Category, CategoryID, FavIcon, Feed, FeedID, LoginData, PluginID, TagID, Url};
 use news_flash::{NewsFlash, NewsFlashError};
 use parking_lot::RwLock;
 use tokio::runtime::Runtime;
@@ -30,7 +30,7 @@ use crate::rename_dialog::RenameDialog;
 use crate::settings::{NewsFlashShortcutWindow, Settings, SettingsDialog};
 use crate::sidebar::{models::SidebarSelection, FeedListDndAction};
 use crate::undo_bar::UndoActionModel;
-use crate::util::{FileUtil, GtkUtil, Util};
+use crate::util::{FileUtil, GtkUtil, Util, CHANNEL_ERROR, RUNTIME_ERROR};
 
 lazy_static! {
     pub static ref DATA_DIR: PathBuf = glib::get_user_config_dir()
@@ -101,7 +101,6 @@ pub struct App {
     news_flash: Arc<RwLock<Option<NewsFlash>>>,
     settings: Arc<RwLock<Settings>>,
     sync_source_id: RwLock<Option<u32>>,
-    runtime: Arc<Runtime>,
     threadpool: ThreadPool,
 }
 
@@ -125,7 +124,6 @@ impl App {
             news_flash,
             settings,
             sync_source_id: RwLock::new(None),
-            runtime: Arc::new(Runtime::new().unwrap()),
             threadpool: ThreadPool::new().unwrap(),
         });
 
@@ -200,10 +198,7 @@ impl App {
                 self.window.content_header.show_article(None);
             }
             Action::SearchTerm(search_term) => self.window.set_search_term(search_term),
-            Action::SetSidebarRead => {
-                self.window
-                    .set_sidebar_read(&self.news_flash, self.threadpool.clone(), self.runtime.clone())
-            }
+            Action::SetSidebarRead => self.window.set_sidebar_read(&self.news_flash, self.threadpool.clone()),
             Action::AddFeedDialog => self.add_feed_dialog(),
             Action::AddFeed((url, title, category)) => self.add_feed(url, title, category),
             Action::RenameFeedDialog(feed_id) => self.rename_feed_dialog(feed_id),
@@ -264,22 +259,23 @@ impl App {
 
         let news_flash = self.news_flash.clone();
         let global_sender = self.sender.clone();
-        let runtime = self.runtime.clone();
         let data_clone = data.clone();
         let thread_future = async move {
-            let result = runtime.block_on(news_flash_lib.login(data_clone));
+            let result = Runtime::new()
+                .expect(RUNTIME_ERROR)
+                .block_on(news_flash_lib.login(data_clone));
             match &result {
                 Ok(()) => {
                     // create main obj
                     news_flash.write().replace(news_flash_lib);
                     // show content page
                     Util::send(&global_sender, Action::ShowContentPage(id));
-                },
+                }
                 Err(error) => {
                     error!("Login failed! Plguin: {}, Error: {}", id, error);
                 }
             }
-            sender.send(result).unwrap();
+            sender.send(result).expect(CHANNEL_ERROR);
         };
 
         let oauth_login_page = self.window.oauth_login_page.clone();
@@ -325,11 +321,10 @@ impl App {
         let (sender, receiver) = oneshot::channel::<Result<i64, NewsFlashError>>();
 
         let news_flash = self.news_flash.clone();
-        let runtime = self.runtime.clone();
         let thread_future = async move {
             if let Some(news_flash) = news_flash.read().as_ref() {
-                let result = runtime.block_on(news_flash.sync());
-                sender.send(result).unwrap();
+                let result = Runtime::new().expect(RUNTIME_ERROR).block_on(news_flash.sync());
+                sender.send(result).expect(CHANNEL_ERROR);
             }
         };
 
@@ -357,9 +352,7 @@ impl App {
                         content_header.finish_sync();
                         Util::send(&sender, Action::Error("Failed to sync.".to_owned(), error));
                     }
-                    Err(_) => {
-
-                    },
+                    Err(_) => {}
                 }
             }
         });
@@ -369,19 +362,19 @@ impl App {
     }
 
     fn load_favicon(&self, feed: Feed, oneshot_sender: OneShotSender<Option<FavIcon>>) {
-        let runtime = self.runtime.clone();
         let news_flash = self.news_flash.clone();
         let global_sender = self.sender.clone();
         let feed = feed.clone();
         let thread_future = async move {
             if let Some(news_flash) = news_flash.write().as_mut() {
-                let favicon = match runtime.block_on(news_flash.get_icon_info(&feed)) {
+                let favicon = match Runtime::new()
+                    .expect(RUNTIME_ERROR)
+                    .block_on(news_flash.get_icon_info(&feed))
+                {
                     Ok(favicon) => Some(favicon),
                     Err(_) => None,
                 };
-                oneshot_sender
-                    .send(favicon)
-                    .unwrap();
+                oneshot_sender.send(favicon).expect(CHANNEL_ERROR);
             } else {
                 let message = "Failed to lock NewsFlash.".to_owned();
                 error!("{}", message);
@@ -395,7 +388,6 @@ impl App {
     fn mark_article_read(&self, update: ReadUpdate) {
         let (sender, receiver) = oneshot::channel::<Result<(), NewsFlashError>>();
 
-        let runtime = self.runtime.clone();
         let news_flash = self.news_flash.clone();
         let article_id_vec = vec![update.article_id.clone()];
         let read_status = update.read;
@@ -403,8 +395,12 @@ impl App {
         let thread_future = async move {
             if let Some(news_flash) = news_flash.read().as_ref() {
                 sender
-                    .send(runtime.block_on(news_flash.set_article_read(&article_id_vec, read_status)))
-                    .unwrap();
+                    .send(
+                        Runtime::new()
+                            .expect(RUNTIME_ERROR)
+                            .block_on(news_flash.set_article_read(&article_id_vec, read_status)),
+                    )
+                    .expect(CHANNEL_ERROR);
             } else {
                 let message = "Failed to lock NewsFlash.".to_owned();
                 error!("{}", message);
@@ -451,7 +447,6 @@ impl App {
     fn mark_article(&self, update: MarkUpdate) {
         let (sender, receiver) = oneshot::channel::<Result<(), NewsFlashError>>();
 
-        let runtime = self.runtime.clone();
         let news_flash = self.news_flash.clone();
         let article_id_vec = vec![update.article_id.clone()];
         let mark_status = update.marked;
@@ -459,8 +454,12 @@ impl App {
         let thread_future = async move {
             if let Some(news_flash) = news_flash.read().as_ref() {
                 sender
-                    .send(runtime.block_on(news_flash.set_article_marked(&article_id_vec, mark_status)))
-                    .unwrap();
+                    .send(
+                        Runtime::new()
+                            .expect(RUNTIME_ERROR)
+                            .block_on(news_flash.set_article_marked(&article_id_vec, mark_status)),
+                    )
+                    .expect(CHANNEL_ERROR);
             } else {
                 let message = "Failed to lock NewsFlash.".to_owned();
                 error!("{}", message);
@@ -543,7 +542,7 @@ impl App {
                     return;
                 }
             };
-            let dialog = AddPopover::new(&add_button, categories, self.threadpool.clone(), self.runtime.clone());
+            let dialog = AddPopover::new(&add_button, categories, self.threadpool.clone());
             let sender = self.sender.clone();
             dialog.add_button().connect_clicked(move |_button| {
                 let feed_url = match dialog.get_feed_url() {
@@ -563,7 +562,6 @@ impl App {
     }
 
     fn add_feed(&self, feed_url: Url, title: Option<String>, category: Option<AddCategory>) {
-        let runtime = self.runtime.clone();
         let news_flash = self.news_flash.clone();
         let global_sender = self.sender.clone();
         let thread_future = async move {
@@ -573,7 +571,7 @@ impl App {
                     Some(category) => match category {
                         AddCategory::New(category_title) => {
                             let add_category_future = news_flash.add_category(&category_title, None, None);
-                            let category = match runtime.block_on(add_category_future) {
+                            let category = match Runtime::new().expect(RUNTIME_ERROR).block_on(add_category_future) {
                                 Ok(category) => category,
                                 Err(error) => {
                                     error!("{}: Can't add Category", error_message);
@@ -597,7 +595,7 @@ impl App {
                             Util::send(&global_sender, Action::Error(error_message.clone(), error));
                         }
                     });
-                runtime.block_on(add_feed_future);
+                Runtime::new().expect(RUNTIME_ERROR).block_on(add_feed_future);
             } else {
                 let message = "Failed to lock NewsFlash.".to_owned();
                 error!("{}", message);
@@ -656,16 +654,18 @@ impl App {
     }
 
     fn rename_feed(&self, feed: Feed, new_title: String) {
-        let runtime = self.runtime.clone();
         let news_flash = self.news_flash.clone();
         let sender = self.sender.clone();
         let thread_future = async move {
             if let Some(news_flash) = news_flash.read().as_ref() {
-                if let Err(error) = runtime.block_on(news_flash.rename_feed(&feed, &new_title)) {
+                if let Err(error) = Runtime::new()
+                    .expect(RUNTIME_ERROR)
+                    .block_on(news_flash.rename_feed(&feed, &new_title))
+                {
                     Util::send(&sender, Action::Error("Failed to rename feed.".to_owned(), error));
                 }
             }
-    
+
             Util::send(&sender, Action::UpdateArticleList);
             Util::send(&sender, Action::UpdateSidebar);
         };
@@ -723,16 +723,15 @@ impl App {
     }
 
     fn rename_category(&self, category: Category, new_title: String) {
-        let runtime = self.runtime.clone();
         let news_flash = self.news_flash.clone();
         let sender = self.sender.clone();
         let thread_future = async move {
             if let Some(news_flash) = news_flash.read().as_ref() {
-                if let Err(error) = runtime.block_on(news_flash.rename_category(&category, &new_title)) {
-                    Util::send(
-                        &sender,
-                        Action::Error("Failed to rename category.".to_owned(), error),
-                    );
+                if let Err(error) = Runtime::new()
+                    .expect(RUNTIME_ERROR)
+                    .block_on(news_flash.rename_category(&category, &new_title))
+                {
+                    Util::send(&sender, Action::Error("Failed to rename category.".to_owned(), error));
                 }
             }
 
@@ -761,7 +760,6 @@ impl App {
     }
 
     fn delete_feed(&self, feed_id: FeedID) {
-        let runtime = self.runtime.clone();
         let news_flash = self.news_flash.clone();
         let sender = self.sender.clone();
         let thread_future = async move {
@@ -773,10 +771,13 @@ impl App {
                         return;
                     }
                 };
-    
+
                 if let Some(feed) = feeds.iter().find(|f| f.feed_id == feed_id).cloned() {
                     info!("delete feed '{}' (id: {})", feed.label, feed.feed_id);
-                    if let Err(error) = runtime.block_on(news_flash.remove_feed(&feed)) {
+                    if let Err(error) = Runtime::new()
+                        .expect(RUNTIME_ERROR)
+                        .block_on(news_flash.remove_feed(&feed))
+                    {
                         Util::send(&sender, Action::Error("Failed to delete feed.".to_owned(), error));
                     }
                 } else {
@@ -791,7 +792,6 @@ impl App {
     }
 
     fn delete_category(&self, category_id: CategoryID) {
-        let runtime = self.runtime.clone();
         let news_flash = self.news_flash.clone();
         let sender = self.sender.clone();
         let thread_future = async move {
@@ -799,21 +799,18 @@ impl App {
                 let categories = match news_flash.get_categories() {
                     Ok(res) => res,
                     Err(error) => {
-                        Util::send(
-                            &sender,
-                            Action::Error("Failed to delete category.".to_owned(), error),
-                        );
+                        Util::send(&sender, Action::Error("Failed to delete category.".to_owned(), error));
                         return;
                     }
                 };
 
                 if let Some(category) = categories.iter().find(|c| c.category_id == category_id).cloned() {
                     info!("delete category '{}' (id: {})", category.label, category.category_id);
-                    if let Err(error) = runtime.block_on(news_flash.remove_category(&category, true)) {
-                        Util::send(
-                            &sender,
-                            Action::Error("Failed to delete category.".to_owned(), error),
-                        );
+                    if let Err(error) = Runtime::new()
+                        .expect(RUNTIME_ERROR)
+                        .block_on(news_flash.remove_category(&category, true))
+                    {
+                        Util::send(&sender, Action::Error("Failed to delete category.".to_owned(), error));
                     }
                 } else {
                     let message = format!(
@@ -830,7 +827,6 @@ impl App {
     }
 
     fn delete_tag(&self, tag_id: TagID) {
-        let runtime = self.runtime.clone();
         let news_flash = self.news_flash.clone();
         let sender = self.sender.clone();
         let thread_future = async move {
@@ -845,7 +841,10 @@ impl App {
 
                 if let Some(tag) = tags.iter().find(|t| t.tag_id == tag_id).cloned() {
                     info!("delete tag '{}' (id: {})", tag.label, tag.tag_id);
-                    if let Err(error) = runtime.block_on(news_flash.remove_tag(&tag)) {
+                    if let Err(error) = Runtime::new()
+                        .expect(RUNTIME_ERROR)
+                        .block_on(news_flash.remove_tag(&tag))
+                    {
                         Util::send(&sender, Action::Error("Failed to delete tag.".to_owned(), error));
                     }
                 } else {
@@ -860,18 +859,15 @@ impl App {
     }
 
     fn drag_and_drop(&self, action: FeedListDndAction) {
-        let runtime = self.runtime.clone();
         let news_flash = self.news_flash.clone();
         let sender = self.sender.clone();
         let thread_future = async move {
             if let Some(news_flash) = news_flash.read().as_ref() {
+                let mut runtime = Runtime::new().expect(RUNTIME_ERROR);
                 match action {
                     FeedListDndAction::MoveCategory(category_id, parent_id, _sort_index) => {
                         if let Err(error) = runtime.block_on(news_flash.move_category(&category_id, &parent_id)) {
-                            Util::send(
-                                &sender,
-                                Action::Error("Failed to move category.".to_owned(), error),
-                            );
+                            Util::send(&sender, Action::Error("Failed to move category.".to_owned(), error));
                         }
                     }
                     FeedListDndAction::MoveFeed(feed_id, from_id, to_id, _sort_index) => {
@@ -913,23 +909,22 @@ impl App {
             if let ResponseType::Ok = dialog.run() {
                 self.window.content_header.start_more_actions_spinner();
 
-                let runtime = self.runtime.clone();
                 let news_flash = self.news_flash.clone();
                 let global_sender = self.sender.clone();
                 let settings = self.settings.clone();
                 let filename = match dialog.get_filename() {
                     Some(filename) => filename,
                     None => {
-                        Util::send(
-                            &self.sender,
-                            Action::ErrorSimpleMessage("No filename set.".to_owned()),
-                        );
+                        Util::send(&self.sender, Action::ErrorSimpleMessage("No filename set.".to_owned()));
                         return;
                     }
                 };
                 let thread_future = async move {
                     if let Some(news_flash) = news_flash.read().as_ref() {
-                        let article = match runtime.block_on(news_flash.article_download_images(&article.article_id)) {
+                        let article = match Runtime::new()
+                            .expect(RUNTIME_ERROR)
+                            .block_on(news_flash.article_download_images(&article.article_id))
+                        {
                             Ok(article) => article,
                             Err(error) => {
                                 Util::send(
@@ -963,14 +958,8 @@ impl App {
                                 return;
                             }
                         };
-                        let html = ArticleView::build_article_static(
-                            "article",
-                            &article,
-                            &feed.label,
-                            &settings,
-                            None,
-                            None,
-                        );
+                        let html =
+                            ArticleView::build_article_static("article", &article, &feed.label, &settings, None, None);
                         if FileUtil::write_text_file(&filename, &html).is_err() {
                             Util::send(
                                 &global_sender,

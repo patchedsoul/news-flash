@@ -11,7 +11,7 @@ use crate::responsive::ResponsiveLayout;
 use crate::settings::{Keybindings, Settings};
 use crate::sidebar::models::SidebarSelection;
 use crate::undo_bar::{UndoActionModel, UndoBar};
-use crate::util::{BuilderHelper, GtkHandle, GtkUtil, Util, GTK_CSS_ERROR, GTK_RESOURCE_FILE_ERROR};
+use crate::util::{BuilderHelper, GtkHandle, GtkUtil, Util, GTK_CSS_ERROR, GTK_RESOURCE_FILE_ERROR, RUNTIME_ERROR};
 use crate::welcome_screen::{WelcomeHeaderbar, WelcomePage};
 use crate::Resources;
 use futures::channel::oneshot;
@@ -570,12 +570,7 @@ impl MainWindow {
         Util::send(&self.sender, Action::UpdateArticleList);
     }
 
-    pub fn set_sidebar_read(
-        &self,
-        news_flash: &Arc<RwLock<Option<NewsFlash>>>,
-        threadpool: ThreadPool,
-        runtime: Arc<Runtime>,
-    ) {
+    pub fn set_sidebar_read(&self, news_flash: &Arc<RwLock<Option<NewsFlash>>>, threadpool: ThreadPool) {
         let sidebar_selection = self.state.read().get_sidebar_selection().clone();
 
         match sidebar_selection {
@@ -590,7 +585,7 @@ impl MainWindow {
                             sender.send(news_flash.set_all_read().await).unwrap();
                         }
                     };
-                    runtime.block_on(future);
+                    Runtime::new().expect(RUNTIME_ERROR).block_on(future);
                 };
 
                 let sender = self.sender.clone();
@@ -622,7 +617,11 @@ impl MainWindow {
                 let thread_future = async move {
                     if let Some(news_flash) = news_flash.read().as_ref() {
                         sender
-                            .send(runtime.block_on(news_flash.set_category_read(&category_id_vec)))
+                            .send(
+                                Runtime::new()
+                                    .expect(RUNTIME_ERROR)
+                                    .block_on(news_flash.set_category_read(&category_id_vec)),
+                            )
                             .unwrap();
                     }
                 };
@@ -656,7 +655,11 @@ impl MainWindow {
                 let thread_future = async move {
                     if let Some(news_flash) = news_flash.read().as_ref() {
                         sender
-                            .send(runtime.block_on(news_flash.set_feed_read(&feed_id_vec)))
+                            .send(
+                                Runtime::new()
+                                    .expect(RUNTIME_ERROR)
+                                    .block_on(news_flash.set_feed_read(&feed_id_vec)),
+                            )
                             .unwrap();
                     }
                 };
@@ -690,7 +693,11 @@ impl MainWindow {
                 let thread_future = async move {
                     if let Some(news_flash) = news_flash.read().as_ref() {
                         sender
-                            .send(runtime.block_on(news_flash.set_tag_read(&tag_id_vec)))
+                            .send(
+                                Runtime::new()
+                                    .expect(RUNTIME_ERROR)
+                                    .block_on(news_flash.set_tag_read(&tag_id_vec)),
+                            )
                             .unwrap();
                     }
                 };

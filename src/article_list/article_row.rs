@@ -2,15 +2,15 @@ use super::models::{ArticleListArticleModel, ArticleListModel, MarkUpdate, ReadU
 use crate::app::Action;
 use crate::gtk_handle;
 use crate::util::{BuilderHelper, DateUtil, GtkHandle, GtkUtil, Util};
+use futures::channel::oneshot;
+use futures::future::FutureExt;
 use gdk::{EventType, NotifyType};
 use glib::Sender;
 use gtk::{
     ContainerExt, EventBox, Image, ImageExt, Inhibit, Label, LabelExt, ListBoxRow, ListBoxRowExt, Stack, StackExt,
     StyleContextExt, WidgetExt,
 };
-use futures::channel::oneshot;
-use futures::future::FutureExt;
-use news_flash::models::{ArticleID, Marked, Read, FavIcon};
+use news_flash::models::{ArticleID, FavIcon, Marked, Read};
 use std::cell::RefCell;
 use std::rc::Rc;
 
@@ -69,7 +69,10 @@ impl ArticleRow {
         date_label.set_text(&DateUtil::format(&article.date));
 
         let (oneshot_sender, receiver) = oneshot::channel::<Option<FavIcon>>();
-        Util::send(&sender, Action::LoadFavIcon((article.news_flash_feed.clone(), oneshot_sender)));
+        Util::send(
+            &sender,
+            Action::LoadFavIcon((article.news_flash_feed.clone(), oneshot_sender)),
+        );
         let glib_future = receiver.map(move |res| {
             if let Some(icon) = res.unwrap() {
                 if let Some(data) = &icon.data {

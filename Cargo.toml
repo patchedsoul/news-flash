@@ -18,15 +18,6 @@ gdk-pixbuf = { version = "0.7", features = ["v2_36"] }
 gtk = { version = "0.7", features = ["v3_24"] }
 gio = { version = "0.7", features = ["v2_58"] }
 gdk = { version = "0.11", features = ["v3_24"] }
-# cairo-rs = "0.7"
-# pango = "0.7"
-# cairo-rs = "0.8"
-# pango = "0.8"
-# glib = { version = "0.9" }
-# gdk-pixbuf = { version = "0.8", features = ["v2_36"] }
-# gtk = { version = "0.8", features = ["v3_24"] }
-# gio = { version = "0.8", features = ["v2_58"] }
-# gdk = { version = "0.12", features = ["v3_24"] }
 libhandy = { version = "0.4", features=["v0_0_10"] }
 webkit2gtk = { version = "0.8", features = ["v2_16"] }
 log4rs = "0.9"
@@ -34,7 +25,7 @@ dirs = "2.0"
 parking_lot = "0.10"
 color-backtrace = "0.3"
 lazy_static = "1.4"
-reqwest = "0.10.0-alpha.2"
-tokio = "0.2.0-alpha.6"
+reqwest = { version = "0.10", features = ["json", "native-tls"] }
+tokio = { version = "=0.2", features = ["macros"] }
 futures = { version = "0.3", features = ["thread-pool"] }
-news-flash = { git = "http://gitlab.com/news-flash/news_flash_base.git", branch = "async" }
+news-flash = { git = "http://gitlab.com/news-flash/news_flash_base.git" }

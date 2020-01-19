@@ -856,9 +856,15 @@ impl ArticleView {
 
         // $THEME
         let theme = if let Some(theme_override) = &theme_override {
-            theme_override.to_str(settings.read().get_prefer_dark_theme()).to_owned()
+            theme_override
+                .to_str(settings.read().get_prefer_dark_theme())
+                .to_owned()
         } else {
-            settings.read().get_article_view_theme().to_str(settings.read().get_prefer_dark_theme()).to_owned()
+            settings
+                .read()
+                .get_article_view_theme()
+                .to_str(settings.read().get_prefer_dark_theme())
+                .to_owned()
         };
         template_string = template_string.replacen("$THEME", &theme, 1);
 

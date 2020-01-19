@@ -4,6 +4,8 @@ use crate::sidebar::feed_list::models::FeedListFeedModel;
 use crate::undo_bar::UndoActionModel;
 use crate::util::{BuilderHelper, GtkHandle, GtkUtil, Util};
 use cairo::{self, Format, ImageSurface};
+use futures::channel::oneshot;
+use futures::future::FutureExt;
 use gdk::{DragAction, EventType, ModifierType};
 use gio::{ActionMapExt, Menu, MenuItem, SimpleAction};
 use glib::{source::SourceId, translate::FromGlib, translate::ToGlib, Sender, Source};
@@ -12,9 +14,7 @@ use gtk::{
     ListBoxRow, ListBoxRowExt, Popover, PopoverExt, PositionType, Revealer, RevealerExt, StateFlags, StyleContextExt,
     TargetEntry, TargetFlags, WidgetExt, WidgetExtManual,
 };
-use news_flash::models::{CategoryID, FavIcon, FeedID, Feed};
-use futures::channel::oneshot;
-use futures::future::FutureExt;
+use news_flash::models::{CategoryID, FavIcon, Feed, FeedID};
 use parking_lot::RwLock;
 use std::cell::RefCell;
 use std::rc::Rc;

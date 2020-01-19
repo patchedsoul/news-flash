@@ -32,11 +32,7 @@ impl ArticleListModel {
         self.sort.clone()
     }
 
-    pub fn add(
-        &mut self,
-        article: Article,
-        feed: &Feed,
-    ) -> Result<(), ArticleListModelError> {
+    pub fn add(&mut self, article: Article, feed: &Feed) -> Result<(), ArticleListModelError> {
         if self.contains(&article.article_id) {
             warn!("Listmodel already contains id {}", article.article_id);
             return Err(ArticleListModelErrorKind::AlreadyContainsArticle.into());

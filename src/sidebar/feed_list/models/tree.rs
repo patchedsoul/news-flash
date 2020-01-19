@@ -36,12 +36,7 @@ impl FeedListTree {
         }
     }
 
-    pub fn add_feed(
-        &mut self,
-        feed: &Feed,
-        mapping: &FeedMapping,
-        item_count: i64,
-    ) -> Result<(), FeedListModelError> {
+    pub fn add_feed(&mut self, feed: &Feed, mapping: &FeedMapping, item_count: i64) -> Result<(), FeedListModelError> {
         if mapping.category_id == self.top_level_id {
             let contains_feed = self.top_level.iter().any(|item| {
                 if let FeedListItem::Feed(item) = item {
