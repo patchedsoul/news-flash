@@ -319,14 +319,17 @@ impl AddPopover {
                     if let Some(byte_vec) = res.unwrap() {
                         if let Ok(surface) = GtkUtil::create_surface_from_bytes(&byte_vec, 64, 64, scale) {
                             favicon_image.set_from_surface(Some(&surface));
-                            add_button_stack.set_visible_child_name("text");
                         }
                     }
+                    add_button_stack.set_visible_child_name("text");
                 });
 
                 threadpool_clone.spawn_ok(thread_future);
                 Util::glib_spawn_future(glib_future);
+            } else {
+                add_button_stack.set_visible_child_name("text");
             }
+            
         });
 
         threadpool.spawn_ok(thread_future);
