@@ -3,7 +3,7 @@ use crate::app::Action;
 use crate::util::{BuilderHelper, Util};
 use glib::Sender;
 use gtk::{Box, ListBox, ListBoxExt, ListBoxRowExt};
-use news_flash::models::{LoginGUI, PluginID};
+use news_flash::models::{LoginData, LoginGUI, PluginID};
 use news_flash::NewsFlash;
 use parking_lot::RwLock;
 use std::collections::HashMap;
@@ -57,7 +57,7 @@ impl WelcomePage {
                         Util::send(&sender, Action::ShowPasswordLogin(id.clone()));
                     }
                     LoginGUI::None => {
-                        // FIXME: trigger "login" action directly
+                        Util::send(&sender, Action::Login(LoginData::None(id.clone())));
                     }
                 };
             }

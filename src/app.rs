@@ -557,6 +557,7 @@ impl App {
                 let feed_category = dialog.get_category();
 
                 Util::send(&sender, Action::AddFeed((feed_url, feed_title, feed_category)));
+                dialog.close();
             });
         }
     }
@@ -596,6 +597,7 @@ impl App {
                         }
                     });
                 Runtime::new().expect(RUNTIME_ERROR).block_on(add_feed_future);
+                Util::send(&global_sender, Action::UpdateSidebar);
             } else {
                 let message = "Failed to lock NewsFlash.".to_owned();
                 error!("{}", message);
@@ -1027,8 +1029,12 @@ impl App {
     }
 
     fn quit(&self) {
-        // FIXME: check for ongoing sync
         self.window.widget.close();
+
+        // FIXME: figure out how to wait for undo action to complete
+        self.window.execute_pending_undoable_action();
+        // FIXME: check for ongoing sync
+
         self.application.quit();
     }
 }

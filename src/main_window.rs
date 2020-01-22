@@ -81,9 +81,16 @@ impl MainWindow {
 
         let delete_event_settings = settings.clone();
         let sender_clone = sender.clone();
+        let main_stack = stack.clone();
         window.connect_delete_event(move |win, _| {
             if delete_event_settings.read().get_keep_running_in_background() {
-                win.hide_on_delete();
+                if let Some(visible_child) = main_stack.get_visible_child_name() {
+                    if visible_child == CONTENT_PAGE {
+                        win.hide_on_delete();
+                    } else {
+                        Util::send(&sender_clone, Action::Quit);
+                    }
+                }
             } else {
                 Util::send(&sender_clone, Action::Quit);
             }
@@ -738,5 +745,9 @@ impl MainWindow {
                 }
             }
         }
+    }
+
+    pub fn execute_pending_undoable_action(&self) {
+        self.undo_bar.execute_ending_action()
     }
 }

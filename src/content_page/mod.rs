@@ -231,19 +231,37 @@ impl ContentPage {
                     .context(ContentPageErrorKind::DataBase)?,
             };
 
+            let pending_delete_category = undo_bar.get_current_action().map(|a| {
+                if let UndoActionModel::DeleteCategory((id, _label)) = a {
+                    Some(id)
+                } else {
+                    None
+                }
+            }).flatten();
+            let pending_delete_feed = undo_bar.get_current_action().map(|a| {
+                if let UndoActionModel::DeleteFeed((id, _label)) = a {
+                    Some(id)
+                } else {
+                    None
+                }
+            }).flatten();
+
             // feedlist: Categories
             for category in &categories {
-                if let Some(UndoActionModel::DeleteCategory((id, _label))) = undo_bar.get_current_action() {
-                    if id == category.category_id {
+                if let Some(pending_delete_category) = &pending_delete_category {
+                    if pending_delete_category == &category.category_id {
                         continue;
                     }
                 }
+                
 
                 let category_item_count = Util::calculate_item_count_for_category(
                     &category.category_id,
                     &categories,
                     &mappings,
                     &feed_count_map,
+                    &pending_delete_feed,
+                    &pending_delete_category,
                 );
 
                 tree.add_category(category, category_item_count)

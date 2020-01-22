@@ -52,6 +52,8 @@ impl Util {
         categories: &[Category],
         feed_mappings: &[FeedMapping],
         item_count_map: &HashMap<FeedID, i64>,
+        pending_deleted_feed: &Option<FeedID>,
+        pending_deleted_category: &Option<CategoryID>,
     ) -> i64 {
         let mut count = 0;
 
@@ -59,6 +61,12 @@ impl Util {
             .iter()
             .filter_map(|m| {
                 if &m.category_id == category_id {
+                    if let Some(pending_deleted_feed) = pending_deleted_feed {
+                        if pending_deleted_feed == &m.feed_id {
+                            return None;
+                        }
+                    }
+
                     item_count_map.get(&m.feed_id)
                 } else {
                     None
@@ -70,11 +78,19 @@ impl Util {
             .iter()
             .filter_map(|c| {
                 if &c.parent_id == category_id {
+                    if let Some(pending_deleted_category) = pending_deleted_category {
+                        if pending_deleted_category == &c.category_id {
+                            return None;
+                        }
+                    }
+
                     Some(Self::calculate_item_count_for_category(
                         &c.category_id,
                         categories,
                         feed_mappings,
                         item_count_map,
+                        pending_deleted_feed,
+                        pending_deleted_category,
                     ))
                 } else {
                     None

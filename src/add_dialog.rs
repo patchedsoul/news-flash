@@ -28,6 +28,7 @@ pub enum AddCategory {
 
 #[derive(Clone, Debug)]
 pub struct AddPopover {
+    popover: Popover,
     add_button: Button,
     feed_title_entry: Entry,
     feed_url: Rc<RwLock<Option<Url>>>,
@@ -55,9 +56,7 @@ impl AddPopover {
         let feed_category = Rc::new(RwLock::new(None));
 
         // setup list of categories to add feed to
-        if categories.is_empty() {
-            category_combo.set_sensitive(false);
-        } else {
+        if !categories.is_empty() {
             let list_store = ListStore::new(&[Type::String, Type::String]);
             for category in &categories {
                 let iter = list_store.append();
@@ -250,6 +249,7 @@ impl AddPopover {
         popover.show_all();
 
         AddPopover {
+            popover,
             add_button,
             feed_title_entry,
             feed_url,
@@ -329,7 +329,6 @@ impl AddPopover {
             } else {
                 add_button_stack.set_visible_child_name("text");
             }
-            
         });
 
         threadpool.spawn_ok(thread_future);
@@ -475,6 +474,10 @@ impl AddPopover {
         }
 
         true
+    }
+
+    pub fn close(&self) {
+        self.popover.popdown()
     }
 
     pub fn add_button(&self) -> Button {

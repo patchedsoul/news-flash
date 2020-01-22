@@ -112,4 +112,10 @@ impl UndoBar {
         }
         None
     }
+
+    pub fn execute_ending_action(&self) {
+        if let Some(current_action) = self.get_current_action() {
+            Self::execute_action(&current_action, &self.sender);
+        }
+    }
 }
