@@ -4,7 +4,7 @@ use crate::app::Action;
 use crate::gtk_handle;
 use crate::util::{BuilderHelper, GtkHandle, GtkUtil, Util};
 use glib::{translate::ToGlib, Sender};
-use gtk::{Button, ButtonExt, Continue, InfoBar, InfoBarExt, Label, LabelExt, WidgetExt};
+use gtk::{Button, ButtonExt, Continue, InfoBar, InfoBarExt, Label, LabelExt, WidgetExt, ResponseType};
 use log::debug;
 pub use models::{UndoAction, UndoActionModel};
 use std::cell::RefCell;
@@ -49,6 +49,20 @@ impl UndoBar {
             // update lists
             Util::send(&sender, Action::UpdateSidebar);
             Util::send(&sender, Action::UpdateArticleList);
+        });
+
+        let info_bar_current_action = self.current_action.clone();
+        let sender = self.sender.clone();
+        self.widget.connect_response(move |info_bar, response| {
+            if response == ResponseType::Close {
+                if let Some(current_action) = info_bar_current_action.borrow().as_ref() {
+                    Self::execute_action(&current_action.get_model(), &sender);
+                    GtkUtil::remove_source(Some(current_action.get_timeout()));
+                }
+    
+                info_bar_current_action.replace(None);
+                info_bar.set_revealed(false);
+            }
         });
 
         self.widget.show();
@@ -113,7 +127,7 @@ impl UndoBar {
         None
     }
 
-    pub fn execute_ending_action(&self) {
+    pub fn execute_pending_action(&self) {
         if let Some(current_action) = self.get_current_action() {
             Self::execute_action(&current_action, &self.sender);
         }

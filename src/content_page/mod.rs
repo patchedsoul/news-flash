@@ -19,7 +19,7 @@ use failure::ResultExt;
 use glib::Sender;
 use gtk::{Box, BoxExt, Button, WidgetExt};
 use libhandy::Leaflet;
-use news_flash::models::{Article, ArticleFilter, FatArticle, Feed, Marked, PluginCapabilities, PluginID, Read};
+use news_flash::models::{Article, ArticleFilter, FatArticle, Feed, Marked, PluginCapabilities, PluginID, Read, NEWSFLASH_TOPLEVEL};
 use news_flash::NewsFlash;
 use parking_lot::RwLock;
 use std::sync::Arc;
@@ -326,7 +326,15 @@ impl ContentPage {
                 }
             }
 
-            let total_item_count = feed_count_map.iter().map(|(_key, value)| value).sum();
+            //let total_item_count = feed_count_map.iter().map(|(_key, value)| value).sum();
+            let total_item_count = Util::calculate_item_count_for_category(
+                &NEWSFLASH_TOPLEVEL,
+                &categories,
+                &mappings,
+                &feed_count_map,
+                &pending_delete_feed,
+                &pending_delete_category,
+            );
 
             self.sidebar.update_feedlist(tree);
             self.sidebar.update_all(total_item_count);

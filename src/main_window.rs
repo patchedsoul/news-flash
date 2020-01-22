@@ -88,11 +88,11 @@ impl MainWindow {
                     if visible_child == CONTENT_PAGE {
                         win.hide_on_delete();
                     } else {
-                        Util::send(&sender_clone, Action::Quit);
+                        Util::send(&sender_clone, Action::QueueQuit);
                     }
                 }
             } else {
-                Util::send(&sender_clone, Action::Quit);
+                Util::send(&sender_clone, Action::QueueQuit);
             }
 
             Inhibit(true)
@@ -170,7 +170,7 @@ impl MainWindow {
             }
 
             if Self::check_shortcut("quit", &settings, event) {
-                Util::send(&sender, Action::Quit);
+                Util::send(&sender, Action::QueueQuit);
             }
 
             if Self::check_shortcut("search", &settings, event) {
@@ -748,6 +748,6 @@ impl MainWindow {
     }
 
     pub fn execute_pending_undoable_action(&self) {
-        self.undo_bar.execute_ending_action()
+        self.undo_bar.execute_pending_action()
     }
 }

@@ -3,6 +3,8 @@ use std::env;
 use std::path::PathBuf;
 use std::rc::Rc;
 use std::sync::Arc;
+use std::thread;
+use std::time;
 
 use futures::channel::oneshot::{self, Sender as OneShotSender};
 use futures::executor::ThreadPool;
@@ -91,7 +93,8 @@ pub enum Action {
     DragAndDrop(FeedListDndAction),
     ExportArticle,
     ExportOpml,
-    Quit,
+    QueueQuit,
+    ForceQuit,
 }
 pub struct App {
     application: gtk::Application,
@@ -212,7 +215,8 @@ impl App {
             Action::DragAndDrop(action) => self.drag_and_drop(action),
             Action::ExportArticle => self.export_article(),
             Action::ExportOpml => self.export_opml(),
-            Action::Quit => self.quit(),
+            Action::QueueQuit => self.queue_quit(),
+            Action::ForceQuit => self.force_quit(),
         }
         glib::Continue(true)
     }
@@ -563,6 +567,8 @@ impl App {
     }
 
     fn add_feed(&self, feed_url: Url, title: Option<String>, category: Option<AddCategory>) {
+        info!("add feed '{}'", feed_url);
+        
         let news_flash = self.news_flash.clone();
         let global_sender = self.sender.clone();
         let thread_future = async move {
@@ -1028,13 +1034,32 @@ impl App {
         dialog.emit_close();
     }
 
-    fn quit(&self) {
+    fn queue_quit(&self) {
         self.window.widget.close();
-
-        // FIXME: figure out how to wait for undo action to complete
         self.window.execute_pending_undoable_action();
-        // FIXME: check for ongoing sync
+        
+        // wait for ongoing sync to finish, but limit waiting to max 10s
+        let sender = self.sender.clone();
+        let news_flash = self.news_flash.clone();
+        let thread_future = async move {
+            if let Some(news_flash) = news_flash.read().as_ref() {
+                let wait_each_loop = time::Duration::from_millis(100);
+                let mut total_waiting_time = time::Duration::from_millis(0);
+                let max_wait_time = time::Duration::from_secs(10);
 
+                while news_flash.is_sync_ongoing() && total_waiting_time < max_wait_time {
+                    total_waiting_time += wait_each_loop;
+                    thread::sleep(wait_each_loop);
+                }
+            }
+
+            Util::send(&sender, Action::ForceQuit);
+        };
+
+        self.threadpool.spawn_ok(thread_future);
+    }
+
+    fn force_quit(&self) {
         self.application.quit();
     }
 }

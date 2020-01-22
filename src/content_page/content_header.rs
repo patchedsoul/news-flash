@@ -311,7 +311,7 @@ impl ContentHeader {
         let sender_clone = sender.clone();
         let quit_action = SimpleAction::new("quit-application", None);
         quit_action.connect_activate(move |_action, _parameter| {
-            Util::send(&sender_clone, Action::Quit);
+            Util::send(&sender_clone, Action::QueueQuit);
         });
 
         let sender_clone = sender.clone();
