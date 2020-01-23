@@ -96,7 +96,7 @@ impl ContentHeader {
             &linked_button_timeout,
             HeaderSelection::Marked,
         );
-        Self::setup_update_button(&update_button, &update_stack, &sender);
+        Self::setup_update_button(&update_button, &sender);
         Self::setup_search_button(&search_button, &search_bar);
         Self::setup_search_bar(&search_bar, &search_button, &search_entry);
         Self::setup_search_entry(&search_entry, &sender);
@@ -129,6 +129,11 @@ impl ContentHeader {
 
         header.show_article(None);
         header
+    }
+
+    pub fn start_sync(&self) {
+        self.update_button.set_sensitive(false);
+        self.update_stack.set_visible_child_name("spinner");
     }
 
     pub fn finish_sync(&self) {
@@ -247,12 +252,9 @@ impl ContentHeader {
         );
     }
 
-    fn setup_update_button(button: &Button, stack: &Stack, sender: &Sender<Action>) {
-        let stack = stack.clone();
+    fn setup_update_button(button: &Button, sender: &Sender<Action>) {
         let sender = sender.clone();
-        button.connect_clicked(move |button| {
-            button.set_sensitive(false);
-            stack.set_visible_child_name("spinner");
+        button.connect_clicked(move |_button| {
             Util::send(&sender, Action::Sync);
         });
     }

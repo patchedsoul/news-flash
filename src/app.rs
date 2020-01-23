@@ -323,6 +323,7 @@ impl App {
 
     fn sync(&self) {
         let (sender, receiver) = oneshot::channel::<Result<i64, NewsFlashError>>();
+        self.window.content_header.start_sync();
 
         let news_flash = self.news_flash.clone();
         let thread_future = async move {
