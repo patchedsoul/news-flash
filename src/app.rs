@@ -186,7 +186,7 @@ impl App {
             Action::MarkArticle(update) => self.mark_article(update),
             Action::ToggleArticleRead => self.toggle_article_read(),
             Action::ToggleArticleMarked => self.toggle_article_marked(),
-            Action::UpdateSidebar => self.window.update_sidebar(&self.news_flash),
+            Action::UpdateSidebar => self.window.update_sidebar(&self.news_flash, self.threadpool.clone()),
             Action::UpdateArticleList => self.window.update_article_list(&self.news_flash, self.threadpool.clone()),
             Action::LoadMoreArticles => self.window.load_more_articles(&self.news_flash, self.threadpool.clone()),
             Action::SidebarSelection(selection) => self.window.sidebar_selection(selection),

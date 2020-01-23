@@ -23,6 +23,10 @@ impl TagListModel {
         }
     }
 
+    pub fn is_empty(&self) -> bool {
+        self.tags.is_empty()
+    }
+
     pub fn add(&mut self, tag: &Tag) -> Result<(), TagListModelError> {
         if self.tags.contains(&tag.tag_id) {
             return Err(TagListModelErrorKind::AlreadyExists.into());

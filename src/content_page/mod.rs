@@ -27,7 +27,7 @@ use parking_lot::RwLock;
 use std::sync::Arc;
 
 pub struct ContentPage {
-    sidebar: SideBar,
+    sidebar: Arc<RwLock<SideBar>>,
     article_list: Arc<RwLock<ArticleList>>,
     article_view: ArticleView,
     settings: Arc<RwLock<Settings>>,
@@ -43,11 +43,11 @@ impl ContentPage {
         let minor_leaflet = builder.get::<Leaflet>("minor_leaflet");
         minor_leaflet.set_hexpand(false);
 
-        let sidebar = SideBar::new(sender.clone());
+        let sidebar = Arc::new(RwLock::new(SideBar::new(sender.clone())));
         let article_list = Arc::new(RwLock::new(ArticleList::new(settings, sender.clone())));
         let article_view = ArticleView::new(settings);
 
-        feed_list_box.pack_start(&sidebar.widget(), false, true, 0);
+        feed_list_box.pack_start(&sidebar.read().widget(), false, true, 0);
         article_list_box.pack_start(&article_list.read().widget(), false, true, 0);
         articleview_box.pack_start(&article_view.widget(), false, true, 0);
 
@@ -63,6 +63,7 @@ impl ContentPage {
 
     pub fn set_service(&self, id: &PluginID, user_name: Option<String>) -> Result<(), ContentPageError> {
         self.sidebar
+            .read()
             .set_service(id, user_name)
             .context(ContentPageErrorKind::SidebarService)?;
         Ok(())
@@ -74,7 +75,7 @@ impl ContentPage {
         window_state: &Arc<RwLock<MainWindowState>>,
         undo_bar: &UndoBar,
         thread_pool: ThreadPool,
-    ) -> Result<(), ContentPageError> {
+    ) {
 
         let (sender, receiver) = oneshot::channel::<Result<ArticleListModel, ContentPageErrorKind>>();
 
@@ -141,8 +142,6 @@ impl ContentPage {
 
         thread_pool.spawn_ok(thread_future);
         Util::glib_spawn_future(glib_future);
-
-        Ok(())
     }
 
     pub fn load_more_articles(
@@ -151,8 +150,7 @@ impl ContentPage {
         window_state: &Arc<RwLock<MainWindowState>>,
         undo_bar: &UndoBar,
         thread_pool: ThreadPool,
-    ) -> Result<(), ContentPageError> {
-
+    ) {
         let (sender, receiver) = oneshot::channel::<Result<ArticleListModel, ContentPageErrorKind>>();
 
         let relevant_articles_loaded = self
@@ -218,8 +216,6 @@ impl ContentPage {
 
         thread_pool.spawn_ok(thread_future);
         Util::glib_spawn_future(glib_future);
-
-        Ok(())
     }
 
     fn load_articles(
@@ -284,137 +280,205 @@ impl ContentPage {
 
     pub fn update_sidebar(
         &mut self,
-        news_flash: &RwLock<Option<NewsFlash>>,
-        state: &RwLock<MainWindowState>,
+        news_flash: &Arc<RwLock<Option<NewsFlash>>>,
+        state: &Arc<RwLock<MainWindowState>>,
         undo_bar: &UndoBar,
-    ) -> Result<(), ContentPageError> {
-        if let Some(news_flash) = news_flash.read().as_ref() {
-            let mut tree = FeedListTree::new();
-            let categories = news_flash.get_categories().context(ContentPageErrorKind::DataBase)?;
-            let (feeds, mappings) = news_flash.get_feeds().context(ContentPageErrorKind::DataBase)?;
+        thread_pool: ThreadPool,
+    ) {
+        let (sender, receiver) = oneshot::channel::<Result<(i64, FeedListTree, Option<TagListModel>), ContentPageErrorKind>>();
 
-            // collect unread and marked counts
-            let feed_count_map = match state.read().get_header_selection() {
-                HeaderSelection::All | HeaderSelection::Unread => news_flash
-                    .unread_count_feed_map()
-                    .context(ContentPageErrorKind::DataBase)?,
-                HeaderSelection::Marked => news_flash
-                    .marked_count_feed_map()
-                    .context(ContentPageErrorKind::DataBase)?,
-            };
+        let news_flash = news_flash.clone();
+        let state = state.clone();
+        let current_undo_action = undo_bar.get_current_action();
+        let thread_future = async move {
+            if let Some(news_flash) = news_flash.read().as_ref() {
+                let mut tree = FeedListTree::new();
+                let mut tag_list_model : Option<TagListModel> = None;
 
-            let pending_delete_category = undo_bar.get_current_action().map(|a| {
-                if let UndoActionModel::DeleteCategory((id, _label)) = a {
-                    Some(id)
-                } else {
-                    None
-                }
-            }).flatten();
-            let pending_delete_feed = undo_bar.get_current_action().map(|a| {
-                if let UndoActionModel::DeleteFeed((id, _label)) = a {
-                    Some(id)
-                } else {
-                    None
-                }
-            }).flatten();
-
-            // feedlist: Categories
-            for category in &categories {
-                if let Some(pending_delete_category) = &pending_delete_category {
-                    if pending_delete_category == &category.category_id {
-                        continue;
+                let categories = match news_flash.get_categories() {
+                    Ok(categories) => categories,
+                    Err(_error) => {
+                        sender.send(Err(ContentPageErrorKind::DataBase)).expect(CHANNEL_ERROR);
+                        return
+                    },
+                };
+                let (feeds, mappings) = match news_flash.get_feeds() {
+                    Ok(res) => res,
+                    Err(_error) => {
+                        sender.send(Err(ContentPageErrorKind::DataBase)).expect(CHANNEL_ERROR);
+                        return
+                    },
+                };
+    
+                // collect unread and marked counts
+                let feed_count_map = match state.read().get_header_selection() {
+                    HeaderSelection::All | HeaderSelection::Unread => {
+                        match news_flash.unread_count_feed_map() {
+                            Ok(res) => res,
+                            Err(_error) => {
+                                sender.send(Err(ContentPageErrorKind::DataBase)).expect(CHANNEL_ERROR);
+                                return
+                            },
+                        }
+                    },
+                    HeaderSelection::Marked => {
+                        match news_flash.marked_count_feed_map() {
+                            Ok(res) => res,
+                            Err(_error) => {
+                                sender.send(Err(ContentPageErrorKind::DataBase)).expect(CHANNEL_ERROR);
+                                return
+                            },
+                        }
+                    },
+                };
+    
+                let pending_delete_category = current_undo_action.clone().map(|a| {
+                    if let UndoActionModel::DeleteCategory((id, _label)) = a {
+                        Some(id)
+                    } else {
+                        None
+                    }
+                }).flatten();
+                let pending_delete_feed = current_undo_action.clone().map(|a| {
+                    if let UndoActionModel::DeleteFeed((id, _label)) = a {
+                        Some(id)
+                    } else {
+                        None
+                    }
+                }).flatten();
+    
+                // feedlist: Categories
+                for category in &categories {
+                    if let Some(pending_delete_category) = &pending_delete_category {
+                        if pending_delete_category == &category.category_id {
+                            continue;
+                        }
+                    }
+                    
+    
+                    let category_item_count = Util::calculate_item_count_for_category(
+                        &category.category_id,
+                        &categories,
+                        &mappings,
+                        &feed_count_map,
+                        &pending_delete_feed,
+                        &pending_delete_category,
+                    );
+    
+                    if tree.add_category(category, category_item_count).is_err() {
+                        sender.send(Err(ContentPageErrorKind::SidebarModels)).expect(CHANNEL_ERROR);
+                        return;
                     }
                 }
-                
+    
+                // feedlist: Feeds
+                for mapping in &mappings {
+                    if let Some(undo_action) = &current_undo_action {
+                        match undo_action {
+                            UndoActionModel::DeleteFeed((id, _label)) => {
+                                if id == &mapping.feed_id {
+                                    continue;
+                                }
+                            }
+                            UndoActionModel::DeleteCategory((id, _label)) => {
+                                if id == &mapping.category_id {
+                                    continue;
+                                }
+                            }
+                            _ => {}
+                        }
+                    }
+    
+                    let feed = match feeds.iter().find(|feed| feed.feed_id == mapping.feed_id) {
+                        Some(res) => res,
+                        None => {
+                            sender.send(Err(ContentPageErrorKind::FeedTitle)).expect(CHANNEL_ERROR);
+                            return;
+                        }
+                    };
+    
+                    let item_count = match feed_count_map.get(&mapping.feed_id) {
+                        Some(count) => *count,
+                        None => 0,
+                    };
+                    if tree.add_feed(&feed, &mapping, item_count).is_err() {
+                        //sender.send(Err(ContentPageErrorKind::SidebarModels)).expect(CHANNEL_ERROR);
+                    }
+                }
+    
+                // tag list
+                let plugin_features = match news_flash.features() {
+                    Ok(features) => features,
+                    Err(_error) => {
+                        sender.send(Err(ContentPageErrorKind::NewsFlashFeatures)).expect(CHANNEL_ERROR);
+                        return;
+                    }
+                };
+                let support_tags = plugin_features.contains(PluginCapabilities::SUPPORT_TAGS);
+    
+                if support_tags {
+                    let mut list = TagListModel::new();
+                    let tags = match news_flash.get_tags() {
+                        Ok(tags) => tags,
+                        Err(_error) => {
+                            sender.send(Err(ContentPageErrorKind::DataBase)).expect(CHANNEL_ERROR);
+                            return;
+                        }
+                    };
+    
+                    if !tags.is_empty() {
+                        for tag in tags {
+                            if let Some(UndoActionModel::DeleteTag((id, _label))) = current_undo_action.clone() {
+                                if id == tag.tag_id {
+                                    continue;
+                                }
+                            }
+                            if list.add(&tag).is_err() {
+                                sender.send(Err(ContentPageErrorKind::SidebarModels)).expect(CHANNEL_ERROR);
+                                return;
+                            }
+                        }
+                    }
 
-                let category_item_count = Util::calculate_item_count_for_category(
-                    &category.category_id,
+                    tag_list_model = Some(list);
+                }
+    
+                //let total_item_count = feed_count_map.iter().map(|(_key, value)| value).sum();
+                let total_item_count = Util::calculate_item_count_for_category(
+                    &NEWSFLASH_TOPLEVEL,
                     &categories,
                     &mappings,
                     &feed_count_map,
                     &pending_delete_feed,
                     &pending_delete_category,
                 );
-
-                tree.add_category(category, category_item_count)
-                    .context(ContentPageErrorKind::SidebarModels)?
+    
+                sender.send(Ok((total_item_count, tree, tag_list_model))).expect(CHANNEL_ERROR);
             }
+        };
 
-            // feedlist: Feeds
-            for mapping in &mappings {
-                if let Some(undo_action) = undo_bar.get_current_action() {
-                    match undo_action {
-                        UndoActionModel::DeleteFeed((id, _label)) => {
-                            if id == mapping.feed_id {
-                                continue;
-                            }
+        let sidebar = self.sidebar.clone();
+        let glib_future = receiver.map(move |res| {
+            if let Ok(res) = res {
+                if let Ok((total_count, feed_list_model, tag_list_model)) = res {
+                    sidebar.write().update_feedlist(feed_list_model);
+                    sidebar.write().update_all(total_count);
+                    if let Some(tag_list_model) = tag_list_model {
+                        if tag_list_model.is_empty() {
+                            sidebar.read().hide_taglist();
+                        } else {
+                            sidebar.write().update_taglist(tag_list_model);
+                            sidebar.read().show_taglist();
                         }
-                        UndoActionModel::DeleteCategory((id, _label)) => {
-                            if id == mapping.category_id {
-                                continue;
-                            }
-                        }
-                        _ => {}
+                    } else {
+                        sidebar.read().hide_taglist();
                     }
                 }
-
-                let feed = feeds
-                    .iter()
-                    .find(|feed| feed.feed_id == mapping.feed_id)
-                    .ok_or_else(|| ContentPageErrorKind::FeedTitle)?;
-
-                let item_count = match feed_count_map.get(&mapping.feed_id) {
-                    Some(count) => *count,
-                    None => 0,
-                };
-                tree.add_feed(&feed, &mapping, item_count)
-                    .context(ContentPageErrorKind::SidebarModels)?
             }
+        });
 
-            // tag list
-            let plugin_features = news_flash.features().context(ContentPageErrorKind::NewsFlashFeatures)?;
-            let support_tags = plugin_features.contains(PluginCapabilities::SUPPORT_TAGS);
-
-            if !support_tags {
-                self.sidebar.hide_taglist();
-            } else {
-                let mut list = TagListModel::new();
-                let tags = news_flash.get_tags().context(ContentPageErrorKind::DataBase)?;
-
-                if tags.is_empty() {
-                    self.sidebar.hide_taglist();
-                } else {
-                    for tag in tags {
-                        if let Some(UndoActionModel::DeleteTag((id, _label))) = undo_bar.get_current_action() {
-                            if id == tag.tag_id {
-                                continue;
-                            }
-                        }
-                        list.add(&tag).context(ContentPageErrorKind::SidebarModels)?
-                    }
-
-                    self.sidebar.update_taglist(list);
-                    self.sidebar.show_taglist();
-                }
-            }
-
-            //let total_item_count = feed_count_map.iter().map(|(_key, value)| value).sum();
-            let total_item_count = Util::calculate_item_count_for_category(
-                &NEWSFLASH_TOPLEVEL,
-                &categories,
-                &mappings,
-                &feed_count_map,
-                &pending_delete_feed,
-                &pending_delete_category,
-            );
-
-            self.sidebar.update_feedlist(tree);
-            self.sidebar.update_all(total_item_count);
-
-            return Ok(());
-        }
-
-        Err(ContentPageErrorKind::NewsFlashHandle.into())
+        thread_pool.spawn_ok(thread_future);
+        Util::glib_spawn_future(glib_future);
     }
 
     pub fn article_view_show(&self, article: FatArticle, feed: &Feed) {
@@ -458,6 +522,7 @@ impl ContentPage {
 
     pub fn sidebar_select_next_item(&self) -> Result<(), ContentPageError> {
         self.sidebar
+            .read()
             .select_next_item()
             .context(ContentPageErrorKind::SidebarSelection)?;
         Ok(())
@@ -465,24 +530,25 @@ impl ContentPage {
 
     pub fn sidebar_select_prev_item(&self) -> Result<(), ContentPageError> {
         self.sidebar
+            .read()
             .select_prev_item()
             .context(ContentPageErrorKind::SidebarSelection)?;
         Ok(())
     }
 
     pub fn sidebar_expand_collase_category(&self) {
-        self.sidebar.expand_collapse_selected_category()
+        self.sidebar.read().expand_collapse_selected_category()
     }
 
     pub fn sidebar_get_selection(&self) -> SidebarSelection {
-        self.sidebar.get_selection()
+        self.sidebar.read().get_selection()
     }
 
     pub fn sidebar_select_all_button_no_update(&self) {
-        self.sidebar.select_all_button_no_update();
+        self.sidebar.read().select_all_button_no_update();
     }
 
     pub fn sidebar_get_add_button(&self) -> Button {
-        self.sidebar.get_add_button()
+        self.sidebar.read().get_add_button()
     }
 }

@@ -12,8 +12,6 @@ pub enum ContentPageErrorKind {
     ArticleView,
     #[fail(display = "Error computing article list model")]
     ArticleList,
-    #[fail(display = "Failed to borrow NewsFlash handle")]
-    NewsFlashHandle,
     #[fail(display = "Failed to get features of NewsFlash plugin")]
     NewsFlashFeatures,
     #[fail(display = "Failed to load data from the database")]

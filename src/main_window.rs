@@ -348,28 +348,14 @@ impl MainWindow {
                 }
 
                 // try to fill content page with data
-                if self
+                self
                     .content_page
                     .write()
-                    .update_sidebar(&news_flash, &self.state, &self.undo_bar)
-                    .is_err()
-                {
-                    Util::send(
-                        &self.sender,
-                        Action::ErrorSimpleMessage("Failed to populate sidebar with data.".to_owned()),
-                    );
-                }
-                if self
+                    .update_sidebar(&news_flash, &self.state, &self.undo_bar, thread_pool.clone());
+                self
                     .content_page
                     .write()
-                    .update_article_list(&news_flash, &self.state, &self.undo_bar, thread_pool)
-                    .is_err()
-                {
-                    Util::send(
-                        &self.sender,
-                        Action::ErrorSimpleMessage("Failed to populate article list with data.".to_owned()),
-                    );
-                }
+                    .update_article_list(&news_flash, &self.state, &self.undo_bar, thread_pool);
                 return;
             }
         } else {
@@ -459,46 +445,23 @@ impl MainWindow {
         }
     }
 
-    pub fn update_sidebar(&self, news_flash: &RwLock<Option<NewsFlash>>) {
-        if self
+    pub fn update_sidebar(&self, news_flash: &Arc<RwLock<Option<NewsFlash>>>, thread_pool: ThreadPool) {
+        self
             .content_page
             .write()
-            .update_sidebar(news_flash, &self.state, &self.undo_bar)
-            .is_err()
-        {
-            Util::send(
-                &self.sender,
-                Action::ErrorSimpleMessage("Failed to update sidebar.".to_owned()),
-            );
-        }
+            .update_sidebar(news_flash, &self.state, &self.undo_bar, thread_pool);
     }
 
     pub fn update_article_list(&self, news_flash: &Arc<RwLock<Option<NewsFlash>>>, thread_pool: ThreadPool) {
-        if self
-            .content_page
+        self.content_page
             .write()
-            .update_article_list(news_flash, &self.state, &self.undo_bar, thread_pool)
-            .is_err()
-        {
-            Util::send(
-                &self.sender,
-                Action::ErrorSimpleMessage("Failed to update the article list.".to_owned()),
-            );
-        }
+            .update_article_list(news_flash, &self.state, &self.undo_bar, thread_pool);
     }
 
     pub fn load_more_articles(&self, news_flash: &Arc<RwLock<Option<NewsFlash>>>, thread_pool: ThreadPool) {
-        if self
-            .content_page
+        self.content_page
             .write()
-            .load_more_articles(&news_flash, &self.state, &self.undo_bar, thread_pool)
-            .is_err()
-        {
-            Util::send(
-                &self.sender,
-                Action::ErrorSimpleMessage("Failed to load more articles.".to_owned()),
-            );
-        }
+            .load_more_articles(&news_flash, &self.state, &self.undo_bar, thread_pool);
     }
 
     pub fn sidebar_selection(&self, selection: SidebarSelection) {
