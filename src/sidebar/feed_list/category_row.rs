@@ -1,8 +1,7 @@
 use crate::app::Action;
-use crate::gtk_handle;
 use crate::sidebar::feed_list::models::FeedListCategoryModel;
 use crate::undo_bar::UndoActionModel;
-use crate::util::{BuilderHelper, GtkHandle, GtkUtil, Util};
+use crate::util::{BuilderHelper, GtkUtil, Util};
 use gdk::{EventMask, EventType};
 use gio::{ActionMapExt, Menu, MenuItem, SimpleAction};
 use glib::Sender;
@@ -11,8 +10,8 @@ use gtk::{
     Popover, PopoverExt, PositionType, Revealer, RevealerExt, StateFlags, StyleContextExt, WidgetExt, WidgetExtManual,
 };
 use news_flash::models::CategoryID;
-use std::cell::RefCell;
-use std::rc::Rc;
+use std::sync::Arc;
+use parking_lot::RwLock;
 use std::str;
 
 #[derive(Clone, Debug)]
@@ -28,7 +27,7 @@ pub struct CategoryRow {
 }
 
 impl CategoryRow {
-    pub fn new(model: &FeedListCategoryModel, visible: bool, sender: Sender<Action>) -> GtkHandle<CategoryRow> {
+    pub fn new(model: &FeedListCategoryModel, visible: bool, sender: Sender<Action>) -> Arc<RwLock<CategoryRow>> {
         let builder = BuilderHelper::new("category");
         let revealer = builder.get::<Revealer>("category_row");
         let level_margin = builder.get::<Box>("level_margin");
@@ -56,7 +55,7 @@ impl CategoryRow {
         if !visible {
             category.collapse();
         }
-        let handle = gtk_handle!(category);
+        let handle = Arc::new(RwLock::new(category));
         let handle1 = handle.clone();
 
         arrow_event.set_events(EventMask::BUTTON_PRESS_MASK);
@@ -84,9 +83,9 @@ impl CategoryRow {
                 EventType::ButtonPress => (),
                 _ => return gtk::Inhibit(false),
             }
-            let expanded = handle1.borrow().expanded;
+            let expanded = handle1.read().expanded;
             Self::rotate_arrow(&arrow_image.clone().upcast::<gtk::Widget>(), !expanded);
-            handle1.borrow_mut().expanded = !expanded;
+            handle1.write().expanded = !expanded;
             gtk::Inhibit(false)
         });
 

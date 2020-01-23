@@ -44,7 +44,7 @@ pub struct MainWindow {
     stack: Stack,
     header_stack: Stack,
     responsive_layout: ResponsiveLayout,
-    state: RwLock<MainWindowState>,
+    state: Arc<RwLock<MainWindowState>>,
     sender: Sender<Action>,
 }
 
@@ -103,7 +103,7 @@ impl MainWindow {
         let password_login_page = Rc::new(PasswordLogin::new(&builder, sender.clone()));
         let oauth_login_page = Rc::new(WebLogin::new(&builder, sender.clone()));
         let content_page = Rc::new(RwLock::new(ContentPage::new(&builder, &settings, sender.clone())));
-        let state = RwLock::new(MainWindowState::new());
+        let state = Arc::new(RwLock::new(MainWindowState::new()));
 
         Self::setup_shortcuts(&window, &sender, &content_page, &stack, &settings, &content_header);
 
@@ -332,7 +332,7 @@ impl MainWindow {
         StyleContext::add_provider_for_screen(&screen, &*provider.borrow(), 600);
     }
 
-    pub fn init(&self, news_flash: &RwLock<Option<NewsFlash>>) {
+    pub fn init(&self, news_flash: &Arc<RwLock<Option<NewsFlash>>>, thread_pool: ThreadPool) {
         self.stack.set_visible_child_name(CONTENT_PAGE);
         self.header_stack.set_visible_child_name(CONTENT_PAGE);
 
@@ -362,7 +362,7 @@ impl MainWindow {
                 if self
                     .content_page
                     .write()
-                    .update_article_list(&news_flash, &self.state, &self.undo_bar)
+                    .update_article_list(&news_flash, &self.state, &self.undo_bar, thread_pool)
                     .is_err()
                 {
                     Util::send(
@@ -473,11 +473,11 @@ impl MainWindow {
         }
     }
 
-    pub fn update_article_list(&self, news_flash: &RwLock<Option<NewsFlash>>) {
+    pub fn update_article_list(&self, news_flash: &Arc<RwLock<Option<NewsFlash>>>, thread_pool: ThreadPool) {
         if self
             .content_page
             .write()
-            .update_article_list(&news_flash, &self.state, &self.undo_bar)
+            .update_article_list(news_flash, &self.state, &self.undo_bar, thread_pool)
             .is_err()
         {
             Util::send(

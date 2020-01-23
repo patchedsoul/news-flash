@@ -1,13 +1,12 @@
 use crate::color::ColorRGBA;
-use crate::gtk_handle;
 use crate::sidebar::tag_list::models::TagListTagModel;
-use crate::util::{BuilderHelper, GtkHandle, GtkUtil};
+use crate::util::{BuilderHelper, GtkUtil};
 use cairo::{Context, FillRule};
 use gdk::WindowExt;
 use gtk::{Box, ContainerExt, Image, ImageExt, Label, LabelExt, ListBoxRow, ListBoxRowExt, StyleContextExt, WidgetExt};
 use news_flash::models::TagID;
-use std::cell::RefCell;
-use std::rc::Rc;
+use std::sync::Arc;
+use parking_lot::RwLock;
 use std::str;
 
 const DEFAULT_OUTER_COLOR: &str = "#FF0077";
@@ -22,7 +21,7 @@ pub struct TagRow {
 }
 
 impl TagRow {
-    pub fn new(model: &TagListTagModel) -> GtkHandle<Self> {
+    pub fn new(model: &TagListTagModel) -> Arc<RwLock<Self>> {
         let builder = BuilderHelper::new("tag");
         let tag_box = builder.get::<Box>("tag_row");
         let title_label = builder.get::<Label>("tag_title");
@@ -42,7 +41,7 @@ impl TagRow {
         };
         tag.update_title(&model.label);
 
-        gtk_handle!(tag)
+        Arc::new(RwLock::new(tag))
     }
 
     fn create_row(widget: &Box, _id: &TagID) -> ListBoxRow {

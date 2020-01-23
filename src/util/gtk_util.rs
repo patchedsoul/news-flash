@@ -13,11 +13,9 @@ use gtk::{
 use log::{error, warn};
 use news_flash::models::PixelIcon;
 use std::cell::RefCell;
-use std::collections::HashMap;
 use std::rc::Rc;
 
 pub type GtkHandle<T> = Rc<RefCell<T>>;
-pub type GtkHandleMap<T, K> = GtkHandle<HashMap<T, K>>;
 
 pub const GTK_RESOURCE_FILE_ERROR: &str = "Could not load file from resources. This should never happen!";
 pub const GTK_BUILDER_ERROR: &str = "Could not build GTK widget from UI file. This should never happen!";

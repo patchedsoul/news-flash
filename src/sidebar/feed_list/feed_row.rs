@@ -1,8 +1,7 @@
 use crate::app::Action;
-use crate::gtk_handle;
 use crate::sidebar::feed_list::models::FeedListFeedModel;
 use crate::undo_bar::UndoActionModel;
-use crate::util::{BuilderHelper, GtkHandle, GtkUtil, Util};
+use crate::util::{BuilderHelper, GtkUtil, Util};
 use cairo::{self, Format, ImageSurface};
 use futures::channel::oneshot;
 use futures::future::FutureExt;
@@ -16,8 +15,7 @@ use gtk::{
 };
 use news_flash::models::{CategoryID, FavIcon, Feed, FeedID};
 use parking_lot::RwLock;
-use std::cell::RefCell;
-use std::rc::Rc;
+use std::sync::Arc;
 use std::str;
 
 #[derive(Clone, Debug)]
@@ -28,12 +26,12 @@ pub struct FeedRow {
     item_count_event: EventBox,
     title: Label,
     revealer: Revealer,
-    hide_timeout: Rc<RwLock<Option<u32>>>,
+    hide_timeout: Arc<RwLock<Option<u32>>>,
     favicon: Image,
 }
 
 impl FeedRow {
-    pub fn new(model: &FeedListFeedModel, visible: bool, sender: Sender<Action>) -> GtkHandle<FeedRow> {
+    pub fn new(model: &FeedListFeedModel, visible: bool, sender: Sender<Action>) -> Arc<RwLock<FeedRow>> {
         let builder = BuilderHelper::new("feed");
         let revealer = builder.get::<Revealer>("feed_row");
         let level_margin = builder.get::<Box>("level_margin");
@@ -50,7 +48,7 @@ impl FeedRow {
             item_count: item_count_label,
             title: title_label,
             revealer,
-            hide_timeout: Rc::new(RwLock::new(None)),
+            hide_timeout: Arc::new(RwLock::new(None)),
             item_count_event,
             favicon,
         };
@@ -60,7 +58,7 @@ impl FeedRow {
         if !visible {
             feed.collapse();
         }
-        gtk_handle!(feed)
+        Arc::new(RwLock::new(feed))
     }
 
     fn create_row(

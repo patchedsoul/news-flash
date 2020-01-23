@@ -14,9 +14,11 @@ use crate::settings::Settings;
 use crate::sidebar::models::SidebarSelection;
 use crate::sidebar::{FeedListTree, SideBar, TagListModel};
 use crate::undo_bar::{UndoActionModel, UndoBar};
-use crate::util::{BuilderHelper, Util};
+use crate::util::{BuilderHelper, Util, CHANNEL_ERROR};
 use failure::ResultExt;
-use glib::Sender;
+use futures::executor::ThreadPool;
+use futures::channel::oneshot;
+use glib::{Sender, futures::FutureExt};
 use gtk::{Box, BoxExt, Button, WidgetExt};
 use libhandy::Leaflet;
 use news_flash::models::{Article, ArticleFilter, FatArticle, Feed, Marked, PluginCapabilities, PluginID, Read, NEWSFLASH_TOPLEVEL};
@@ -26,7 +28,7 @@ use std::sync::Arc;
 
 pub struct ContentPage {
     sidebar: SideBar,
-    article_list: ArticleList,
+    article_list: Arc<RwLock<ArticleList>>,
     article_view: ArticleView,
     settings: Arc<RwLock<Settings>>,
 }
@@ -42,11 +44,11 @@ impl ContentPage {
         minor_leaflet.set_hexpand(false);
 
         let sidebar = SideBar::new(sender.clone());
-        let article_list = ArticleList::new(settings, sender.clone());
+        let article_list = Arc::new(RwLock::new(ArticleList::new(settings, sender.clone())));
         let article_view = ArticleView::new(settings);
 
         feed_list_box.pack_start(&sidebar.widget(), false, true, 0);
-        article_list_box.pack_start(&article_list.widget(), false, true, 0);
+        article_list_box.pack_start(&article_list.read().widget(), false, true, 0);
         articleview_box.pack_start(&article_view.widget(), false, true, 0);
 
         let settings = settings.clone();
@@ -67,44 +69,80 @@ impl ContentPage {
     }
 
     pub fn update_article_list(
-        &mut self,
-        news_flash: &RwLock<Option<NewsFlash>>,
-        window_state: &RwLock<MainWindowState>,
+        &self,
+        news_flash: &Arc<RwLock<Option<NewsFlash>>>,
+        window_state: &Arc<RwLock<MainWindowState>>,
         undo_bar: &UndoBar,
+        thread_pool: ThreadPool,
     ) -> Result<(), ContentPageError> {
-        if let Some(news_flash) = news_flash.write().as_mut() {
-            let relevant_articles_loaded = self
-                .article_list
-                .get_relevant_article_count(window_state.read().get_header_selection());
-            let limit = if window_state.write().reset_article_list() {
-                MainWindowState::page_size()
-            } else if relevant_articles_loaded as i64 >= MainWindowState::page_size() {
-                relevant_articles_loaded as i64
-            } else {
-                MainWindowState::page_size()
-            };
-            let mut list_model = ArticleListModel::new(&self.settings.read().get_article_list_order());
-            let mut articles = Self::load_articles(news_flash, &window_state, &self.settings, undo_bar, limit, None)?;
 
-            let (feeds, _) = news_flash.get_feeds().context(ContentPageErrorKind::DataBase)?;
-            let _: Vec<Result<(), ContentPageError>> = articles
-                .drain(..)
-                .map(|article| {
-                    let feed = feeds
-                        .iter()
-                        .find(|&f| f.feed_id == article.feed_id)
-                        .ok_or_else(|| ContentPageErrorKind::FeedTitle)?;
-                    list_model
-                        .add(article, &feed)
-                        .context(ContentPageErrorKind::ArticleList)?;
-                    Ok(())
-                })
-                .collect();
-            self.article_list.update(list_model, window_state);
-            return Ok(());
-        }
+        let (sender, receiver) = oneshot::channel::<Result<ArticleListModel, ContentPageErrorKind>>();
 
-        Err(ContentPageErrorKind::NewsFlashHandle.into())
+        let relevant_articles_loaded = self.article_list
+            .read()
+            .get_relevant_article_count(window_state.read().get_header_selection());
+
+        let news_flash = news_flash.clone();
+        let window_state_clone = window_state.clone();
+        let current_undo_action = undo_bar.get_current_action();
+        let settings = self.settings.clone();
+        let thread_future = async move {
+            if let Some(news_flash) = news_flash.read().as_ref() {
+                let limit = if window_state_clone.write().reset_article_list() {
+                    MainWindowState::page_size()
+                } else if relevant_articles_loaded as i64 >= MainWindowState::page_size() {
+                    relevant_articles_loaded as i64
+                } else {
+                    MainWindowState::page_size()
+                };
+                let mut list_model = ArticleListModel::new(&settings.read().get_article_list_order());
+                let mut articles = match Self::load_articles(news_flash, &window_state_clone, &settings, &current_undo_action, limit, None) {
+                    Ok(articles) => articles,
+                    Err(error) => {
+                        sender.send(Err(error.kind())).expect(CHANNEL_ERROR);
+                        return;
+                    },
+                };
+    
+                let feeds = match news_flash.get_feeds() {
+                    Ok((feeds, _)) => feeds,
+                    Err(_error) => {
+                        sender.send(Err(ContentPageErrorKind::DataBase)).expect(CHANNEL_ERROR);
+                        return;
+                    },
+                };
+                let _: Vec<Result<(), ContentPageError>> = articles
+                    .drain(..)
+                    .map(|article| {
+                        let feed = feeds
+                            .iter()
+                            .find(|&f| f.feed_id == article.feed_id)
+                            .ok_or_else(|| ContentPageErrorKind::FeedTitle)?;
+                        list_model
+                            .add(article, &feed)
+                            .context(ContentPageErrorKind::ArticleList)?;
+                        Ok(())
+                    })
+                    .collect();
+
+                sender.send(Ok(list_model)).expect(CHANNEL_ERROR);
+            }
+        };
+
+        let window_state_clone = window_state.clone();
+        let article_list = self.article_list.clone();
+        let glib_future = receiver.map(move |res| {
+            if let Ok(res) = res {
+                if let Ok(article_list_model) = res {
+                    article_list.write().update(article_list_model, &window_state_clone);
+                }
+            }
+        });
+
+        thread_pool.spawn_ok(thread_future);
+        Util::glib_spawn_future(glib_future);
+
+        Ok(())
     }
 
     pub fn load_more_articles(
@@ -115,15 +153,17 @@ impl ContentPage {
     ) -> Result<(), ContentPageError> {
         let relevant_articles_loaded = self
             .article_list
+            .read()
             .get_relevant_article_count(window_state.read().get_header_selection());
         let mut list_model = ArticleListModel::new(&self.settings.read().get_article_list_order());
+        let current_undo_action = undo_bar.get_current_action();
 
-        if let Some(news_flash) = news_flash_handle.write().as_mut() {
+        if let Some(news_flash) = news_flash_handle.read().as_ref() {
             let mut articles = Self::load_articles(
                 news_flash,
                 &window_state,
                 &self.settings,
-                undo_bar,
+                &current_undo_action,
                 MainWindowState::page_size(),
                 Some(relevant_articles_loaded as i64),
             )?;
@@ -142,6 +182,7 @@ impl ContentPage {
                 })
                 .collect();
             self.article_list
+                .write()
                 .add_more_articles(list_model)
                 .context(ContentPageErrorKind::ArticleList)?;
             return Ok(());
@@ -151,10 +192,10 @@ impl ContentPage {
     }
 
     fn load_articles(
-        news_flash: &mut NewsFlash,
+        news_flash: &NewsFlash,
         window_state: &RwLock<MainWindowState>,
         settings: &Arc<RwLock<Settings>>,
-        undo_bar: &UndoBar,
+        current_undo_action: &Option<UndoActionModel>,
         limit: i64,
         offset: Option<i64>,
     ) -> Result<Vec<Article>, ContentPageError> {
@@ -179,10 +220,10 @@ impl ContentPage {
             SidebarSelection::Tag((id, _title)) => Some(id.clone()),
         };
         let search_term = window_state.read().get_search_term().clone();
-        let (feed_blacklist, category_blacklist) = match undo_bar.get_current_action() {
+        let (feed_blacklist, category_blacklist) = match current_undo_action {
             Some(action) => match action {
-                UndoActionModel::DeleteFeed((feed_id, _label)) => (Some(vec![feed_id]), None),
-                UndoActionModel::DeleteCategory((category_id, _label)) => (None, Some(vec![category_id])),
+                UndoActionModel::DeleteFeed((feed_id, _label)) => (Some(vec![feed_id.clone()]), None),
+                UndoActionModel::DeleteCategory((category_id, _label)) => (None, Some(vec![category_id.clone()])),
                 UndoActionModel::DeleteTag((_tag_id, _label)) => (None, None),
             },
             None => (None, None),
@@ -216,7 +257,7 @@ impl ContentPage {
         state: &RwLock<MainWindowState>,
         undo_bar: &UndoBar,
     ) -> Result<(), ContentPageError> {
-        if let Some(news_flash) = news_flash.write().as_mut() {
+        if let Some(news_flash) = news_flash.read().as_ref() {
             let mut tree = FeedListTree::new();
             let categories = news_flash.get_categories().context(ContentPageErrorKind::DataBase)?;
             let (feeds, mappings) = news_flash.get_feeds().context(ContentPageErrorKind::DataBase)?;
@@ -338,6 +379,7 @@ impl ContentPage {
 
             self.sidebar.update_feedlist(tree);
             self.sidebar.update_all(total_item_count);
+
             return Ok(());
         }
 
@@ -372,15 +414,15 @@ impl ContentPage {
     }
 
     pub fn select_next_article(&self) {
-        self.article_list.select_next_article()
+        self.article_list.read().select_next_article()
     }
 
     pub fn select_prev_article(&self) {
-        self.article_list.select_prev_article()
+        self.article_list.read().select_prev_article()
     }
 
     pub fn get_selected_article_model(&self) -> Option<ArticleListArticleModel> {
-        self.article_list.get_selected_article_model()
+        self.article_list.read().get_selected_article_model()
     }
 
     pub fn sidebar_select_next_item(&self) -> Result<(), ContentPageError> {

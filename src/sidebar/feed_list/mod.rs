@@ -4,7 +4,6 @@ pub mod feed_row;
 pub mod models;
 
 use crate::app::Action;
-use crate::gtk_handle;
 use crate::sidebar::feed_list::error::{FeedListError, FeedListErrorKind};
 use crate::sidebar::feed_list::{
     category_row::CategoryRow,
@@ -15,7 +14,7 @@ use crate::sidebar::feed_list::{
     },
 };
 use crate::sidebar::SidebarIterateItem;
-use crate::util::{BuilderHelper, GtkHandle, GtkHandleMap, GtkUtil, Util};
+use crate::util::{BuilderHelper, GtkUtil, Util};
 use gdk::{DragAction, EventType};
 use glib::{translate::ToGlib, Sender};
 use gtk::{
@@ -24,20 +23,20 @@ use gtk::{
 };
 use log::error;
 use news_flash::models::{CategoryID, FeedID};
-use std::cell::RefCell;
 use std::collections::HashMap;
-use std::rc::Rc;
+use std::sync::Arc;
+use parking_lot::RwLock;
 
 #[derive(Clone, Debug)]
 pub struct FeedList {
     list: ListBox,
     scroll: ScrolledWindow,
     sender: Sender<Action>,
-    categories: GtkHandleMap<CategoryID, GtkHandle<CategoryRow>>,
-    feeds: GtkHandleMap<FeedID, GtkHandle<FeedRow>>,
-    tree: GtkHandle<FeedListTree>,
-    delayed_selection: GtkHandle<Option<u32>>,
-    hovered_category_expand: GtkHandle<Option<(u32, CategoryID)>>,
+    categories: Arc<RwLock<HashMap<CategoryID, Arc<RwLock<CategoryRow>>>>>,
+    feeds: Arc<RwLock<HashMap<FeedID, Arc<RwLock<FeedRow>>>>>,
+    tree: Arc<RwLock<FeedListTree>>,
+    delayed_selection: Arc<RwLock<Option<u32>>>,
+    hovered_category_expand: Arc<RwLock<Option<(u32, CategoryID)>>>,
 }
 
 impl FeedList {
@@ -59,11 +58,11 @@ impl FeedList {
             list: list_box,
             scroll: sidebar_scroll.clone(),
             sender,
-            categories: gtk_handle!(HashMap::new()),
-            feeds: gtk_handle!(HashMap::new()),
-            tree: gtk_handle!(FeedListTree::new()),
-            delayed_selection: gtk_handle!(None),
-            hovered_category_expand: gtk_handle!(None),
+            categories: Arc::new(RwLock::new(HashMap::new())),
+            feeds: Arc::new(RwLock::new(HashMap::new())),
+            tree: Arc::new(RwLock::new(FeedListTree::new())),
+            delayed_selection: Arc::new(RwLock::new(None)),
+            hovered_category_expand: Arc::new(RwLock::new(None)),
         };
         feed_list.setup_dnd();
         feed_list
@@ -73,12 +72,12 @@ impl FeedList {
         self.list.clone()
     }
 
-    fn clear_hovered_expand(hovered_category_expand: &GtkHandle<Option<(u32, CategoryID)>>) {
-        if hovered_category_expand.borrow().is_some() {
-            if let Some((saved_source, _saved_id)) = &*hovered_category_expand.borrow() {
+    fn clear_hovered_expand(hovered_category_expand: &Arc<RwLock<Option<(u32, CategoryID)>>>) {
+        if hovered_category_expand.read().is_some() {
+            if let Some((saved_source, _saved_id)) = &*hovered_category_expand.read() {
                 GtkUtil::remove_source(Some(*saved_source));
             }
-            hovered_category_expand.replace(None);
+            *hovered_category_expand.write() = None;
         }
     }
 
@@ -126,11 +125,11 @@ impl FeedList {
                         }
 
                         // expand/collapse category on 1.2s hover
-                        let hover = tree.borrow().calculate_selection(index);
+                        let hover = tree.read().calculate_selection(index);
                         if let Some(hovered_item) = hover {
                             if let (FeedListItemID::Category(id), _title) = hovered_item {
                                 let mut start_hover = false;
-                                if let Some((saved_source, saved_id)) = &*hovered_category_expand.borrow() {
+                                if let Some((saved_source, saved_id)) = &*hovered_category_expand.read() {
                                     if saved_id != &id {
                                         GtkUtil::remove_source(Some(*saved_source));
                                         start_hover = true;
@@ -146,18 +145,18 @@ impl FeedList {
                                     let id2 = id.clone();
                                     let hovered_category_expand2 = hovered_category_expand.clone();
 
-                                    hovered_category_expand.replace(Some((
+                                    *hovered_category_expand.write() = Some((
                                         gtk::timeout_add(1200, move || {
-                                            if let Some(category_row) = categories2.borrow().get(&id2) {
-                                                category_row.borrow_mut().expand_collapse_arrow();
+                                            if let Some(category_row) = categories2.read().get(&id2) {
+                                                category_row.write().expand_collapse_arrow();
                                                 Self::expand_collapse_category(&id2, &tree2, &categories2, &feeds2);
                                             }
-                                            hovered_category_expand2.replace(None);
+                                            *hovered_category_expand2.write() = None;
                                             Continue(false)
                                         })
                                         .to_glib(),
                                         id,
-                                    )));
+                                    ));
                                 }
                             }
                         }
@@ -168,19 +167,19 @@ impl FeedList {
                     Self::clear_hovered_expand(&hovered_category_expand);
 
                     // check next visible item
-                    let next_item = tree.borrow_mut().calculate_next_item(index);
+                    let next_item = tree.write().calculate_next_item(index);
                     if let SidebarIterateItem::SelectFeedListCategory(id) = &next_item {
-                        if let Some(category_row) = categories.borrow().get(&id) {
+                        if let Some(category_row) = categories.read().get(&id) {
                             if let Some(ctx) =
-                                GtkUtil::get_dnd_style_context_listboxrow(&category_row.borrow().widget())
+                                GtkUtil::get_dnd_style_context_listboxrow(&category_row.read().widget())
                             {
                                 ctx.add_class("drag-top");
                                 return Inhibit(false);
                             }
                         }
                     } else if let SidebarIterateItem::SelectFeedListFeed(id) = &next_item {
-                        if let Some(feed_row) = feeds.borrow().get(&id) {
-                            if let Some(ctx) = GtkUtil::get_dnd_style_context_listboxrow(&feed_row.borrow().widget()) {
+                        if let Some(feed_row) = feeds.read().get(&id) {
+                            if let Some(ctx) = GtkUtil::get_dnd_style_context_listboxrow(&feed_row.read().widget()) {
                                 ctx.add_class("drag-top");
                                 return Inhibit(false);
                             }
@@ -244,7 +243,7 @@ impl FeedList {
                         index
                     };
 
-                    if let Ok((parent_category, sort_index)) = tree.borrow().calculate_dnd(index).map_err(|_| {
+                    if let Ok((parent_category, sort_index)) = tree.read().calculate_dnd(index).map_err(|_| {
                         error!("Failed to calculate Drag&Drop action");
                     }) {
                         if let Some(dnd_data_string) = selection_data.get_text() {
@@ -284,21 +283,23 @@ impl FeedList {
     }
 
     pub fn update(&mut self, new_tree: FeedListTree) {
-        let old_tree = self.tree.replace(new_tree);
-        let tree_diff = old_tree.generate_diff(&mut self.tree.borrow_mut());
+        let mut old_tree = new_tree;
+        std::mem::swap(&mut old_tree, &mut *self.tree.write());
+
+        let tree_diff = old_tree.generate_diff(&mut self.tree.write());
         for diff in tree_diff {
             match diff {
                 FeedListChangeSet::RemoveFeed(feed_id) => {
-                    if let Some(feed_handle) = self.feeds.borrow().get(&feed_id) {
-                        self.list.remove(&feed_handle.borrow().widget());
+                    if let Some(feed_handle) = self.feeds.read().get(&feed_id) {
+                        self.list.remove(&feed_handle.read().widget());
                     }
-                    self.feeds.borrow_mut().remove(&feed_id);
+                    self.feeds.write().remove(&feed_id);
                 }
                 FeedListChangeSet::RemoveCategory(category_id) => {
-                    if let Some(category_handle) = self.categories.borrow().get(&category_id) {
-                        self.list.remove(&category_handle.borrow().widget());
+                    if let Some(category_handle) = self.categories.read().get(&category_id) {
+                        self.list.remove(&category_handle.read().widget());
                     }
-                    self.categories.borrow_mut().remove(&category_id);
+                    self.categories.write().remove(&category_id);
                 }
                 FeedListChangeSet::AddFeed(model, pos, visible) => {
                     self.add_feed(&model, pos, visible);
@@ -307,23 +308,23 @@ impl FeedList {
                     self.add_category(&model, pos, visible);
                 }
                 FeedListChangeSet::FeedUpdateItemCount(id, count) => {
-                    if let Some(feed_handle) = self.feeds.borrow().get(&id) {
-                        feed_handle.borrow().update_item_count(count);
+                    if let Some(feed_handle) = self.feeds.read().get(&id) {
+                        feed_handle.read().update_item_count(count);
                     }
                 }
                 FeedListChangeSet::CategoryUpdateItemCount(id, count) => {
-                    if let Some(category_handle) = self.categories.borrow().get(&id) {
-                        category_handle.borrow().update_item_count(count);
+                    if let Some(category_handle) = self.categories.read().get(&id) {
+                        category_handle.read().update_item_count(count);
                     }
                 }
                 FeedListChangeSet::FeedUpdateLabel(id, label) => {
-                    if let Some(feed_handle) = self.feeds.borrow().get(&id) {
-                        feed_handle.borrow().update_title(&label);
+                    if let Some(feed_handle) = self.feeds.read().get(&id) {
+                        feed_handle.read().update_title(&label);
                     }
                 }
                 FeedListChangeSet::CategoryUpdateLabel(id, label) => {
-                    if let Some(category_handle) = self.categories.borrow().get(&id) {
-                        category_handle.borrow().update_title(&label);
+                    if let Some(category_handle) = self.categories.read().get(&id) {
+                        category_handle.read().update_title(&label);
                     }
                 }
             }
@@ -336,13 +337,13 @@ impl FeedList {
         let categories = self.categories.clone();
         let category_id = category.id.clone();
         let tree = self.tree.clone();
-        self.list.insert(&category_widget.borrow().widget(), pos);
+        self.list.insert(&category_widget.read().widget(), pos);
         self.categories
-            .borrow_mut()
+            .write()
             .insert(category.id.clone(), category_widget.clone());
 
         category_widget
-            .borrow()
+            .read()
             .expander_event()
             .connect_button_press_event(move |_widget, event| {
                 if event.get_button() != 1 {
@@ -359,11 +360,11 @@ impl FeedList {
 
     pub fn expand_collapse_selected_category(&self) {
         if let Some(row) = self.list.get_selected_row() {
-            let selection = self.tree.borrow().calculate_selection(row.get_index());
+            let selection = self.tree.read().calculate_selection(row.get_index());
             if let Some(selected_item) = selection {
                 if let (FeedListItemID::Category(id), _title) = selected_item {
-                    if let Some(category_row) = self.categories.borrow().get(&id) {
-                        category_row.borrow_mut().expand_collapse_arrow();
+                    if let Some(category_row) = self.categories.read().get(&id) {
+                        category_row.write().expand_collapse_arrow();
                         Self::expand_collapse_category(&id, &self.tree, &self.categories, &self.feeds);
                     }
                 }
@@ -373,26 +374,26 @@ impl FeedList {
 
     fn expand_collapse_category(
         category_id: &CategoryID,
-        tree: &GtkHandle<FeedListTree>,
-        categories: &GtkHandleMap<CategoryID, GtkHandle<CategoryRow>>,
-        feeds: &GtkHandleMap<FeedID, GtkHandle<FeedRow>>,
+        tree: &Arc<RwLock<FeedListTree>>,
+        categories: &Arc<RwLock<HashMap<CategoryID, Arc<RwLock<CategoryRow>>>>>,
+        feeds: &Arc<RwLock<HashMap<FeedID, Arc<RwLock<FeedRow>>>>>,
     ) {
-        if let Some((feed_ids, category_ids, expaneded)) = tree.borrow_mut().collapse_expand_category(category_id) {
+        if let Some((feed_ids, category_ids, expaneded)) = tree.write().collapse_expand_category(category_id) {
             for feed_id in feed_ids {
-                if let Some(feed_handle) = feeds.borrow().get(&feed_id) {
+                if let Some(feed_handle) = feeds.read().get(&feed_id) {
                     if expaneded {
-                        feed_handle.borrow_mut().expand();
+                        feed_handle.write().expand();
                     } else {
-                        feed_handle.borrow_mut().collapse();
+                        feed_handle.write().collapse();
                     }
                 }
             }
             for category_id in category_ids {
-                if let Some(category_handle) = categories.borrow().get(&category_id) {
+                if let Some(category_handle) = categories.read().get(&category_id) {
                     if expaneded {
-                        category_handle.borrow_mut().expand();
+                        category_handle.write().expand();
                     } else {
-                        category_handle.borrow_mut().collapse();
+                        category_handle.write().collapse();
                     }
                 }
             }
@@ -401,8 +402,8 @@ impl FeedList {
 
     fn add_feed(&mut self, feed: &FeedListFeedModel, pos: i32, visible: bool) {
         let feed_widget = FeedRow::new(feed, visible, self.sender.clone());
-        self.list.insert(&feed_widget.borrow().widget(), pos);
-        self.feeds.borrow_mut().insert(feed.id.clone(), feed_widget);
+        self.list.insert(&feed_widget.read().widget(), pos);
+        self.feeds.write().insert(feed.id.clone(), feed_widget);
     }
 
     pub fn deselect(&self) {
@@ -412,13 +413,13 @@ impl FeedList {
     pub fn get_selection(&self) -> Option<(FeedListItemID, String)> {
         if let Some(row) = self.list.get_selected_row() {
             let index = row.get_index();
-            return self.tree.borrow().calculate_selection(index);
+            return self.tree.read().calculate_selection(index);
         }
         None
     }
 
     pub fn get_first_item(&self) -> Option<FeedListItemID> {
-        self.tree.borrow().top_level.first().map(|item| match item {
+        self.tree.read().top_level.first().map(|item| match item {
             FeedListItem::Feed(item) => FeedListItemID::Feed(item.id.clone()),
             FeedListItem::Category(item) => FeedListItemID::Category(item.id.clone()),
         })
@@ -428,7 +429,7 @@ impl FeedList {
         let last_item = if last_item.is_some() {
             last_item
         } else {
-            self.tree.borrow().top_level.last().cloned()
+            self.tree.read().top_level.last().cloned()
         };
 
         if let Some(last) = last_item {
@@ -454,12 +455,12 @@ impl FeedList {
         self.cancel_selection();
 
         let row = match selection {
-            FeedListItemID::Category(category) => match self.categories.borrow().get(&category) {
-                Some(category_row) => category_row.borrow().widget(),
+            FeedListItemID::Category(category) => match self.categories.read().get(&category) {
+                Some(category_row) => category_row.read().widget(),
                 None => return Err(FeedListErrorKind::CategoryNotFound.into()),
             },
-            FeedListItemID::Feed(feed) => match self.feeds.borrow().get(&feed) {
-                Some(feed_row) => feed_row.borrow().widget(),
+            FeedListItemID::Feed(feed) => match self.feeds.read().get(&feed) {
+                Some(feed_row) => feed_row.read().widget(),
                 None => return Err(FeedListErrorKind::FeedNotFound.into()),
             },
         };
@@ -472,10 +473,10 @@ impl FeedList {
 
             let row = row.clone();
             let source_id = delayed_selection.clone();
-            *delayed_selection.borrow_mut() = Some(
+            *delayed_selection.write() = Some(
                 gtk::timeout_add(300, move || {
                     row.emit_activate();
-                    *source_id.borrow_mut() = None;
+                    *source_id.write() = None;
                     Continue(false)
                 })
                 .to_glib(),
@@ -488,14 +489,14 @@ impl FeedList {
     }
 
     pub fn cancel_selection(&self) {
-        GtkUtil::remove_source(*self.delayed_selection.borrow());
-        *self.delayed_selection.borrow_mut() = None;
+        GtkUtil::remove_source(*self.delayed_selection.read());
+        *self.delayed_selection.write() = None;
     }
 
     pub fn select_next_item(&self) -> SidebarIterateItem {
         if let Some(row) = self.list.get_selected_row() {
             let index = row.get_index();
-            return self.tree.borrow_mut().calculate_next_item(index);
+            return self.tree.write().calculate_next_item(index);
         }
         SidebarIterateItem::NothingSelected
     }
@@ -503,7 +504,7 @@ impl FeedList {
     pub fn select_prev_item(&self) -> SidebarIterateItem {
         if let Some(row) = self.list.get_selected_row() {
             let index = row.get_index();
-            return self.tree.borrow_mut().calculate_prev_item(index);
+            return self.tree.write().calculate_prev_item(index);
         }
         SidebarIterateItem::NothingSelected
     }

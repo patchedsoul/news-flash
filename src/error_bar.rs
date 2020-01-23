@@ -1,19 +1,19 @@
 use crate::error_dialog::ErrorDialog;
-use crate::gtk_handle;
-use crate::util::{BuilderHelper, GtkHandle, GtkUtil};
+use crate::util::{BuilderHelper, GtkUtil};
 use glib::translate::ToGlib;
 use gtk::{Button, ButtonExt, InfoBar, InfoBarExt, Label, LabelExt, ResponseType, WidgetExt};
 use log::error;
 use news_flash::NewsFlashError;
-use std::cell::RefCell;
-use std::rc::Rc;
+use parking_lot::RwLock;
+use std::sync::Arc;
+
 
 #[derive(Clone, Debug)]
 pub struct ErrorBar {
     widget: InfoBar,
     label: Label,
     button: Button,
-    click_signal: GtkHandle<Option<u64>>,
+    click_signal: Arc<RwLock<Option<u64>>>,
 }
 
 impl ErrorBar {
@@ -22,7 +22,7 @@ impl ErrorBar {
             widget: builder.get::<InfoBar>("error_bar"),
             label: builder.get::<Label>("error_label"),
             button: builder.get::<Button>("info_button"),
-            click_signal: gtk_handle!(None),
+            click_signal: Arc::new(RwLock::new(None)),
         };
 
         error_bar.init();
@@ -39,7 +39,7 @@ impl ErrorBar {
         self.widget.connect_response(move |info_bar, response_type| {
             if response_type == ResponseType::Close {
                 info_bar.set_revealed(false);
-                GtkUtil::disconnect_signal_handle(&click_signal, &button);
+                GtkUtil::disconnect_signal(*click_signal.read(), &button);
             }
         });
     }
@@ -55,9 +55,9 @@ impl ErrorBar {
         self.widget.set_revealed(true);
         self.button.set_visible(true);
 
-        GtkUtil::disconnect_signal_handle(&self.click_signal, &self.button);
+        GtkUtil::disconnect_signal(*self.click_signal.read(), &self.button);
 
-        self.click_signal.replace(Some(
+        *self.click_signal.write() = Some(
             self.button
                 .connect_clicked(move |button| {
                     if let Ok(parent) = GtkUtil::get_main_window(button) {
@@ -67,6 +67,6 @@ impl ErrorBar {
                     }
                 })
                 .to_glib(),
-        ));
+        );
     }
 }
