@@ -147,48 +147,79 @@ impl ContentPage {
 
     pub fn load_more_articles(
         &mut self,
-        news_flash_handle: &RwLock<Option<NewsFlash>>,
-        window_state: &RwLock<MainWindowState>,
+        news_flash_handle: &Arc<RwLock<Option<NewsFlash>>>,
+        window_state: &Arc<RwLock<MainWindowState>>,
         undo_bar: &UndoBar,
+        thread_pool: ThreadPool,
     ) -> Result<(), ContentPageError> {
+
+        let (sender, receiver) = oneshot::channel::<Result<ArticleListModel, ContentPageErrorKind>>();
+
         let relevant_articles_loaded = self
             .article_list
             .read()
             .get_relevant_article_count(window_state.read().get_header_selection());
-        let mut list_model = ArticleListModel::new(&self.settings.read().get_article_list_order());
+        
         let current_undo_action = undo_bar.get_current_action();
+        let settings = self.settings.clone();
+        let news_flash = news_flash_handle.clone();
+        let window_state = window_state.clone();
+        let thread_future = async move {
+            let mut list_model = ArticleListModel::new(&settings.read().get_article_list_order());
+            
+            if let Some(news_flash) = news_flash.read().as_ref() {
+                let mut articles = match Self::load_articles(
+                    news_flash,
+                    &window_state,
+                    &settings,
+                    &current_undo_action,
+                    MainWindowState::page_size(),
+                    Some(relevant_articles_loaded as i64),
+                ) {
+                    Ok(articles) => articles,
+                    Err(error) => {
+                        sender.send(Err(error.kind())).expect(CHANNEL_ERROR);
+                        return;
+                    },
+                };
+                let feeds = match news_flash.get_feeds() {
+                    Ok((feeds, _)) => feeds,
+                    Err(_error) => {
+                        sender.send(Err(ContentPageErrorKind::DataBase)).expect(CHANNEL_ERROR);
+                        return;
+                    },
+                };
+                let _: Vec<Result<(), ContentPageError>> = articles
+                    .drain(..)
+                    .map(|article| {
+                        let feed = feeds
+                            .iter()
+                            .find(|&f| f.feed_id == article.feed_id)
+                            .ok_or_else(|| ContentPageErrorKind::FeedTitle)?;
+                        list_model
+                            .add(article, &feed)
+                            .context(ContentPageErrorKind::ArticleList)?;
+                        Ok(())
+                    })
+                    .collect();
+                
+                sender.send(Ok(list_model)).expect(CHANNEL_ERROR);
+            }
+        };
 
-        if let Some(news_flash) = news_flash_handle.read().as_ref() {
-            let mut articles = Self::load_articles(
-                news_flash,
-                &window_state,
-                &self.settings,
-                &current_undo_action,
-                MainWindowState::page_size(),
-                Some(relevant_articles_loaded as i64),
-            )?;
-            let (feeds, _) = news_flash.get_feeds().context(ContentPageErrorKind::DataBase)?;
-            let _: Vec<Result<(), ContentPageError>> = articles
-                .drain(..)
-                .map(|article| {
-                    let feed = feeds
-                        .iter()
-                        .find(|&f| f.feed_id == article.feed_id)
-                        .ok_or_else(|| ContentPageErrorKind::FeedTitle)?;
-                    list_model
-                        .add(article, &feed)
-                        .context(ContentPageErrorKind::ArticleList)?;
-                    Ok(())
-                })
-                .collect();
-            self.article_list
-                .write()
-                .add_more_articles(list_model)
-                .context(ContentPageErrorKind::ArticleList)?;
-            return Ok(());
-        }
+        let article_list = self.article_list.clone();
+        let glib_future = receiver.map(move |res| {
+            if let Ok(res) = res {
+                if let Ok(article_list_model) = res {
+                    article_list.write().add_more_articles(article_list_model);
+                }
+            }
+        });
 
-        Err(ContentPageErrorKind::NewsFlashHandle.into())
+        thread_pool.spawn_ok(thread_future);
+        Util::glib_spawn_future(glib_future);
+
+        Ok(())
     }
 
     fn load_articles(

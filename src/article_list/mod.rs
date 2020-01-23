@@ -1,16 +1,13 @@
 mod article_row;
-mod error;
 mod models;
 mod single;
 
-use self::error::{ArticleListError, ArticleListErrorKind};
 use crate::app::Action;
 use crate::content_page::HeaderSelection;
 use crate::main_window_state::MainWindowState;
 use crate::settings::Settings;
 use crate::sidebar::models::SidebarSelection;
 use crate::util::{BuilderHelper, GtkUtil, Util};
-use failure::ResultExt;
 use glib::{translate::ToGlib, Sender};
 use gtk::{Continue, Label, LabelExt, ListBoxExt, ListBoxRowExt, ScrolledWindow, Stack, StackExt, StackTransitionType};
 use models::ArticleListChangeSet;
@@ -136,18 +133,17 @@ impl ArticleList {
         self.window_state = new_state.read().clone();
     }
 
-    pub fn add_more_articles(&mut self, new_list: ArticleListModel) -> Result<(), ArticleListError> {
+    pub fn add_more_articles(&mut self, new_list: ArticleListModel) {
         let list = match *self.current_list.read() {
             CurrentList::List1 => &mut self.list_1,
             CurrentList::List2 => &mut self.list_2,
-            CurrentList::Empty => return Err(ArticleListErrorKind::EmptyState.into()),
+            CurrentList::Empty => return,
         };
 
         for model in new_list.models() {
             self.list_model
                 .write()
-                .add_model(model.clone())
-                .context(ArticleListErrorKind::Model)?;
+                .add_model(model.clone());
             let model = model.clone();
             let list = list.clone();
             let list_model = self.list_model.clone();
@@ -156,8 +152,6 @@ impl ArticleList {
                 Continue(false)
             });
         }
-
-        Ok(())
     }
 
     fn execute_diff(&self, diff: Vec<ArticleListChangeSet>) {

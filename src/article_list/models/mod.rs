@@ -42,14 +42,13 @@ impl ArticleListModel {
         Ok(())
     }
 
-    pub fn add_model(&mut self, model: ArticleListArticleModel) -> Result<(), ArticleListModelError> {
+    pub fn add_model(&mut self, model: ArticleListArticleModel) {
         if self.contains(&model.id) {
             warn!("Listmodel already contains id {}", model.id);
-            return Err(ArticleListModelErrorKind::AlreadyContainsArticle.into());
+            return;
         }
         self.ids.insert(model.id.clone());
         self.models.push(model);
-        Ok(())
     }
 
     pub fn contains(&self, article_id: &ArticleID) -> bool {

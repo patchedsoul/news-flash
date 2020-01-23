@@ -487,11 +487,11 @@ impl MainWindow {
         }
     }
 
-    pub fn load_more_articles(&self, news_flash: &RwLock<Option<NewsFlash>>) {
+    pub fn load_more_articles(&self, news_flash: &Arc<RwLock<Option<NewsFlash>>>, thread_pool: ThreadPool) {
         if self
             .content_page
             .write()
-            .load_more_articles(&news_flash, &self.state, &self.undo_bar)
+            .load_more_articles(&news_flash, &self.state, &self.undo_bar, thread_pool)
             .is_err()
         {
             Util::send(

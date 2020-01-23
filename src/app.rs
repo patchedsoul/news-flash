@@ -188,7 +188,7 @@ impl App {
             Action::ToggleArticleMarked => self.toggle_article_marked(),
             Action::UpdateSidebar => self.window.update_sidebar(&self.news_flash),
             Action::UpdateArticleList => self.window.update_article_list(&self.news_flash, self.threadpool.clone()),
-            Action::LoadMoreArticles => self.window.load_more_articles(&self.news_flash),
+            Action::LoadMoreArticles => self.window.load_more_articles(&self.news_flash, self.threadpool.clone()),
             Action::SidebarSelection(selection) => self.window.sidebar_selection(selection),
             Action::SidebarSelectNext => self.window.content_page.read().select_next_article(),
             Action::SidebarSelectPrev => self.window.content_page.read().select_prev_article(),
