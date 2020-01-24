@@ -5,9 +5,10 @@ use super::feed::FeedListFeedModel;
 use super::item::FeedListItem;
 use super::FeedListItemID;
 use crate::sidebar::SidebarIterateItem;
+use serde::{Serialize, Deserialize};
 use news_flash::models::{Category, CategoryID, Feed, FeedID, FeedMapping, NEWSFLASH_TOPLEVEL};
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct FeedListTree {
     top_level_id: CategoryID,
     pub top_level: Vec<FeedListItem>,

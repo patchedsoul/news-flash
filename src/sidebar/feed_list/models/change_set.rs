@@ -1,9 +1,10 @@
 use super::category::FeedListCategoryModel;
 use super::feed::FeedListFeedModel;
 use news_flash::models::{CategoryID, FeedID};
+use serde::{Serialize, Deserialize};
 use std::fmt;
 
-#[derive(Debug)]
+#[derive(Debug, Serialize, Deserialize)]
 pub enum FeedListChangeSet {
     RemoveFeed(FeedID),
     RemoveCategory(CategoryID),

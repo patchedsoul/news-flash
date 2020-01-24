@@ -4,8 +4,9 @@ use std;
 use std::cmp::Ordering;
 use std::fmt;
 use std::hash::{Hash, Hasher};
+use serde::{Serialize, Deserialize};
 
-#[derive(Eq, Clone, Debug)]
+#[derive(Eq, Clone, Debug, Serialize, Deserialize)]
 pub struct FeedListCategoryModel {
     pub id: CategoryID,
     pub parent_id: CategoryID,

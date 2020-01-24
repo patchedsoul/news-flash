@@ -4,13 +4,13 @@ use news_flash::models::{CategoryID, FeedID};
 use serde::{Deserialize, Serialize};
 use std::cmp::Ordering;
 
-#[derive(Clone, Debug, Serialize, Deserialize)]
+#[derive(Clone, Debug)]
 pub enum FeedListItemID {
     Category(CategoryID),
     Feed(FeedID),
 }
 
-#[derive(Eq, Clone, Debug)]
+#[derive(Eq, Clone, Debug, Serialize, Deserialize)]
 pub enum FeedListItem {
     Feed(FeedListFeedModel),
     Category(FeedListCategoryModel),

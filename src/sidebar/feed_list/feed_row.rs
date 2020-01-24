@@ -186,9 +186,11 @@ impl FeedRow {
         }
     }
 
-    pub fn update_favicon(&self, feed: &Feed, global_sender: &Sender<Action>) {
+    pub fn update_favicon(&self, feed: &Option<Feed>, global_sender: &Sender<Action>) {
         let (sender, receiver) = oneshot::channel::<Option<FavIcon>>();
-        Util::send(global_sender, Action::LoadFavIcon((feed.clone(), sender)));
+        if let Some(feed) = feed {
+            Util::send(global_sender, Action::LoadFavIcon((feed.clone(), sender)));
+        }
 
         let favicon = self.favicon.clone();
         let scale = GtkUtil::get_scale(&self.widget());

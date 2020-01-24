@@ -2,8 +2,9 @@ use news_flash::models::{CategoryID, Feed, FeedID, FeedMapping};
 use std;
 use std::cmp::Ordering;
 use std::fmt;
+use serde::{Serialize, Deserialize};
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct FeedListFeedModel {
     pub id: FeedID,
     pub parent_id: CategoryID,
@@ -11,7 +12,8 @@ pub struct FeedListFeedModel {
     pub sort_index: i32,
     pub level: i32,
     pub item_count: i64,
-    pub news_flash_model: Feed,
+    #[serde(skip)]
+    pub news_flash_model: Option<Feed>,
 }
 
 impl FeedListFeedModel {
@@ -26,7 +28,7 @@ impl FeedListFeedModel {
             },
             level,
             item_count,
-            news_flash_model: feed.clone(),
+            news_flash_model: Some(feed.clone()),
         }
     }
 }
