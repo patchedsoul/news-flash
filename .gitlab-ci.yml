@@ -7,7 +7,7 @@ variables:
     BUNDLE: "newsflash-dev.flatpak"
 
 flatpak:
-    image: "docker.io/bilelmoussaoui/rust-nightly:master"
+    image: "registry.gitlab.gnome.org/gnome/gnome-runtime-images/rust_bundle:master"
     stage: "test"
     variables:
         MANIFEST_PATH: "build-aux/com.gitlab.newsflash.json"
