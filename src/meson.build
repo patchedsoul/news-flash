@@ -74,7 +74,7 @@ newsflash_sources = files(
   'sidebar/error.rs',
   'sidebar/mod.rs',
   'undo_bar/models/mod.rs',
-  'undo_bar/mod.rs'
+  'undo_bar/mod.rs',
   'util/builder_helper.rs',
   'util/date_util.rs',
   'util/error.rs',
