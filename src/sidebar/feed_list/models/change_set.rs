@@ -1,7 +1,7 @@
 use super::category::FeedListCategoryModel;
 use super::feed::FeedListFeedModel;
 use news_flash::models::{CategoryID, FeedID};
-use serde::{Serialize, Deserialize};
+use serde::{Deserialize, Serialize};
 use std::fmt;
 
 #[derive(Debug, Serialize, Deserialize)]

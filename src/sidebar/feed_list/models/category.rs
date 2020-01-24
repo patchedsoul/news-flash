@@ -1,10 +1,10 @@
 use super::item::FeedListItem;
 use news_flash::models::{Category, CategoryID};
+use serde::{Deserialize, Serialize};
 use std;
 use std::cmp::Ordering;
 use std::fmt;
 use std::hash::{Hash, Hasher};
-use serde::{Serialize, Deserialize};
 
 #[derive(Eq, Clone, Debug, Serialize, Deserialize)]
 pub struct FeedListCategoryModel {

@@ -15,15 +15,15 @@ pub use gtk_util::GTK_CSS_ERROR;
 pub use gtk_util::GTK_RESOURCE_FILE_ERROR;
 pub use stopwatch::StopWatch;
 
-use crate::app::Action;
 use self::error::{UtilError, UtilErrorKind};
-use glib::Sender;
-use serde::Serialize;
+use crate::app::Action;
 use failure::ResultExt;
+use glib::Sender;
 use news_flash::models::{Category, CategoryID, FeedID, FeedMapping};
+use serde::Serialize;
 use std::collections::HashMap;
-use std::future::Future;
 use std::fs;
+use std::future::Future;
 
 pub const CHANNEL_ERROR: &str = "Error sending message via glib channel";
 pub const RUNTIME_ERROR: &str = "Error creating tokio runtime";

@@ -1,5 +1,5 @@
-use std::time;
 use log::{debug, error};
+use std::time;
 
 #[allow(dead_code)]
 pub struct StopWatch {
@@ -22,6 +22,4 @@ impl StopWatch {
             error!("system time error");
         }
     }
-
-
 }

@@ -23,9 +23,9 @@ use gtk::{
 };
 use log::error;
 use news_flash::models::{CategoryID, FeedID};
+use parking_lot::RwLock;
 use std::collections::HashMap;
 use std::sync::Arc;
-use parking_lot::RwLock;
 
 #[derive(Clone, Debug)]
 pub struct FeedList {
@@ -170,8 +170,7 @@ impl FeedList {
                     let next_item = tree.write().calculate_next_item(index);
                     if let SidebarIterateItem::SelectFeedListCategory(id) = &next_item {
                         if let Some(category_row) = categories.read().get(&id) {
-                            if let Some(ctx) =
-                                GtkUtil::get_dnd_style_context_listboxrow(&category_row.read().widget())
+                            if let Some(ctx) = GtkUtil::get_dnd_style_context_listboxrow(&category_row.read().widget())
                             {
                                 ctx.add_class("drag-top");
                                 return Inhibit(false);

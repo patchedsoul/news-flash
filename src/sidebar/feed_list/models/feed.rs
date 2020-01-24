@@ -1,8 +1,8 @@
 use news_flash::models::{CategoryID, Feed, FeedID, FeedMapping};
+use serde::{Deserialize, Serialize};
 use std;
 use std::cmp::Ordering;
 use std::fmt;
-use serde::{Serialize, Deserialize};
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct FeedListFeedModel {

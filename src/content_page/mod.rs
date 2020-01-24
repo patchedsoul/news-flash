@@ -16,12 +16,14 @@ use crate::sidebar::{FeedListTree, SideBar, TagListModel};
 use crate::undo_bar::{UndoActionModel, UndoBar};
 use crate::util::{BuilderHelper, Util, CHANNEL_ERROR};
 use failure::ResultExt;
-use futures::executor::ThreadPool;
 use futures::channel::oneshot;
-use glib::{Sender, futures::FutureExt};
+use futures::executor::ThreadPool;
+use glib::{futures::FutureExt, Sender};
 use gtk::{Box, BoxExt, Button, WidgetExt};
 use libhandy::Leaflet;
-use news_flash::models::{Article, ArticleFilter, FatArticle, Feed, Marked, PluginCapabilities, PluginID, Read, NEWSFLASH_TOPLEVEL};
+use news_flash::models::{
+    Article, ArticleFilter, FatArticle, Feed, Marked, PluginCapabilities, PluginID, Read, NEWSFLASH_TOPLEVEL,
+};
 use news_flash::NewsFlash;
 use parking_lot::RwLock;
 use std::sync::Arc;
@@ -76,10 +78,10 @@ impl ContentPage {
         undo_bar: &UndoBar,
         thread_pool: ThreadPool,
     ) {
-
         let (sender, receiver) = oneshot::channel::<Result<ArticleListModel, ContentPageErrorKind>>();
 
-        let relevant_articles_loaded = self.article_list
+        let relevant_articles_loaded = self
+            .article_list
             .read()
             .get_relevant_article_count(window_state.read().get_header_selection());
 
@@ -97,20 +99,27 @@ impl ContentPage {
                     MainWindowState::page_size()
                 };
                 let mut list_model = ArticleListModel::new(&settings.read().get_article_list_order());
-                let mut articles = match Self::load_articles(news_flash, &window_state_clone, &settings, &current_undo_action, limit, None) {
+                let mut articles = match Self::load_articles(
+                    news_flash,
+                    &window_state_clone,
+                    &settings,
+                    &current_undo_action,
+                    limit,
+                    None,
+                ) {
                     Ok(articles) => articles,
                     Err(error) => {
                         sender.send(Err(error.kind())).expect(CHANNEL_ERROR);
                         return;
-                    },
+                    }
                 };
-    
+
                 let feeds = match news_flash.get_feeds() {
                     Ok((feeds, _)) => feeds,
                     Err(_error) => {
                         sender.send(Err(ContentPageErrorKind::DataBase)).expect(CHANNEL_ERROR);
                         return;
-                    },
+                    }
                 };
                 let _: Vec<Result<(), ContentPageError>> = articles
                     .drain(..)
@@ -157,14 +166,14 @@ impl ContentPage {
             .article_list
             .read()
             .get_relevant_article_count(window_state.read().get_header_selection());
-        
+
         let current_undo_action = undo_bar.get_current_action();
         let settings = self.settings.clone();
         let news_flash = news_flash_handle.clone();
         let window_state = window_state.clone();
         let thread_future = async move {
             let mut list_model = ArticleListModel::new(&settings.read().get_article_list_order());
-            
+
             if let Some(news_flash) = news_flash.read().as_ref() {
                 let mut articles = match Self::load_articles(
                     news_flash,
@@ -178,14 +187,14 @@ impl ContentPage {
                     Err(error) => {
                         sender.send(Err(error.kind())).expect(CHANNEL_ERROR);
                         return;
-                    },
+                    }
                 };
                 let feeds = match news_flash.get_feeds() {
                     Ok((feeds, _)) => feeds,
                     Err(_error) => {
                         sender.send(Err(ContentPageErrorKind::DataBase)).expect(CHANNEL_ERROR);
                         return;
-                    },
+                    }
                 };
                 let _: Vec<Result<(), ContentPageError>> = articles
                     .drain(..)
@@ -200,7 +209,7 @@ impl ContentPage {
                         Ok(())
                     })
                     .collect();
-                
+
                 sender.send(Ok(list_model)).expect(CHANNEL_ERROR);
             }
         };
@@ -285,7 +294,8 @@ impl ContentPage {
         undo_bar: &UndoBar,
         thread_pool: ThreadPool,
     ) {
-        let (sender, receiver) = oneshot::channel::<Result<(i64, FeedListTree, Option<TagListModel>), ContentPageErrorKind>>();
+        let (sender, receiver) =
+            oneshot::channel::<Result<(i64, FeedListTree, Option<TagListModel>), ContentPageErrorKind>>();
 
         let news_flash = news_flash.clone();
         let state = state.clone();
@@ -293,60 +303,62 @@ impl ContentPage {
         let thread_future = async move {
             if let Some(news_flash) = news_flash.read().as_ref() {
                 let mut tree = FeedListTree::new();
-                let mut tag_list_model : Option<TagListModel> = None;
+                let mut tag_list_model: Option<TagListModel> = None;
 
                 let categories = match news_flash.get_categories() {
                     Ok(categories) => categories,
                     Err(_error) => {
                         sender.send(Err(ContentPageErrorKind::DataBase)).expect(CHANNEL_ERROR);
-                        return
-                    },
+                        return;
+                    }
                 };
                 let (feeds, mappings) = match news_flash.get_feeds() {
                     Ok(res) => res,
                     Err(_error) => {
                         sender.send(Err(ContentPageErrorKind::DataBase)).expect(CHANNEL_ERROR);
-                        return
-                    },
+                        return;
+                    }
                 };
-    
+
                 // collect unread and marked counts
                 let feed_count_map = match state.read().get_header_selection() {
-                    HeaderSelection::All | HeaderSelection::Unread => {
-                        match news_flash.unread_count_feed_map() {
-                            Ok(res) => res,
-                            Err(_error) => {
-                                sender.send(Err(ContentPageErrorKind::DataBase)).expect(CHANNEL_ERROR);
-                                return
-                            },
+                    HeaderSelection::All | HeaderSelection::Unread => match news_flash.unread_count_feed_map() {
+                        Ok(res) => res,
+                        Err(_error) => {
+                            sender.send(Err(ContentPageErrorKind::DataBase)).expect(CHANNEL_ERROR);
+                            return;
                         }
                     },
-                    HeaderSelection::Marked => {
-                        match news_flash.marked_count_feed_map() {
-                            Ok(res) => res,
-                            Err(_error) => {
-                                sender.send(Err(ContentPageErrorKind::DataBase)).expect(CHANNEL_ERROR);
-                                return
-                            },
+                    HeaderSelection::Marked => match news_flash.marked_count_feed_map() {
+                        Ok(res) => res,
+                        Err(_error) => {
+                            sender.send(Err(ContentPageErrorKind::DataBase)).expect(CHANNEL_ERROR);
+                            return;
                         }
                     },
                 };
-    
-                let pending_delete_category = current_undo_action.clone().map(|a| {
-                    if let UndoActionModel::DeleteCategory((id, _label)) = a {
-                        Some(id)
-                    } else {
-                        None
-                    }
-                }).flatten();
-                let pending_delete_feed = current_undo_action.clone().map(|a| {
-                    if let UndoActionModel::DeleteFeed((id, _label)) = a {
-                        Some(id)
-                    } else {
-                        None
-                    }
-                }).flatten();
-    
+
+                let pending_delete_category = current_undo_action
+                    .clone()
+                    .map(|a| {
+                        if let UndoActionModel::DeleteCategory((id, _label)) = a {
+                            Some(id)
+                        } else {
+                            None
+                        }
+                    })
+                    .flatten();
+                let pending_delete_feed = current_undo_action
+                    .clone()
+                    .map(|a| {
+                        if let UndoActionModel::DeleteFeed((id, _label)) = a {
+                            Some(id)
+                        } else {
+                            None
+                        }
+                    })
+                    .flatten();
+
                 // feedlist: Categories
                 for category in &categories {
                     if let Some(pending_delete_category) = &pending_delete_category {
@@ -354,8 +366,7 @@ impl ContentPage {
                             continue;
                         }
                     }
-                    
-    
+
                     let category_item_count = Util::calculate_item_count_for_category(
                         &category.category_id,
                         &categories,
@@ -364,13 +375,15 @@ impl ContentPage {
                         &pending_delete_feed,
                         &pending_delete_category,
                     );
-    
+
                     if tree.add_category(category, category_item_count).is_err() {
-                        sender.send(Err(ContentPageErrorKind::SidebarModels)).expect(CHANNEL_ERROR);
+                        sender
+                            .send(Err(ContentPageErrorKind::SidebarModels))
+                            .expect(CHANNEL_ERROR);
                         return;
                     }
                 }
-    
+
                 // feedlist: Feeds
                 for mapping in &mappings {
                     if let Some(undo_action) = &current_undo_action {
@@ -388,7 +401,7 @@ impl ContentPage {
                             _ => {}
                         }
                     }
-    
+
                     let feed = match feeds.iter().find(|feed| feed.feed_id == mapping.feed_id) {
                         Some(res) => res,
                         None => {
@@ -396,7 +409,7 @@ impl ContentPage {
                             return;
                         }
                     };
-    
+
                     let item_count = match feed_count_map.get(&mapping.feed_id) {
                         Some(count) => *count,
                         None => 0,
@@ -405,17 +418,19 @@ impl ContentPage {
                         //sender.send(Err(ContentPageErrorKind::SidebarModels)).expect(CHANNEL_ERROR);
                     }
                 }
-    
+
                 // tag list
                 let plugin_features = match news_flash.features() {
                     Ok(features) => features,
                     Err(_error) => {
-                        sender.send(Err(ContentPageErrorKind::NewsFlashFeatures)).expect(CHANNEL_ERROR);
+                        sender
+                            .send(Err(ContentPageErrorKind::NewsFlashFeatures))
+                            .expect(CHANNEL_ERROR);
                         return;
                     }
                 };
                 let support_tags = plugin_features.contains(PluginCapabilities::SUPPORT_TAGS);
-    
+
                 if support_tags {
                     let mut list = TagListModel::new();
                     let tags = match news_flash.get_tags() {
@@ -425,7 +440,7 @@ impl ContentPage {
                             return;
                         }
                     };
-    
+
                     if !tags.is_empty() {
                         for tag in tags {
                             if let Some(UndoActionModel::DeleteTag((id, _label))) = current_undo_action.clone() {
@@ -434,7 +449,9 @@ impl ContentPage {
                                 }
                             }
                             if list.add(&tag).is_err() {
-                                sender.send(Err(ContentPageErrorKind::SidebarModels)).expect(CHANNEL_ERROR);
+                                sender
+                                    .send(Err(ContentPageErrorKind::SidebarModels))
+                                    .expect(CHANNEL_ERROR);
                                 return;
                             }
                         }
@@ -442,7 +459,7 @@ impl ContentPage {
 
                     tag_list_model = Some(list);
                 }
-    
+
                 //let total_item_count = feed_count_map.iter().map(|(_key, value)| value).sum();
                 let total_item_count = Util::calculate_item_count_for_category(
                     &NEWSFLASH_TOPLEVEL,
@@ -452,8 +469,10 @@ impl ContentPage {
                     &pending_delete_feed,
                     &pending_delete_category,
                 );
-    
-                sender.send(Ok((total_item_count, tree, tag_list_model))).expect(CHANNEL_ERROR);
+
+                sender
+                    .send(Ok((total_item_count, tree, tag_list_model)))
+                    .expect(CHANNEL_ERROR);
             }
         };
 

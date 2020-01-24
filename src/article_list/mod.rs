@@ -141,9 +141,7 @@ impl ArticleList {
         };
 
         for model in new_list.models() {
-            self.list_model
-                .write()
-                .add_model(model.clone());
+            self.list_model.write().add_model(model.clone());
             let model = model.clone();
             let list = list.clone();
             let list_model = self.list_model.clone();
@@ -352,11 +350,7 @@ impl ArticleList {
         if let Some(current_list) = self.get_current_list() {
             let selected_index = current_list.read().get_selected_index();
             if let Some(selected_index) = selected_index {
-                let selected_row = self
-                    .list_model
-                    .write()
-                    .calculate_selection(selected_index)
-                    .cloned();
+                let selected_row = self.list_model.write().calculate_selection(selected_index).cloned();
                 let next_row = self
                     .list_model
                     .write()
@@ -386,11 +380,7 @@ impl ArticleList {
         if let Some(current_list) = self.get_current_list() {
             let selected_index = current_list.read().get_selected_index();
             if let Some(selected_index) = selected_index {
-                let selected_row = self
-                    .list_model
-                    .write()
-                    .calculate_selection(selected_index)
-                    .cloned();
+                let selected_row = self.list_model.write().calculate_selection(selected_index).cloned();
 
                 if let Some(selected_row) = selected_row {
                     return Some(selected_row);

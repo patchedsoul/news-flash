@@ -9,9 +9,9 @@ use glib::translate::ToGlib;
 use gtk::{ContainerExt, Continue, ListBox, ListBoxExt, ListBoxRowExt, SelectionMode, WidgetExt};
 use models::{TagListChangeSet, TagListModel, TagListTagModel};
 use news_flash::models::TagID;
-use std::sync::Arc;
 use parking_lot::RwLock;
 use std::collections::HashMap;
+use std::sync::Arc;
 use tag_row::TagRow;
 
 #[derive(Clone, Debug)]

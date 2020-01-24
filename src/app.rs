@@ -187,8 +187,12 @@ impl App {
             Action::ToggleArticleRead => self.toggle_article_read(),
             Action::ToggleArticleMarked => self.toggle_article_marked(),
             Action::UpdateSidebar => self.window.update_sidebar(&self.news_flash, self.threadpool.clone()),
-            Action::UpdateArticleList => self.window.update_article_list(&self.news_flash, self.threadpool.clone()),
-            Action::LoadMoreArticles => self.window.load_more_articles(&self.news_flash, self.threadpool.clone()),
+            Action::UpdateArticleList => self
+                .window
+                .update_article_list(&self.news_flash, self.threadpool.clone()),
+            Action::LoadMoreArticles => self
+                .window
+                .load_more_articles(&self.news_flash, self.threadpool.clone()),
             Action::SidebarSelection(selection) => self.window.sidebar_selection(selection),
             Action::SidebarSelectNext => self.window.content_page.read().select_next_article(),
             Action::SidebarSelectPrev => self.window.content_page.read().select_prev_article(),
@@ -569,7 +573,7 @@ impl App {
 
     fn add_feed(&self, feed_url: Url, title: Option<String>, category: Option<AddCategory>) {
         info!("add feed '{}'", feed_url);
-        
+
         let news_flash = self.news_flash.clone();
         let global_sender = self.sender.clone();
         let thread_future = async move {
@@ -1038,7 +1042,7 @@ impl App {
     fn queue_quit(&self) {
         self.window.widget.close();
         self.window.execute_pending_undoable_action();
-        
+
         // wait for ongoing sync to finish, but limit waiting to max 10s
         let sender = self.sender.clone();
         let news_flash = self.news_flash.clone();

@@ -348,12 +348,10 @@ impl MainWindow {
                 }
 
                 // try to fill content page with data
-                self
-                    .content_page
+                self.content_page
                     .write()
                     .update_sidebar(&news_flash, &self.state, &self.undo_bar, thread_pool.clone());
-                self
-                    .content_page
+                self.content_page
                     .write()
                     .update_article_list(&news_flash, &self.state, &self.undo_bar, thread_pool);
                 return;
@@ -446,8 +444,7 @@ impl MainWindow {
     }
 
     pub fn update_sidebar(&self, news_flash: &Arc<RwLock<Option<NewsFlash>>>, thread_pool: ThreadPool) {
-        self
-            .content_page
+        self.content_page
             .write()
             .update_sidebar(news_flash, &self.state, &self.undo_bar, thread_pool);
     }

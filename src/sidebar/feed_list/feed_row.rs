@@ -15,8 +15,8 @@ use gtk::{
 };
 use news_flash::models::{CategoryID, FavIcon, Feed, FeedID};
 use parking_lot::RwLock;
-use std::sync::Arc;
 use std::str;
+use std::sync::Arc;
 
 #[derive(Clone, Debug)]
 pub struct FeedRow {

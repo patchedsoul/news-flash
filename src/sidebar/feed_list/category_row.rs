@@ -10,9 +10,9 @@ use gtk::{
     Popover, PopoverExt, PositionType, Revealer, RevealerExt, StateFlags, StyleContextExt, WidgetExt, WidgetExtManual,
 };
 use news_flash::models::CategoryID;
-use std::sync::Arc;
 use parking_lot::RwLock;
 use std::str;
+use std::sync::Arc;
 
 #[derive(Clone, Debug)]
 pub struct CategoryRow {

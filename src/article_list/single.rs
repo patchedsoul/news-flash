@@ -12,8 +12,8 @@ use news_flash::models::{
     article::{Marked, Read},
     ArticleID,
 };
-use std::collections::HashMap;
 use parking_lot::RwLock;
+use std::collections::HashMap;
 use std::sync::Arc;
 
 const LIST_BOTTOM_THREASHOLD: f64 = 200.0;
@@ -95,7 +95,8 @@ impl SingleArticleList {
         let article_row = ArticleRow::new(&article, model, self.sender.clone());
         self.list.insert(&article_row.widget(), pos);
         article_row.widget().show();
-        self.articles.insert(article.id.clone(), Arc::new(RwLock::new(article_row)));
+        self.articles
+            .insert(article.id.clone(), Arc::new(RwLock::new(article_row)));
     }
 
     pub fn remove(&mut self, id: ArticleID) {
@@ -189,8 +190,7 @@ impl SingleArticleList {
 
         let leftover_scroll = match callback_id {
             Some(callback_id) => {
-                let start_value =
-                    Util::some_or_default(*self.scroll_animation_data.transition_start_value.read(), 0.0);
+                let start_value = Util::some_or_default(*self.scroll_animation_data.transition_start_value.read(), 0.0);
                 let diff_value = Util::some_or_default(*self.scroll_animation_data.transition_diff.read(), 0.0);
 
                 callback_id.remove();

@@ -10,8 +10,8 @@ use gtk::{
     StyleContextExt, WidgetExt,
 };
 use news_flash::models::{ArticleID, FavIcon, Marked, Read};
-use std::sync::Arc;
 use parking_lot::RwLock;
+use std::sync::Arc;
 
 pub struct ArticleRow {
     widget: ListBoxRow,

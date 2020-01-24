@@ -21,8 +21,8 @@ pub use models::SidebarIterateItem;
 use models::SidebarSelection;
 use news_flash::models::{PluginID, PluginIcon};
 use news_flash::NewsFlash;
-use std::sync::Arc;
 use parking_lot::RwLock;
+use std::sync::Arc;
 pub use tag_list::models::TagListModel;
 use tag_list::TagList;
 
@@ -139,24 +139,21 @@ impl SideBar {
         let tag_list_selection_handle = selection_handle.clone();
         let tag_list_delayed_all_selection = delayed_all_selection.clone();
         let tag_list_footer_handle = footer_handle.clone();
-        tag_list_handle
-            .read()
-            .widget()
-            .connect_row_selected(move |_list, row| {
-                // do nothing if selection was cleared
-                if row.is_none() {
-                    return;
-                }
-                // deselect 'all' & tag_list
-                Self::deselect_all_button(&tag_list_all_event_box, &tag_list_delayed_all_selection);
-                tag_list_footer_handle.read().set_remove_button_sensitive(true);
-                tag_list_feed_list_handle.read().deselect();
+        tag_list_handle.read().widget().connect_row_selected(move |_list, row| {
+            // do nothing if selection was cleared
+            if row.is_none() {
+                return;
+            }
+            // deselect 'all' & tag_list
+            Self::deselect_all_button(&tag_list_all_event_box, &tag_list_delayed_all_selection);
+            tag_list_footer_handle.read().set_remove_button_sensitive(true);
+            tag_list_feed_list_handle.read().deselect();
 
-                if let Some(selected_id) = tag_list_tag_list_handle.read().get_selection() {
-                    let selection = SidebarSelection::Tag(selected_id);
-                    *tag_list_selection_handle.write() = selection.clone();
-                }
-            });
+            if let Some(selected_id) = tag_list_tag_list_handle.read().get_selection() {
+                let selection = SidebarSelection::Tag(selected_id);
+                *tag_list_selection_handle.write() = selection.clone();
+            }
+        });
 
         let scale = GtkUtil::get_scale(&sidebar);
 

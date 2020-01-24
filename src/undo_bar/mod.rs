@@ -4,7 +4,7 @@ use crate::app::Action;
 use crate::gtk_handle;
 use crate::util::{BuilderHelper, GtkHandle, GtkUtil, Util};
 use glib::{translate::ToGlib, Sender};
-use gtk::{Button, ButtonExt, Continue, InfoBar, InfoBarExt, Label, LabelExt, WidgetExt, ResponseType};
+use gtk::{Button, ButtonExt, Continue, InfoBar, InfoBarExt, Label, LabelExt, ResponseType, WidgetExt};
 use log::debug;
 pub use models::{UndoAction, UndoActionModel};
 use std::cell::RefCell;
@@ -59,7 +59,7 @@ impl UndoBar {
                     Self::execute_action(&current_action.get_model(), &sender);
                     GtkUtil::remove_source(Some(current_action.get_timeout()));
                 }
-    
+
                 info_bar_current_action.replace(None);
                 info_bar.set_revealed(false);
             }

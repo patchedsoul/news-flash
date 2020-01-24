@@ -5,9 +5,9 @@ use cairo::{Context, FillRule};
 use gdk::WindowExt;
 use gtk::{Box, ContainerExt, Image, ImageExt, Label, LabelExt, ListBoxRow, ListBoxRowExt, StyleContextExt, WidgetExt};
 use news_flash::models::TagID;
-use std::sync::Arc;
 use parking_lot::RwLock;
 use std::str;
+use std::sync::Arc;
 
 const DEFAULT_OUTER_COLOR: &str = "#FF0077";
 const DEFAULT_INNER_COLOR: &str = "#FF0077";
