@@ -63,6 +63,7 @@ impl ArticleRow {
         unread.set_from_surface(Some(&surface));
 
         title_label.set_text(&article.title);
+        title_label.set_tooltip_text(Some(&article.title));
         summary_label.set_text(&article.summary);
         feed_label.set_text(&article.feed_title);
         date_label.set_text(&DateUtil::format(&article.date));
