@@ -14,6 +14,8 @@ pub enum UtilErrorKind {
     WriteFile,
     #[fail(display = "Provided widget is not a main window")]
     WidgetIsMainwindow,
+    #[fail(display = "Error (de)serializing an object")]
+    Serde,
     #[fail(display = "Failed to create a cairo surface from the given data")]
     CairoSurface,
     #[fail(display = "Unknown Error")]

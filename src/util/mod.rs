@@ -16,10 +16,14 @@ pub use gtk_util::GTK_RESOURCE_FILE_ERROR;
 pub use stopwatch::StopWatch;
 
 use crate::app::Action;
+use self::error::{UtilError, UtilErrorKind};
 use glib::Sender;
+use serde::Serialize;
+use failure::ResultExt;
 use news_flash::models::{Category, CategoryID, FeedID, FeedMapping};
 use std::collections::HashMap;
 use std::future::Future;
+use std::fs;
 
 pub const CHANNEL_ERROR: &str = "Error sending message via glib channel";
 pub const RUNTIME_ERROR: &str = "Error creating tokio runtime";
@@ -27,6 +31,13 @@ pub const RUNTIME_ERROR: &str = "Error creating tokio runtime";
 pub struct Util;
 
 impl Util {
+    #[allow(dead_code)]
+    pub fn serialize_and_save<T: Serialize>(object: &T, path: &str) -> Result<String, UtilError> {
+        let data = serde_json::to_string_pretty(object).context(UtilErrorKind::Serde)?;
+        fs::write(path, &data).context(UtilErrorKind::WriteFile)?;
+        Ok(data)
+    }
+
     pub fn send(sender: &Sender<Action>, action: Action) {
         sender.send(action).expect(CHANNEL_ERROR);
     }
