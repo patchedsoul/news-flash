@@ -1,7 +1,7 @@
+use crate::app::Action;
 use crate::error_dialog::ErrorDialog;
 use crate::util::{BuilderHelper, GtkUtil, Util};
-use crate::app::Action;
-use glib::{Sender, translate::ToGlib};
+use glib::{translate::ToGlib, Sender};
 use gtk::{Button, ButtonExt, InfoBar, InfoBarExt, Label, LabelExt, ResponseType, WidgetExt};
 use log::error;
 use news_flash::NewsFlashError;
