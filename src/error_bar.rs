@@ -1,6 +1,7 @@
 use crate::error_dialog::ErrorDialog;
-use crate::util::{BuilderHelper, GtkUtil};
-use glib::translate::ToGlib;
+use crate::util::{BuilderHelper, GtkUtil, Util};
+use crate::app::Action;
+use glib::{Sender, translate::ToGlib};
 use gtk::{Button, ButtonExt, InfoBar, InfoBarExt, Label, LabelExt, ResponseType, WidgetExt};
 use log::error;
 use news_flash::NewsFlashError;
@@ -15,10 +16,11 @@ pub struct ErrorBar {
     login_button: Button,
     click_signal: Arc<RwLock<Option<u64>>>,
     relogin_signal: Arc<RwLock<Option<u64>>>,
+    sender: Sender<Action>,
 }
 
 impl ErrorBar {
-    pub fn new(builder: &BuilderHelper) -> Self {
+    pub fn new(builder: &BuilderHelper, sender: Sender<Action>) -> Self {
         let error_bar = ErrorBar {
             widget: builder.get::<InfoBar>("error_bar"),
             label: builder.get::<Label>("error_label"),
@@ -26,6 +28,7 @@ impl ErrorBar {
             login_button: builder.get::<Button>("login_button"),
             click_signal: Arc::new(RwLock::new(None)),
             relogin_signal: Arc::new(RwLock::new(None)),
+            sender,
         };
 
         error_bar.init();
@@ -80,10 +83,11 @@ impl ErrorBar {
                 .to_glib(),
         );
 
+        let sender = self.sender.clone();
         *self.relogin_signal.write() = Some(
             self.login_button
                 .connect_clicked(move |_button| {
-                    // FIXME: go back to correct login page
+                    Util::send(&sender, Action::RetryLogin);
                 })
                 .to_glib(),
         );

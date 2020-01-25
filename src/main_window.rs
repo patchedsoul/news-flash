@@ -69,7 +69,7 @@ impl MainWindow {
         let stack = builder.get::<Stack>("main_stack");
         let header_stack = builder.get::<Stack>("header_stack");
         let undo_bar = UndoBar::new(&builder, sender.clone());
-        let error_bar = ErrorBar::new(&builder);
+        let error_bar = ErrorBar::new(&builder, sender.clone());
 
         let responsive_layout = ResponsiveLayout::new(&builder);
 

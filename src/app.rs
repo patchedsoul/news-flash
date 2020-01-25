@@ -59,6 +59,7 @@ pub enum Action {
     ShowSettingsWindow,
     ShowShortcutWindow,
     ShowAboutWindow,
+    RetryLogin,
     Login(LoginData),
     ScheduleSync,
     Sync,
@@ -182,6 +183,9 @@ impl App {
             Action::ShowShortcutWindow => self.spawn_shortcut_window(),
             Action::ShowAboutWindow => self.spawn_about_window(),
             Action::Login(data) => self.login(data),
+            Action::RetryLogin => {
+
+            },
             Action::ScheduleSync => self.schedule_sync(),
             Action::Sync => self.sync(),
             Action::MarkArticleRead(update) => self.mark_article_read(update),
