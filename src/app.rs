@@ -496,7 +496,21 @@ impl App {
         let global_sender = self.sender.clone();
         let content_page = self.window.content_page.clone();
         let content_header = self.window.content_header.clone();
-        let glib_future = receiver.map(move |_res| {
+        let glib_future = receiver.map(move |res| {
+            match res {
+                Ok(Ok(())) => {}
+                Ok(Err(error)) => {
+                    let message = format!("Failed to star article: '{}'", update.article_id);
+                    error!("{}", message);
+                    Util::send(&global_sender, Action::Error(message, error));
+                }
+                Err(error) => {
+                    let message = format!("Sender error: {}", error);
+                    error!("{}", message);
+                    Util::send(&global_sender, Action::ErrorSimpleMessage(message));
+                }
+            };
+
             Util::send(&global_sender, Action::UpdateSidebar);
             let visible_article = content_page.read().article_view_visible_article();
             if let Some(visible_article) = visible_article {
