@@ -320,6 +320,32 @@ impl PasswordLogin {
         self.info_bar.set_revealed(true);
     }
 
+    pub fn fill(&self, data: PasswordLoginData) -> Result<(), LoginScreenError> {
+        self.info_bar.set_revealed(false);
+        self.info_bar.set_visible(false);
+        self.url_entry.set_text("");
+        self.user_entry.set_text("");
+        self.pass_entry.set_text("");
+        self.http_user_entry.set_text("");
+        self.http_pass_entry.set_text("");
+
+        if let Some(url) = &data.url {
+            self.url_entry.set_text(url);
+        }
+        self.user_entry.set_text(&data.user);
+        self.pass_entry.set_text(&data.password);
+
+        if let Some(http_user) = &data.http_user {
+            self.http_user_entry.set_text(http_user);
+            self.http_revealer.set_reveal_child(true);
+        }
+        if let Some(http_password) = &data.http_password {
+            self.http_pass_entry.set_text(http_password);
+        }
+        
+        Ok(())
+    }
+
     fn setup_entry(&self, entry: &gtk::Entry, gui_desc: &PasswordLoginGUI) -> SignalHandlerId {
         let entry = entry.clone();
         let gui_desc = gui_desc.clone();

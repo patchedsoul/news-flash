@@ -25,7 +25,7 @@ impl ErrorBar {
             widget: builder.get::<InfoBar>("error_bar"),
             label: builder.get::<Label>("error_label"),
             button: builder.get::<Button>("info_button"),
-            login_button: builder.get::<Button>("login_button"),
+            login_button: builder.get::<Button>("relogin_button"),
             click_signal: Arc::new(RwLock::new(None)),
             relogin_signal: Arc::new(RwLock::new(None)),
             sender,
@@ -53,6 +53,10 @@ impl ErrorBar {
                 relogin_signal.write().take();
             }
         });
+    }
+
+    pub fn hide(&self) {
+        self.widget.set_revealed(false);
     }
 
     pub fn simple_message(&self, message: &str) {
@@ -87,6 +91,7 @@ impl ErrorBar {
         *self.relogin_signal.write() = Some(
             self.login_button
                 .connect_clicked(move |_button| {
+                    log::info!("retry login");
                     Util::send(&sender, Action::RetryLogin);
                 })
                 .to_glib(),

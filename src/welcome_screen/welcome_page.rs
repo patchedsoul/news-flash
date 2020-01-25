@@ -54,7 +54,7 @@ impl WelcomePage {
                         Util::send(&sender, Action::ShowOauthLogin(id.clone()));
                     }
                     LoginGUI::Password(_) => {
-                        Util::send(&sender, Action::ShowPasswordLogin(id.clone()));
+                        Util::send(&sender, Action::ShowPasswordLogin(id.clone(), None));
                     }
                     LoginGUI::None => {
                         Util::send(&sender, Action::Login(LoginData::None(id.clone())));

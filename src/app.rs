@@ -15,7 +15,7 @@ use gtk::{
 };
 use lazy_static::lazy_static;
 use log::{error, info, warn};
-use news_flash::models::{ArticleID, Category, CategoryID, FavIcon, Feed, FeedID, LoginData, PluginID, TagID, Url};
+use news_flash::models::{ArticleID, Category, CategoryID, FavIcon, Feed, FeedID, LoginData, PluginID, TagID, Url, PasswordLogin};
 use news_flash::{NewsFlash, NewsFlashError};
 use parking_lot::RwLock;
 use tokio::runtime::Runtime;
@@ -54,7 +54,7 @@ pub enum Action {
     LoadFavIcon((Feed, OneShotSender<Option<FavIcon>>)),
     ShowWelcomePage,
     ShowContentPage(PluginID),
-    ShowPasswordLogin(PluginID),
+    ShowPasswordLogin(PluginID, Option<PasswordLogin>),
     ShowOauthLogin(PluginID),
     ShowSettingsWindow,
     ShowShortcutWindow,
@@ -177,13 +177,13 @@ impl App {
             Action::LoadFavIcon((feed, sender)) => self.load_favicon(feed, sender),
             Action::ShowWelcomePage => self.window.show_welcome_page(),
             Action::ShowContentPage(plugin_id) => self.window.show_content_page(&plugin_id, &self.news_flash),
-            Action::ShowPasswordLogin(plugin_id) => self.window.show_password_login_page(&plugin_id),
+            Action::ShowPasswordLogin(plugin_id, data) => self.window.show_password_login_page(&plugin_id, data),
             Action::ShowOauthLogin(plugin_id) => self.window.show_oauth_login_page(&plugin_id),
             Action::ShowSettingsWindow => self.spawn_settings_window(),
             Action::ShowShortcutWindow => self.spawn_shortcut_window(),
             Action::ShowAboutWindow => self.spawn_about_window(),
             Action::Login(data) => self.login(data),
-            Action::RetryLogin => {}
+            Action::RetryLogin => self.retry_login(),
             Action::ScheduleSync => self.schedule_sync(),
             Action::Sync => self.sync(),
             Action::MarkArticleRead(update) => self.mark_article_read(update),
@@ -310,6 +310,19 @@ impl App {
 
         self.threadpool.spawn_ok(thread_future);
         Util::glib_spawn_future(glib_future);
+    }
+
+    fn retry_login(&self) {
+        self.window.hide_error_bar();
+        if let Some(news_flash) = self.news_flash.read().as_ref() {
+            if let Some(login_data) = news_flash.get_login_data() {
+                match login_data {
+                    LoginData::None(_id) => error!("retrying to login to local should never happen!"),
+                    LoginData::Password(password_data) => Util::send(&self.sender, Action::ShowPasswordLogin(password_data.id.clone(), Some(password_data))),
+                    LoginData::OAuth(oauth_data) => Util::send(&self.sender, Action::ShowOauthLogin(oauth_data.id.clone())),
+                }
+            }
+        }
     }
 
     fn schedule_sync(&self) {

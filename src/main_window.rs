@@ -23,7 +23,7 @@ use gtk::{
     Stack, StackExt, StackTransitionType, StyleContext, StyleContextExt, WidgetExt,
 };
 use log::{error, warn};
-use news_flash::models::{ArticleID, PluginID};
+use news_flash::models::{ArticleID, PluginID, PasswordLogin as PasswordLoginData};
 use news_flash::{NewsFlash, NewsFlashError};
 use parking_lot::RwLock;
 use std::cell::RefCell;
@@ -381,6 +381,10 @@ impl MainWindow {
         self.error_bar.news_flash_error(msg, error);
     }
 
+    pub fn hide_error_bar(&self) {
+        self.error_bar.hide();
+    }
+
     pub fn show_undo_bar(&self, action: UndoActionModel) {
         let select_all_button = match self.content_page.read().sidebar_get_selection() {
             SidebarSelection::All => false,
@@ -413,9 +417,12 @@ impl MainWindow {
         self.stack.set_visible_child_name("welcome");
     }
 
-    pub fn show_password_login_page(&self, plugin_id: &PluginID) {
+    pub fn show_password_login_page(&self, plugin_id: &PluginID, data: Option<PasswordLoginData>) {
         if let Some(service_meta) = NewsFlash::list_backends().get(plugin_id) {
             if let Ok(()) = self.password_login_page.set_service(service_meta.clone()) {
+                if let Some(data) = data {
+                    self.password_login_page.fill(data).unwrap();
+                }
                 self.header_stack.set_visible_child_name("login");
                 self.stack.set_transition_type(StackTransitionType::SlideLeft);
                 self.stack.set_visible_child_name("password_login");
