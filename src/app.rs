@@ -15,7 +15,9 @@ use gtk::{
 };
 use lazy_static::lazy_static;
 use log::{error, info, warn};
-use news_flash::models::{ArticleID, Category, CategoryID, FavIcon, Feed, FeedID, LoginData, PluginID, TagID, Url, PasswordLogin};
+use news_flash::models::{
+    ArticleID, Category, CategoryID, FavIcon, Feed, FeedID, LoginData, PasswordLogin, PluginID, TagID, Url,
+};
 use news_flash::{NewsFlash, NewsFlashError};
 use parking_lot::RwLock;
 use tokio::runtime::Runtime;
@@ -318,8 +320,13 @@ impl App {
             if let Some(login_data) = news_flash.get_login_data() {
                 match login_data {
                     LoginData::None(_id) => error!("retrying to login to local should never happen!"),
-                    LoginData::Password(password_data) => Util::send(&self.sender, Action::ShowPasswordLogin(password_data.id.clone(), Some(password_data))),
-                    LoginData::OAuth(oauth_data) => Util::send(&self.sender, Action::ShowOauthLogin(oauth_data.id.clone())),
+                    LoginData::Password(password_data) => Util::send(
+                        &self.sender,
+                        Action::ShowPasswordLogin(password_data.id.clone(), Some(password_data)),
+                    ),
+                    LoginData::OAuth(oauth_data) => {
+                        Util::send(&self.sender, Action::ShowOauthLogin(oauth_data.id.clone()))
+                    }
                 }
             }
         }

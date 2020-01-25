@@ -23,7 +23,7 @@ use gtk::{
     Stack, StackExt, StackTransitionType, StyleContext, StyleContextExt, WidgetExt,
 };
 use log::{error, warn};
-use news_flash::models::{ArticleID, PluginID, PasswordLogin as PasswordLoginData};
+use news_flash::models::{ArticleID, PasswordLogin as PasswordLoginData, PluginID};
 use news_flash::{NewsFlash, NewsFlashError};
 use parking_lot::RwLock;
 use std::cell::RefCell;

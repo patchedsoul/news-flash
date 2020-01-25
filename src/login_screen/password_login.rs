@@ -342,7 +342,7 @@ impl PasswordLogin {
         if let Some(http_password) = &data.http_password {
             self.http_pass_entry.set_text(http_password);
         }
-        
+
         Ok(())
     }
 
