@@ -12,7 +12,9 @@ pub struct ErrorBar {
     widget: InfoBar,
     label: Label,
     button: Button,
+    login_button: Button,
     click_signal: Arc<RwLock<Option<u64>>>,
+    relogin_signal: Arc<RwLock<Option<u64>>>,
 }
 
 impl ErrorBar {
@@ -21,7 +23,9 @@ impl ErrorBar {
             widget: builder.get::<InfoBar>("error_bar"),
             label: builder.get::<Label>("error_label"),
             button: builder.get::<Button>("info_button"),
+            login_button: builder.get::<Button>("login_button"),
             click_signal: Arc::new(RwLock::new(None)),
+            relogin_signal: Arc::new(RwLock::new(None)),
         };
 
         error_bar.init();
@@ -34,11 +38,14 @@ impl ErrorBar {
         self.widget.set_revealed(false);
 
         let click_signal = self.click_signal.clone();
+        let relogin_signal = self.relogin_signal.clone();
         let button = self.button.clone();
+        let login_button = self.login_button.clone();
         self.widget.connect_response(move |info_bar, response_type| {
             if response_type == ResponseType::Close {
                 info_bar.set_revealed(false);
                 GtkUtil::disconnect_signal(*click_signal.read(), &button);
+                GtkUtil::disconnect_signal(*relogin_signal.read(), &login_button);
             }
         });
     }
@@ -47,12 +54,14 @@ impl ErrorBar {
         self.label.set_text(message);
         self.widget.set_revealed(true);
         self.button.set_visible(false);
+        self.login_button.set_visible(false);
     }
 
     pub fn news_flash_error(&self, message: &str, error: NewsFlashError) {
         self.label.set_text(message);
         self.widget.set_revealed(true);
         self.button.set_visible(true);
+        self.login_button.set_visible(true);
 
         GtkUtil::disconnect_signal(*self.click_signal.read(), &self.button);
 
@@ -64,6 +73,14 @@ impl ErrorBar {
                     } else {
                         error!("Failed to spawn ErrorDialog. Parent window not found.");
                     }
+                })
+                .to_glib(),
+        );
+
+        *self.relogin_signal.write() = Some(
+            self.login_button
+                .connect_clicked(move |_button| {
+                    // FIXME: go back to correct login page
                 })
                 .to_glib(),
         );

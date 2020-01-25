@@ -3,7 +3,6 @@ use std::env;
 use std::path::PathBuf;
 use std::rc::Rc;
 use std::sync::Arc;
-use std::thread;
 use std::time;
 
 use futures::channel::oneshot::{self, Sender as OneShotSender};
@@ -105,19 +104,21 @@ pub struct App {
     settings: Arc<RwLock<Settings>>,
     sync_source_id: RwLock<Option<u32>>,
     threadpool: ThreadPool,
+    shutdown_in_progress: Arc<RwLock<bool>>,
 }
 
 impl App {
     pub fn new() -> Rc<Self> {
         let application =
             Application::new(Some(APP_ID), gio::ApplicationFlags::empty()).expect("Initialization gtk-app failed");
+        let shutdown_in_progress = Arc::new(RwLock::new(false));
 
         let (sender, r) = glib::MainContext::channel(glib::PRIORITY_DEFAULT);
         let receiver = RefCell::new(Some(r));
 
         let news_flash = Arc::new(RwLock::new(None));
         let settings = Arc::new(RwLock::new(Settings::open().expect("Failed to access settings file")));
-        let window = MainWindow::new(&settings, sender.clone());
+        let window = MainWindow::new(&settings, sender.clone(), shutdown_in_progress.clone());
 
         let app = Rc::new(Self {
             application,
@@ -128,6 +129,7 @@ impl App {
             settings,
             sync_source_id: RwLock::new(None),
             threadpool: ThreadPool::new().unwrap(),
+            shutdown_in_progress,
         });
 
         app.setup_signals();
@@ -1040,31 +1042,30 @@ impl App {
     }
 
     fn queue_quit(&self) {
+        *self.shutdown_in_progress.write() = true;
         self.window.widget.close();
         self.window.execute_pending_undoable_action();
 
         // wait for ongoing sync to finish, but limit waiting to max 10s
-        let sender = self.sender.clone();
-        let news_flash = self.news_flash.clone();
-        let thread_future = async move {
-            if let Some(news_flash) = news_flash.read().as_ref() {
-                let wait_each_loop = time::Duration::from_millis(100);
-                let mut total_waiting_time = time::Duration::from_millis(0);
-                let max_wait_time = time::Duration::from_secs(10);
+        let start_wait_time = time::SystemTime::now();
+        let max_wait_time = time::Duration::from_secs(5);
 
-                while news_flash.is_sync_ongoing() && total_waiting_time < max_wait_time {
-                    total_waiting_time += wait_each_loop;
-                    thread::sleep(wait_each_loop);
-                }
-            }
+        while Self::is_syncing(&self.news_flash) && start_wait_time.elapsed().unwrap() < max_wait_time {
+            gtk::main_iteration();
+        }
 
-            Util::send(&sender, Action::ForceQuit);
-        };
-
-        self.threadpool.spawn_ok(thread_future);
+        Util::send(&self.sender, Action::ForceQuit);
     }
 
     fn force_quit(&self) {
+        info!("Shutdown!");
         self.application.quit();
+    }
+
+    fn is_syncing(news_flash: &Arc<RwLock<Option<NewsFlash>>>) -> bool {
+        if let Some(news_flash) = news_flash.read().as_ref() {
+            return news_flash.is_sync_ongoing();
+        }
+        false
     }
 }

@@ -49,7 +49,7 @@ pub struct MainWindow {
 }
 
 impl MainWindow {
-    pub fn new(settings: &Arc<RwLock<Settings>>, sender: Sender<Action>) -> Self {
+    pub fn new(settings: &Arc<RwLock<Settings>>, sender: Sender<Action>, shutdown_in_progress: Arc<RwLock<bool>>) -> Self {
         GtkUtil::register_symbolic_icons();
         let provider_handle = gtk_handle!(CssProvider::new());
 
@@ -83,6 +83,10 @@ impl MainWindow {
         let sender_clone = sender.clone();
         let main_stack = stack.clone();
         window.connect_delete_event(move |win, _| {
+            if *shutdown_in_progress.read() {
+                win.hide_on_delete();
+                return Inhibit(true);
+            }
             if delete_event_settings.read().get_keep_running_in_background() {
                 if let Some(visible_child) = main_stack.get_visible_child_name() {
                     if visible_child == CONTENT_PAGE {
