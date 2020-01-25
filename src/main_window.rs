@@ -49,7 +49,11 @@ pub struct MainWindow {
 }
 
 impl MainWindow {
-    pub fn new(settings: &Arc<RwLock<Settings>>, sender: Sender<Action>, shutdown_in_progress: Arc<RwLock<bool>>) -> Self {
+    pub fn new(
+        settings: &Arc<RwLock<Settings>>,
+        sender: Sender<Action>,
+        shutdown_in_progress: Arc<RwLock<bool>>,
+    ) -> Self {
         GtkUtil::register_symbolic_icons();
         let provider_handle = gtk_handle!(CssProvider::new());
 

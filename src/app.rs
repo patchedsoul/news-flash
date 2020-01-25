@@ -1046,9 +1046,9 @@ impl App {
         self.window.widget.close();
         self.window.execute_pending_undoable_action();
 
-        // wait for ongoing sync to finish, but limit waiting to max 10s
+        // wait for ongoing sync to finish, but limit waiting to max 3s
         let start_wait_time = time::SystemTime::now();
-        let max_wait_time = time::Duration::from_secs(5);
+        let max_wait_time = time::Duration::from_secs(3);
 
         while Self::is_syncing(&self.news_flash) && start_wait_time.elapsed().unwrap() < max_wait_time {
             gtk::main_iteration();
@@ -1064,7 +1064,9 @@ impl App {
 
     fn is_syncing(news_flash: &Arc<RwLock<Option<NewsFlash>>>) -> bool {
         if let Some(news_flash) = news_flash.read().as_ref() {
-            return news_flash.is_sync_ongoing();
+            if news_flash.is_sync_ongoing() {
+                return true;
+            }
         }
         false
     }

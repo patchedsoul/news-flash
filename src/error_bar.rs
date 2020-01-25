@@ -46,6 +46,8 @@ impl ErrorBar {
                 info_bar.set_revealed(false);
                 GtkUtil::disconnect_signal(*click_signal.read(), &button);
                 GtkUtil::disconnect_signal(*relogin_signal.read(), &login_button);
+                click_signal.write().take();
+                relogin_signal.write().take();
             }
         });
     }
@@ -64,6 +66,7 @@ impl ErrorBar {
         self.login_button.set_visible(true);
 
         GtkUtil::disconnect_signal(*self.click_signal.read(), &self.button);
+        GtkUtil::disconnect_signal(*self.relogin_signal.read(), &self.login_button);
 
         *self.click_signal.write() = Some(
             self.button
