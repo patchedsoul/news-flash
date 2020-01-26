@@ -42,6 +42,7 @@ pub struct MainWindow {
     pub password_login_page: Rc<PasswordLogin>,
     pub content_page: Rc<RwLock<ContentPage>>,
     pub content_header: Rc<ContentHeader>,
+    reset_page: ResetPage,
     stack: Stack,
     header_stack: Stack,
     responsive_layout: ResponsiveLayout,
@@ -112,7 +113,7 @@ impl MainWindow {
         let password_login_page = Rc::new(PasswordLogin::new(&builder, sender.clone()));
         let oauth_login_page = Rc::new(WebLogin::new(&builder, sender.clone()));
         let content_page = Rc::new(RwLock::new(ContentPage::new(&builder, &settings, sender.clone())));
-        let _reset_page = ResetPage::new(&builder, sender.clone());
+        let reset_page = ResetPage::new(&builder, sender.clone());
         let state = Arc::new(RwLock::new(MainWindowState::new()));
 
         Self::setup_shortcuts(&window, &sender, &content_page, &stack, &settings, &content_header);
@@ -136,6 +137,7 @@ impl MainWindow {
             oauth_login_page,
             password_login_page,
             content_header,
+            reset_page,
             stack,
             header_stack,
             responsive_layout,
@@ -463,8 +465,13 @@ impl MainWindow {
     }
 
     pub fn show_reset_page(&self) {
+        self.reset_page.init();
         self.stack.set_visible_child_name("reset_page");
         self.header_stack.set_visible_child_name("welcome");
+    }
+
+    pub fn reset_account_failed(&self, error: NewsFlashError) {
+        self.reset_page.error(error);
     }
 
     pub fn update_sidebar(&self, news_flash: &Arc<RwLock<Option<NewsFlash>>>, thread_pool: ThreadPool) {

@@ -65,6 +65,7 @@ pub enum Action {
     RetryLogin,
     Login(LoginData),
     ResetAccount,
+    ResetAccountError(NewsFlashError),
     ScheduleSync,
     Sync,
     MarkArticleRead(ReadUpdate),
@@ -190,6 +191,7 @@ impl App {
             Action::Login(data) => self.login(data),
             Action::RetryLogin => self.retry_login(),
             Action::ResetAccount => self.reset_account(),
+            Action::ResetAccountError(error) => self.window.reset_account_failed(error),
             Action::ScheduleSync => self.schedule_sync(),
             Action::Sync => self.sync(),
             Action::MarkArticleRead(update) => self.mark_article_read(update),
@@ -355,7 +357,7 @@ impl App {
                 Util::send(&sender, Action::ShowWelcomePage);
             }
             Ok(Err(error)) => {
-                Util::send(&sender, Action::Error("Failed to reset account.".to_owned(), error));
+                Util::send(&sender, Action::ResetAccountError(error));
             }
             Err(_) => {}
         });
