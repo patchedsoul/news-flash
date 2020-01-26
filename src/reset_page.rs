@@ -2,7 +2,7 @@ use crate::app::Action;
 use crate::error_dialog::ErrorDialog;
 use crate::util::{BuilderHelper, GtkUtil, Util};
 use glib::{translate::ToGlib, Sender};
-use gtk::{Button, ButtonExt, InfoBar, InfoBarExt, Stack, StackExt, ResponseType, WidgetExt};
+use gtk::{Button, ButtonExt, InfoBar, InfoBarExt, ResponseType, Stack, StackExt, WidgetExt};
 use news_flash::NewsFlashError;
 use parking_lot::RwLock;
 
