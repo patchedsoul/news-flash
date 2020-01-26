@@ -349,17 +349,15 @@ impl App {
 
         let news_flash = self.news_flash.clone();
         let sender = self.sender.clone();
-        let glib_future = receiver.map(move |res| {
-            match res {
-                Ok(Ok(())) => {
-                    news_flash.write().take();
-                    Util::send(&sender, Action::ShowWelcomePage);
-                },
-                Ok(Err(error)) => {
-                    Util::send(&sender, Action::Error("Failed to reset account.".to_owned(), error));
-                },
-                Err(_) => {},
+        let glib_future = receiver.map(move |res| match res {
+            Ok(Ok(())) => {
+                news_flash.write().take();
+                Util::send(&sender, Action::ShowWelcomePage);
             }
+            Ok(Err(error)) => {
+                Util::send(&sender, Action::Error("Failed to reset account.".to_owned(), error));
+            }
+            Err(_) => {}
         });
 
         self.threadpool.spawn_ok(thread_future);

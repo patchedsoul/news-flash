@@ -1,5 +1,5 @@
-use crate::util::{BuilderHelper, Util};
 use crate::app::Action;
+use crate::util::{BuilderHelper, Util};
 use glib::Sender;
 use gtk::{Button, ButtonExt, Stack, StackExt, WidgetExt};
 
