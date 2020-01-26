@@ -93,7 +93,10 @@ newsflash_sources = files(
   'error_dialog.rs',
   'main.rs',
   'main_window.rs',
-  'main_window_state.rs'
+  'main_window_state.rs',
+  'rename_dialog.rs',
+  'reset_page.rs',
+  'responsive.rs'
 )
 
 cargo_release = custom_target('cargo-build',

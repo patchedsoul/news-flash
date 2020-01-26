@@ -13,6 +13,7 @@ use crate::sidebar::models::SidebarSelection;
 use crate::undo_bar::{UndoActionModel, UndoBar};
 use crate::util::{BuilderHelper, GtkHandle, GtkUtil, Util, GTK_CSS_ERROR, GTK_RESOURCE_FILE_ERROR, RUNTIME_ERROR};
 use crate::welcome_screen::{WelcomeHeaderbar, WelcomePage};
+use crate::reset_page::ResetPage;
 use crate::Resources;
 use futures::channel::oneshot;
 use futures::executor::ThreadPool;
@@ -111,6 +112,7 @@ impl MainWindow {
         let password_login_page = Rc::new(PasswordLogin::new(&builder, sender.clone()));
         let oauth_login_page = Rc::new(WebLogin::new(&builder, sender.clone()));
         let content_page = Rc::new(RwLock::new(ContentPage::new(&builder, &settings, sender.clone())));
+        let _reset_page = ResetPage::new(&builder, sender.clone());
         let state = Arc::new(RwLock::new(MainWindowState::new()));
 
         Self::setup_shortcuts(&window, &sender, &content_page, &stack, &settings, &content_header);
@@ -440,7 +442,7 @@ impl MainWindow {
         }
     }
 
-    pub fn show_content_page(&self, plugin_id: &PluginID, news_flash: &RwLock<Option<NewsFlash>>) {
+    pub fn show_content_page(&self, plugin_id: Option<PluginID>, news_flash: &RwLock<Option<NewsFlash>>) {
         if let Some(news_flash) = news_flash.read().as_ref() {
             let user_name: Option<String> = news_flash.user_name();
             self.stack.set_transition_type(StackTransitionType::SlideLeft);
@@ -449,13 +451,20 @@ impl MainWindow {
 
             Util::send(&self.sender, Action::UpdateSidebar);
 
-            if self.content_page.read().set_service(&plugin_id, user_name).is_err() {
-                Util::send(
-                    &self.sender,
-                    Action::ErrorSimpleMessage("Failed to set service.".to_owned()),
-                );
+            if let Some(plugin_id) = plugin_id {
+                if self.content_page.read().set_service(&plugin_id, user_name).is_err() {
+                    Util::send(
+                        &self.sender,
+                        Action::ErrorSimpleMessage("Failed to set service.".to_owned()),
+                    );
+                }
             }
         }
+    }
+
+    pub fn show_reset_page(&self) {
+        self.stack.set_visible_child_name("reset_page");
+        self.header_stack.set_visible_child_name("welcome");
     }
 
     pub fn update_sidebar(&self, news_flash: &Arc<RwLock<Option<NewsFlash>>>, thread_pool: ThreadPool) {

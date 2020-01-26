@@ -55,14 +55,16 @@ pub enum Action {
     UndoableAction(UndoActionModel),
     LoadFavIcon((Feed, OneShotSender<Option<FavIcon>>)),
     ShowWelcomePage,
-    ShowContentPage(PluginID),
+    ShowContentPage(Option<PluginID>),
     ShowPasswordLogin(PluginID, Option<PasswordLogin>),
     ShowOauthLogin(PluginID),
+    ShowResetPage,
     ShowSettingsWindow,
     ShowShortcutWindow,
     ShowAboutWindow,
     RetryLogin,
     Login(LoginData),
+    ResetAccount,
     ScheduleSync,
     Sync,
     MarkArticleRead(ReadUpdate),
@@ -178,14 +180,16 @@ impl App {
             Action::UndoableAction(action) => self.window.show_undo_bar(action),
             Action::LoadFavIcon((feed, sender)) => self.load_favicon(feed, sender),
             Action::ShowWelcomePage => self.window.show_welcome_page(),
-            Action::ShowContentPage(plugin_id) => self.window.show_content_page(&plugin_id, &self.news_flash),
+            Action::ShowContentPage(plugin_id) => self.window.show_content_page(plugin_id, &self.news_flash),
             Action::ShowPasswordLogin(plugin_id, data) => self.window.show_password_login_page(&plugin_id, data),
             Action::ShowOauthLogin(plugin_id) => self.window.show_oauth_login_page(&plugin_id),
+            Action::ShowResetPage => self.window.show_reset_page(),
             Action::ShowSettingsWindow => self.spawn_settings_window(),
             Action::ShowShortcutWindow => self.spawn_shortcut_window(),
             Action::ShowAboutWindow => self.spawn_about_window(),
             Action::Login(data) => self.login(data),
             Action::RetryLogin => self.retry_login(),
+            Action::ResetAccount => self.reset_account(),
             Action::ScheduleSync => self.schedule_sync(),
             Action::Sync => self.sync(),
             Action::MarkArticleRead(update) => self.mark_article_read(update),
@@ -283,7 +287,7 @@ impl App {
                     // create main obj
                     news_flash.write().replace(news_flash_lib);
                     // show content page
-                    Util::send(&global_sender, Action::ShowContentPage(id));
+                    Util::send(&global_sender, Action::ShowContentPage(Some(id)));
                 }
                 Err(error) => {
                     error!("Login failed! Plguin: {}, Error: {}", id, error);
@@ -330,6 +334,36 @@ impl App {
                 }
             }
         }
+    }
+
+    fn reset_account(&self) {
+        let (sender, receiver) = oneshot::channel::<Result<(), NewsFlashError>>();
+
+        let news_flash = self.news_flash.clone();
+        let thread_future = async move {
+            if let Some(news_flash) = news_flash.write().as_mut() {
+                let result = Runtime::new().expect(RUNTIME_ERROR).block_on(news_flash.logout());
+                sender.send(result).expect(CHANNEL_ERROR);
+            }
+        };
+
+        let news_flash = self.news_flash.clone();
+        let sender = self.sender.clone();
+        let glib_future = receiver.map(move |res| {
+            match res {
+                Ok(Ok(())) => {
+                    news_flash.write().take();
+                    Util::send(&sender, Action::ShowWelcomePage);
+                },
+                Ok(Err(error)) => {
+                    Util::send(&sender, Action::Error("Failed to reset account.".to_owned(), error));
+                },
+                Err(_) => {},
+            }
+        });
+
+        self.threadpool.spawn_ok(thread_future);
+        Util::glib_spawn_future(glib_future);
     }
 
     fn schedule_sync(&self) {

@@ -290,8 +290,6 @@ impl ContentHeader {
     }
 
     fn setup_menu_button(button: &MenuButton, sender: &Sender<Action>) {
-        let about_model = Menu::new();
-
         let sender_clone = sender.clone();
         let show_shortcut_window_action = SimpleAction::new("shortcut-window", None);
         show_shortcut_window_action.connect_activate(move |_action, _parameter| {
@@ -322,14 +320,29 @@ impl ContentHeader {
             Util::send(&sender_clone, Action::ExportOpml);
         });
 
+        let sender_clone = sender.clone();
+        let relogin_action = SimpleAction::new("relogin", None);
+        relogin_action.connect_activate(move |_action, _parameter| {
+            Util::send(&sender_clone, Action::RetryLogin);
+        });
+
+        let sender_clone = sender.clone();
+        let reset_account_action = SimpleAction::new("reset-account", None);
+        reset_account_action.connect_activate(move |_action, _parameter| {
+            Util::send(&sender_clone, Action::ShowResetPage);
+        });
+
         if let Ok(main_window) = GtkUtil::get_main_window(button) {
             main_window.add_action(&show_shortcut_window_action);
             main_window.add_action(&show_about_window_action);
             main_window.add_action(&settings_window_action);
             main_window.add_action(&quit_action);
             main_window.add_action(&export_opml_action);
+            main_window.add_action(&relogin_action);
+            main_window.add_action(&reset_account_action);
         }
 
+        let about_model = Menu::new();
         about_model.append(Some("Shortcuts"), Some("win.shortcut-window"));
         about_model.append(Some("About"), Some("win.about-window"));
         about_model.append(Some("Quit"), Some("win.quit-application"));
@@ -338,8 +351,13 @@ impl ContentHeader {
         im_export_model.append(Some("Import OPML"), Some("win.import"));
         im_export_model.append(Some("Export OPML"), Some("win.export-opml"));
 
+        let account_model = Menu::new();
+        account_model.append(Some("Update Login"), Some("win.relogin"));
+        account_model.append(Some("Reset Login"), Some("win.reset-account"));
+
         let main_model = Menu::new();
         main_model.append(Some("Settings"), Some("win.settings"));
+        main_model.append_section(Some(""), &account_model);
         main_model.append_section(Some(""), &im_export_model);
         main_model.append_section(Some(""), &about_model);
 

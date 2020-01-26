@@ -13,6 +13,7 @@ mod main_window;
 mod main_window_state;
 mod rename_dialog;
 mod responsive;
+mod reset_page;
 mod settings;
 mod sidebar;
 mod undo_bar;

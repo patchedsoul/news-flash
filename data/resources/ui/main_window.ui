@@ -1325,6 +1325,108 @@
             <property name="position">3</property>
           </packing>
         </child>
+        <child>
+          <object class="GtkBox" id="reset_page">
+            <property name="can_focus">False</property>
+            <property name="halign">center</property>
+            <property name="margin_left">20</property>
+            <property name="margin_right">20</property>
+            <property name="margin_top">50</property>
+            <property name="margin_bottom">50</property>
+            <property name="orientation">vertical</property>
+            <child>
+              <object class="GtkLabel">
+                <property name="visible">True</property>
+                <property name="can_focus">False</property>
+                <property name="vexpand">True</property>
+                <property name="label" translatable="yes">Resetting leads to all local data being lost</property>
+                <style>
+                  <class name="h2"/>
+                </style>
+              </object>
+              <packing>
+                <property name="expand">False</property>
+                <property name="fill">True</property>
+                <property name="position">0</property>
+              </packing>
+            </child>
+            <child>
+              <object class="GtkBox">
+                <property name="visible">True</property>
+                <property name="can_focus">False</property>
+                <child>
+                  <object class="GtkButton" id="cancel_button">
+                    <property name="label" translatable="yes">I changed my mind</property>
+                    <property name="visible">True</property>
+                    <property name="can_focus">True</property>
+                    <property name="receives_default">True</property>
+                  </object>
+                  <packing>
+                    <property name="expand">False</property>
+                    <property name="fill">True</property>
+                    <property name="position">0</property>
+                  </packing>
+                </child>
+                <child>
+                  <object class="GtkButton" id="reset_button">
+                    <property name="visible">True</property>
+                    <property name="can_focus">True</property>
+                    <property name="receives_default">True</property>
+                    <child>
+                      <object class="GtkStack" id="reset_stack">
+                        <property name="visible">True</property>
+                        <property name="can_focus">False</property>
+                        <property name="transition_duration">50</property>
+                        <property name="transition_type">crossfade</property>
+                        <child>
+                          <object class="GtkLabel" id="reset_label">
+                            <property name="visible">True</property>
+                            <property name="can_focus">False</property>
+                            <property name="label" translatable="yes">Reset</property>
+                          </object>
+                          <packing>
+                            <property name="name">reset_label</property>
+                            <property name="title" translatable="yes">page0</property>
+                          </packing>
+                        </child>
+                        <child>
+                          <object class="GtkSpinner" id="reset_spinner">
+                            <property name="visible">True</property>
+                            <property name="can_focus">False</property>
+                            <property name="active">True</property>
+                          </object>
+                          <packing>
+                            <property name="name">reset_spinner</property>
+                            <property name="title" translatable="yes">page1</property>
+                            <property name="position">1</property>
+                          </packing>
+                        </child>
+                      </object>
+                    </child>
+                    <style>
+                      <class name="destructive-action"/>
+                    </style>
+                  </object>
+                  <packing>
+                    <property name="expand">False</property>
+                    <property name="fill">True</property>
+                    <property name="pack_type">end</property>
+                    <property name="position">1</property>
+                  </packing>
+                </child>
+              </object>
+              <packing>
+                <property name="expand">False</property>
+                <property name="fill">True</property>
+                <property name="position">1</property>
+              </packing>
+            </child>
+          </object>
+          <packing>
+            <property name="name">reset_page</property>
+            <property name="position">4</property>
+          </packing>
+        </child>
       </object>
     </child>
   </object>
