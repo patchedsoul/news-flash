@@ -997,7 +997,7 @@ impl App {
             dialog.add_filter(&filter);
             dialog.set_filter(&filter);
             if let Some(title) = &article.title {
-                dialog.set_current_name(&format!("{}.html", title));
+                dialog.set_current_name(&format!("{}.html", title.replace("/", "_")));
             } else {
                 dialog.set_current_name("Article.html");
             }

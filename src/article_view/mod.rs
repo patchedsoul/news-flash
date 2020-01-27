@@ -23,6 +23,7 @@ use gtk::{
     StackExt, TickCallbackId, WidgetExt, WidgetExtManual,
 };
 use log::{error, warn};
+use url::{Host, Origin};
 use news_flash::models::{FatArticle, Marked, Read};
 use pango::FontDescription;
 use parking_lot::RwLock;
@@ -170,29 +171,41 @@ impl ArticleView {
     pub fn show_article(&self, article: FatArticle, feed_name: String) {
         let webview = self.switch_view();
         let html = self.build_article(&article, &feed_name);
-        webview.load_html(&html, None);
+        webview.load_html(&html, Self::get_base_url(&article).as_deref());
         self.visible_article.replace(Some(article));
         self.visible_feed_name.replace(Some(feed_name));
     }
 
     pub fn redraw_article(&self) {
-        let mut html = String::new();
-        let mut success = false;
-
         if let Some(article) = &*self.visible_article.borrow() {
             if let Some(feed_name) = &*self.visible_feed_name.borrow() {
-                html = self.build_article(&article, feed_name);
-                success = true;
+                let html = self.build_article(&article, feed_name);
+                
+                let webview = self.switch_view();
+                webview.load_html(&html, Self::get_base_url(&article).as_deref());
+                return;
             }
         }
 
-        if !success {
-            warn!("Can't redraw article view. No article is on display.");
-            return;
-        }
+        warn!("Can't redraw article view. No article is on display.");
+    }
 
-        let webview = self.switch_view();
-        webview.load_html(&html, None);
+    fn get_base_url(article: &FatArticle) -> Option<String> {
+        if let Some(url) = &article.url {
+            match url.get().origin() {
+                Origin::Opaque(_op) => None,
+                Origin::Tuple(scheme, host, port) => {
+                    let host = match host {
+                        Host::Domain(domain) => domain,
+                        Host::Ipv4(ipv4) => ipv4.to_string(),
+                        Host::Ipv6(ipv6) => ipv6.to_string(),
+                    };
+                    Some(format!("{}://{}:{}", scheme, host, port))
+                },
+            }
+        } else {
+            None
+        }
     }
 
     pub fn get_visible_article(&self) -> Option<FatArticle> {
@@ -212,6 +225,8 @@ impl ArticleView {
 
     pub fn close_article(&self) {
         self.remove_old_view(150);
+        self.visible_article.borrow_mut().take();
+        self.visible_feed_name.borrow_mut().take();
         *self.internal_state.borrow_mut() = InternalState::Empty;
         self.stack.set_visible_child_name("empty");
     }
@@ -350,7 +365,6 @@ impl ArticleView {
                         LoadEvent::Started => {
                             if let Some(uri) = closure_webivew.get_uri() {
                                 if "about:blank" != uri {
-                                    println!("uri: {}", uri);
                                     if let Some(default_screen) = gdk::Screen::get_default() {
                                         if gtk::show_uri(
                                             Some(&default_screen),
