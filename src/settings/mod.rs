@@ -36,7 +36,7 @@ pub struct Settings {
 
 impl Settings {
     pub fn open() -> Result<Self, SettingsError> {
-        let path = crate::app::DATA_DIR.join(CONFIG_NAME);
+        let path = crate::app::CONFIG_DIR.join(CONFIG_NAME);
         if path.as_path().exists() {
             let data = fs::read_to_string(&path).context(SettingsErrorKind::ReadFromDisk)?;
             let mut settings: Self = serde_json::from_str(&data).context(SettingsErrorKind::InvalidJsonContent)?;
@@ -44,7 +44,7 @@ impl Settings {
             return Ok(settings);
         }
 
-        fs::create_dir_all(crate::app::DATA_DIR.as_path()).context(SettingsErrorKind::CreateDirectory)?;
+        fs::create_dir_all(crate::app::CONFIG_DIR.as_path()).context(SettingsErrorKind::CreateDirectory)?;
 
         let settings = Settings {
             general: GeneralSettings::default(),

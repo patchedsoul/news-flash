@@ -36,8 +36,11 @@ use crate::undo_bar::UndoActionModel;
 use crate::util::{FileUtil, GtkUtil, Util, CHANNEL_ERROR, RUNTIME_ERROR};
 
 lazy_static! {
-    pub static ref DATA_DIR: PathBuf = glib::get_user_config_dir()
+    pub static ref CONFIG_DIR: PathBuf = glib::get_user_config_dir()
         .expect("Failed to find the config dir")
+        .join("news-flash");
+    pub static ref DATA_DIR: PathBuf = glib::get_user_data_dir()
+        .expect("Failed to find the data dir")
         .join("news-flash");
 }
 
@@ -142,7 +145,11 @@ impl App {
 
         app.setup_signals();
 
-        if let Ok(news_flash_lib) = NewsFlash::try_load(&crate::app::DATA_DIR) {
+        let data_dir = DATA_DIR.clone();
+        let config_dir = CONFIG_DIR.clone();
+        println!("data: {:?}", data_dir.to_str());
+        println!("config: {:?}", config_dir.to_str());
+        if let Ok(news_flash_lib) = NewsFlash::try_load(&DATA_DIR, &CONFIG_DIR) {
             info!("Successful load from config");
             app.news_flash.write().replace(news_flash_lib);
             Util::send(&app.sender, Action::ScheduleSync);
@@ -267,7 +274,7 @@ impl App {
             LoginData::Password(pass) => pass.id.clone(),
             LoginData::None(id) => id.clone(),
         };
-        let mut news_flash_lib = match NewsFlash::new(&DATA_DIR, &id) {
+        let mut news_flash_lib = match NewsFlash::new(&DATA_DIR, &CONFIG_DIR, &id) {
             Ok(news_flash) => news_flash,
             Err(error) => {
                 match &data {
