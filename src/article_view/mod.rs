@@ -23,7 +23,6 @@ use gtk::{
     StackExt, TickCallbackId, WidgetExt, WidgetExtManual,
 };
 use log::{error, warn};
-use url::{Host, Origin};
 use news_flash::models::{FatArticle, Marked, Read};
 use pango::FontDescription;
 use parking_lot::RwLock;
@@ -32,6 +31,7 @@ use std::rc::Rc;
 use std::str;
 use std::sync::Arc;
 use std::sync::Mutex;
+use url::{Host, Origin};
 use webkit2gtk::{
     ContextMenuAction, ContextMenuExt, ContextMenuItemExt, HitTestResultExt, LoadEvent, NavigationPolicyDecision,
     NavigationPolicyDecisionExt, PolicyDecisionType, Settings as WebkitSettings, SettingsExt, URIRequestExt, WebView,
@@ -180,7 +180,7 @@ impl ArticleView {
         if let Some(article) = &*self.visible_article.borrow() {
             if let Some(feed_name) = &*self.visible_feed_name.borrow() {
                 let html = self.build_article(&article, feed_name);
-                
+
                 let webview = self.switch_view();
                 webview.load_html(&html, Self::get_base_url(&article).as_deref());
                 return;
@@ -201,7 +201,7 @@ impl ArticleView {
                         Host::Ipv6(ipv6) => ipv6.to_string(),
                     };
                     Some(format!("{}://{}:{}", scheme, host, port))
-                },
+                }
             }
         } else {
             None
