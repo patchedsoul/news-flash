@@ -16,7 +16,7 @@ use gtk::{
 use lazy_static::lazy_static;
 use log::{error, info, warn};
 use news_flash::models::{
-    ArticleID, Category, CategoryID, FavIcon, Feed, FeedID, LoginData, PasswordLogin, PluginID, TagID, Url,
+    ArticleID, Category, CategoryID, FatArticle, FavIcon, Feed, FeedID, LoginData, PasswordLogin, PluginID, TagID, Url,
 };
 use news_flash::{NewsFlash, NewsFlashError};
 use parking_lot::RwLock;
@@ -97,6 +97,8 @@ pub enum Action {
     DeleteTag(TagID),
     DragAndDrop(FeedListDndAction),
     ExportArticle,
+    StartGrabArticleContent,
+    FinishGrabArticleContent(Option<FatArticle>),
     ExportOpml,
     QueueQuit,
     ForceQuit,
@@ -230,6 +232,8 @@ impl App {
             Action::DeleteTag(tag_id) => self.delete_tag(tag_id),
             Action::DragAndDrop(action) => self.drag_and_drop(action),
             Action::ExportArticle => self.export_article(),
+            Action::StartGrabArticleContent => self.start_grab_article_content(),
+            Action::FinishGrabArticleContent(article) => self.finish_grab_article_content(article),
             Action::ExportOpml => self.export_opml(),
             Action::QueueQuit => self.queue_quit(),
             Action::ForceQuit => self.force_quit(),
@@ -1063,6 +1067,56 @@ impl App {
                 Util::glib_spawn_future(glib_future);
             }
             dialog.emit_close();
+        }
+    }
+
+    fn start_grab_article_content(&self) {
+        let (sender, receiver) = oneshot::channel::<Result<FatArticle, NewsFlashError>>();
+
+        if let Some(article) = self.window.content_page.read().article_view_visible_article() {
+            self.window.content_header.start_more_actions_spinner();
+
+            let news_flash = self.news_flash.clone();
+            let article_id = article.article_id.clone();
+            let thread_future = async move {
+                if let Some(news_flash) = news_flash.read().as_ref() {
+                    let article = Runtime::new()
+                        .expect(RUNTIME_ERROR)
+                        .block_on(news_flash.article_scrap_content(&article_id));
+                    sender.send(article).expect(CHANNEL_ERROR);
+                }
+            };
+
+            let article_id = article.article_id.clone();
+            let global_sender = self.sender.clone();
+            let glib_future = receiver.map(move |res| match res {
+                Ok(Ok(article)) => {
+                    Util::send(&global_sender, Action::FinishGrabArticleContent(Some(article)));
+                }
+                Ok(Err(error)) => {
+                    let message = format!("Failed to scrap article content: '{}'", article_id);
+                    error!("{}", message);
+                    Util::send(&global_sender, Action::Error(message, error));
+                    Util::send(&global_sender, Action::FinishGrabArticleContent(None));
+                }
+                Err(error) => {
+                    let message = format!("Sender error: {}", error);
+                    error!("{}", message);
+                    Util::send(&global_sender, Action::ErrorSimpleMessage(message));
+                    Util::send(&global_sender, Action::FinishGrabArticleContent(None));
+                }
+            });
+
+            self.threadpool.spawn_ok(thread_future);
+            Util::glib_spawn_future(glib_future);
+        }
+    }
+
+    fn finish_grab_article_content(&self, article: Option<FatArticle>) {
+        self.window.content_header.stop_more_actions_spinner();
+
+        if let Some(article) = article {
+            self.window.show_article(article.article_id, &self.news_flash);
         }
     }
 

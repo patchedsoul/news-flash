@@ -416,12 +416,20 @@ impl ContentHeader {
             Util::send(&sender_clone, Action::ExportArticle);
         });
 
+        let sender_clone = sender.clone();
+        let grab_article_content_action = SimpleAction::new("grab-article-content", None);
+        grab_article_content_action.connect_activate(move |_action, _parameter| {
+            Util::send(&sender_clone, Action::StartGrabArticleContent);
+        });
+
         if let Ok(main_window) = GtkUtil::get_main_window(button) {
             main_window.add_action(&close_article_action);
             main_window.add_action(&export_article_action);
+            main_window.add_action(&grab_article_content_action);
         }
 
         let model = Menu::new();
+        model.append(Some("Grab full content"), Some("win.grab-article-content"));
         model.append(Some("Export Article"), Some("win.export-article"));
         model.append(Some("Close Article"), Some("win.close-article"));
         button.set_menu_model(Some(&model));
