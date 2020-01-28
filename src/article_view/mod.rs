@@ -839,9 +839,9 @@ impl ArticleView {
 
         // $UNSELECTABLE
         if settings.read().get_article_view_allow_select() {
-            template_string = template_string.replacen("$UNSELECTABLE", "", 1);
+            template_string = template_string.replacen("$UNSELECTABLE", "", 2);
         } else {
-            template_string = template_string.replacen("$UNSELECTABLE", "unselectable", 1);
+            template_string = template_string.replacen("$UNSELECTABLE", "unselectable", 2);
         }
 
         // $AUTHOR / $DATE
