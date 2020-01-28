@@ -210,11 +210,11 @@ impl MainWindow {
             }
 
             if Self::check_shortcut("toggle_category_expanded", &settings, event) {
-                content_page.read().sidebar_expand_collase_category();
+                content_page.read().sidebar.read().expand_collapse_selected_category();
             }
 
             if Self::check_shortcut("toggle_read", &settings, event) {
-                let article_model = content_page.read().get_selected_article_model();
+                let article_model = content_page.read().article_list.read().get_selected_article_model();
                 if let Some(article_model) = article_model {
                     let update = ReadUpdate {
                         article_id: article_model.id.clone(),
@@ -227,7 +227,7 @@ impl MainWindow {
             }
 
             if Self::check_shortcut("toggle_marked", &settings, event) {
-                let article_model = content_page.read().get_selected_article_model();
+                let article_model = content_page.read().article_list.read().get_selected_article_model();
                 if let Some(article_model) = article_model {
                     let update = MarkUpdate {
                         article_id: article_model.id.clone(),
@@ -240,7 +240,7 @@ impl MainWindow {
             }
 
             if Self::check_shortcut("open_browser", &settings, event) {
-                let article_model = content_page.read().get_selected_article_model();
+                let article_model = content_page.read().article_list.read().get_selected_article_model();
                 if let Some(article_model) = article_model {
                     if let Some(url) = article_model.url {
                         if gtk::show_uri_on_window(Some(&main_window), url.get().as_str(), 0).is_err() {
@@ -390,7 +390,7 @@ impl MainWindow {
     }
 
     pub fn show_undo_bar(&self, action: UndoActionModel) {
-        let select_all_button = match self.content_page.read().sidebar_get_selection() {
+        let select_all_button = match self.content_page.read().sidebar.read().get_selection() {
             SidebarSelection::All => false,
             SidebarSelection::Cateogry((selected_id, _label)) => match &action {
                 UndoActionModel::DeleteCategory((delete_id, _label)) => &selected_id == delete_id,
@@ -407,7 +407,7 @@ impl MainWindow {
         };
         if select_all_button {
             self.state.write().set_sidebar_selection(SidebarSelection::All);
-            self.content_page.read().sidebar_select_all_button_no_update();
+            self.content_page.read().sidebar.read().select_all_button_no_update();
         }
 
         self.undo_bar.add_action(action);
@@ -526,7 +526,7 @@ impl MainWindow {
                 }
             };
             self.content_header.show_article(Some(&article));
-            self.content_page.read().article_view_show(article, feed);
+            self.content_page.read().article_view.show_article(article, feed.label.clone());
 
             self.responsive_layout.state.borrow_mut().major_leaflet_selected = true;
             self.responsive_layout.process_state_change();
@@ -725,14 +725,15 @@ impl MainWindow {
     }
 
     pub fn update_article_header(&self, news_flash: &Arc<RwLock<Option<NewsFlash>>>) {
-        let visible_article = self.content_page.read().article_view_visible_article();
+        let visible_article = self.content_page.read().article_view.get_visible_article();
         if let Some(visible_article) = visible_article {
             if let Some(news_flash) = news_flash.read().as_ref() {
                 if let Ok(visible_article) = news_flash.get_fat_article(&visible_article.article_id) {
                     self.content_header.show_article(Some(&visible_article));
                     self.content_page
                         .read()
-                        .article_view_update_visible_article(Some(visible_article.unread), None);
+                        .article_view
+                        .update_visible_article(Some(visible_article.unread), None);
                 }
             }
         }

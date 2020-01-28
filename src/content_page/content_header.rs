@@ -6,7 +6,7 @@ use gio::{ActionMapExt, Menu, MenuItem, SimpleAction};
 use glib::{object::Cast, translate::ToGlib, Sender};
 use gtk::{
     Button, ButtonExt, Continue, EntryExt, Inhibit, MenuButton, MenuButtonExt, SearchEntry, SearchEntryExt, Stack,
-    StackExt, ToggleButton, ToggleButtonExt, WidgetExt,
+    StackExt, ToggleButton, ToggleButtonExt, WidgetExt, Popover, PopoverExt,
 };
 use libhandy::{SearchBar, SearchBarExt};
 use news_flash::models::{FatArticle, Marked, Read};
@@ -18,6 +18,9 @@ pub struct ContentHeader {
     sender: Sender<Action>,
     update_stack: Stack,
     update_button: Button,
+    offline_button: Button,
+    offline_stack: Stack,
+    offline_popover: Popover,
     search_button: ToggleButton,
     search_entry: SearchEntry,
     mark_all_read_button: Button,
@@ -43,6 +46,9 @@ impl ContentHeader {
         let marked_button = builder.get::<ToggleButton>("marked_button");
         let update_button = builder.get::<Button>("update_button");
         let update_stack = builder.get::<Stack>("update_stack");
+        let offline_button = builder.get::<Button>("offline_status_button");
+        let offline_stack = builder.get::<Stack>("offline_status_stack");
+        let offline_popover = builder.get::<Popover>("offline_popover");
         let menu_button = builder.get::<MenuButton>("menu_button");
         let more_actions_button = builder.get::<MenuButton>("more_actions_button");
         let more_actions_stack = builder.get::<Stack>("more_actions_stack");
@@ -109,6 +115,9 @@ impl ContentHeader {
             sender,
             update_stack,
             update_button,
+            offline_button,
+            offline_stack,
+            offline_popover,
             search_button,
             search_entry,
             mark_all_read_button,
@@ -519,5 +528,16 @@ impl ContentHeader {
     pub fn finish_mark_all_read(&self) {
         self.mark_all_read_button.set_sensitive(true);
         self.mark_all_read_stack.set_visible_child_name("image");
+    }
+
+    pub fn set_offline(&self, offline: bool) {
+        self.offline_button.set_visible(offline);
+        self.update_button.set_visible(!offline);
+        self.mark_all_read_button.set_visible(!offline);
+        if offline {
+            self.offline_popover.popup();
+        } else {
+            self.offline_popover.popdown();
+        }
     }
 }

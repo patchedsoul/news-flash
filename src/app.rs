@@ -105,6 +105,8 @@ pub enum Action {
     ExportOpml,
     QueueQuit,
     ForceQuit,
+    EnterOfflineMode,
+    ReturnToOnlineMode,
 }
 pub struct App {
     application: gtk::Application,
@@ -116,6 +118,7 @@ pub struct App {
     sync_source_id: RwLock<Option<u32>>,
     threadpool: ThreadPool,
     shutdown_in_progress: Arc<RwLock<bool>>,
+    offline_mode: Arc<RwLock<bool>>,
 }
 
 impl App {
@@ -123,6 +126,7 @@ impl App {
         let application =
             Application::new(Some(APP_ID), gio::ApplicationFlags::empty()).expect("Initialization gtk-app failed");
         let shutdown_in_progress = Arc::new(RwLock::new(false));
+        let offline_mode = Arc::new(RwLock::new(false));
 
         let (sender, r) = glib::MainContext::channel(glib::PRIORITY_DEFAULT);
         let receiver = RefCell::new(Some(r));
@@ -141,6 +145,7 @@ impl App {
             sync_source_id: RwLock::new(None),
             threadpool: ThreadPool::new().unwrap(),
             shutdown_in_progress,
+            offline_mode,
         });
 
         app.setup_signals();
@@ -215,14 +220,14 @@ impl App {
                 .window
                 .load_more_articles(&self.news_flash, self.threadpool.clone()),
             Action::SidebarSelection(selection) => self.window.sidebar_selection(selection),
-            Action::SidebarSelectNext => self.window.content_page.read().select_next_article(),
-            Action::SidebarSelectPrev => self.window.content_page.read().select_prev_article(),
+            Action::SidebarSelectNext => self.window.content_page.read().article_list.read().select_next_article(),
+            Action::SidebarSelectPrev => self.window.content_page.read().article_list.read().select_prev_article(),
             Action::HeaderSelection(selection) => self.window.set_headerbar_selection(selection),
             Action::UpdateArticleHeader => self.window.update_article_header(&self.news_flash),
             Action::ShowArticle(article_id) => self.window.show_article(article_id, &self.news_flash),
-            Action::RedrawArticle => self.window.content_page.read().article_view_redraw(),
+            Action::RedrawArticle => self.window.content_page.read().article_view.redraw_article(),
             Action::CloseArticle => {
-                self.window.content_page.read().article_view_close();
+                self.window.content_page.read().article_view.close_article();
                 self.window.content_header.show_article(None);
             }
             Action::SearchTerm(search_term) => self.window.set_search_term(search_term),
@@ -244,6 +249,8 @@ impl App {
             Action::ExportOpml => self.export_opml(),
             Action::QueueQuit => self.queue_quit(),
             Action::ForceQuit => self.force_quit(),
+            Action::EnterOfflineMode => self.go_offline(),
+            Action::ReturnToOnlineMode => self.go_back_online(),
         }
         glib::Continue(true)
     }
@@ -505,7 +512,7 @@ impl App {
             };
 
             Util::send(&global_sender, Action::UpdateSidebar);
-            let visible_article = content_page.read().article_view_visible_article();
+            let visible_article = content_page.read().article_view.get_visible_article();
             if let Some(visible_article) = visible_article {
                 if visible_article.article_id == update.article_id {
                     let mut visible_article = visible_article.clone();
@@ -513,7 +520,8 @@ impl App {
                     content_header.show_article(Some(&visible_article));
                     content_page
                         .read()
-                        .article_view_update_visible_article(Some(visible_article.unread), None);
+                        .article_view
+                        .update_visible_article(Some(visible_article.unread), None);
                 }
             }
         });
@@ -564,7 +572,7 @@ impl App {
             };
 
             Util::send(&global_sender, Action::UpdateSidebar);
-            let visible_article = content_page.read().article_view_visible_article();
+            let visible_article = content_page.read().article_view.get_visible_article();
             if let Some(visible_article) = visible_article {
                 if visible_article.article_id == update.article_id {
                     let mut visible_article = visible_article.clone();
@@ -572,7 +580,8 @@ impl App {
                     content_header.show_article(Some(&visible_article));
                     content_page
                         .read()
-                        .article_view_update_visible_article(None, Some(visible_article.marked));
+                        .article_view
+                        .update_visible_article(None, Some(visible_article.marked));
                 }
             }
         });
@@ -582,7 +591,7 @@ impl App {
     }
 
     fn toggle_article_read(&self) {
-        let visible_article = self.window.content_page.read().article_view_visible_article();
+        let visible_article = self.window.content_page.read().article_view.get_visible_article();
         if let Some(visible_article) = visible_article {
             let update = ReadUpdate {
                 article_id: visible_article.article_id.clone(),
@@ -594,7 +603,7 @@ impl App {
     }
 
     fn toggle_article_marked(&self) {
-        let visible_article = self.window.content_page.read().article_view_visible_article();
+        let visible_article = self.window.content_page.read().article_view.get_visible_article();
         if let Some(visible_article) = visible_article {
             let update = MarkUpdate {
                 article_id: visible_article.article_id.clone(),
@@ -624,7 +633,7 @@ impl App {
     fn add_feed_dialog(&self) {
         if let Some(news_flash) = self.news_flash.read().as_ref() {
             let error_message = "Failed to add feed".to_owned();
-            let add_button = self.window.content_page.read().sidebar_get_add_button();
+            let add_button = self.window.content_page.read().sidebar.read().get_add_button();
 
             let categories = match news_flash.get_categories() {
                 Ok(categories) => categories,
@@ -838,7 +847,7 @@ impl App {
     }
 
     fn delete_selection(&self) {
-        let selection = self.window.content_page.read().sidebar_get_selection();
+        let selection = self.window.content_page.read().sidebar.read().get_selection();
         let undo_action = match selection {
             SidebarSelection::All => {
                 warn!("Trying to delete item while 'All Articles' is selected");
@@ -982,7 +991,7 @@ impl App {
     fn export_article(&self) {
         let (sender, receiver) = oneshot::channel::<()>();
 
-        if let Some(article) = self.window.content_page.read().article_view_visible_article() {
+        if let Some(article) = self.window.content_page.read().article_view.get_visible_article() {
             let dialog = FileChooserDialog::with_buttons(
                 Some("Export Article"),
                 Some(&self.window.widget),
@@ -1080,7 +1089,7 @@ impl App {
     fn start_grab_article_content(&self) {
         let (sender, receiver) = oneshot::channel::<Result<FatArticle, NewsFlashError>>();
 
-        if let Some(article) = self.window.content_page.read().article_view_visible_article() {
+        if let Some(article) = self.window.content_page.read().article_view.get_visible_article() {
             self.window.content_header.start_more_actions_spinner();
 
             let news_flash = self.news_flash.clone();
@@ -1200,5 +1209,15 @@ impl App {
             }
         }
         false
+    }
+
+    fn go_offline(&self) {
+        *self.offline_mode.write() = true;
+        self.window.content_header.set_offline(true)
+    }
+
+    fn go_back_online(&self) {
+        self.window.content_header.set_offline(false);
+        *self.offline_mode.write() = false;
     }
 }

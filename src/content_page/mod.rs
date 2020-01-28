@@ -7,7 +7,7 @@ pub use self::header_selection::HeaderSelection;
 
 use self::error::{ContentPageError, ContentPageErrorKind};
 use crate::app::Action;
-use crate::article_list::{ArticleList, ArticleListArticleModel, ArticleListModel};
+use crate::article_list::{ArticleList, ArticleListModel};
 use crate::article_view::ArticleView;
 use crate::main_window_state::MainWindowState;
 use crate::settings::Settings;
@@ -19,19 +19,19 @@ use failure::ResultExt;
 use futures::channel::oneshot;
 use futures::executor::ThreadPool;
 use glib::{futures::FutureExt, Sender};
-use gtk::{Box, BoxExt, Button, WidgetExt};
+use gtk::{Box, BoxExt, WidgetExt};
 use libhandy::Leaflet;
 use news_flash::models::{
-    Article, ArticleFilter, FatArticle, Feed, Marked, PluginCapabilities, PluginID, Read, NEWSFLASH_TOPLEVEL,
+    Article, ArticleFilter, Marked, PluginCapabilities, PluginID, Read, NEWSFLASH_TOPLEVEL,
 };
 use news_flash::NewsFlash;
 use parking_lot::RwLock;
 use std::sync::Arc;
 
 pub struct ContentPage {
-    sidebar: Arc<RwLock<SideBar>>,
-    article_list: Arc<RwLock<ArticleList>>,
-    article_view: ArticleView,
+    pub sidebar: Arc<RwLock<SideBar>>,
+    pub article_list: Arc<RwLock<ArticleList>>,
+    pub article_view: ArticleView,
     settings: Arc<RwLock<Settings>>,
 }
 
@@ -499,44 +499,12 @@ impl ContentPage {
         thread_pool.spawn_ok(thread_future);
         Util::glib_spawn_future(glib_future);
     }
-
-    pub fn article_view_show(&self, article: FatArticle, feed: &Feed) {
-        self.article_view.show_article(article, feed.label.clone());
-    }
-
+    
     pub fn article_view_scroll_diff(&self, diff: f64) -> Result<(), ContentPageError> {
         self.article_view
             .animate_scroll_diff(diff)
             .context(ContentPageErrorKind::ArticleView)?;
         Ok(())
-    }
-
-    pub fn article_view_close(&self) {
-        self.article_view.close_article()
-    }
-
-    pub fn article_view_visible_article(&self) -> Option<FatArticle> {
-        self.article_view.get_visible_article()
-    }
-
-    pub fn article_view_update_visible_article(&self, read: Option<Read>, marked: Option<Marked>) {
-        self.article_view.update_visible_article(read, marked);
-    }
-
-    pub fn article_view_redraw(&self) {
-        self.article_view.redraw_article()
-    }
-
-    pub fn select_next_article(&self) {
-        self.article_list.read().select_next_article()
-    }
-
-    pub fn select_prev_article(&self) {
-        self.article_list.read().select_prev_article()
-    }
-
-    pub fn get_selected_article_model(&self) -> Option<ArticleListArticleModel> {
-        self.article_list.read().get_selected_article_model()
     }
 
     pub fn sidebar_select_next_item(&self) -> Result<(), ContentPageError> {
@@ -553,21 +521,5 @@ impl ContentPage {
             .select_prev_item()
             .context(ContentPageErrorKind::SidebarSelection)?;
         Ok(())
-    }
-
-    pub fn sidebar_expand_collase_category(&self) {
-        self.sidebar.read().expand_collapse_selected_category()
-    }
-
-    pub fn sidebar_get_selection(&self) -> SidebarSelection {
-        self.sidebar.read().get_selection()
-    }
-
-    pub fn sidebar_select_all_button_no_update(&self) {
-        self.sidebar.read().select_all_button_no_update();
-    }
-
-    pub fn sidebar_get_add_button(&self) -> Button {
-        self.sidebar.read().get_add_button()
     }
 }
