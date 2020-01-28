@@ -4,7 +4,7 @@ use crate::util::{BuilderHelper, GtkUtil, Util};
 use glib::{translate::ToGlib, Sender};
 use gtk::{Button, ButtonExt, InfoBar, InfoBarExt, Label, LabelExt, ResponseType, WidgetExt};
 use log::error;
-use news_flash::NewsFlashError;
+use news_flash::{NewsFlash, NewsFlashError};
 use parking_lot::RwLock;
 use std::sync::Arc;
 
@@ -70,11 +70,24 @@ impl ErrorBar {
         self.label.set_text(message);
         self.widget.set_revealed(true);
         self.button.set_visible(true);
-        self.login_button.set_visible(true);
-
-        GtkUtil::disconnect_signal(*self.click_signal.read(), &self.button);
+        
+        let show_login_button = NewsFlash::error_login_related(&error);
+        self.login_button.set_visible(show_login_button);
         GtkUtil::disconnect_signal(*self.relogin_signal.read(), &self.login_button);
 
+        if show_login_button {
+            let sender = self.sender.clone();
+            *self.relogin_signal.write() = Some(
+                self.login_button
+                    .connect_clicked(move |_button| {
+                        log::info!("retry login");
+                        Util::send(&sender, Action::RetryLogin);
+                    })
+                    .to_glib(),
+            );
+        }
+
+        GtkUtil::disconnect_signal(*self.click_signal.read(), &self.button);
         *self.click_signal.write() = Some(
             self.button
                 .connect_clicked(move |button| {
@@ -83,16 +96,6 @@ impl ErrorBar {
                     } else {
                         error!("Failed to spawn ErrorDialog. Parent window not found.");
                     }
-                })
-                .to_glib(),
-        );
-
-        let sender = self.sender.clone();
-        *self.relogin_signal.write() = Some(
-            self.login_button
-                .connect_clicked(move |_button| {
-                    log::info!("retry login");
-                    Util::send(&sender, Action::RetryLogin);
                 })
                 .to_glib(),
         );
