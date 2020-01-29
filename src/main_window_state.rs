@@ -7,6 +7,7 @@ pub struct MainWindowState {
     header: HeaderSelection,
     search_term: Option<String>,
     reset_article_list: bool,
+    offline: bool,
 }
 
 const ARTICLE_LIST_PAGE_SIZE: i64 = 20;
@@ -18,6 +19,7 @@ impl MainWindowState {
             header: HeaderSelection::All,
             search_term: None,
             reset_article_list: false,
+            offline: false,
         }
     }
 
@@ -57,6 +59,14 @@ impl MainWindowState {
     pub fn set_search_term(&mut self, search_term: Option<String>) {
         self.search_term = search_term;
         self.reset_article_list = true;
+    }
+
+    pub fn set_offline(&mut self, offline: bool) {
+        self.offline = offline;
+    }
+
+    pub fn get_offline(&self) -> bool {
+        self.offline
     }
 }
 

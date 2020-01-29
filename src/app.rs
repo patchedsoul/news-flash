@@ -118,7 +118,6 @@ pub struct App {
     sync_source_id: RwLock<Option<u32>>,
     threadpool: ThreadPool,
     shutdown_in_progress: Arc<RwLock<bool>>,
-    offline_mode: Arc<RwLock<bool>>,
 }
 
 impl App {
@@ -126,7 +125,6 @@ impl App {
         let application =
             Application::new(Some(APP_ID), gio::ApplicationFlags::empty()).expect("Initialization gtk-app failed");
         let shutdown_in_progress = Arc::new(RwLock::new(false));
-        let offline_mode = Arc::new(RwLock::new(false));
 
         let (sender, r) = glib::MainContext::channel(glib::PRIORITY_DEFAULT);
         let receiver = RefCell::new(Some(r));
@@ -145,7 +143,6 @@ impl App {
             sync_source_id: RwLock::new(None),
             threadpool: ThreadPool::new().unwrap(),
             shutdown_in_progress,
-            offline_mode,
         });
 
         app.setup_signals();
@@ -1212,12 +1209,12 @@ impl App {
     }
 
     fn go_offline(&self) {
-        *self.offline_mode.write() = true;
+        self.window.state.write().set_offline(true);
         self.window.content_header.set_offline(true)
     }
 
     fn go_back_online(&self) {
         self.window.content_header.set_offline(false);
-        *self.offline_mode.write() = false;
+        self.window.state.write().set_offline(false);
     }
 }

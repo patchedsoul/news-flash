@@ -46,7 +46,7 @@ pub struct MainWindow {
     stack: Stack,
     header_stack: Stack,
     responsive_layout: ResponsiveLayout,
-    state: Arc<RwLock<MainWindowState>>,
+    pub state: Arc<RwLock<MainWindowState>>,
     sender: Sender<Action>,
 }
 
