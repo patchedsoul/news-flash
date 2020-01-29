@@ -138,7 +138,7 @@ impl ErrorBar {
                             &relogin_signal,
                             &offline_signal,
                         );
-                        Util::send(&sender, Action::EnterOfflineMode);
+                        Util::send(&sender, Action::SetOfflineMode(true));
                     })
                     .to_glib(),
             );

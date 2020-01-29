@@ -14,8 +14,6 @@ pub enum ArticleViewErrorKind {
     NoActiveWebView,
     #[fail(display = "Executed JS didn't return any value")]
     NoValueFromJS,
-    #[fail(display = "Couldn't get mutex lock")]
-    Mutex,
     #[fail(display = "Unknown Error")]
     Unknown,
 }

@@ -4,6 +4,7 @@ pub mod feed_row;
 pub mod models;
 
 use crate::app::Action;
+use crate::main_window_state::MainWindowState;
 use crate::sidebar::feed_list::error::{FeedListError, FeedListErrorKind};
 use crate::sidebar::feed_list::{
     category_row::CategoryRow,
@@ -37,10 +38,11 @@ pub struct FeedList {
     tree: Arc<RwLock<FeedListTree>>,
     delayed_selection: Arc<RwLock<Option<u32>>>,
     hovered_category_expand: Arc<RwLock<Option<(u32, CategoryID)>>>,
+    state: Arc<RwLock<MainWindowState>>,
 }
 
 impl FeedList {
-    pub fn new(sidebar_scroll: &ScrolledWindow, sender: Sender<Action>) -> Self {
+    pub fn new(sidebar_scroll: &ScrolledWindow, state: &Arc<RwLock<MainWindowState>>, sender: Sender<Action>) -> Self {
         let builder = BuilderHelper::new("sidebar_list");
         let list_box = builder.get::<ListBox>("sidebar_list");
 
@@ -63,6 +65,7 @@ impl FeedList {
             tree: Arc::new(RwLock::new(FeedListTree::new())),
             delayed_selection: Arc::new(RwLock::new(None)),
             hovered_category_expand: Arc::new(RwLock::new(None)),
+            state: state.clone(),
         };
         feed_list.setup_dnd();
         feed_list
@@ -334,7 +337,7 @@ impl FeedList {
     }
 
     fn add_category(&mut self, category: &FeedListCategoryModel, pos: i32, visible: bool) {
-        let category_widget = CategoryRow::new(category, visible, self.sender.clone());
+        let category_widget = CategoryRow::new(category, &self.state, visible, self.sender.clone());
         let feeds = self.feeds.clone();
         let categories = self.categories.clone();
         let category_id = category.id.clone();
@@ -403,7 +406,7 @@ impl FeedList {
     }
 
     fn add_feed(&mut self, feed: &FeedListFeedModel, pos: i32, visible: bool) {
-        let feed_widget = FeedRow::new(feed, visible, self.sender.clone());
+        let feed_widget = FeedRow::new(feed, &self.state, visible, self.sender.clone());
         self.list.insert(&feed_widget.read().widget(), pos);
         self.feeds.write().insert(feed.id.clone(), feed_widget);
     }
@@ -509,5 +512,15 @@ impl FeedList {
             return self.tree.write().calculate_prev_item(index);
         }
         SidebarIterateItem::NothingSelected
+    }
+
+    pub fn set_offline(&self, offline: bool) {
+        for (_key, value) in self.feeds.read().iter() {
+            if offline {
+                value.read().disable_dnd();
+            } else {
+                value.read().enable_dnd();
+            }
+        }
     }
 }

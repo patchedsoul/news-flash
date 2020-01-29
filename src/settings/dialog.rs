@@ -400,7 +400,7 @@ impl SettingsDialog {
                             editor.widget().present();
                             editor.widget().connect_close(move |_dialog| {
                                 let _settings = settings.clone();
-                                match &*editor.keybinding.borrow() {
+                                match &*editor.keybinding.read() {
                                     KeybindState::Canceled | KeybindState::Illegal => {}
                                     KeybindState::Disabled => {
                                         if Keybindings::write_keybinding(&id, None, &settings).is_ok() {

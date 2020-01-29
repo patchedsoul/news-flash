@@ -1,4 +1,5 @@
 use crate::app::Action;
+use crate::main_window_state::MainWindowState;
 use crate::sidebar::feed_list::models::FeedListFeedModel;
 use crate::undo_bar::UndoActionModel;
 use crate::util::{BuilderHelper, GtkUtil, Util};
@@ -9,9 +10,9 @@ use gdk::{DragAction, EventType, ModifierType};
 use gio::{ActionMapExt, Menu, MenuItem, SimpleAction};
 use glib::{source::SourceId, translate::FromGlib, translate::ToGlib, Sender, Source};
 use gtk::{
-    self, Box, ContainerExt, Continue, DragContextExtManual, EventBox, Image, ImageExt, Inhibit, Label, LabelExt,
-    ListBoxRow, ListBoxRowExt, Popover, PopoverExt, PositionType, Revealer, RevealerExt, StateFlags, StyleContextExt,
-    TargetEntry, TargetFlags, WidgetExt, WidgetExtManual,
+    self, BinExt, Box, ContainerExt, Continue, DragContextExtManual, EventBox, Image, ImageExt, Inhibit, Label,
+    LabelExt, ListBoxRow, ListBoxRowExt, Popover, PopoverExt, PositionType, Revealer, RevealerExt, StateFlags,
+    StyleContextExt, TargetEntry, TargetFlags, WidgetExt, WidgetExtManual,
 };
 use news_flash::models::{CategoryID, FavIcon, Feed, FeedID};
 use parking_lot::RwLock;
@@ -31,7 +32,12 @@ pub struct FeedRow {
 }
 
 impl FeedRow {
-    pub fn new(model: &FeedListFeedModel, visible: bool, sender: Sender<Action>) -> Arc<RwLock<FeedRow>> {
+    pub fn new(
+        model: &FeedListFeedModel,
+        state: &Arc<RwLock<MainWindowState>>,
+        visible: bool,
+        sender: Sender<Action>,
+    ) -> Arc<RwLock<FeedRow>> {
         let builder = BuilderHelper::new("feed");
         let revealer = builder.get::<Revealer>("feed_row");
         let level_margin = builder.get::<Box>("level_margin");
@@ -44,7 +50,7 @@ impl FeedRow {
 
         let mut feed = FeedRow {
             id: model.id.clone(),
-            widget: Self::create_row(&sender, &revealer, &model.id, &model.parent_id, &title_label),
+            widget: Self::create_row(&sender, state, &revealer, &model.id, &model.parent_id, &title_label),
             item_count: item_count_label,
             title: title_label,
             revealer,
@@ -63,6 +69,7 @@ impl FeedRow {
 
     fn create_row(
         sender: &Sender<Action>,
+        window_state: &Arc<RwLock<MainWindowState>>,
         widget: &gtk::Revealer,
         id: &FeedID,
         parent_id: &CategoryID,
@@ -106,6 +113,7 @@ impl FeedRow {
         let feed_id = id.clone();
         let label = label.clone();
         let sender = sender.clone();
+        let state = window_state.clone();
         row.connect_button_press_event(move |row, event| {
             if event.get_button() != 3 {
                 return Inhibit(false);
@@ -116,6 +124,10 @@ impl FeedRow {
                     return Inhibit(false)
                 }
                 _ => {}
+            }
+
+            if state.read().get_offline() {
+                return Inhibit(false);
             }
 
             let model = Menu::new();
@@ -246,5 +258,18 @@ impl FeedRow {
         self.revealer.set_reveal_child(true);
         self.revealer.get_style_context().remove_class("hidden");
         self.widget.set_selectable(true);
+    }
+
+    pub fn disable_dnd(&self) {
+        if let Some(widget) = self.widget.get_child() {
+            widget.drag_source_unset();
+        }
+    }
+
+    pub fn enable_dnd(&self) {
+        if let Some(widget) = self.widget.get_child() {
+            let entry = TargetEntry::new("FeedRow", TargetFlags::SAME_APP, 0);
+            widget.drag_source_set(ModifierType::BUTTON1_MASK, &[entry], DragAction::MOVE);
+        }
     }
 }

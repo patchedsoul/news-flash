@@ -7,6 +7,7 @@ mod tag_list;
 use self::error::{SidebarError, SidebarErrorKind};
 use self::footer::SidebarFooter;
 use crate::app::Action;
+use crate::main_window_state::MainWindowState;
 use crate::util::{BuilderHelper, GtkUtil, Util};
 use failure::ResultExt;
 pub use feed_list::models::{FeedListDndAction, FeedListItemID, FeedListTree};
@@ -14,8 +15,8 @@ use feed_list::FeedList;
 use gdk::{EventMask, EventType};
 use glib::{translate::ToGlib, Sender};
 use gtk::{
-    Box, BoxExt, Button, Continue, EventBox, Image, ImageExt, Inhibit, Label, LabelExt, ListBoxExt, Revealer,
-    RevealerExt, ScrolledWindow, StyleContextExt, WidgetExt, WidgetExtManual,
+    Box, BoxExt, Continue, EventBox, Image, ImageExt, Inhibit, Label, LabelExt, ListBoxExt, Revealer, RevealerExt,
+    ScrolledWindow, StyleContextExt, WidgetExt, WidgetExtManual,
 };
 pub use models::SidebarIterateItem;
 use models::SidebarSelection;
@@ -29,6 +30,7 @@ use tag_list::TagList;
 #[derive(Clone, Debug)]
 pub struct SideBar {
     sender: Sender<Action>,
+    state: Arc<RwLock<MainWindowState>>,
     sidebar: Box,
     tags_box: Box,
     logo: Image,
@@ -37,8 +39,8 @@ pub struct SideBar {
     item_count: i64,
     service_label: Label,
     scale_factor: i32,
-    feed_list: Arc<RwLock<FeedList>>,
-    tag_list: Arc<RwLock<TagList>>,
+    pub feed_list: Arc<RwLock<FeedList>>,
+    pub tag_list: Arc<RwLock<TagList>>,
     selection: Arc<RwLock<SidebarSelection>>,
     categories_expander: Image,
     tags_expander: Image,
@@ -47,11 +49,11 @@ pub struct SideBar {
     expanded_categories: Arc<RwLock<bool>>,
     expanded_tags: Arc<RwLock<bool>>,
     delayed_all_selection: Arc<RwLock<Option<u32>>>,
-    footer: Arc<RwLock<SidebarFooter>>,
+    pub footer: Arc<RwLock<SidebarFooter>>,
 }
 
 impl SideBar {
-    pub fn new(sender: Sender<Action>) -> Self {
+    pub fn new(state: &Arc<RwLock<MainWindowState>>, sender: Sender<Action>) -> Self {
         let builder = BuilderHelper::new("sidebar");
 
         let sidebar = builder.get::<Box>("toplevel");
@@ -71,9 +73,9 @@ impl SideBar {
         let tag_list_box = builder.get::<Box>("tags_list_box");
         let sidebar_scroll = builder.get::<ScrolledWindow>("sidebar_scroll");
 
-        let feed_list = FeedList::new(&sidebar_scroll, sender.clone());
+        let feed_list = FeedList::new(&sidebar_scroll, state, sender.clone());
         let tag_list = TagList::new();
-        let footer = SidebarFooter::new(&builder, &sender);
+        let footer = SidebarFooter::new(&builder, state, &sender);
 
         let feed_list_handle = Arc::new(RwLock::new(feed_list));
         let tag_list_handle = Arc::new(RwLock::new(tag_list));
@@ -179,6 +181,7 @@ impl SideBar {
 
         SideBar {
             sender,
+            state: state.clone(),
             sidebar,
             tags_box,
             logo,
@@ -523,9 +526,5 @@ impl SideBar {
 
     pub fn expand_collapse_selected_category(&self) {
         self.feed_list.read().expand_collapse_selected_category()
-    }
-
-    pub fn get_add_button(&self) -> Button {
-        self.footer.read().get_add_button()
     }
 }

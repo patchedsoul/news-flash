@@ -1,7 +1,7 @@
 use super::header_selection::HeaderSelection;
 use crate::app::Action;
-use crate::gtk_handle;
-use crate::util::{BuilderHelper, GtkHandle, GtkUtil, Util};
+use crate::main_window_state::MainWindowState;
+use crate::util::{BuilderHelper, GtkUtil, Util};
 use gio::{ActionMapExt, Menu, MenuItem, SimpleAction};
 use glib::{object::Cast, translate::ToGlib, Sender};
 use gtk::{
@@ -11,16 +11,16 @@ use gtk::{
 use libhandy::{SearchBar, SearchBarExt};
 use news_flash::models::{FatArticle, Marked, Read};
 use parking_lot::RwLock;
-use std::cell::RefCell;
-use std::rc::Rc;
+use std::sync::Arc;
 
 pub struct ContentHeader {
     sender: Sender<Action>,
+    state: Arc<RwLock<MainWindowState>>,
     update_stack: Stack,
     update_button: Button,
     offline_button: Button,
-    offline_stack: Stack,
     offline_popover: Popover,
+    online_popover: Popover,
     search_button: ToggleButton,
     search_entry: SearchEntry,
     mark_all_read_button: Button,
@@ -40,15 +40,15 @@ pub struct ContentHeader {
 }
 
 impl ContentHeader {
-    pub fn new(builder: &BuilderHelper, sender: Sender<Action>) -> Self {
+    pub fn new(builder: &BuilderHelper, state: &Arc<RwLock<MainWindowState>>, sender: Sender<Action>) -> Self {
         let all_button = builder.get::<ToggleButton>("all_button");
         let unread_button = builder.get::<ToggleButton>("unread_button");
         let marked_button = builder.get::<ToggleButton>("marked_button");
         let update_button = builder.get::<Button>("update_button");
         let update_stack = builder.get::<Stack>("update_stack");
         let offline_button = builder.get::<Button>("offline_status_button");
-        let offline_stack = builder.get::<Stack>("offline_status_stack");
         let offline_popover = builder.get::<Popover>("offline_popover");
+        let online_popover = builder.get::<Popover>("online_popover");
         let menu_button = builder.get::<MenuButton>("menu_button");
         let more_actions_button = builder.get::<MenuButton>("more_actions_button");
         let more_actions_stack = builder.get::<Stack>("more_actions_stack");
@@ -72,8 +72,13 @@ impl ContentHeader {
             Util::send(&sender_clone, Action::SetSidebarRead);
         });
 
-        let linked_button_timeout: GtkHandle<Option<u32>> = gtk_handle!(None);
-        let header_selection = gtk_handle!(HeaderSelection::All);
+        let sender_clone = sender.clone();
+        offline_button.connect_clicked(move |_button| {
+            Util::send(&sender_clone, Action::SetOfflineMode(false));
+        });
+
+        let linked_button_timeout: Arc<RwLock<Option<u32>>> = Arc::new(RwLock::new(None));
+        let header_selection = Arc::new(RwLock::new(HeaderSelection::All));
 
         Self::setup_linked_button(
             &sender,
@@ -113,11 +118,12 @@ impl ContentHeader {
 
         let header = ContentHeader {
             sender,
+            state: state.clone(),
             update_stack,
             update_button,
             offline_button,
-            offline_stack,
             offline_popover,
+            online_popover,
             search_button,
             search_entry,
             mark_all_read_button,
@@ -186,8 +192,8 @@ impl ContentHeader {
         button: &ToggleButton,
         other_button_1: &ToggleButton,
         other_button_2: &ToggleButton,
-        header_selection: &GtkHandle<HeaderSelection>,
-        linked_button_timeout: &GtkHandle<Option<u32>>,
+        header_selection: &Arc<RwLock<HeaderSelection>>,
+        linked_button_timeout: &Arc<RwLock<Option<u32>>>,
         mode: HeaderSelection,
     ) {
         button.connect_button_press_event(|button, _event| {
@@ -217,9 +223,9 @@ impl ContentHeader {
             other_button_1.set_active(false);
             other_button_2.set_active(false);
 
-            *header_selection.borrow_mut() = mode.clone();
+            *header_selection.write() = mode.clone();
 
-            if linked_button_timeout.borrow().is_some() {
+            if linked_button_timeout.read().is_some() {
                 return;
             }
 
@@ -230,24 +236,24 @@ impl ContentHeader {
     fn linked_button_toggled(
         sender: &Sender<Action>,
         button: &ToggleButton,
-        header_selection: &GtkHandle<HeaderSelection>,
-        linked_button_timeout: &GtkHandle<Option<u32>>,
+        header_selection: &Arc<RwLock<HeaderSelection>>,
+        linked_button_timeout: &Arc<RwLock<Option<u32>>>,
     ) {
-        Util::send(sender, Action::HeaderSelection((*header_selection.borrow()).clone()));
+        Util::send(sender, Action::HeaderSelection((*header_selection.read()).clone()));
 
-        if linked_button_timeout.borrow().is_some() {
+        if linked_button_timeout.read().is_some() {
             return;
         }
 
         let toggle_button = button.clone();
-        let mode_before_cooldown = (*header_selection.borrow()).clone();
+        let mode_before_cooldown = (*header_selection.read()).clone();
         let header_selection = header_selection.clone();
         let linked_button_timeout_clone = linked_button_timeout.clone();
         let sender_clone = sender.clone();
-        *linked_button_timeout.borrow_mut() = Some(
+        linked_button_timeout.write().replace(
             gtk::timeout_add(250, move || {
-                *linked_button_timeout_clone.borrow_mut() = None;
-                if mode_before_cooldown != *header_selection.borrow() {
+                linked_button_timeout_clone.write().take();
+                if mode_before_cooldown != *header_selection.read() {
                     Self::linked_button_toggled(
                         &sender_clone,
                         &toggle_button,
@@ -511,8 +517,11 @@ impl ContentHeader {
         );
 
         self.more_actions_button.set_sensitive(sensitive);
-        self.mark_article_button.set_sensitive(sensitive);
-        self.mark_article_read_button.set_sensitive(sensitive);
+
+        if !self.state.read().get_offline() {
+            self.mark_article_button.set_sensitive(sensitive);
+            self.mark_article_read_button.set_sensitive(sensitive);
+        }
     }
 
     pub fn start_more_actions_spinner(&self) {
@@ -533,11 +542,15 @@ impl ContentHeader {
     pub fn set_offline(&self, offline: bool) {
         self.offline_button.set_visible(offline);
         self.update_button.set_visible(!offline);
-        self.mark_all_read_button.set_visible(!offline);
+        self.mark_all_read_button.set_sensitive(!offline);
+        self.mark_article_button.set_sensitive(!offline);
+        self.mark_article_read_button.set_sensitive(!offline);
         if offline {
             self.offline_popover.popup();
+            self.online_popover.popdown();
         } else {
             self.offline_popover.popdown();
+            self.online_popover.popup();
         }
     }
 }

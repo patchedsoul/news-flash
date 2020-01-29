@@ -2,6 +2,7 @@ use super::article_row::ArticleRow;
 use super::models::ArticleListArticleModel;
 use super::models::ArticleListModel;
 use crate::app::Action;
+use crate::main_window_state::MainWindowState;
 use crate::util::{BuilderHelper, GtkUtil, Util};
 use glib::{object::Cast, translate::ToGlib, Sender};
 use gtk::{
@@ -91,8 +92,14 @@ impl SingleArticleList {
         self.list.clone()
     }
 
-    pub fn add(&mut self, article: &ArticleListArticleModel, pos: i32, model: &Arc<RwLock<ArticleListModel>>) {
-        let article_row = ArticleRow::new(&article, model, self.sender.clone());
+    pub fn add(
+        &mut self,
+        article: &ArticleListArticleModel,
+        pos: i32,
+        model: &Arc<RwLock<ArticleListModel>>,
+        state: &Arc<RwLock<MainWindowState>>,
+    ) {
+        let article_row = ArticleRow::new(&article, model, state, self.sender.clone());
         self.list.insert(&article_row.widget(), pos);
         article_row.widget().show();
         self.articles

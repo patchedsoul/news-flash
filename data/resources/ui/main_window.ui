@@ -249,34 +249,10 @@
                         <property name="no_show_all">True</property>
                         <property name="tooltip_text" translatable="yes">Go back to online mode</property>
                         <child>
-                          <object class="GtkStack" id="offline_status_stack">
+                          <object class="GtkImage">
                             <property name="visible">True</property>
                             <property name="can_focus">False</property>
-                            <property name="transition_duration">50</property>
-                            <property name="transition_type">crossfade</property>
-                            <child>
-                              <object class="GtkImage">
-                                <property name="visible">True</property>
-                                <property name="can_focus">False</property>
-                                <property name="icon_name">network-offline-symbolic</property>
-                              </object>
-                              <packing>
-                                <property name="name">page0</property>
-                                <property name="title" translatable="yes">page0</property>
-                              </packing>
-                            </child>
-                            <child>
-                              <object class="GtkSpinner">
-                                <property name="visible">True</property>
-                                <property name="can_focus">False</property>
-                                <property name="active">True</property>
-                              </object>
-                              <packing>
-                                <property name="name">page1</property>
-                                <property name="title" translatable="yes">page1</property>
-                                <property name="position">1</property>
-                              </packing>
-                            </child>
+                            <property name="icon_name">network-offline-symbolic</property>
                           </object>
                         </child>
                       </object>
@@ -1602,7 +1578,23 @@
         <property name="margin_top">10</property>
         <property name="margin_bottom">10</property>
         <property name="label" translatable="yes">You are now offline.
-Click here to try to reconnect.</property>
+Click here to go back online.</property>
+      </object>
+    </child>
+  </object>
+  <object class="GtkPopover" id="online_popover">
+    <property name="can_focus">False</property>
+    <property name="relative_to">update_button</property>
+    <property name="position">bottom</property>
+    <child>
+      <object class="GtkLabel">
+        <property name="visible">True</property>
+        <property name="can_focus">False</property>
+        <property name="margin_left">10</property>
+        <property name="margin_right">10</property>
+        <property name="margin_top">10</property>
+        <property name="margin_bottom">10</property>
+        <property name="label" translatable="yes">You are back online.</property>
       </object>
     </child>
   </object>

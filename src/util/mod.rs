@@ -8,7 +8,6 @@ mod stopwatch;
 pub use builder_helper::BuilderHelper;
 pub use date_util::DateUtil;
 pub use file_util::FileUtil;
-pub use gtk_util::GtkHandle;
 pub use gtk_util::GtkUtil;
 pub use gtk_util::GTK_BUILDER_ERROR;
 pub use gtk_util::GTK_CSS_ERROR;

@@ -105,8 +105,7 @@ pub enum Action {
     ExportOpml,
     QueueQuit,
     ForceQuit,
-    EnterOfflineMode,
-    ReturnToOnlineMode,
+    SetOfflineMode(bool),
 }
 pub struct App {
     application: gtk::Application,
@@ -258,8 +257,7 @@ impl App {
             Action::ExportOpml => self.export_opml(),
             Action::QueueQuit => self.queue_quit(),
             Action::ForceQuit => self.force_quit(),
-            Action::EnterOfflineMode => self.go_offline(),
-            Action::ReturnToOnlineMode => self.go_back_online(),
+            Action::SetOfflineMode(offline) => self.set_offline(offline),
         }
         glib::Continue(true)
     }
@@ -512,11 +510,13 @@ impl App {
                     let message = format!("Failed to mark article read: '{}'", update.article_id);
                     error!("{}", message);
                     Util::send(&global_sender, Action::Error(message, error));
+                    Util::send(&global_sender, Action::UpdateArticleList);
                 }
                 Err(error) => {
                     let message = format!("Sender error: {}", error);
                     error!("{}", message);
                     Util::send(&global_sender, Action::ErrorSimpleMessage(message));
+                    Util::send(&global_sender, Action::UpdateArticleList);
                 }
             };
 
@@ -572,11 +572,13 @@ impl App {
                     let message = format!("Failed to star article: '{}'", update.article_id);
                     error!("{}", message);
                     Util::send(&global_sender, Action::Error(message, error));
+                    Util::send(&global_sender, Action::UpdateArticleList);
                 }
                 Err(error) => {
                     let message = format!("Sender error: {}", error);
                     error!("{}", message);
                     Util::send(&global_sender, Action::ErrorSimpleMessage(message));
+                    Util::send(&global_sender, Action::UpdateArticleList);
                 }
             };
 
@@ -642,7 +644,15 @@ impl App {
     fn add_feed_dialog(&self) {
         if let Some(news_flash) = self.news_flash.read().as_ref() {
             let error_message = "Failed to add feed".to_owned();
-            let add_button = self.window.content_page.read().sidebar.read().get_add_button();
+            let add_button = self
+                .window
+                .content_page
+                .read()
+                .sidebar
+                .read()
+                .footer
+                .read()
+                .get_add_button();
 
             let categories = match news_flash.get_categories() {
                 Ok(categories) => categories,
@@ -1033,20 +1043,25 @@ impl App {
                         return;
                     }
                 };
+                let window_state = self.window.state.clone();
                 let thread_future = async move {
                     if let Some(news_flash) = news_flash.read().as_ref() {
-                        let article = match Runtime::new()
-                            .expect(RUNTIME_ERROR)
-                            .block_on(news_flash.article_download_images(&article.article_id))
-                        {
-                            Ok(article) => article,
-                            Err(error) => {
-                                Util::send(
-                                    &global_sender,
-                                    Action::Error("Failed to downlaod article images.".to_owned(), error),
-                                );
-                                sender.send(()).unwrap();
-                                return;
+                        let article = if window_state.read().get_offline() {
+                            article
+                        } else {
+                            match Runtime::new()
+                                .expect(RUNTIME_ERROR)
+                                .block_on(news_flash.article_download_images(&article.article_id))
+                            {
+                                Ok(article) => article,
+                                Err(error) => {
+                                    Util::send(
+                                        &global_sender,
+                                        Action::Error("Failed to downlaod article images.".to_owned(), error),
+                                    );
+                                    sender.send(()).unwrap();
+                                    return;
+                                }
                             }
                         };
 
@@ -1220,13 +1235,24 @@ impl App {
         false
     }
 
-    fn go_offline(&self) {
-        self.window.state.write().set_offline(true);
-        self.window.content_header.set_offline(true)
-    }
-
-    fn go_back_online(&self) {
-        self.window.content_header.set_offline(false);
-        self.window.state.write().set_offline(false);
+    fn set_offline(&self, offline: bool) {
+        self.window.state.write().set_offline(offline);
+        self.window.content_header.set_offline(offline);
+        self.window
+            .content_page
+            .read()
+            .sidebar
+            .read()
+            .footer
+            .read()
+            .set_offline(offline);
+        self.window
+            .content_page
+            .read()
+            .sidebar
+            .read()
+            .feed_list
+            .read()
+            .set_offline(offline);
     }
 }

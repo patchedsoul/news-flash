@@ -1,21 +1,20 @@
-use crate::gtk_handle;
-use crate::util::{BuilderHelper, GtkHandle, GtkUtil};
+use crate::util::{BuilderHelper, GtkUtil};
 use gdk::{EventType, NotifyType};
 use gtk::{
     self, BinExt, EventBox, Image, ImageExt, Inhibit, Label, LabelExt, Revealer, RevealerExt, StyleContextExt,
     WidgetExt,
 };
 use news_flash::models::{PluginIcon, PluginInfo, ServiceLicense, ServicePrice, ServiceType};
-use std::cell::RefCell;
-use std::rc::Rc;
+use parking_lot::RwLock;
+use std::sync::Arc;
 
 #[derive(Clone, Debug)]
 pub struct ServiceRow {
     row: EventBox,
-    arrow_revealer: GtkHandle<Revealer>,
-    arrow_event: GtkHandle<EventBox>,
-    arrow_image: GtkHandle<Image>,
-    info_revealer: GtkHandle<Revealer>,
+    arrow_revealer: Arc<RwLock<Revealer>>,
+    arrow_event: Arc<RwLock<EventBox>>,
+    arrow_image: Arc<RwLock<Image>>,
+    info_revealer: Arc<RwLock<Revealer>>,
     show_info: bool,
 }
 
@@ -100,38 +99,38 @@ impl ServiceRow {
 
         let service_row = ServiceRow {
             row,
-            arrow_revealer: gtk_handle!(arrow_revealer),
-            arrow_event: gtk_handle!(arrow_event),
-            arrow_image: gtk_handle!(arrow_image),
-            info_revealer: gtk_handle!(info_revealer),
+            arrow_revealer: Arc::new(RwLock::new(arrow_revealer)),
+            arrow_event: Arc::new(RwLock::new(arrow_event)),
+            arrow_image: Arc::new(RwLock::new(arrow_image)),
+            info_revealer: Arc::new(RwLock::new(info_revealer)),
             show_info: false,
         };
-        let self_handle = gtk_handle!(service_row.clone());
+        let self_handle = Arc::new(RwLock::new(service_row.clone()));
         service_row.setup_events(self_handle);
 
         service_row
     }
 
-    fn setup_events(&self, handle: GtkHandle<ServiceRow>) {
+    fn setup_events(&self, handle: Arc<RwLock<ServiceRow>>) {
         let arrow_revealer_1 = self.arrow_revealer.clone();
         let arrow_revealer_2 = self.arrow_revealer.clone();
         let handle_1 = handle.clone();
         self.row.connect_enter_notify_event(move |_widget, crossing| {
             if crossing.get_detail() != NotifyType::Inferior {
-                arrow_revealer_1.borrow().set_reveal_child(true);
+                arrow_revealer_1.read().set_reveal_child(true);
             }
             Inhibit(false)
         });
         self.row.connect_leave_notify_event(move |_widget, crossing| {
-            if crossing.get_detail() != NotifyType::Inferior && !handle_1.borrow().show_info {
-                arrow_revealer_2.borrow().set_reveal_child(false);
+            if crossing.get_detail() != NotifyType::Inferior && !handle_1.read().show_info {
+                arrow_revealer_2.write().set_reveal_child(false);
             }
             Inhibit(false)
         });
 
         let info_revealer = self.info_revealer.clone();
         self.arrow_event
-            .borrow()
+            .read()
             .connect_button_press_event(move |widget, event| {
                 if event.get_button() != 1 {
                     return gtk::Inhibit(false);
@@ -142,17 +141,17 @@ impl ServiceRow {
                 }
                 let arrow_image = widget.get_child().expect("arrow_image is not child of arrow_event");
                 let context = arrow_image.get_style_context();
-                let expanded = handle.borrow().show_info;
+                let expanded = handle.read().show_info;
                 if !expanded {
                     context.add_class("backward-arrow-expanded");
                     context.remove_class("backward-arrow-collapsed");
-                    info_revealer.borrow().set_reveal_child(true);
+                    info_revealer.read().set_reveal_child(true);
                 } else {
                     context.remove_class("backward-arrow-expanded");
                     context.add_class("backward-arrow-collapsed");
-                    info_revealer.borrow().set_reveal_child(false);
+                    info_revealer.read().set_reveal_child(false);
                 }
-                handle.borrow_mut().show_info = !expanded;
+                handle.write().show_info = !expanded;
                 gtk::Inhibit(true)
             });
     }

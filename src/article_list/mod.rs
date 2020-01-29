@@ -31,14 +31,19 @@ pub struct ArticleList {
     list_2: Arc<RwLock<SingleArticleList>>,
     list_model: Arc<RwLock<ArticleListModel>>,
     list_select_signal: Option<u64>,
-    window_state: MainWindowState,
+    local_state: MainWindowState,
+    global_state: Arc<RwLock<MainWindowState>>,
     current_list: Arc<RwLock<CurrentList>>,
     settings: Arc<RwLock<Settings>>,
     empty_label: Label,
 }
 
 impl ArticleList {
-    pub fn new(settings: &Arc<RwLock<Settings>>, sender: Sender<Action>) -> Self {
+    pub fn new(
+        settings: &Arc<RwLock<Settings>>,
+        global_state: &Arc<RwLock<MainWindowState>>,
+        sender: Sender<Action>,
+    ) -> Self {
         let builder = BuilderHelper::new("article_list");
         let stack = builder.get::<Stack>("article_list_stack");
         let empty_scroll = builder.get::<ScrolledWindow>("empty_scroll");
@@ -47,7 +52,7 @@ impl ArticleList {
         let list_1 = SingleArticleList::new(sender.clone());
         let list_2 = SingleArticleList::new(sender.clone());
 
-        let window_state = MainWindowState::new();
+        let local_state = MainWindowState::new();
         let model = ArticleListModel::new(&settings.read().get_article_list_order());
 
         stack.add_named(&list_1.widget(), "list_1");
@@ -63,7 +68,8 @@ impl ArticleList {
             list_2: Arc::new(RwLock::new(list_2)),
             list_model: Arc::new(RwLock::new(model)),
             list_select_signal: None,
-            window_state,
+            local_state,
+            global_state: global_state.clone(),
             current_list: Arc::new(RwLock::new(CurrentList::List1)),
             settings,
             empty_label,
@@ -111,14 +117,14 @@ impl ArticleList {
             }
             self.list_select_signal = None;
             *self.current_list.write() = CurrentList::Empty;
-            self.window_state = new_state.read().clone();
+            self.local_state = new_state.read().clone();
             return;
         }
 
         // check if a new list is reqired or current list should be updated
         if self.require_new_list(&new_state) {
             self.new_list(new_list);
-            self.window_state = new_state.read().clone();
+            self.local_state = new_state.read().clone();
             return;
         }
 
@@ -130,7 +136,7 @@ impl ArticleList {
         }
 
         *self.list_model.write() = new_list;
-        self.window_state = new_state.read().clone();
+        self.local_state = new_state.read().clone();
     }
 
     pub fn add_more_articles(&mut self, new_list: ArticleListModel) {
@@ -145,8 +151,9 @@ impl ArticleList {
             let model = model.clone();
             let list = list.clone();
             let list_model = self.list_model.clone();
+            let global_state = self.global_state.clone();
             gtk::idle_add(move || {
-                list.write().add(&model, -1, &list_model);
+                list.write().add(&model, -1, &list_model, &global_state);
                 Continue(false)
             });
         }
@@ -161,7 +168,7 @@ impl ArticleList {
         for diff in diff {
             match diff {
                 ArticleListChangeSet::Add(article, pos) => {
-                    list.write().add(article, pos, &self.list_model);
+                    list.write().add(article, pos, &self.list_model, &self.global_state);
                 }
                 ArticleListChangeSet::Remove(id) => {
                     list.write().remove(id.clone());
@@ -209,6 +216,7 @@ impl ArticleList {
         let current_list = self.current_list.clone();
         let list_1 = self.list_1.clone();
         let list_2 = self.list_2.clone();
+        let global_state = self.global_state.clone();
         let sender = self.sender.clone();
         let select_signal_id = new_list
             .read()
@@ -217,7 +225,7 @@ impl ArticleList {
                 let selected_index = row.get_index();
                 let selected_article = list_model.write().calculate_selection(selected_index).cloned();
                 if let Some(selected_article) = selected_article {
-                    if selected_article.read == Read::Unread {
+                    if selected_article.read == Read::Unread && !global_state.read().get_offline() {
                         let update = ReadUpdate {
                             article_id: selected_article.id.clone(),
                             read: Read::Read,
@@ -239,7 +247,7 @@ impl ArticleList {
     }
 
     fn require_new_list(&self, new_state: &RwLock<MainWindowState>) -> bool {
-        if self.window_state == *new_state.read()
+        if self.local_state == *new_state.read()
             && self.settings.read().get_article_list_order() == self.list_model.read().order()
             && *self.current_list.read() != CurrentList::Empty
         {
@@ -250,7 +258,7 @@ impl ArticleList {
 
     fn calc_transition_type(&self, new_state: &Arc<RwLock<MainWindowState>>) -> StackTransitionType {
         if self.require_new_list(new_state) {
-            match self.window_state.get_header_selection() {
+            match self.local_state.get_header_selection() {
                 HeaderSelection::All => match new_state.read().get_header_selection() {
                     HeaderSelection::All => {}
                     HeaderSelection::Unread | HeaderSelection::Marked => return StackTransitionType::SlideLeft,

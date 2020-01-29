@@ -12,21 +12,10 @@ use gtk::{
 };
 use log::{error, warn};
 use news_flash::models::PixelIcon;
-use std::cell::RefCell;
-use std::rc::Rc;
-
-pub type GtkHandle<T> = Rc<RefCell<T>>;
 
 pub const GTK_RESOURCE_FILE_ERROR: &str = "Could not load file from resources. This should never happen!";
 pub const GTK_BUILDER_ERROR: &str = "Could not build GTK widget from UI file. This should never happen!";
 pub const GTK_CSS_ERROR: &str = "Could not load CSS. This should never happen!";
-
-#[macro_export]
-macro_rules! gtk_handle {
-    ($x:expr) => {
-        Rc::new(RefCell::new($x))
-    };
-}
 
 pub struct GtkUtil;
 
@@ -152,10 +141,6 @@ impl GtkUtil {
         }
 
         None
-    }
-
-    pub fn disconnect_signal_handle<T: ObjectExt>(signal_id: &GtkHandle<Option<u64>>, widget: &T) {
-        Self::disconnect_signal(*signal_id.borrow(), widget);
     }
 
     pub fn disconnect_signal<T: ObjectExt>(signal_id: Option<u64>, widget: &T) {

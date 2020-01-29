@@ -1,5 +1,6 @@
 use super::models::{ArticleListArticleModel, ArticleListModel, MarkUpdate, ReadUpdate};
 use crate::app::Action;
+use crate::main_window_state::MainWindowState;
 use crate::util::{BuilderHelper, DateUtil, GtkUtil, Util};
 use futures::channel::oneshot;
 use futures::future::FutureExt;
@@ -27,6 +28,7 @@ impl ArticleRow {
     pub fn new(
         article: &ArticleListArticleModel,
         list_model: &Arc<RwLock<ArticleListModel>>,
+        state: &Arc<RwLock<MainWindowState>>,
         sender: Sender<Action>,
     ) -> Self {
         let builder = BuilderHelper::new("article");
@@ -99,6 +101,7 @@ impl ArticleRow {
         );
         Self::setup_unread_eventbox(
             &sender,
+            state,
             &unread_eventbox,
             &read_handle,
             &unread_stack,
@@ -108,6 +111,7 @@ impl ArticleRow {
         );
         Self::setup_marked_eventbox(
             &sender,
+            state,
             &marked_eventbox,
             &marked_handle,
             &marked_stack,
@@ -154,6 +158,7 @@ impl ArticleRow {
 
     fn setup_unread_eventbox(
         sender: &Sender<Action>,
+        state: &Arc<RwLock<MainWindowState>>,
         eventbox: &EventBox,
         read: &Arc<RwLock<Read>>,
         unread_stack: &Stack,
@@ -164,19 +169,25 @@ impl ArticleRow {
         let read_1 = read.clone();
         let stack_1 = unread_stack.clone();
         let title_label = title_label.clone();
+        let window_state = state.clone();
         eventbox.connect_enter_notify_event(move |_widget, _event| {
-            match *read_1.read() {
-                Read::Unread => stack_1.set_visible_child_name("read"),
-                Read::Read => stack_1.set_visible_child_name("unread"),
+            if !window_state.read().get_offline() {
+                match *read_1.read() {
+                    Read::Unread => stack_1.set_visible_child_name("read"),
+                    Read::Read => stack_1.set_visible_child_name("unread"),
+                }
             }
             Inhibit(false)
         });
         let read_2 = read.clone();
         let stack_2 = unread_stack.clone();
+        let window_state = state.clone();
         eventbox.connect_leave_notify_event(move |_widget, _event| {
-            match *read_2.read() {
-                Read::Unread => stack_2.set_visible_child_name("unread"),
-                Read::Read => stack_2.set_visible_child_name("read"),
+            if !window_state.read().get_offline() {
+                match *read_2.read() {
+                    Read::Unread => stack_2.set_visible_child_name("unread"),
+                    Read::Read => stack_2.set_visible_child_name("read"),
+                }
             }
             Inhibit(false)
         });
@@ -184,6 +195,7 @@ impl ArticleRow {
         let article_id = article_id.clone();
         let list_model = list_model.clone();
         let sender = sender.clone();
+        let window_state = state.clone();
         eventbox.connect_button_press_event(move |_widget, event| {
             if event.get_button() != 1 {
                 return Inhibit(false);
@@ -194,6 +206,10 @@ impl ArticleRow {
                 }
                 _ => {}
             }
+            if window_state.read().get_offline() {
+                return Inhibit(false);
+            }
+
             let read = *read_3.read();
             match read {
                 Read::Read => *read_3.write() = Read::Unread,
@@ -213,6 +229,7 @@ impl ArticleRow {
 
     fn setup_marked_eventbox(
         sender: &Sender<Action>,
+        state: &Arc<RwLock<MainWindowState>>,
         eventbox: &EventBox,
         marked: &Arc<RwLock<Marked>>,
         marked_stack: &Stack,
@@ -221,19 +238,25 @@ impl ArticleRow {
     ) {
         let marked_1 = marked.clone();
         let stack_1 = marked_stack.clone();
+        let window_state = state.clone();
         eventbox.connect_enter_notify_event(move |_widget, _event| {
-            match *marked_1.read() {
-                Marked::Marked => stack_1.set_visible_child_name("unmarked"),
-                Marked::Unmarked => stack_1.set_visible_child_name("marked"),
+            if !window_state.read().get_offline() {
+                match *marked_1.read() {
+                    Marked::Marked => stack_1.set_visible_child_name("unmarked"),
+                    Marked::Unmarked => stack_1.set_visible_child_name("marked"),
+                }
             }
             Inhibit(false)
         });
         let marked_2 = marked.clone();
         let stack_2 = marked_stack.clone();
+        let window_state = state.clone();
         eventbox.connect_leave_notify_event(move |_widget, _event| {
-            match *marked_2.read() {
-                Marked::Marked => stack_2.set_visible_child_name("marked"),
-                Marked::Unmarked => stack_2.set_visible_child_name("unmarked"),
+            if !window_state.read().get_offline() {
+                match *marked_2.read() {
+                    Marked::Marked => stack_2.set_visible_child_name("marked"),
+                    Marked::Unmarked => stack_2.set_visible_child_name("unmarked"),
+                }
             }
             Inhibit(false)
         });
@@ -241,6 +264,7 @@ impl ArticleRow {
         let article_id = article_id.clone();
         let list_model = list_model.clone();
         let sender = sender.clone();
+        let window_state = state.clone();
         eventbox.connect_button_press_event(move |_widget, event| {
             if event.get_button() != 1 {
                 return Inhibit(false);
@@ -250,6 +274,9 @@ impl ArticleRow {
                     return Inhibit(false);
                 }
                 _ => {}
+            }
+            if window_state.read().get_offline() {
+                return Inhibit(false);
             }
             let marked = *marked_3.read();
             match marked {

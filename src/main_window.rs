@@ -4,7 +4,6 @@ use crate::article_list::{MarkUpdate, ReadUpdate};
 use crate::config::{APP_ID, PROFILE};
 use crate::content_page::{ContentHeader, ContentPage, HeaderSelection};
 use crate::error_bar::ErrorBar;
-use crate::gtk_handle;
 use crate::login_screen::{LoginHeaderbar, PasswordLogin, WebLogin};
 use crate::main_window_state::MainWindowState;
 use crate::reset_page::ResetPage;
@@ -12,7 +11,7 @@ use crate::responsive::ResponsiveLayout;
 use crate::settings::{Keybindings, Settings};
 use crate::sidebar::models::SidebarSelection;
 use crate::undo_bar::{UndoActionModel, UndoBar};
-use crate::util::{BuilderHelper, GtkHandle, GtkUtil, Util, GTK_CSS_ERROR, GTK_RESOURCE_FILE_ERROR, RUNTIME_ERROR};
+use crate::util::{BuilderHelper, GtkUtil, Util, GTK_CSS_ERROR, GTK_RESOURCE_FILE_ERROR, RUNTIME_ERROR};
 use crate::welcome_screen::{WelcomeHeaderbar, WelcomePage};
 use crate::Resources;
 use futures::channel::oneshot;
@@ -27,7 +26,6 @@ use log::{error, warn};
 use news_flash::models::{ArticleID, PasswordLogin as PasswordLoginData, PluginID};
 use news_flash::{NewsFlash, NewsFlashError};
 use parking_lot::RwLock;
-use std::cell::RefCell;
 use std::rc::Rc;
 use std::sync::Arc;
 use tokio::runtime::Runtime;
@@ -57,7 +55,7 @@ impl MainWindow {
         shutdown_in_progress: Arc<RwLock<bool>>,
     ) -> Self {
         GtkUtil::register_symbolic_icons();
-        let provider_handle = gtk_handle!(CssProvider::new());
+        let provider_handle = Arc::new(RwLock::new(CssProvider::new()));
 
         if let Some(gtk_settings) = GtkSettings::get_default() {
             gtk_settings.set_property_gtk_application_prefer_dark_theme(settings.read().get_prefer_dark_theme());
@@ -66,6 +64,7 @@ impl MainWindow {
         // setup CSS for window
         Self::load_css(&provider_handle);
 
+        let state = Arc::new(RwLock::new(MainWindowState::new()));
         let builder = BuilderHelper::new("main_window");
         let window = builder.get::<ApplicationWindow>("main_window");
         let stack = builder.get::<Stack>("main_stack");
@@ -77,7 +76,7 @@ impl MainWindow {
 
         let _login_header = LoginHeaderbar::new(&builder, sender.clone());
         let _welcome_header = WelcomeHeaderbar::new(&builder);
-        let content_header = Rc::new(ContentHeader::new(&builder, sender.clone()));
+        let content_header = Rc::new(ContentHeader::new(&builder, &state, sender.clone()));
 
         window.set_icon_name(Some(APP_ID));
         window.set_title(APP_NAME);
@@ -112,11 +111,23 @@ impl MainWindow {
         let _welcome = WelcomePage::new(&builder, sender.clone());
         let password_login_page = Rc::new(PasswordLogin::new(&builder, sender.clone()));
         let oauth_login_page = Rc::new(WebLogin::new(&builder, sender.clone()));
-        let content_page = Rc::new(RwLock::new(ContentPage::new(&builder, &settings, sender.clone())));
+        let content_page = Rc::new(RwLock::new(ContentPage::new(
+            &builder,
+            &state,
+            &settings,
+            sender.clone(),
+        )));
         let reset_page = ResetPage::new(&builder, sender.clone());
-        let state = Arc::new(RwLock::new(MainWindowState::new()));
 
-        Self::setup_shortcuts(&window, &sender, &content_page, &stack, &settings, &content_header);
+        Self::setup_shortcuts(
+            &window,
+            &sender,
+            &content_page,
+            &stack,
+            &settings,
+            &content_header,
+            &state,
+        );
 
         if let Some(gtk_settings) = GtkSettings::get_default() {
             gtk_settings.set_property_gtk_application_prefer_dark_theme(settings.read().get_prefer_dark_theme());
@@ -153,6 +164,7 @@ impl MainWindow {
         main_stack: &Stack,
         settings: &Arc<RwLock<Settings>>,
         content_header: &Rc<ContentHeader>,
+        state: &Arc<RwLock<MainWindowState>>,
     ) {
         let main_stack = main_stack.clone();
         let sender = sender.clone();
@@ -160,6 +172,7 @@ impl MainWindow {
         let content_page = content_page.clone();
         let main_window = window.clone();
         let content_header = content_header.clone();
+        let state = state.clone();
         window.connect_key_press_event(move |_widget, event| {
             // ignore shortcuts when not on content page
             if let Some(visible_child) = main_stack.get_visible_child_name() {
@@ -178,7 +191,9 @@ impl MainWindow {
             }
 
             if Self::check_shortcut("refresh", &settings, event) {
-                Util::send(&sender, Action::Sync);
+                if !state.read().get_offline() {
+                    Util::send(&sender, Action::Sync);
+                }
             }
 
             if Self::check_shortcut("quit", &settings, event) {
@@ -214,28 +229,32 @@ impl MainWindow {
             }
 
             if Self::check_shortcut("toggle_read", &settings, event) {
-                let article_model = content_page.read().article_list.read().get_selected_article_model();
-                if let Some(article_model) = article_model {
-                    let update = ReadUpdate {
-                        article_id: article_model.id.clone(),
-                        read: article_model.read.invert(),
-                    };
+                if !state.read().get_offline() {
+                    let article_model = content_page.read().article_list.read().get_selected_article_model();
+                    if let Some(article_model) = article_model {
+                        let update = ReadUpdate {
+                            article_id: article_model.id.clone(),
+                            read: article_model.read.invert(),
+                        };
 
-                    Util::send(&sender, Action::MarkArticleRead(update));
-                    Util::send(&sender, Action::UpdateArticleList);
+                        Util::send(&sender, Action::MarkArticleRead(update));
+                        Util::send(&sender, Action::UpdateArticleList);
+                    }
                 }
             }
 
             if Self::check_shortcut("toggle_marked", &settings, event) {
-                let article_model = content_page.read().article_list.read().get_selected_article_model();
-                if let Some(article_model) = article_model {
-                    let update = MarkUpdate {
-                        article_id: article_model.id.clone(),
-                        marked: article_model.marked.invert(),
-                    };
+                if !state.read().get_offline() {
+                    let article_model = content_page.read().article_list.read().get_selected_article_model();
+                    if let Some(article_model) = article_model {
+                        let update = MarkUpdate {
+                            article_id: article_model.id.clone(),
+                            marked: article_model.marked.invert(),
+                        };
 
-                    Util::send(&sender, Action::MarkArticle(update));
-                    Util::send(&sender, Action::UpdateArticleList);
+                        Util::send(&sender, Action::MarkArticle(update));
+                        Util::send(&sender, Action::UpdateArticleList);
+                    }
                 }
             }
 
@@ -294,7 +313,9 @@ impl MainWindow {
             }
 
             if Self::check_shortcut("sidebar_set_read", &settings, event) {
-                Util::send(&sender, Action::SetSidebarRead);
+                if !state.read().get_offline() {
+                    Util::send(&sender, Action::SetSidebarRead);
+                }
             }
 
             Inhibit(false)
@@ -320,11 +341,11 @@ impl MainWindow {
         false
     }
 
-    fn load_css(provider: &GtkHandle<CssProvider>) {
+    fn load_css(provider: &Arc<RwLock<CssProvider>>) {
         let screen = gdk::Screen::get_default().expect(GTK_CSS_ERROR);
 
         // remove old style provider
-        StyleContext::remove_provider_for_screen(&screen, &*provider.borrow());
+        StyleContext::remove_provider_for_screen(&screen, &*provider.read());
 
         // setup new style provider
         let style_sheet = if let Some(settings) = GtkSettings::get_default() {
@@ -337,11 +358,11 @@ impl MainWindow {
             "app"
         };
         let css_data = Resources::get(&format!("css/{}.css", style_sheet)).expect(GTK_RESOURCE_FILE_ERROR);
-        *provider.borrow_mut() = CssProvider::new();
-        CssProvider::load_from_data(&*provider.borrow(), css_data.as_ref()).expect(GTK_CSS_ERROR);
+        *provider.write() = CssProvider::new();
+        CssProvider::load_from_data(&*provider.read(), css_data.as_ref()).expect(GTK_CSS_ERROR);
 
         // apply new style provider
-        StyleContext::add_provider_for_screen(&screen, &*provider.borrow(), 600);
+        StyleContext::add_provider_for_screen(&screen, &*provider.read(), 600);
     }
 
     pub fn init(&self, news_flash: &Arc<RwLock<Option<NewsFlash>>>, thread_pool: ThreadPool) {
@@ -362,10 +383,10 @@ impl MainWindow {
                 // try to fill content page with data
                 self.content_page
                     .write()
-                    .update_sidebar(&news_flash, &self.state, &self.undo_bar, thread_pool.clone());
+                    .update_sidebar(&news_flash, &self.undo_bar, thread_pool.clone());
                 self.content_page
                     .write()
-                    .update_article_list(&news_flash, &self.state, &self.undo_bar, thread_pool);
+                    .update_article_list(&news_flash, &self.undo_bar, thread_pool);
                 return;
             }
         } else {
@@ -477,13 +498,13 @@ impl MainWindow {
     pub fn update_sidebar(&self, news_flash: &Arc<RwLock<Option<NewsFlash>>>, thread_pool: ThreadPool) {
         self.content_page
             .write()
-            .update_sidebar(news_flash, &self.state, &self.undo_bar, thread_pool);
+            .update_sidebar(news_flash, &self.undo_bar, thread_pool);
     }
 
     pub fn update_article_list(&self, news_flash: &Arc<RwLock<Option<NewsFlash>>>, thread_pool: ThreadPool) {
         self.content_page
             .write()
-            .update_article_list(news_flash, &self.state, &self.undo_bar, thread_pool);
+            .update_article_list(news_flash, &self.undo_bar, thread_pool);
     }
 
     pub fn load_more_articles(&self, news_flash: &Arc<RwLock<Option<NewsFlash>>>, thread_pool: ThreadPool) {
@@ -494,7 +515,7 @@ impl MainWindow {
 
     pub fn sidebar_selection(&self, selection: SidebarSelection) {
         self.state.write().set_sidebar_selection(selection);
-        self.responsive_layout.state.borrow_mut().minor_leaflet_selected = true;
+        self.responsive_layout.state.write().minor_leaflet_selected = true;
         self.responsive_layout.process_state_change();
         Util::send(&self.sender, Action::UpdateArticleList);
     }
@@ -531,7 +552,7 @@ impl MainWindow {
                 .article_view
                 .show_article(article, feed.label.clone());
 
-            self.responsive_layout.state.borrow_mut().major_leaflet_selected = true;
+            self.responsive_layout.state.write().major_leaflet_selected = true;
             self.responsive_layout.process_state_change();
         }
     }

@@ -1,4 +1,5 @@
 use crate::app::Action;
+use crate::main_window_state::MainWindowState;
 use crate::sidebar::feed_list::models::FeedListCategoryModel;
 use crate::undo_bar::UndoActionModel;
 use crate::util::{BuilderHelper, GtkUtil, Util};
@@ -27,7 +28,12 @@ pub struct CategoryRow {
 }
 
 impl CategoryRow {
-    pub fn new(model: &FeedListCategoryModel, visible: bool, sender: Sender<Action>) -> Arc<RwLock<CategoryRow>> {
+    pub fn new(
+        model: &FeedListCategoryModel,
+        state: &Arc<RwLock<MainWindowState>>,
+        visible: bool,
+        sender: Sender<Action>,
+    ) -> Arc<RwLock<CategoryRow>> {
         let builder = BuilderHelper::new("category");
         let revealer = builder.get::<Revealer>("category_row");
         let level_margin = builder.get::<Box>("level_margin");
@@ -41,7 +47,7 @@ impl CategoryRow {
         let arrow_event = builder.get::<EventBox>("arrow_event");
         let category = CategoryRow {
             id: model.id.clone(),
-            widget: Self::create_row(&revealer, &model.id, &title_label, &sender),
+            widget: Self::create_row(&revealer, &model.id, &title_label, state, &sender),
             revealer,
             arrow_event: arrow_event.clone(),
             item_count: item_count_label,
@@ -104,7 +110,13 @@ impl CategoryRow {
         }
     }
 
-    fn create_row(widget: &Revealer, id: &CategoryID, label: &Label, sender: &Sender<Action>) -> ListBoxRow {
+    fn create_row(
+        widget: &Revealer,
+        id: &CategoryID,
+        label: &Label,
+        state: &Arc<RwLock<MainWindowState>>,
+        sender: &Sender<Action>,
+    ) -> ListBoxRow {
         let row = ListBoxRow::new();
         row.set_activatable(true);
         row.set_can_focus(false);
@@ -120,6 +132,7 @@ impl CategoryRow {
         let label = label.clone();
         let listbox_row = row.clone();
         let sender = sender.clone();
+        let state = state.clone();
         eventbox.connect_button_press_event(move |_eventbox, event| {
             if event.get_button() != 3 {
                 return Inhibit(false);
@@ -130,6 +143,10 @@ impl CategoryRow {
                     return Inhibit(false)
                 }
                 _ => {}
+            }
+
+            if state.read().get_offline() {
+                return Inhibit(false);
             }
 
             let model = Menu::new();

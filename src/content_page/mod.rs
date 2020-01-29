@@ -31,10 +31,16 @@ pub struct ContentPage {
     pub article_list: Arc<RwLock<ArticleList>>,
     pub article_view: ArticleView,
     settings: Arc<RwLock<Settings>>,
+    state: Arc<RwLock<MainWindowState>>,
 }
 
 impl ContentPage {
-    pub fn new(builder: &BuilderHelper, settings: &Arc<RwLock<Settings>>, sender: Sender<Action>) -> Self {
+    pub fn new(
+        builder: &BuilderHelper,
+        state: &Arc<RwLock<MainWindowState>>,
+        settings: &Arc<RwLock<Settings>>,
+        sender: Sender<Action>,
+    ) -> Self {
         let feed_list_box = builder.get::<Box>("feedlist_box");
         let article_list_box = builder.get::<Box>("articlelist_box");
         let articleview_box = builder.get::<Box>("articleview_box");
@@ -43,8 +49,8 @@ impl ContentPage {
         let minor_leaflet = builder.get::<Leaflet>("minor_leaflet");
         minor_leaflet.set_hexpand(false);
 
-        let sidebar = Arc::new(RwLock::new(SideBar::new(sender.clone())));
-        let article_list = Arc::new(RwLock::new(ArticleList::new(settings, sender.clone())));
+        let sidebar = Arc::new(RwLock::new(SideBar::new(state, sender.clone())));
+        let article_list = Arc::new(RwLock::new(ArticleList::new(settings, state, sender.clone())));
         let article_view = ArticleView::new(settings);
 
         feed_list_box.pack_start(&sidebar.read().widget(), false, true, 0);
@@ -58,6 +64,7 @@ impl ContentPage {
             article_list,
             article_view,
             settings,
+            state: state.clone(),
         }
     }
 
@@ -72,7 +79,6 @@ impl ContentPage {
     pub fn update_article_list(
         &self,
         news_flash: &Arc<RwLock<Option<NewsFlash>>>,
-        window_state: &Arc<RwLock<MainWindowState>>,
         undo_bar: &UndoBar,
         thread_pool: ThreadPool,
     ) {
@@ -81,15 +87,15 @@ impl ContentPage {
         let relevant_articles_loaded = self
             .article_list
             .read()
-            .get_relevant_article_count(window_state.read().get_header_selection());
+            .get_relevant_article_count(self.state.read().get_header_selection());
 
         let news_flash = news_flash.clone();
-        let window_state_clone = window_state.clone();
+        let window_state = self.state.clone();
         let current_undo_action = undo_bar.get_current_action();
         let settings = self.settings.clone();
         let thread_future = async move {
             if let Some(news_flash) = news_flash.read().as_ref() {
-                let limit = if window_state_clone.write().reset_article_list() {
+                let limit = if window_state.write().reset_article_list() {
                     MainWindowState::page_size()
                 } else if relevant_articles_loaded as i64 >= MainWindowState::page_size() {
                     relevant_articles_loaded as i64
@@ -99,7 +105,7 @@ impl ContentPage {
                 let mut list_model = ArticleListModel::new(&settings.read().get_article_list_order());
                 let mut articles = match Self::load_articles(
                     news_flash,
-                    &window_state_clone,
+                    &window_state,
                     &settings,
                     &current_undo_action,
                     limit,
@@ -137,12 +143,12 @@ impl ContentPage {
             }
         };
 
-        let window_state_clone = window_state.clone();
+        let window_state = self.state.clone();
         let article_list = self.article_list.clone();
         let glib_future = receiver.map(move |res| {
             if let Ok(res) = res {
                 if let Ok(article_list_model) = res {
-                    article_list.write().update(article_list_model, &window_state_clone);
+                    article_list.write().update(article_list_model, &window_state);
                 }
             }
         });
@@ -288,7 +294,6 @@ impl ContentPage {
     pub fn update_sidebar(
         &mut self,
         news_flash: &Arc<RwLock<Option<NewsFlash>>>,
-        state: &Arc<RwLock<MainWindowState>>,
         undo_bar: &UndoBar,
         thread_pool: ThreadPool,
     ) {
@@ -296,7 +301,7 @@ impl ContentPage {
             oneshot::channel::<Result<(i64, FeedListTree, Option<TagListModel>), ContentPageErrorKind>>();
 
         let news_flash = news_flash.clone();
-        let state = state.clone();
+        let state = self.state.clone();
         let current_undo_action = undo_bar.get_current_action();
         let thread_future = async move {
             if let Some(news_flash) = news_flash.read().as_ref() {
