@@ -5,8 +5,8 @@ use crate::util::{BuilderHelper, GtkHandle, GtkUtil, Util};
 use gio::{ActionMapExt, Menu, MenuItem, SimpleAction};
 use glib::{object::Cast, translate::ToGlib, Sender};
 use gtk::{
-    Button, ButtonExt, Continue, EntryExt, Inhibit, MenuButton, MenuButtonExt, SearchEntry, SearchEntryExt, Stack,
-    StackExt, ToggleButton, ToggleButtonExt, WidgetExt, Popover, PopoverExt,
+    Button, ButtonExt, Continue, EntryExt, Inhibit, MenuButton, MenuButtonExt, Popover, PopoverExt, SearchEntry,
+    SearchEntryExt, Stack, StackExt, ToggleButton, ToggleButtonExt, WidgetExt,
 };
 use libhandy::{SearchBar, SearchBarExt};
 use news_flash::models::{FatArticle, Marked, Read};

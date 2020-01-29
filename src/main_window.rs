@@ -526,7 +526,10 @@ impl MainWindow {
                 }
             };
             self.content_header.show_article(Some(&article));
-            self.content_page.read().article_view.show_article(article, feed.label.clone());
+            self.content_page
+                .read()
+                .article_view
+                .show_article(article, feed.label.clone());
 
             self.responsive_layout.state.borrow_mut().major_leaflet_selected = true;
             self.responsive_layout.process_state_change();

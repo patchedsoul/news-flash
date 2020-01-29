@@ -217,8 +217,20 @@ impl App {
                 .window
                 .load_more_articles(&self.news_flash, self.threadpool.clone()),
             Action::SidebarSelection(selection) => self.window.sidebar_selection(selection),
-            Action::SidebarSelectNext => self.window.content_page.read().article_list.read().select_next_article(),
-            Action::SidebarSelectPrev => self.window.content_page.read().article_list.read().select_prev_article(),
+            Action::SidebarSelectNext => self
+                .window
+                .content_page
+                .read()
+                .article_list
+                .read()
+                .select_next_article(),
+            Action::SidebarSelectPrev => self
+                .window
+                .content_page
+                .read()
+                .article_list
+                .read()
+                .select_prev_article(),
             Action::HeaderSelection(selection) => self.window.set_headerbar_selection(selection),
             Action::UpdateArticleHeader => self.window.update_article_header(&self.news_flash),
             Action::ShowArticle(article_id) => self.window.show_article(article_id, &self.news_flash),

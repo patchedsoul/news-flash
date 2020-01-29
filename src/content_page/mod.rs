@@ -21,9 +21,7 @@ use futures::executor::ThreadPool;
 use glib::{futures::FutureExt, Sender};
 use gtk::{Box, BoxExt, WidgetExt};
 use libhandy::Leaflet;
-use news_flash::models::{
-    Article, ArticleFilter, Marked, PluginCapabilities, PluginID, Read, NEWSFLASH_TOPLEVEL,
-};
+use news_flash::models::{Article, ArticleFilter, Marked, PluginCapabilities, PluginID, Read, NEWSFLASH_TOPLEVEL};
 use news_flash::NewsFlash;
 use parking_lot::RwLock;
 use std::sync::Arc;
@@ -499,7 +497,7 @@ impl ContentPage {
         thread_pool.spawn_ok(thread_future);
         Util::glib_spawn_future(glib_future);
     }
-    
+
     pub fn article_view_scroll_diff(&self, diff: f64) -> Result<(), ContentPageError> {
         self.article_view
             .animate_scroll_diff(diff)
