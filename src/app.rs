@@ -608,8 +608,13 @@ impl App {
                 article_id: visible_article.article_id.clone(),
                 read: visible_article.unread.invert(),
             };
+            self.window
+                .content_page
+                .read()
+                .article_list
+                .read()
+                .fake_article_row_state(&visible_article.article_id, Some(visible_article.unread.invert()), None);
             Util::send(&self.sender, Action::MarkArticleRead(update));
-            Util::send(&self.sender, Action::UpdateArticleList);
         }
     }
 
@@ -621,8 +626,13 @@ impl App {
                 marked: visible_article.marked.invert(),
             };
 
+            self.window
+                .content_page
+                .read()
+                .article_list
+                .read()
+                .fake_article_row_state(&visible_article.article_id, None, Some(visible_article.marked.invert()));
             Util::send(&self.sender, Action::MarkArticle(update));
-            Util::send(&self.sender, Action::UpdateArticleList);
         }
     }
 

@@ -12,7 +12,7 @@ use glib::{translate::ToGlib, Sender};
 use gtk::{Continue, Label, LabelExt, ListBoxExt, ListBoxRowExt, ScrolledWindow, Stack, StackExt, StackTransitionType};
 use models::ArticleListChangeSet;
 pub use models::{ArticleListArticleModel, ArticleListModel, MarkUpdate, ReadUpdate};
-use news_flash::models::Read;
+use news_flash::models::{ArticleID, Marked, Read};
 use parking_lot::RwLock;
 use single::SingleArticleList;
 use std::sync::Arc;
@@ -397,5 +397,19 @@ impl ArticleList {
         }
 
         None
+    }
+
+    pub fn fake_article_row_state(&self, article_id: &ArticleID, read: Option<Read>, marked: Option<Marked>) {
+        if let Some(current_list) = self.get_current_list() {
+            current_list.read().fake_article_row_state(article_id, read, marked);
+        }
+        if let Some(article_model) = self.list_model.write().get(article_id).as_mut() {
+            if let Some(read) = read {
+                article_model.read = read;
+            }
+            if let Some(marked) = marked {
+                article_model.marked = marked;
+            }
+        }
     }
 }
