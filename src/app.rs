@@ -290,7 +290,7 @@ impl App {
             LoginData::Password(pass) => pass.id.clone(),
             LoginData::None(id) => id.clone(),
         };
-        let mut news_flash_lib = match NewsFlash::new(&DATA_DIR, &CONFIG_DIR, &id) {
+        let news_flash_lib = match NewsFlash::new(&DATA_DIR, &CONFIG_DIR, &id) {
             Ok(news_flash) => news_flash,
             Err(error) => {
                 match &data {
@@ -372,7 +372,7 @@ impl App {
 
         let news_flash = self.news_flash.clone();
         let thread_future = async move {
-            if let Some(news_flash) = news_flash.write().as_mut() {
+            if let Some(news_flash) = news_flash.read().as_ref() {
                 let result = Runtime::new().expect(RUNTIME_ERROR).block_on(news_flash.logout());
                 sender.send(result).expect(CHANNEL_ERROR);
             }
@@ -507,7 +507,7 @@ impl App {
         let global_sender = self.sender.clone();
         let feed = feed.clone();
         let thread_future = async move {
-            if let Some(news_flash) = news_flash.write().as_mut() {
+            if let Some(news_flash) = news_flash.read().as_ref() {
                 let favicon = match Runtime::new()
                     .expect(RUNTIME_ERROR)
                     .block_on(news_flash.get_icon_info(&feed))
