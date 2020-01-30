@@ -71,6 +71,7 @@ pub enum Action {
     ResetAccountError(NewsFlashError),
     ScheduleSync,
     Sync,
+    InitSync,
     MarkArticleRead(ReadUpdate),
     MarkArticle(MarkUpdate),
     ToggleArticleRead,
@@ -204,6 +205,7 @@ impl App {
             Action::ResetAccountError(error) => self.window.reset_account_failed(error),
             Action::ScheduleSync => self.schedule_sync(),
             Action::Sync => self.sync(),
+            Action::InitSync => self.init_sync(),
             Action::MarkArticleRead(update) => self.mark_article_read(update),
             Action::MarkArticle(update) => self.mark_article(update),
             Action::ToggleArticleRead => self.toggle_article_read(),
@@ -315,6 +317,8 @@ impl App {
                     news_flash.write().replace(news_flash_lib);
                     // show content page
                     Util::send(&global_sender, Action::ShowContentPage(Some(id)));
+                    // schedule initial sync
+                    Util::send(&global_sender, Action::InitSync);
                 }
                 Err(error) => {
                     error!("Login failed! Plguin: {}, Error: {}", id, error);
@@ -416,6 +420,51 @@ impl App {
         let thread_future = async move {
             if let Some(news_flash) = news_flash.read().as_ref() {
                 let result = Runtime::new().expect(RUNTIME_ERROR).block_on(news_flash.sync());
+                sender.send(result).expect(CHANNEL_ERROR);
+            }
+        };
+
+        let news_flash = self.news_flash.clone();
+        let sender = self.sender.clone();
+        let content_header = self.window.content_header.clone();
+        let glib_future = receiver.map(move |res| {
+            if let Some(news_flash) = news_flash.read().as_ref() {
+                let unread_count = match news_flash.unread_count_all() {
+                    Ok(unread_count) => unread_count,
+                    Err(_) => 0,
+                };
+                match res {
+                    Ok(Ok(new_article_count)) => {
+                        content_header.finish_sync();
+                        Util::send(&sender, Action::UpdateSidebar);
+                        Util::send(&sender, Action::UpdateArticleList);
+                        let counts = NotificationCounts {
+                            new: new_article_count,
+                            unread: unread_count,
+                        };
+                        Util::send(&sender, Action::ShowNotification(counts));
+                    }
+                    Ok(Err(error)) => {
+                        content_header.finish_sync();
+                        Util::send(&sender, Action::Error("Failed to sync.".to_owned(), error));
+                    }
+                    Err(_) => {}
+                }
+            }
+        });
+
+        self.threadpool.spawn_ok(thread_future);
+        Util::glib_spawn_future(glib_future);
+    }
+
+    fn init_sync(&self) {
+        let (sender, receiver) = oneshot::channel::<Result<i64, NewsFlashError>>();
+        self.window.content_header.start_sync();
+
+        let news_flash = self.news_flash.clone();
+        let thread_future = async move {
+            if let Some(news_flash) = news_flash.read().as_ref() {
+                let result = Runtime::new().expect(RUNTIME_ERROR).block_on(news_flash.initial_sync());
                 sender.send(result).expect(CHANNEL_ERROR);
             }
         };

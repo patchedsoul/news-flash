@@ -367,8 +367,7 @@ impl ContentHeader {
         im_export_model.append(Some("Export OPML"), Some("win.export-opml"));
 
         let account_model = Menu::new();
-        account_model.append(Some("Update Login"), Some("win.relogin"));
-        account_model.append(Some("Reset Login"), Some("win.reset-account"));
+        account_model.append(Some("Reset Account"), Some("win.reset-account"));
 
         let main_model = Menu::new();
         main_model.append(Some("Settings"), Some("win.settings"));
