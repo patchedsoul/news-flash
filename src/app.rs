@@ -290,7 +290,7 @@ impl App {
             LoginData::Password(pass) => pass.id.clone(),
             LoginData::None(id) => id.clone(),
         };
-        let mut news_flash_lib = match NewsFlash::new(&DATA_DIR, &CONFIG_DIR, &id) {
+        let news_flash_lib = match NewsFlash::new(&DATA_DIR, &CONFIG_DIR, &id) {
             Ok(news_flash) => news_flash,
             Err(error) => {
                 match &data {
