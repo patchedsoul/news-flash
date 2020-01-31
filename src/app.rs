@@ -110,7 +110,7 @@ pub enum Action {
 }
 pub struct App {
     application: gtk::Application,
-    window: MainWindow,
+    window: Arc<MainWindow>,
     sender: Sender<Action>,
     receiver: RefCell<Option<Receiver<Action>>>,
     news_flash: Arc<RwLock<Option<NewsFlash>>>,
@@ -131,7 +131,7 @@ impl App {
 
         let news_flash = Arc::new(RwLock::new(None));
         let settings = Arc::new(RwLock::new(Settings::open().expect("Failed to access settings file")));
-        let window = MainWindow::new(&settings, sender.clone(), shutdown_in_progress.clone());
+        let window = Arc::new(MainWindow::new(&settings, sender.clone(), shutdown_in_progress.clone()));
 
         let app = Rc::new(Self {
             application,
@@ -221,23 +221,21 @@ impl App {
             Action::SidebarSelectNext => self
                 .window
                 .content_page
-                .read()
                 .article_list
                 .read()
                 .select_next_article(),
             Action::SidebarSelectPrev => self
                 .window
                 .content_page
-                .read()
                 .article_list
                 .read()
                 .select_prev_article(),
             Action::HeaderSelection(selection) => self.window.set_headerbar_selection(selection),
             Action::UpdateArticleHeader => self.window.update_article_header(&self.news_flash),
             Action::ShowArticle(article_id) => self.window.show_article(article_id, &self.news_flash),
-            Action::RedrawArticle => self.window.content_page.read().article_view.redraw_article(),
+            Action::RedrawArticle => self.window.content_page.article_view.redraw_article(),
             Action::CloseArticle => {
-                self.window.content_page.read().article_view.close_article();
+                self.window.content_page.article_view.close_article();
                 self.window.content_header.show_article(None);
             }
             Action::SearchTerm(search_term) => self.window.set_search_term(search_term),
@@ -378,11 +376,15 @@ impl App {
             }
         };
 
+        
+        let main_window = self.window.clone();
         let news_flash = self.news_flash.clone();
         let sender = self.sender.clone();
         let glib_future = receiver.map(move |res| match res {
             Ok(Ok(())) => {
                 news_flash.write().take();
+                main_window.content_page.clear();
+                main_window.content_header.show_article(None);
                 Util::send(&sender, Action::ShowWelcomePage);
             }
             Ok(Err(error)) => {
@@ -570,14 +572,13 @@ impl App {
             };
 
             Util::send(&global_sender, Action::UpdateSidebar);
-            let visible_article = content_page.read().article_view.get_visible_article();
+            let visible_article = content_page.article_view.get_visible_article();
             if let Some(visible_article) = visible_article {
                 if visible_article.article_id == update.article_id {
                     let mut visible_article = visible_article.clone();
                     visible_article.unread = update.read;
                     content_header.show_article(Some(&visible_article));
                     content_page
-                        .read()
                         .article_view
                         .update_visible_article(Some(visible_article.unread), None);
                 }
@@ -632,14 +633,13 @@ impl App {
             };
 
             Util::send(&global_sender, Action::UpdateSidebar);
-            let visible_article = content_page.read().article_view.get_visible_article();
+            let visible_article = content_page.article_view.get_visible_article();
             if let Some(visible_article) = visible_article {
                 if visible_article.article_id == update.article_id {
                     let mut visible_article = visible_article.clone();
                     visible_article.marked = update.marked;
                     content_header.show_article(Some(&visible_article));
                     content_page
-                        .read()
                         .article_view
                         .update_visible_article(None, Some(visible_article.marked));
                 }
@@ -651,7 +651,7 @@ impl App {
     }
 
     fn toggle_article_read(&self) {
-        let visible_article = self.window.content_page.read().article_view.get_visible_article();
+        let visible_article = self.window.content_page.article_view.get_visible_article();
         if let Some(visible_article) = visible_article {
             let update = ReadUpdate {
                 article_id: visible_article.article_id.clone(),
@@ -659,7 +659,6 @@ impl App {
             };
             self.window
                 .content_page
-                .read()
                 .article_list
                 .read()
                 .fake_article_row_state(&visible_article.article_id, Some(visible_article.unread.invert()), None);
@@ -668,7 +667,7 @@ impl App {
     }
 
     fn toggle_article_marked(&self) {
-        let visible_article = self.window.content_page.read().article_view.get_visible_article();
+        let visible_article = self.window.content_page.article_view.get_visible_article();
         if let Some(visible_article) = visible_article {
             let update = MarkUpdate {
                 article_id: visible_article.article_id.clone(),
@@ -677,7 +676,6 @@ impl App {
 
             self.window
                 .content_page
-                .read()
                 .article_list
                 .read()
                 .fake_article_row_state(&visible_article.article_id, None, Some(visible_article.marked.invert()));
@@ -706,7 +704,6 @@ impl App {
             let add_button = self
                 .window
                 .content_page
-                .read()
                 .sidebar
                 .read()
                 .footer
@@ -925,7 +922,7 @@ impl App {
     }
 
     fn delete_selection(&self) {
-        let selection = self.window.content_page.read().sidebar.read().get_selection();
+        let selection = self.window.content_page.sidebar.read().get_selection();
         let undo_action = match selection {
             SidebarSelection::All => {
                 warn!("Trying to delete item while 'All Articles' is selected");
@@ -1069,7 +1066,7 @@ impl App {
     fn export_article(&self) {
         let (sender, receiver) = oneshot::channel::<()>();
 
-        if let Some(article) = self.window.content_page.read().article_view.get_visible_article() {
+        if let Some(article) = self.window.content_page.article_view.get_visible_article() {
             let dialog = FileChooserDialog::with_buttons(
                 Some("Export Article"),
                 Some(&self.window.widget),
@@ -1172,7 +1169,7 @@ impl App {
     fn start_grab_article_content(&self) {
         let (sender, receiver) = oneshot::channel::<Result<FatArticle, NewsFlashError>>();
 
-        if let Some(article) = self.window.content_page.read().article_view.get_visible_article() {
+        if let Some(article) = self.window.content_page.article_view.get_visible_article() {
             self.window.content_header.start_more_actions_spinner();
 
             let news_flash = self.news_flash.clone();
@@ -1299,7 +1296,6 @@ impl App {
         self.window.content_header.set_offline(offline);
         self.window
             .content_page
-            .read()
             .sidebar
             .read()
             .footer
@@ -1307,7 +1303,6 @@ impl App {
             .set_offline(offline);
         self.window
             .content_page
-            .read()
             .sidebar
             .read()
             .feed_list

@@ -38,7 +38,7 @@ pub struct MainWindow {
     undo_bar: UndoBar,
     pub oauth_login_page: Rc<WebLogin>,
     pub password_login_page: Rc<PasswordLogin>,
-    pub content_page: Rc<RwLock<ContentPage>>,
+    pub content_page: Rc<ContentPage>,
     pub content_header: Rc<ContentHeader>,
     reset_page: ResetPage,
     stack: Stack,
@@ -111,12 +111,12 @@ impl MainWindow {
         let _welcome = WelcomePage::new(&builder, sender.clone());
         let password_login_page = Rc::new(PasswordLogin::new(&builder, sender.clone()));
         let oauth_login_page = Rc::new(WebLogin::new(&builder, sender.clone()));
-        let content_page = Rc::new(RwLock::new(ContentPage::new(
+        let content_page = Rc::new(ContentPage::new(
             &builder,
             &state,
             &settings,
             sender.clone(),
-        )));
+        ));
         let reset_page = ResetPage::new(&builder, sender.clone());
 
         Self::setup_shortcuts(
@@ -160,7 +160,7 @@ impl MainWindow {
     fn setup_shortcuts(
         window: &ApplicationWindow,
         sender: &Sender<Action>,
-        content_page: &Rc<RwLock<ContentPage>>,
+        content_page: &Rc<ContentPage>,
         main_stack: &Stack,
         settings: &Arc<RwLock<Settings>>,
         content_header: &Rc<ContentHeader>,
@@ -225,12 +225,12 @@ impl MainWindow {
             }
 
             if Self::check_shortcut("toggle_category_expanded", &settings, event) {
-                content_page.read().sidebar.read().expand_collapse_selected_category();
+                content_page.sidebar.read().expand_collapse_selected_category();
             }
 
             if Self::check_shortcut("toggle_read", &settings, event) {
                 if !state.read().get_offline() {
-                    let article_model = content_page.read().article_list.read().get_selected_article_model();
+                    let article_model = content_page.article_list.read().get_selected_article_model();
                     if let Some(article_model) = article_model {
                         let update = ReadUpdate {
                             article_id: article_model.id.clone(),
@@ -245,7 +245,7 @@ impl MainWindow {
 
             if Self::check_shortcut("toggle_marked", &settings, event) {
                 if !state.read().get_offline() {
-                    let article_model = content_page.read().article_list.read().get_selected_article_model();
+                    let article_model = content_page.article_list.read().get_selected_article_model();
                     if let Some(article_model) = article_model {
                         let update = MarkUpdate {
                             article_id: article_model.id.clone(),
@@ -259,7 +259,7 @@ impl MainWindow {
             }
 
             if Self::check_shortcut("open_browser", &settings, event) {
-                let article_model = content_page.read().article_list.read().get_selected_article_model();
+                let article_model = content_page.article_list.read().get_selected_article_model();
                 if let Some(article_model) = article_model {
                     if let Some(url) = article_model.url {
                         if gtk::show_uri_on_window(Some(&main_window), url.get().as_str(), 0).is_err() {
@@ -277,7 +277,7 @@ impl MainWindow {
             }
 
             if Self::check_shortcut("next_item", &settings, event)
-                && content_page.read().sidebar_select_next_item().is_err()
+                && content_page.sidebar_select_next_item().is_err()
             {
                 Util::send(
                     &sender,
@@ -286,7 +286,7 @@ impl MainWindow {
             }
 
             if Self::check_shortcut("previous_item", &settings, event)
-                && content_page.read().sidebar_select_prev_item().is_err()
+                && content_page.sidebar_select_prev_item().is_err()
             {
                 Util::send(
                     &sender,
@@ -295,7 +295,7 @@ impl MainWindow {
             }
 
             if Self::check_shortcut("scroll_up", &settings, event)
-                && content_page.read().article_view_scroll_diff(-150.0).is_err()
+                && content_page.article_view_scroll_diff(-150.0).is_err()
             {
                 Util::send(
                     &sender,
@@ -304,7 +304,7 @@ impl MainWindow {
             }
 
             if Self::check_shortcut("scroll_down", &settings, event)
-                && content_page.read().article_view_scroll_diff(150.0).is_err()
+                && content_page.article_view_scroll_diff(150.0).is_err()
             {
                 Util::send(
                     &sender,
@@ -373,7 +373,7 @@ impl MainWindow {
         let user_name = news_flash.read().as_ref().map(|n| n.user_name());
         if let Some(Some(id)) = id {
             if let Some(user_name) = user_name {
-                if self.content_page.read().set_service(&id, user_name).is_err() {
+                if self.content_page.set_service(&id, user_name).is_err() {
                     Util::send(
                         &self.sender,
                         Action::ErrorSimpleMessage("Failed to set sidebar service logo.".to_owned()),
@@ -382,10 +382,8 @@ impl MainWindow {
 
                 // try to fill content page with data
                 self.content_page
-                    .write()
                     .update_sidebar(&news_flash, &self.undo_bar, thread_pool.clone());
                 self.content_page
-                    .write()
                     .update_article_list(&news_flash, &self.undo_bar, thread_pool);
                 return;
             }
@@ -411,7 +409,7 @@ impl MainWindow {
     }
 
     pub fn show_undo_bar(&self, action: UndoActionModel) {
-        let select_all_button = match self.content_page.read().sidebar.read().get_selection() {
+        let select_all_button = match self.content_page.sidebar.read().get_selection() {
             SidebarSelection::All => false,
             SidebarSelection::Cateogry((selected_id, _label)) => match &action {
                 UndoActionModel::DeleteCategory((delete_id, _label)) => &selected_id == delete_id,
@@ -428,7 +426,7 @@ impl MainWindow {
         };
         if select_all_button {
             self.state.write().set_sidebar_selection(SidebarSelection::All);
-            self.content_page.read().sidebar.read().select_all_button_no_update();
+            self.content_page.sidebar.read().select_all_button_no_update();
         }
 
         self.undo_bar.add_action(action);
@@ -475,7 +473,7 @@ impl MainWindow {
             Util::send(&self.sender, Action::UpdateSidebar);
 
             if let Some(plugin_id) = plugin_id {
-                if self.content_page.read().set_service(&plugin_id, user_name).is_err() {
+                if self.content_page.set_service(&plugin_id, user_name).is_err() {
                     Util::send(
                         &self.sender,
                         Action::ErrorSimpleMessage("Failed to set service.".to_owned()),
@@ -497,19 +495,16 @@ impl MainWindow {
 
     pub fn update_sidebar(&self, news_flash: &Arc<RwLock<Option<NewsFlash>>>, thread_pool: ThreadPool) {
         self.content_page
-            .write()
             .update_sidebar(news_flash, &self.undo_bar, thread_pool);
     }
 
     pub fn update_article_list(&self, news_flash: &Arc<RwLock<Option<NewsFlash>>>, thread_pool: ThreadPool) {
         self.content_page
-            .write()
             .update_article_list(news_flash, &self.undo_bar, thread_pool);
     }
 
     pub fn load_more_articles(&self, news_flash: &Arc<RwLock<Option<NewsFlash>>>, thread_pool: ThreadPool) {
         self.content_page
-            .write()
             .load_more_articles(&news_flash, &self.state, &self.undo_bar, thread_pool);
     }
 
@@ -548,7 +543,6 @@ impl MainWindow {
             };
             self.content_header.show_article(Some(&article));
             self.content_page
-                .read()
                 .article_view
                 .show_article(article, feed.label.clone());
 
@@ -749,13 +743,12 @@ impl MainWindow {
     }
 
     pub fn update_article_header(&self, news_flash: &Arc<RwLock<Option<NewsFlash>>>) {
-        let visible_article = self.content_page.read().article_view.get_visible_article();
+        let visible_article = self.content_page.article_view.get_visible_article();
         if let Some(visible_article) = visible_article {
             if let Some(news_flash) = news_flash.read().as_ref() {
                 if let Ok(visible_article) = news_flash.get_fat_article(&visible_article.article_id) {
                     self.content_header.show_article(Some(&visible_article));
                     self.content_page
-                        .read()
                         .article_view
                         .update_visible_article(Some(visible_article.unread), None);
                 }

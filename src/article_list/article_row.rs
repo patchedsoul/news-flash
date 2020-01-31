@@ -76,7 +76,8 @@ impl ArticleRow {
             Action::LoadFavIcon((article.news_flash_feed.clone(), oneshot_sender)),
         );
         let glib_future = receiver.map(move |res| {
-            if let Some(icon) = res.unwrap() {
+            // FIXME: handle error
+            if let Ok(Some(icon)) = res {
                 if let Some(data) = &icon.data {
                     if let Ok(surface) = GtkUtil::create_surface_from_bytes(data, 16, 16, scale) {
                         favicon.set_from_surface(Some(&surface));

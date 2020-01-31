@@ -68,10 +68,26 @@ impl ContentPage {
         }
     }
 
+    pub fn clear(&self) {
+        self.article_view.close_article();
+
+        let list_model = ArticleListModel::new(&self.settings.read().get_article_list_order());
+        self.article_list.write().update(list_model, &self.state);
+
+        let feed_tree_model = FeedListTree::new();
+        self.sidebar.write().update_feedlist(feed_tree_model);
+
+        let tag_list_model = TagListModel::new();
+        self.sidebar.write().update_taglist(tag_list_model);
+        self.sidebar.read().hide_taglist();
+
+        self.sidebar.read().set_service(None, None).expect("Resetting Logo & Username should always work");
+    }
+
     pub fn set_service(&self, id: &PluginID, user_name: Option<String>) -> Result<(), ContentPageError> {
         self.sidebar
             .read()
-            .set_service(id, user_name)
+            .set_service(Some(id), user_name)
             .context(ContentPageErrorKind::SidebarService)?;
         Ok(())
     }
@@ -158,7 +174,7 @@ impl ContentPage {
     }
 
     pub fn load_more_articles(
-        &mut self,
+        &self,
         news_flash_handle: &Arc<RwLock<Option<NewsFlash>>>,
         window_state: &Arc<RwLock<MainWindowState>>,
         undo_bar: &UndoBar,
@@ -292,7 +308,7 @@ impl ContentPage {
     }
 
     pub fn update_sidebar(
-        &mut self,
+        &self,
         news_flash: &Arc<RwLock<Option<NewsFlash>>>,
         undo_bar: &UndoBar,
         thread_pool: ThreadPool,

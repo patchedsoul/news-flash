@@ -1,5 +1,4 @@
 use failure::{Backtrace, Context, Error, Fail};
-use news_flash::models::PluginID;
 use std::fmt;
 
 #[derive(Debug)]
@@ -13,8 +12,6 @@ pub enum SidebarErrorKind {
     Selection,
     #[fail(display = "Error in Plugin meta data")]
     MetaData,
-    #[fail(display = "Unknown Backend ID")]
-    UnknownPlugin(PluginID),
     #[fail(display = "Unknown Error")]
     Unknown,
 }

@@ -241,31 +241,41 @@ impl SideBar {
         self.item_count
     }
 
-    pub fn set_service(&self, id: &PluginID, user_name: Option<String>) -> Result<(), SidebarError> {
-        let list = NewsFlash::list_backends();
-        let info = list
-            .get(id)
-            .ok_or_else(|| SidebarErrorKind::UnknownPlugin(id.clone()))?;
-        if let Some(icon) = &info.icon_symbolic {
-            let surface = match icon {
-                PluginIcon::Vector(icon) => {
-                    GtkUtil::create_surface_from_bytes(&icon.data, icon.width, icon.height, self.scale_factor)
-                        .context(SidebarErrorKind::MetaData)?
+    pub fn set_service(&self, id: Option<&PluginID>, user_name: Option<String>) -> Result<(), SidebarError> {
+        let generic_icon = GtkUtil::create_surface_from_icon_name("feed-service-generic", 64, self.scale_factor);
+        let generic_user = "Unitialized";
+        
+        if let Some(id) = id {
+            let list = NewsFlash::list_backends();
+            if let Some(info) = list.get(id) {
+                if let Some(icon) = &info.icon_symbolic {
+                    let surface = match icon {
+                        PluginIcon::Vector(icon) => {
+                            GtkUtil::create_surface_from_bytes(&icon.data, icon.width, icon.height, self.scale_factor)
+                                .context(SidebarErrorKind::MetaData)?
+                        }
+                        PluginIcon::Pixel(icon) => GtkUtil::create_surface_from_pixelicon(icon, self.scale_factor)
+                            .context(SidebarErrorKind::MetaData)?,
+                    };
+                    self.logo.set_from_surface(Some(&surface));
+                } else {
+                    self.logo.set_from_surface(Some(&generic_icon));
                 }
-                PluginIcon::Pixel(icon) => GtkUtil::create_surface_from_pixelicon(icon, self.scale_factor)
-                    .context(SidebarErrorKind::MetaData)?,
-            };
-            self.logo.set_from_surface(Some(&surface));
-        } else {
-            let surface = GtkUtil::create_surface_from_icon_name("feed-service-generic", 64, self.scale_factor);
-            self.logo.set_from_surface(Some(&surface));
-        }
 
-        if let Some(user_name) = user_name {
-            self.service_label.set_text(&user_name);
+                if let Some(user_name) = user_name {
+                    self.service_label.set_text(&user_name);
+                } else {
+                    self.service_label.set_text(&info.name);
+                }
+            } else {
+                self.logo.set_from_surface(Some(&generic_icon));
+                self.service_label.set_text(generic_user);
+            }
         } else {
-            self.service_label.set_text(&info.name);
+            self.logo.set_from_surface(Some(&generic_icon));
+            self.service_label.set_text(generic_user);
         }
+        
 
         Ok(())
     }
