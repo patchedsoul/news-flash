@@ -7,11 +7,12 @@ use std::time;
 
 use futures::channel::oneshot::{self, Sender as OneShotSender};
 use futures::executor::ThreadPool;
-use gio::{ApplicationExt, ApplicationExtManual, Notification, NotificationPriority, ThemedIcon};
-use glib::{futures::FutureExt, translate::ToGlib, Receiver, Sender};
+use futures::FutureExt;
+use gio::{prelude::ApplicationExtManual, ApplicationExt, Notification, NotificationPriority, ThemedIcon};
+use glib::{source::Continue, translate::ToGlib, Receiver, Sender};
 use gtk::{
-    Application, ButtonExt, Continue, DialogExt, EntryExt, FileChooserAction, FileChooserDialog, FileChooserExt,
-    FileFilter, GtkApplicationExt, GtkWindowExt, GtkWindowExtManual, ResponseType, WidgetExt,
+    prelude::GtkWindowExtManual, Application, ButtonExt, DialogExt, EntryExt, FileChooserAction, FileChooserDialog,
+    FileChooserExt, FileFilter, GtkApplicationExt, GtkWindowExt, ResponseType, WidgetExt,
 };
 use lazy_static::lazy_static;
 use log::{error, info, warn};
@@ -218,18 +219,8 @@ impl App {
                 .window
                 .load_more_articles(&self.news_flash, self.threadpool.clone()),
             Action::SidebarSelection(selection) => self.window.sidebar_selection(selection),
-            Action::SidebarSelectNext => self
-                .window
-                .content_page
-                .article_list
-                .read()
-                .select_next_article(),
-            Action::SidebarSelectPrev => self
-                .window
-                .content_page
-                .article_list
-                .read()
-                .select_prev_article(),
+            Action::SidebarSelectNext => self.window.content_page.article_list.read().select_next_article(),
+            Action::SidebarSelectPrev => self.window.content_page.article_list.read().select_prev_article(),
             Action::HeaderSelection(selection) => self.window.set_headerbar_selection(selection),
             Action::UpdateArticleHeader => self.window.update_article_header(&self.news_flash),
             Action::ShowArticle(article_id) => self.window.show_article(article_id, &self.news_flash),
@@ -376,7 +367,6 @@ impl App {
             }
         };
 
-        
         let main_window = self.window.clone();
         let news_flash = self.news_flash.clone();
         let sender = self.sender.clone();
@@ -657,11 +647,11 @@ impl App {
                 article_id: visible_article.article_id.clone(),
                 read: visible_article.unread.invert(),
             };
-            self.window
-                .content_page
-                .article_list
-                .read()
-                .fake_article_row_state(&visible_article.article_id, Some(visible_article.unread.invert()), None);
+            self.window.content_page.article_list.read().fake_article_row_state(
+                &visible_article.article_id,
+                Some(visible_article.unread.invert()),
+                None,
+            );
             Util::send(&self.sender, Action::MarkArticleRead(update));
         }
     }
@@ -674,11 +664,11 @@ impl App {
                 marked: visible_article.marked.invert(),
             };
 
-            self.window
-                .content_page
-                .article_list
-                .read()
-                .fake_article_row_state(&visible_article.article_id, None, Some(visible_article.marked.invert()));
+            self.window.content_page.article_list.read().fake_article_row_state(
+                &visible_article.article_id,
+                None,
+                Some(visible_article.marked.invert()),
+            );
             Util::send(&self.sender, Action::MarkArticle(update));
         }
     }
@@ -701,14 +691,7 @@ impl App {
     fn add_feed_dialog(&self) {
         if let Some(news_flash) = self.news_flash.read().as_ref() {
             let error_message = "Failed to add feed".to_owned();
-            let add_button = self
-                .window
-                .content_page
-                .sidebar
-                .read()
-                .footer
-                .read()
-                .get_add_button();
+            let add_button = self.window.content_page.sidebar.read().footer.read().get_add_button();
 
             let categories = match news_flash.get_categories() {
                 Ok(categories) => categories,

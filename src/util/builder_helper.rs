@@ -1,7 +1,7 @@
 use crate::util::{GTK_BUILDER_ERROR, GTK_RESOURCE_FILE_ERROR};
 use crate::Resources;
 use glib::object::{IsA, Object};
-use gtk::{Builder, BuilderExtManual, Widget};
+use gtk::{prelude::BuilderExtManual, Builder, Widget};
 use std::str;
 
 pub struct BuilderHelper {

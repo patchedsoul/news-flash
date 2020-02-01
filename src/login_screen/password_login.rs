@@ -3,7 +3,7 @@ use crate::app::Action;
 use crate::error_dialog::ErrorDialog;
 use crate::util::{BuilderHelper, GtkUtil, Util};
 use failure::{Fail, ResultExt};
-use glib::{signal::SignalHandlerId, translate::ToGlib, Sender};
+use glib::{signal::SignalHandlerId, source::Continue, translate::ToGlib, Sender};
 use gtk::{
     self, Box, Button, ButtonExt, Entry, EntryExt, Image, ImageExt, InfoBar, InfoBarExt, Label, LabelExt, ResponseType,
     Revealer, RevealerExt, WidgetExt,
@@ -267,7 +267,7 @@ impl PasswordLogin {
         let clone = info_bar.clone();
         gtk::timeout_add(200, move || {
             clone.set_visible(false);
-            gtk::Continue(false)
+            Continue(false)
         });
     }
 
@@ -320,7 +320,7 @@ impl PasswordLogin {
         self.info_bar.set_revealed(true);
     }
 
-    pub fn fill(&self, data: PasswordLoginData) -> Result<(), LoginScreenError> {
+    pub fn fill(&self, data: PasswordLoginData) {
         self.info_bar.set_revealed(false);
         self.info_bar.set_visible(false);
         self.url_entry.set_text("");
@@ -342,8 +342,6 @@ impl PasswordLogin {
         if let Some(http_password) = &data.http_password {
             self.http_pass_entry.set_text(http_password);
         }
-
-        Ok(())
     }
 
     fn setup_entry(&self, entry: &gtk::Entry, gui_desc: &PasswordLoginGUI) -> SignalHandlerId {

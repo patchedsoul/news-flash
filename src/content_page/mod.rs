@@ -18,7 +18,8 @@ use crate::util::{BuilderHelper, Util, CHANNEL_ERROR};
 use failure::ResultExt;
 use futures::channel::oneshot;
 use futures::executor::ThreadPool;
-use glib::{futures::FutureExt, Sender};
+use futures_util::future::FutureExt;
+use glib::Sender;
 use gtk::{Box, BoxExt, WidgetExt};
 use libhandy::Leaflet;
 use news_flash::models::{Article, ArticleFilter, Marked, PluginCapabilities, PluginID, Read, NEWSFLASH_TOPLEVEL};
@@ -81,7 +82,10 @@ impl ContentPage {
         self.sidebar.write().update_taglist(tag_list_model);
         self.sidebar.read().hide_taglist();
 
-        self.sidebar.read().set_service(None, None).expect("Resetting Logo & Username should always work");
+        self.sidebar
+            .read()
+            .set_service(None, None)
+            .expect("Resetting Logo & Username should always work");
     }
 
     pub fn set_service(&self, id: &PluginID, user_name: Option<String>) -> Result<(), ContentPageError> {

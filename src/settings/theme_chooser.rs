@@ -73,7 +73,7 @@ impl ThemeChooser {
         let sender = sender.clone();
         let theme_list = builder.get::<ListBox>("theme_list");
         theme_list.connect_row_activated(move |_list, row| {
-            if let Some(row_name) = row.get_name() {
+            if let Some(row_name) = row.get_widget_name() {
                 let result = if "default" == row_name {
                     settings.write().set_article_view_theme(ArticleTheme::Default)
                 } else if "spring" == row_name {

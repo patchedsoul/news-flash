@@ -1,14 +1,19 @@
 use super::error::{UtilError, UtilErrorKind};
 use crate::Resources;
-use cairo::{Context, Surface};
+use cairo::{Context, ImageSurface, Surface};
 use failure::ResultExt;
-use gdk::{ContextExt, Window};
+use gdk::prelude::GdkContextExt;
 use gdk_pixbuf::Pixbuf;
 use gio::{Cancellable, MemoryInputStream, Resource};
-use glib::{object::IsA, object::ObjectExt, signal::SignalHandlerId, source::SourceId, translate::FromGlib, Bytes};
+use glib::{
+    object::{Cast, IsA, Object, ObjectExt},
+    signal::SignalHandlerId,
+    source::SourceId,
+    translate::FromGlib,
+    Bytes,
+};
 use gtk::{
-    BinExt, Cast, EntryExt, EventBox, IconTheme, IconThemeExt, ListBoxRow, Revealer, StyleContext, StyleContextExt,
-    WidgetExt,
+    BinExt, EntryExt, EventBox, IconTheme, IconThemeExt, ListBoxRow, Revealer, StyleContext, StyleContextExt, WidgetExt,
 };
 use log::{error, warn};
 use news_flash::models::PixelIcon;
@@ -23,7 +28,7 @@ impl GtkUtil {
     pub fn register_symbolic_icons() {
         let data = Resources::get("gresource_bundles/symbolic_icons.gresource").expect(GTK_RESOURCE_FILE_ERROR);
         let bytes = Bytes::from(&data);
-        let icon_resource = Resource::new_from_data(&bytes).unwrap();
+        let icon_resource = Resource::new_from_data(&bytes).expect("Error creating gio resource.");
         gio::resources_register(&icon_resource);
         IconTheme::get_default()
             .unwrap_or_else(|| panic!("Failed to register symbolic icons."))
@@ -48,11 +53,16 @@ impl GtkUtil {
         scale_factor: i32,
     ) -> Result<Surface, UtilError> {
         let pixbuf = Self::create_pixbuf_from_bytes(data, width, height, scale_factor)?;
-        let window: Option<&Window> = None;
-        match Context::cairo_surface_create_from_pixbuf(&pixbuf, scale_factor, window) {
-            Some(surface) => Ok(surface),
-            None => Err(UtilErrorKind::CairoSurface.into()),
-        }
+        let surface = match ImageSurface::create(cairo::Format::ARgb32, width * scale_factor, height * scale_factor) {
+            Ok(surface) => surface,
+            Err(_) => return Err(UtilErrorKind::CairoSurface)?,
+        };
+        let ctx = Context::new(&surface);
+        ctx.set_source_pixbuf(&pixbuf, 0.0, 0.0);
+        ctx.paint();
+        let surface = ctx.get_target();
+        surface.set_device_scale(scale_factor as f64, scale_factor as f64);
+        Ok(surface)
     }
 
     pub fn create_pixbuf_from_bytes(
@@ -77,15 +87,15 @@ impl GtkUtil {
         false
     }
 
-    pub fn get_scale<W: IsA<gtk::Object> + IsA<gtk::Widget> + Clone>(widget: &W) -> i32 {
+    pub fn get_scale<W: IsA<Object> + IsA<gtk::Widget> + Clone>(widget: &W) -> i32 {
         widget.get_style_context().get_scale()
     }
 
-    pub fn is_main_window<W: IsA<gtk::Object> + IsA<gtk::Widget> + Clone>(widget: &W) -> bool {
+    pub fn is_main_window<W: IsA<Object> + IsA<gtk::Widget> + Clone>(widget: &W) -> bool {
         widget.clone().upcast::<gtk::Widget>().is::<gtk::ApplicationWindow>()
     }
 
-    pub fn get_main_window<W: IsA<gtk::Object> + IsA<gtk::Widget> + WidgetExt + Clone>(
+    pub fn get_main_window<W: IsA<Object> + IsA<gtk::Widget> + WidgetExt + Clone>(
         widget: &W,
     ) -> Result<gtk::ApplicationWindow, UtilError> {
         if let Some(toplevel) = widget.get_toplevel() {

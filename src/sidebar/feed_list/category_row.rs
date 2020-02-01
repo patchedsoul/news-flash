@@ -5,10 +5,10 @@ use crate::undo_bar::UndoActionModel;
 use crate::util::{BuilderHelper, GtkUtil, Util};
 use gdk::{EventMask, EventType};
 use gio::{ActionMapExt, Menu, MenuItem, SimpleAction};
-use glib::Sender;
+use glib::{object::Cast, Sender};
 use gtk::{
-    self, BinExt, Box, Cast, ContainerExt, EventBox, Image, Inhibit, Label, LabelExt, ListBoxRow, ListBoxRowExt,
-    Popover, PopoverExt, PositionType, Revealer, RevealerExt, StateFlags, StyleContextExt, WidgetExt, WidgetExtManual,
+    self, prelude::WidgetExtManual, BinExt, Box, ContainerExt, EventBox, Image, Inhibit, Label, LabelExt, ListBoxRow,
+    ListBoxRowExt, Popover, PopoverExt, PositionType, Revealer, RevealerExt, StateFlags, StyleContextExt, WidgetExt,
 };
 use news_flash::models::CategoryID;
 use parking_lot::RwLock;
