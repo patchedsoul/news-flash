@@ -96,7 +96,6 @@ impl ServiceRow {
             GtkUtil::create_surface_from_icon_name("feed-service-generic", 64, scale)
         };
         image.set_from_surface(Some(&surface));
-        
 
         let service_row = ServiceRow {
             row,

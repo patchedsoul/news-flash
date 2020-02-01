@@ -1,11 +1,11 @@
 use super::article_row::ArticleRow;
 use super::models::ArticleListArticleModel;
 use super::models::ArticleListModel;
-use crate::article_list::ReadUpdate;
 use crate::app::Action;
+use crate::article_list::ReadUpdate;
+use crate::content_page::ContentHeader;
 use crate::main_window_state::MainWindowState;
 use crate::util::{BuilderHelper, GtkUtil, Util};
-use crate::content_page::ContentHeader;
 use glib::{object::Cast, source::Continue, translate::ToGlib, Sender};
 use gtk::{
     prelude::WidgetExtManual, AdjustmentExt, ContainerExt, ListBox, ListBoxExt, ListBoxRowExt, ScrolledWindow,
@@ -154,10 +154,13 @@ impl SingleArticleList {
     pub fn select_after(&self, id: &ArticleID, time: u32) {
         if let Some(article_handle) = self.articles.get(id) {
             self.list.select_row(Some(&article_handle.read().widget()));
-            Util::send(&self.sender, Action::MarkArticleRead(ReadUpdate {
-                article_id: id.clone(),
-                read: Read::Read,
-            }));
+            Util::send(
+                &self.sender,
+                Action::MarkArticleRead(ReadUpdate {
+                    article_id: id.clone(),
+                    read: Read::Read,
+                }),
+            );
 
             GtkUtil::remove_source(*self.select_after_signal.read());
             *self.select_after_signal.write() = None;

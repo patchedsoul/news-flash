@@ -52,7 +52,12 @@ impl ContentPage {
         minor_leaflet.set_hexpand(false);
 
         let sidebar = Arc::new(RwLock::new(SideBar::new(state, sender.clone())));
-        let article_list = Arc::new(RwLock::new(ArticleList::new(settings, content_header, state, sender.clone())));
+        let article_list = Arc::new(RwLock::new(ArticleList::new(
+            settings,
+            content_header,
+            state,
+            sender.clone(),
+        )));
         let article_view = ArticleView::new(settings);
 
         feed_list_box.pack_start(&sidebar.read().widget(), false, true, 0);

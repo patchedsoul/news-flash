@@ -3,12 +3,12 @@ mod models;
 mod single;
 
 use crate::app::Action;
+use crate::content_page::ContentHeader;
 use crate::content_page::HeaderSelection;
 use crate::main_window_state::MainWindowState;
 use crate::settings::Settings;
 use crate::sidebar::models::SidebarSelection;
 use crate::util::{BuilderHelper, GtkUtil, Util};
-use crate::content_page::ContentHeader;
 use glib::{source::Continue, translate::ToGlib, Sender};
 use gtk::{Label, LabelExt, ListBoxExt, ListBoxRowExt, ScrolledWindow, Stack, StackExt, StackTransitionType};
 use models::ArticleListChangeSet;

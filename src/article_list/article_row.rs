@@ -10,10 +10,10 @@ use gtk::{
     ContainerExt, EventBox, Image, ImageExt, Inhibit, Label, LabelExt, ListBoxRow, ListBoxRowExt, Stack, StackExt,
     StyleContextExt, WidgetExt,
 };
+use log::warn;
 use news_flash::models::{ArticleID, FavIcon, Marked, Read};
 use parking_lot::RwLock;
 use std::sync::Arc;
-use log::warn;
 
 pub struct ArticleRow {
     widget: ListBoxRow,
@@ -76,22 +76,18 @@ impl ArticleRow {
             &sender,
             Action::LoadFavIcon((article.news_flash_feed.clone(), oneshot_sender)),
         );
-        let glib_future = receiver.map(move |res| {
-            match res {
-                Ok(Some(icon)) => {
-                    if let Some(data) = &icon.data {
-                        if let Ok(surface) = GtkUtil::create_surface_from_bytes(data, 16, 16, scale) {
-                            favicon.set_from_surface(Some(&surface));
-                        }
+        let glib_future = receiver.map(move |res| match res {
+            Ok(Some(icon)) => {
+                if let Some(data) = &icon.data {
+                    if let Ok(surface) = GtkUtil::create_surface_from_bytes(data, 16, 16, scale) {
+                        favicon.set_from_surface(Some(&surface));
                     }
-                },
-                Ok(None) => {
-                    warn!("Favicon does not contain image data.");
-                },
-                Err(_) => {
-                    warn!("Receiving favicon failed.")
-                },
+                }
             }
+            Ok(None) => {
+                warn!("Favicon does not contain image data.");
+            }
+            Err(_) => warn!("Receiving favicon failed."),
         });
         Util::glib_spawn_future(glib_future);
 

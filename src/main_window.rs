@@ -112,7 +112,13 @@ impl MainWindow {
         let _welcome = WelcomePage::new(&builder, sender.clone());
         let password_login_page = Rc::new(PasswordLogin::new(&builder, sender.clone()));
         let oauth_login_page = Rc::new(WebLogin::new(&builder, sender.clone()));
-        let content_page = Rc::new(ContentPage::new(&builder, &state, &settings, &content_header, sender.clone()));
+        let content_page = Rc::new(ContentPage::new(
+            &builder,
+            &state,
+            &settings,
+            &content_header,
+            sender.clone(),
+        ));
         let reset_page = ResetPage::new(&builder, sender.clone());
 
         Self::setup_shortcuts(
