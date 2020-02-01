@@ -1,4 +1,4 @@
-use crate::util::{BuilderHelper, GtkUtil, Util, RUNTIME_ERROR};
+use crate::util::{BuilderHelper, GtkUtil, Util, CHANNEL_ERROR, RUNTIME_ERROR};
 use futures::channel::oneshot;
 use futures::executor::ThreadPool;
 use futures::future::FutureExt;
@@ -132,13 +132,13 @@ impl AddPopover {
                         let result = Runtime::new().expect(RUNTIME_ERROR).block_on(
                             news_flash::feed_parser::download_and_parse_feed(&url, &feed_id, None, None),
                         );
-                        sender.send(result).unwrap();
+                        sender.send(result).expect(CHANNEL_ERROR);
                     };
 
                     let parse_button_threadpool = threadpool.clone();
                     let glib_future = receiver.map(move |res| {
                         // parse url
-                        match res.unwrap() {
+                        match res.expect(CHANNEL_ERROR) {
                             Ok(result) => match result {
                                 ParsedUrl::MultipleFeeds(feed_vec) => {
                                     // url has multiple feeds: show selection page and list them there
@@ -282,7 +282,7 @@ impl AddPopover {
             let result = Runtime::new()
                 .expect(RUNTIME_ERROR)
                 .block_on(news_flash::util::favicon_cache::FavIconCache::scrap(&feed_clone));
-            sender.send(result).unwrap();
+            sender.send(result).expect(CHANNEL_ERROR);
         };
 
         let scale = GtkUtil::get_scale(favicon_image);
@@ -292,7 +292,7 @@ impl AddPopover {
         let threadpool_clone = threadpool.clone();
 
         let glib_future = receiver.map(move |res| {
-            if let Some(favicon) = res.unwrap() {
+            if let Some(favicon) = res.expect(CHANNEL_ERROR) {
                 if let Some(data) = &favicon.data {
                     if let Ok(surface) = GtkUtil::create_surface_from_bytes(data, 64, 64, scale) {
                         favicon_image.set_from_surface(Some(&surface));
@@ -313,11 +313,11 @@ impl AddPopover {
                         },
                         Err(_) => None,
                     };
-                    sender.send(res).unwrap();
+                    sender.send(res).expect(CHANNEL_ERROR);
                 };
 
                 let glib_future = receiver.map(move |res| {
-                    if let Some(byte_vec) = res.unwrap() {
+                    if let Some(byte_vec) = res.expect(CHANNEL_ERROR) {
                         if let Ok(surface) = GtkUtil::create_surface_from_bytes(&byte_vec, 64, 64, scale) {
                             favicon_image.set_from_surface(Some(&surface));
                         }
@@ -382,7 +382,7 @@ impl AddPopover {
                                 &url, &feed_id, None, None,
                             ))
                             .ok();
-                        sender.send(result).unwrap();
+                        sender.send(result).expect(CHANNEL_ERROR);
                     };
 
                     let select_button_stack = select_button_stack.clone();
@@ -390,7 +390,7 @@ impl AddPopover {
                     let add_button_stack = add_button_stack.clone();
                     let threadpool_clone = threadpool.clone();
                     let glib_future = receiver.map(move |res| {
-                        if let Some(ParsedUrl::SingleFeed(feed)) = res.unwrap() {
+                        if let Some(ParsedUrl::SingleFeed(feed)) = res.expect(CHANNEL_ERROR) {
                             Self::fill_feed_page(
                                 feed,
                                 &add_button_stack,

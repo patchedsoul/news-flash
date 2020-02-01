@@ -1,4 +1,3 @@
-use std::cell::RefCell;
 use std::env;
 use std::path::PathBuf;
 use std::rc::Rc;
@@ -113,7 +112,7 @@ pub struct App {
     application: gtk::Application,
     window: Arc<MainWindow>,
     sender: Sender<Action>,
-    receiver: RefCell<Option<Receiver<Action>>>,
+    receiver: RwLock<Option<Receiver<Action>>>,
     news_flash: Arc<RwLock<Option<NewsFlash>>>,
     settings: Arc<RwLock<Settings>>,
     sync_source_id: RwLock<Option<u32>>,
@@ -128,7 +127,7 @@ impl App {
         let shutdown_in_progress = Arc::new(RwLock::new(false));
 
         let (sender, r) = glib::MainContext::channel(glib::PRIORITY_DEFAULT);
-        let receiver = RefCell::new(Some(r));
+        let receiver = RwLock::new(Some(r));
 
         let news_flash = Arc::new(RwLock::new(None));
         let settings = Arc::new(RwLock::new(Settings::open().expect("Failed to access settings file")));
@@ -142,7 +141,7 @@ impl App {
             news_flash,
             settings,
             sync_source_id: RwLock::new(None),
-            threadpool: ThreadPool::new().unwrap(),
+            threadpool: ThreadPool::new().expect("Failed to init thread pool"),
             shutdown_in_progress,
         });
 
@@ -178,7 +177,7 @@ impl App {
 
     pub fn run(&self, app: Rc<Self>) {
         let a = app.clone();
-        let receiver = self.receiver.borrow_mut().take().unwrap();
+        let receiver = self.receiver.write().take().expect(CHANNEL_ERROR);
         receiver.attach(None, move |action| a.process_action(action));
 
         let args: Vec<String> = env::args().collect();
@@ -1098,13 +1097,13 @@ impl App {
                                         &global_sender,
                                         Action::Error("Failed to downlaod article images.".to_owned(), error),
                                     );
-                                    sender.send(()).unwrap();
+                                    sender.send(()).expect(CHANNEL_ERROR);
                                     return;
                                 }
                             }
                         };
 
-                        sender.send(()).unwrap();
+                        sender.send(()).expect(CHANNEL_ERROR);
 
                         let (feeds, _) = match news_flash.get_feeds() {
                             Ok(feeds) => feeds,
@@ -1253,7 +1252,9 @@ impl App {
         let start_wait_time = time::SystemTime::now();
         let max_wait_time = time::Duration::from_secs(3);
 
-        while Self::is_syncing(&self.news_flash) && start_wait_time.elapsed().unwrap() < max_wait_time {
+        while Self::is_syncing(&self.news_flash)
+            && start_wait_time.elapsed().expect("shutdown timer elapsed error") < max_wait_time
+        {
             gtk::main_iteration();
         }
 

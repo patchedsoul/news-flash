@@ -11,7 +11,7 @@ use crate::responsive::ResponsiveLayout;
 use crate::settings::{Keybindings, Settings};
 use crate::sidebar::models::SidebarSelection;
 use crate::undo_bar::{UndoActionModel, UndoBar};
-use crate::util::{BuilderHelper, GtkUtil, Util, GTK_CSS_ERROR, GTK_RESOURCE_FILE_ERROR, RUNTIME_ERROR};
+use crate::util::{BuilderHelper, GtkUtil, Util, CHANNEL_ERROR, GTK_CSS_ERROR, GTK_RESOURCE_FILE_ERROR, RUNTIME_ERROR};
 use crate::welcome_screen::{WelcomeHeaderbar, WelcomePage};
 use crate::Resources;
 use futures::channel::oneshot;
@@ -590,7 +590,7 @@ impl MainWindow {
                     let news_flash = news_flash.clone();
                     let future = async move {
                         if let Some(news_flash) = news_flash.read().as_ref() {
-                            sender.send(news_flash.set_all_read().await).unwrap();
+                            sender.send(news_flash.set_all_read().await).expect(CHANNEL_ERROR);
                         }
                     };
                     Runtime::new().expect(RUNTIME_ERROR).block_on(future);
@@ -608,7 +608,7 @@ impl MainWindow {
                             Util::send(&sender, Action::Error(message, error));
                         }
                     })
-                    .unwrap();
+                    .expect(CHANNEL_ERROR);
                     Util::send(&sender, Action::UpdateArticleHeader);
                     Util::send(&sender, Action::UpdateArticleList);
                     Util::send(&sender, Action::UpdateSidebar);
@@ -630,7 +630,7 @@ impl MainWindow {
                                     .expect(RUNTIME_ERROR)
                                     .block_on(news_flash.set_category_read(&category_id_vec)),
                             )
-                            .unwrap();
+                            .expect(CHANNEL_ERROR);
                     }
                 };
 
@@ -646,7 +646,7 @@ impl MainWindow {
                             Util::send(&sender, Action::Error(message, error));
                         }
                     })
-                    .unwrap();
+                    .expect(CHANNEL_ERROR);
                     Util::send(&sender, Action::UpdateArticleHeader);
                     Util::send(&sender, Action::UpdateArticleList);
                     Util::send(&sender, Action::UpdateSidebar);
@@ -668,7 +668,7 @@ impl MainWindow {
                                     .expect(RUNTIME_ERROR)
                                     .block_on(news_flash.set_feed_read(&feed_id_vec)),
                             )
-                            .unwrap();
+                            .expect(CHANNEL_ERROR);
                     }
                 };
 
@@ -684,7 +684,7 @@ impl MainWindow {
                             Util::send(&sender, Action::Error(message, error));
                         }
                     })
-                    .unwrap();
+                    .expect(CHANNEL_ERROR);
                     Util::send(&sender, Action::UpdateArticleHeader);
                     Util::send(&sender, Action::UpdateArticleList);
                     Util::send(&sender, Action::UpdateSidebar);
@@ -706,7 +706,7 @@ impl MainWindow {
                                     .expect(RUNTIME_ERROR)
                                     .block_on(news_flash.set_tag_read(&tag_id_vec)),
                             )
-                            .unwrap();
+                            .expect(CHANNEL_ERROR);
                     }
                 };
 
@@ -722,7 +722,7 @@ impl MainWindow {
                             Util::send(&sender, Action::Error(message, error));
                         }
                     })
-                    .unwrap();
+                    .expect(CHANNEL_ERROR);
                     Util::send(&sender, Action::UpdateArticleHeader);
                     Util::send(&sender, Action::UpdateArticleList);
                     Util::send(&sender, Action::UpdateSidebar);
