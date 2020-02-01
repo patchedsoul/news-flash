@@ -40,7 +40,7 @@ pub struct MainWindow {
     pub oauth_login_page: Rc<WebLogin>,
     pub password_login_page: Rc<PasswordLogin>,
     pub content_page: Rc<ContentPage>,
-    pub content_header: Rc<ContentHeader>,
+    pub content_header: Arc<ContentHeader>,
     reset_page: ResetPage,
     stack: Stack,
     header_stack: Stack,
@@ -77,7 +77,7 @@ impl MainWindow {
 
         let _login_header = LoginHeaderbar::new(&builder, sender.clone());
         let _welcome_header = WelcomeHeaderbar::new(&builder);
-        let content_header = Rc::new(ContentHeader::new(&builder, &state, sender.clone()));
+        let content_header = Arc::new(ContentHeader::new(&builder, &state, sender.clone()));
 
         window.set_icon_name(Some(APP_ID));
         window.set_title(APP_NAME);
@@ -112,7 +112,7 @@ impl MainWindow {
         let _welcome = WelcomePage::new(&builder, sender.clone());
         let password_login_page = Rc::new(PasswordLogin::new(&builder, sender.clone()));
         let oauth_login_page = Rc::new(WebLogin::new(&builder, sender.clone()));
-        let content_page = Rc::new(ContentPage::new(&builder, &state, &settings, sender.clone()));
+        let content_page = Rc::new(ContentPage::new(&builder, &state, &settings, &content_header, sender.clone()));
         let reset_page = ResetPage::new(&builder, sender.clone());
 
         Self::setup_shortcuts(
@@ -159,7 +159,7 @@ impl MainWindow {
         content_page: &Rc<ContentPage>,
         main_stack: &Stack,
         settings: &Arc<RwLock<Settings>>,
-        content_header: &Rc<ContentHeader>,
+        content_header: &Arc<ContentHeader>,
         state: &Arc<RwLock<MainWindowState>>,
     ) {
         let main_stack = main_stack.clone();

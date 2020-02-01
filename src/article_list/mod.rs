@@ -8,6 +8,7 @@ use crate::main_window_state::MainWindowState;
 use crate::settings::Settings;
 use crate::sidebar::models::SidebarSelection;
 use crate::util::{BuilderHelper, GtkUtil, Util};
+use crate::content_page::ContentHeader;
 use glib::{source::Continue, translate::ToGlib, Sender};
 use gtk::{Label, LabelExt, ListBoxExt, ListBoxRowExt, ScrolledWindow, Stack, StackExt, StackTransitionType};
 use models::ArticleListChangeSet;
@@ -41,6 +42,7 @@ pub struct ArticleList {
 impl ArticleList {
     pub fn new(
         settings: &Arc<RwLock<Settings>>,
+        content_header: &Arc<ContentHeader>,
         global_state: &Arc<RwLock<MainWindowState>>,
         sender: Sender<Action>,
     ) -> Self {
@@ -49,8 +51,8 @@ impl ArticleList {
         let empty_scroll = builder.get::<ScrolledWindow>("empty_scroll");
         let empty_label = builder.get::<Label>("empty_label");
 
-        let list_1 = SingleArticleList::new(sender.clone());
-        let list_2 = SingleArticleList::new(sender.clone());
+        let list_1 = SingleArticleList::new(sender.clone(), content_header.clone());
+        let list_2 = SingleArticleList::new(sender.clone(), content_header.clone());
 
         let local_state = MainWindowState::new();
         let model = ArticleListModel::new(&settings.read().get_article_list_order());

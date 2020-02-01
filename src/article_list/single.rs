@@ -1,9 +1,11 @@
 use super::article_row::ArticleRow;
 use super::models::ArticleListArticleModel;
 use super::models::ArticleListModel;
+use crate::article_list::ReadUpdate;
 use crate::app::Action;
 use crate::main_window_state::MainWindowState;
 use crate::util::{BuilderHelper, GtkUtil, Util};
+use crate::content_page::ContentHeader;
 use glib::{object::Cast, source::Continue, translate::ToGlib, Sender};
 use gtk::{
     prelude::WidgetExtManual, AdjustmentExt, ContainerExt, ListBox, ListBoxExt, ListBoxRowExt, ScrolledWindow,
@@ -37,10 +39,11 @@ pub struct SingleArticleList {
     select_after_signal: Arc<RwLock<Option<u32>>>,
     scroll_cooldown: Arc<RwLock<bool>>,
     scroll_animation_data: ScrollAnimationProperties,
+    content_header: Arc<ContentHeader>,
 }
 
 impl SingleArticleList {
-    pub fn new(sender: Sender<Action>) -> Self {
+    pub fn new(sender: Sender<Action>, content_header: Arc<ContentHeader>) -> Self {
         let builder = BuilderHelper::new("article_list_single");
         let scroll = builder.get::<ScrolledWindow>("article_list_scroll");
         let list = builder.get::<ListBox>("article_list_box");
@@ -81,6 +84,7 @@ impl SingleArticleList {
                 transition_start_value: Arc::new(RwLock::new(None)),
                 transition_diff: Arc::new(RwLock::new(None)),
             },
+            content_header,
         }
     }
 
@@ -150,16 +154,22 @@ impl SingleArticleList {
     pub fn select_after(&self, id: &ArticleID, time: u32) {
         if let Some(article_handle) = self.articles.get(id) {
             self.list.select_row(Some(&article_handle.read().widget()));
-            // FIXME: set as read
+            Util::send(&self.sender, Action::MarkArticleRead(ReadUpdate {
+                article_id: id.clone(),
+                read: Read::Read,
+            }));
 
             GtkUtil::remove_source(*self.select_after_signal.read());
             *self.select_after_signal.write() = None;
 
             let select_after_signal = self.select_after_signal.clone();
             let article_widget = article_handle.read().widget();
+            let content_header = self.content_header.clone();
             *self.select_after_signal.write() = Some(
                 gtk::timeout_add(time, move || {
-                    // FIXME: if search entry is not selected
+                    if content_header.is_search_focused() {
+                        return Continue(false);
+                    }
 
                     article_widget.activate();
 

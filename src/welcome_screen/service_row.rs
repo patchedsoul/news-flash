@@ -85,17 +85,18 @@ impl ServiceRow {
         let scale = GtkUtil::get_scale(&row);
 
         let image = builder.get::<Image>("icon");
-        if let Some(icon) = info.icon {
-            let surface = match icon {
+        let surface = if let Some(icon) = info.icon {
+            match icon {
                 PluginIcon::Vector(icon) => GtkUtil::create_surface_from_bytes(&icon.data, 64, 64, scale)
                     .expect("Failed to create surface from service vector icon."),
                 PluginIcon::Pixel(icon) => GtkUtil::create_surface_from_pixelicon(&icon, scale)
                     .expect("Failed to create surface from service pixel icon."),
-            };
-            image.set_from_surface(Some(&surface));
+            }
         } else {
-            // FIXME: default Icon
-        }
+            GtkUtil::create_surface_from_icon_name("feed-service-generic", 64, scale)
+        };
+        image.set_from_surface(Some(&surface));
+        
 
         let service_row = ServiceRow {
             row,

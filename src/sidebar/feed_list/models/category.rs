@@ -1,6 +1,7 @@
 use super::item::FeedListItem;
 use news_flash::models::{Category, CategoryID};
 use serde::{Deserialize, Serialize};
+use log::warn;
 use std;
 use std::cmp::Ordering;
 use std::fmt;
@@ -50,7 +51,7 @@ impl FeedListCategoryModel {
             self.children.push(item);
             self.children.sort();
         } else {
-            // FIXME: warn/error
+            warn!("Category '{}' already contains item '{:?}'.", self.id, item);
         }
     }
 

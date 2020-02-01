@@ -4,7 +4,7 @@ use gdk::enums::key;
 use glib::object::IsA;
 use gtk::{
     Align, Button, ButtonExt, Dialog, DialogExt, GtkWindowExt, Inhibit, Label, LabelExt, ShortcutLabel, Stack,
-    StackExt, WidgetExt, Window,
+    StackExt, StyleContextExt, WidgetExt, Window,
 };
 use parking_lot::RwLock;
 use std::sync::Arc;
@@ -35,6 +35,7 @@ impl KeybindingEditor {
         let shortcut_label = ShortcutLabel::new("");
         shortcut_label.set_halign(Align::Center);
         shortcut_label.set_valign(Align::Center);
+        shortcut_label.get_style_context().add_class("h2");
         shortcut_label.show();
         let stack = builder.get::<Stack>("stack");
         let keybinding_internal_clone = keybinding_internal.clone();
