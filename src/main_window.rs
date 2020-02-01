@@ -16,8 +16,9 @@ use crate::welcome_screen::{WelcomeHeaderbar, WelcomePage};
 use crate::Resources;
 use futures::channel::oneshot;
 use futures::executor::ThreadPool;
+use futures::FutureExt;
 use gdk::EventKey;
-use glib::{self, futures::FutureExt, Sender};
+use glib::{self, Sender};
 use gtk::{
     self, ApplicationWindow, CssProvider, CssProviderExt, GtkWindowExt, Inhibit, Settings as GtkSettings, SettingsExt,
     Stack, StackExt, StackTransitionType, StyleContext, StyleContextExt, WidgetExt,
@@ -111,12 +112,7 @@ impl MainWindow {
         let _welcome = WelcomePage::new(&builder, sender.clone());
         let password_login_page = Rc::new(PasswordLogin::new(&builder, sender.clone()));
         let oauth_login_page = Rc::new(WebLogin::new(&builder, sender.clone()));
-        let content_page = Rc::new(ContentPage::new(
-            &builder,
-            &state,
-            &settings,
-            sender.clone(),
-        ));
+        let content_page = Rc::new(ContentPage::new(&builder, &state, &settings, sender.clone()));
         let reset_page = ResetPage::new(&builder, sender.clone());
 
         Self::setup_shortcuts(
@@ -276,9 +272,7 @@ impl MainWindow {
                 }
             }
 
-            if Self::check_shortcut("next_item", &settings, event)
-                && content_page.sidebar_select_next_item().is_err()
-            {
+            if Self::check_shortcut("next_item", &settings, event) && content_page.sidebar_select_next_item().is_err() {
                 Util::send(
                     &sender,
                     Action::ErrorSimpleMessage("Failed to select next item in sidebar.".to_owned()),
@@ -444,7 +438,7 @@ impl MainWindow {
         if let Some(service_meta) = NewsFlash::list_backends().get(plugin_id) {
             if let Ok(()) = self.password_login_page.set_service(service_meta.clone()) {
                 if let Some(data) = data {
-                    self.password_login_page.fill(data).unwrap();
+                    self.password_login_page.fill(data);
                 }
                 self.header_stack.set_visible_child_name("login");
                 self.stack.set_transition_type(StackTransitionType::SlideLeft);
@@ -542,9 +536,7 @@ impl MainWindow {
                 }
             };
             self.content_header.show_article(Some(&article));
-            self.content_page
-                .article_view
-                .show_article(article, feed.label.clone());
+            self.content_page.article_view.show_article(article, feed.label.clone());
 
             self.responsive_layout.state.write().major_leaflet_selected = true;
             self.responsive_layout.process_state_change();

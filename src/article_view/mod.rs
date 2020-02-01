@@ -16,10 +16,10 @@ use gdk::{
     Display, EventMask, ModifierType, ScrollDirection,
 };
 use gio::{Cancellable, Settings as GSettings, SettingsExt as GSettingsExt};
-use glib::{object::Cast, translate::ToGlib, MainLoop};
+use glib::{object::Cast, source::Continue, translate::ToGlib, MainLoop};
 use gtk::{
-    Button, ButtonExt, ContainerExt, Continue, Inhibit, Overlay, OverlayExt, SettingsExt as GtkSettingsExt, Stack,
-    StackExt, TickCallbackId, WidgetExt, WidgetExtManual,
+    prelude::WidgetExtManual, Button, ButtonExt, ContainerExt, Inhibit, Overlay, OverlayExt,
+    SettingsExt as GtkSettingsExt, Stack, StackExt, TickCallbackId, WidgetExt,
 };
 use log::{error, warn};
 use news_flash::models::{FatArticle, Marked, Read};

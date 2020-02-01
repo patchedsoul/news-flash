@@ -3,10 +3,10 @@ use crate::app::Action;
 use crate::main_window_state::MainWindowState;
 use crate::util::{BuilderHelper, GtkUtil, Util};
 use gio::{ActionMapExt, Menu, MenuItem, SimpleAction};
-use glib::{object::Cast, translate::ToGlib, Sender};
+use glib::{object::Cast, source::Continue, translate::ToGlib, Sender};
 use gtk::{
-    Button, ButtonExt, Continue, EntryExt, Inhibit, MenuButton, MenuButtonExt, Popover, PopoverExt, SearchEntry,
-    SearchEntryExt, Stack, StackExt, ToggleButton, ToggleButtonExt, WidgetExt,
+    Button, ButtonExt, EntryExt, Inhibit, MenuButton, MenuButtonExt, Popover, PopoverExt, SearchEntry, SearchEntryExt,
+    Stack, StackExt, ToggleButton, ToggleButtonExt, WidgetExt,
 };
 use libhandy::{SearchBar, SearchBarExt};
 use news_flash::models::{FatArticle, Marked, Read};

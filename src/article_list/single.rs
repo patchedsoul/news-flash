@@ -4,10 +4,10 @@ use super::models::ArticleListModel;
 use crate::app::Action;
 use crate::main_window_state::MainWindowState;
 use crate::util::{BuilderHelper, GtkUtil, Util};
-use glib::{object::Cast, translate::ToGlib, Sender};
+use glib::{object::Cast, source::Continue, translate::ToGlib, Sender};
 use gtk::{
-    AdjustmentExt, ContainerExt, Continue, ListBox, ListBoxExt, ListBoxRowExt, ScrolledWindow, ScrolledWindowExt,
-    SettingsExt, TickCallbackId, WidgetExt, WidgetExtManual,
+    prelude::WidgetExtManual, AdjustmentExt, ContainerExt, ListBox, ListBoxExt, ListBoxRowExt, ScrolledWindow,
+    ScrolledWindowExt, SettingsExt, TickCallbackId, WidgetExt,
 };
 use news_flash::models::{
     article::{Marked, Read},

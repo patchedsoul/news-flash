@@ -3,8 +3,8 @@ use crate::settings::Settings;
 use crate::util::{BuilderHelper, GTK_RESOURCE_FILE_ERROR};
 use crate::Resources;
 use gdk::{enums::key, ModifierType};
-use glib::object::IsA;
-use gtk::{BinExt, Box, Cast, ContainerExt, GtkWindowExt, ShortcutsWindow, Stack, StackExt, WidgetExt, Window};
+use glib::object::{Cast, IsA};
+use gtk::{BinExt, Box, ContainerExt, GtkWindowExt, ShortcutsWindow, Stack, StackExt, WidgetExt, Window};
 use log::warn;
 use parking_lot::RwLock;
 use serde::{Deserialize, Serialize};
@@ -49,7 +49,7 @@ impl Keybindings {
         }
     }
 
-    fn parse_keyval(keyval: u32) -> Option<String> {
+    pub fn parse_keyval(keyval: u32) -> Option<String> {
         let keyval = gdk::keyval_to_upper(keyval);
 
         let manual_parsed = match keyval {

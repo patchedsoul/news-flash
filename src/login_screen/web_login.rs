@@ -3,11 +3,13 @@ use crate::app::Action;
 use crate::error_dialog::ErrorDialog;
 use crate::util::{BuilderHelper, GtkUtil, Util, GTK_BUILDER_ERROR};
 use glib::{
+    object::ObjectExt,
     signal::SignalHandlerId,
+    source::Continue,
     translate::{FromGlib, ToGlib},
     Sender,
 };
-use gtk::{Box, BoxExt, Button, ButtonExt, InfoBar, InfoBarExt, Label, LabelExt, ObjectExt, ResponseType, WidgetExt};
+use gtk::{Box, BoxExt, Button, ButtonExt, InfoBar, InfoBarExt, Label, LabelExt, ResponseType, WidgetExt};
 use news_flash::models::{LoginData, LoginGUI, OAuthData, PluginInfo};
 use news_flash::{NewsFlashError, NewsFlashErrorKind};
 use parking_lot::RwLock;
@@ -60,7 +62,7 @@ impl WebLogin {
         let clone = info_bar.clone();
         gtk::timeout_add(200, move || {
             clone.set_visible(false);
-            gtk::Continue(false)
+            Continue(false)
         });
     }
 

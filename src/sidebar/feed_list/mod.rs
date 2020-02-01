@@ -17,10 +17,10 @@ use crate::sidebar::feed_list::{
 use crate::sidebar::SidebarIterateItem;
 use crate::util::{BuilderHelper, GtkUtil, Util};
 use gdk::{DragAction, EventType};
-use glib::{translate::ToGlib, Sender};
+use glib::{source::Continue, translate::ToGlib, Sender};
 use gtk::{
-    self, ContainerExt, Continue, DestDefaults, Inhibit, ListBox, ListBoxExt, ListBoxRowExt, ScrolledWindow,
-    SelectionMode, StyleContextExt, TargetEntry, TargetFlags, WidgetExt, WidgetExtManual,
+    self, prelude::WidgetExtManual, ContainerExt, DestDefaults, Inhibit, ListBox, ListBoxExt, ListBoxRowExt,
+    ScrolledWindow, SelectionMode, StyleContextExt, TargetEntry, TargetFlags, WidgetExt,
 };
 use log::error;
 use news_flash::models::{CategoryID, FeedID};

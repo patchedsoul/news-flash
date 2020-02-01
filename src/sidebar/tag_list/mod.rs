@@ -5,8 +5,8 @@ mod tag_row;
 use self::error::{TagListError, TagListErrorKind};
 use crate::sidebar::SidebarIterateItem;
 use crate::util::{BuilderHelper, GtkUtil};
-use glib::translate::ToGlib;
-use gtk::{ContainerExt, Continue, ListBox, ListBoxExt, ListBoxRowExt, SelectionMode, WidgetExt};
+use glib::{source::Continue, translate::ToGlib};
+use gtk::{ContainerExt, ListBox, ListBoxExt, ListBoxRowExt, SelectionMode, WidgetExt};
 use models::{TagListChangeSet, TagListModel, TagListTagModel};
 use news_flash::models::TagID;
 use parking_lot::RwLock;
@@ -33,7 +33,7 @@ impl TagList {
             let list = list.clone();
             gtk::timeout_add(50, move || {
                 list.set_selection_mode(SelectionMode::Single);
-                gtk::Continue(false)
+                Continue(false)
             });
         });
 

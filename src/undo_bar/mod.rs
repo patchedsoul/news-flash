@@ -2,8 +2,8 @@ mod models;
 
 use crate::app::Action;
 use crate::util::{BuilderHelper, GtkUtil, Util};
-use glib::{translate::ToGlib, Sender};
-use gtk::{Button, ButtonExt, Continue, InfoBar, InfoBarExt, Label, LabelExt, ResponseType, WidgetExt};
+use glib::{source::Continue, translate::ToGlib, Sender};
+use gtk::{Button, ButtonExt, InfoBar, InfoBarExt, Label, LabelExt, ResponseType, WidgetExt};
 use log::debug;
 pub use models::{UndoAction, UndoActionModel};
 use parking_lot::RwLock;

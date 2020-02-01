@@ -8,11 +8,11 @@ use futures::channel::oneshot;
 use futures::future::FutureExt;
 use gdk::{DragAction, EventType, ModifierType};
 use gio::{ActionMapExt, Menu, MenuItem, SimpleAction};
-use glib::{source::SourceId, translate::FromGlib, translate::ToGlib, Sender, Source};
+use glib::{source::Continue, source::SourceId, translate::FromGlib, translate::ToGlib, Sender, Source};
 use gtk::{
-    self, BinExt, Box, ContainerExt, Continue, DragContextExtManual, EventBox, Image, ImageExt, Inhibit, Label,
-    LabelExt, ListBoxRow, ListBoxRowExt, Popover, PopoverExt, PositionType, Revealer, RevealerExt, StateFlags,
-    StyleContextExt, TargetEntry, TargetFlags, WidgetExt, WidgetExtManual,
+    self, prelude::DragContextExtManual, prelude::WidgetExtManual, BinExt, Box, ContainerExt, EventBox, Image,
+    ImageExt, Inhibit, Label, LabelExt, ListBoxRow, ListBoxRowExt, Popover, PopoverExt, PositionType, Revealer,
+    RevealerExt, StateFlags, StyleContextExt, TargetEntry, TargetFlags, WidgetExt,
 };
 use news_flash::models::{CategoryID, FavIcon, Feed, FeedID};
 use parking_lot::RwLock;

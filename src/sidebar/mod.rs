@@ -13,10 +13,10 @@ use failure::ResultExt;
 pub use feed_list::models::{FeedListDndAction, FeedListItemID, FeedListTree};
 use feed_list::FeedList;
 use gdk::{EventMask, EventType};
-use glib::{translate::ToGlib, Sender};
+use glib::{source::Continue, translate::ToGlib, Sender};
 use gtk::{
-    Box, BoxExt, Continue, EventBox, Image, ImageExt, Inhibit, Label, LabelExt, ListBoxExt, Revealer, RevealerExt,
-    ScrolledWindow, StyleContextExt, WidgetExt, WidgetExtManual,
+    prelude::WidgetExtManual, Box, BoxExt, EventBox, Image, ImageExt, Inhibit, Label, LabelExt, ListBoxExt, Revealer,
+    RevealerExt, ScrolledWindow, StyleContextExt, WidgetExt,
 };
 pub use models::SidebarIterateItem;
 use models::SidebarSelection;
@@ -244,7 +244,7 @@ impl SideBar {
     pub fn set_service(&self, id: Option<&PluginID>, user_name: Option<String>) -> Result<(), SidebarError> {
         let generic_icon = GtkUtil::create_surface_from_icon_name("feed-service-generic", 64, self.scale_factor);
         let generic_user = "Unitialized";
-        
+
         if let Some(id) = id {
             let list = NewsFlash::list_backends();
             if let Some(info) = list.get(id) {
@@ -275,7 +275,6 @@ impl SideBar {
             self.logo.set_from_surface(Some(&generic_icon));
             self.service_label.set_text(generic_user);
         }
-        
 
         Ok(())
     }

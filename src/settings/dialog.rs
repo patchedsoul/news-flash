@@ -8,9 +8,9 @@ use crate::util::{BuilderHelper, Util, GTK_BUILDER_ERROR};
 use gdk::{EventMask, EventType};
 use glib::{object::Cast, Sender};
 use gtk::{
-    DialogExt, EventBox, FontButton, FontButtonExt, FontChooserExt, GtkWindowExt, GtkWindowExtManual, Inhibit, Label,
-    LabelExt, ListBox, ListBoxExt, ListBoxRowExt, Popover, PopoverExt, Settings as GtkSettings,
-    SettingsExt as GtkSettingsExt, Switch, SwitchExt, WidgetExt, WidgetExtManual, Window,
+    prelude::GtkWindowExtManual, prelude::WidgetExtManual, DialogExt, EventBox, FontButton, FontButtonExt,
+    FontChooserExt, GtkWindowExt, Inhibit, Label, LabelExt, ListBox, ListBoxExt, ListBoxRowExt, Popover, PopoverExt,
+    Settings as GtkSettings, SettingsExt as GtkSettingsExt, Switch, SwitchExt, WidgetExt, Window,
 };
 use libhandy::{ActionRow, PreferencesRowExt};
 use news_flash::models::ArticleOrder;
@@ -141,7 +141,7 @@ impl SettingsDialog {
         if let Some(listbox) = sync_row.get_parent() {
             if let Ok(listbox) = listbox.downcast::<ListBox>() {
                 listbox.connect_row_activated(move |_list, row| {
-                    if let Some(name) = row.get_name() {
+                    if let Some(name) = row.get_widget_name() {
                         if name == "sync_row" {
                             sync_pop.popup();
                         }
@@ -195,7 +195,7 @@ impl SettingsDialog {
         if let Some(listbox) = article_order_row.get_parent() {
             if let Ok(listbox) = listbox.downcast::<ListBox>() {
                 listbox.connect_row_activated(move |_list, row| {
-                    if let Some(name) = row.get_name() {
+                    if let Some(name) = row.get_widget_name() {
                         if name == "article_order_row" {
                             article_order_pop.popup();
                         }
@@ -237,7 +237,7 @@ impl SettingsDialog {
         if let Some(listbox) = article_theme_row.get_parent() {
             if let Ok(listbox) = listbox.downcast::<ListBox>() {
                 listbox.connect_row_activated(move |_list, row| {
-                    if let Some(name) = row.get_name() {
+                    if let Some(name) = row.get_widget_name() {
                         if name == "article_theme_row" {
                             let settings = settings_6.clone();
                             let article_theme_label = article_theme_label.clone();
@@ -390,7 +390,7 @@ impl SettingsDialog {
                 let settings = self.settings.clone();
                 let sender = sender.clone();
                 listbox.connect_row_activated(move |_list, row| {
-                    if let Some(name) = row.get_name() {
+                    if let Some(name) = row.get_widget_name() {
                         if name.as_str() == row_name {
                             let id = id.clone();
                             let label = label.clone();

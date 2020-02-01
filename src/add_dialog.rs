@@ -3,11 +3,12 @@ use futures::channel::oneshot;
 use futures::executor::ThreadPool;
 use futures::future::FutureExt;
 use glib::object::Cast;
+use glib::types::Type;
 use gtk::{
-    BinExt, Box, BoxExt, Button, ButtonExt, ComboBox, ComboBoxExt, ContainerExt, EditableSignals, Entry, EntryExt,
-    GtkListStoreExt, GtkListStoreExtManual, IconSize, Image, ImageExt, Label, LabelExt, ListBox, ListBoxExt,
+    prelude::GtkListStoreExtManual, BinExt, Box, BoxExt, Button, ButtonExt, ComboBox, ComboBoxExt, ContainerExt,
+    EditableSignals, Entry, EntryExt, GtkListStoreExt, IconSize, Image, ImageExt, Label, LabelExt, ListBox, ListBoxExt,
     ListBoxRow, ListBoxRowExt, ListStore, Orientation, Popover, PopoverExt, Separator, Stack, StackExt,
-    StyleContextExt, Type, WidgetExt,
+    StyleContextExt, WidgetExt,
 };
 use log::error;
 use news_flash::models::{Category, CategoryID, FavIcon, Feed, FeedID, Url};
@@ -361,7 +362,7 @@ impl AddPopover {
         let add_button_stack = add_button_stack.clone();
         select_button.connect_clicked(move |button| {
             if let Some(row) = list_clone.get_selected_row() {
-                if let Some(name) = row.get_name() {
+                if let Some(name) = row.get_widget_name() {
                     select_button_stack.set_visible_child_name("spinner");
                     button.set_sensitive(false);
 
@@ -441,7 +442,7 @@ impl AddPopover {
 
             row.set_selectable(true);
             row.set_activatable(false);
-            row.set_name(url.get().as_str());
+            row.set_widget_name(url.get().as_str());
             row.add(&gtk_box);
             row.show_all();
             list.insert(&row, -1);
