@@ -1,4 +1,5 @@
 use crate::util::BuilderHelper;
+use glib::clone;
 use gtk::{Box, Button, ButtonExt, HeaderBar, MenuButton, ToggleButton, WidgetExt};
 use libhandy::{Leaflet, LeafletExt};
 use parking_lot::RwLock;
@@ -24,7 +25,7 @@ pub struct ResponsiveLayout {
 }
 
 impl ResponsiveLayout {
-    pub fn new(builder: &BuilderHelper) -> Self {
+    pub fn new(builder: &BuilderHelper) -> Arc<ResponsiveLayout> {
         let state = Arc::new(RwLock::new(ResponsiveState::new()));
 
         let minor_leaflet = builder.get::<Leaflet>("minor_leaflet");
@@ -58,34 +59,39 @@ impl ResponsiveLayout {
             mode_switch_button,
             mark_all_read_button,
         };
-        layout.setup_signals();
+        let layout = Arc::new(layout);
+        Self::setup_signals(&layout);
         layout
     }
 
-    fn setup_signals(&self) {
-        let major_leaflet_layout = self.clone();
-        self.major_leaflet.connect_property_folded_notify(move |_leaflet| {
-            major_leaflet_layout.state.write().major_leaflet_folded = true;
-            Self::process_state_change(&major_leaflet_layout);
-        });
+    fn setup_signals(layout: &Arc<ResponsiveLayout>) {
+        layout
+            .major_leaflet
+            .connect_property_folded_notify(clone!(@weak layout => move |_leaflet| {
+                layout.state.write().major_leaflet_folded = true;
+                Self::process_state_change(&layout);
+            }));
 
-        let minor_leaflet_layout = self.clone();
-        self.minor_leaflet.connect_property_folded_notify(move |_leaflet| {
-            minor_leaflet_layout.state.write().minor_leaflet_folded = true;
-            Self::process_state_change(&minor_leaflet_layout);
-        });
+        layout
+            .minor_leaflet
+            .connect_property_folded_notify(clone!(@weak layout => move |_leaflet| {
+                layout.state.write().minor_leaflet_folded = true;
+                Self::process_state_change(&layout);
+            }));
 
-        let left_back_button_layout = self.clone();
-        self.left_button.connect_clicked(move |_button| {
-            left_back_button_layout.state.write().left_button_clicked = true;
-            Self::process_state_change(&left_back_button_layout);
-        });
+        layout
+            .left_button
+            .connect_clicked(clone!(@weak layout => move |_button| {
+                layout.state.write().left_button_clicked = true;
+                Self::process_state_change(&layout);
+            }));
 
-        let right_back_button_layout = self.clone();
-        self.right_button.connect_clicked(move |_button| {
-            right_back_button_layout.state.write().right_button_clicked = true;
-            Self::process_state_change(&right_back_button_layout);
-        });
+        layout
+            .right_button
+            .connect_clicked(clone!(@weak layout => move |_button| {
+                layout.state.write().right_button_clicked = true;
+                Self::process_state_change(&layout);
+            }));
     }
 
     pub fn process_state_change(&self) {

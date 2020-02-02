@@ -3,7 +3,7 @@ use crate::article_view::{ArticleTheme, ArticleView};
 use crate::settings::Settings;
 use crate::util::{BuilderHelper, Util};
 use chrono::Utc;
-use glib::{object::IsA, Sender};
+use glib::{clone, object::IsA, Sender};
 use gtk::{Inhibit, ListBox, ListBoxExt, ListBoxRow, ListBoxRowExt, Popover, PopoverExt, Widget, WidgetExt};
 use news_flash::models::{ArticleID, FatArticle, FeedID, Marked, Read};
 use parking_lot::RwLock;
@@ -68,11 +68,8 @@ impl ThemeChooser {
             "Parchment",
         );
 
-        let pop_clone = pop.clone();
-        let settings = settings.clone();
-        let sender = sender.clone();
         let theme_list = builder.get::<ListBox>("theme_list");
-        theme_list.connect_row_activated(move |_list, row| {
+        theme_list.connect_row_activated(clone!(@strong sender, @weak settings, @weak pop => move |_list, row| {
             if let Some(row_name) = row.get_widget_name() {
                 let result = if "default" == row_name {
                     settings.write().set_article_view_theme(ArticleTheme::Default)
@@ -92,9 +89,9 @@ impl ThemeChooser {
                         Action::ErrorSimpleMessage("Failed to set theme setting.".to_owned()),
                     );
                 }
-                pop_clone.popdown();
+                pop.popdown();
             }
-        });
+        }));
 
         ThemeChooser { widget: pop }
     }

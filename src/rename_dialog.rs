@@ -4,9 +4,9 @@ use gtk::{Button, Dialog, Entry, EntryExt, GtkWindowExt, HeaderBar, HeaderBarExt
 
 #[derive(Clone, Debug)]
 pub struct RenameDialog {
-    dialog: Dialog,
-    rename_button: Button,
-    rename_entry: Entry,
+    pub dialog: Dialog,
+    pub rename_button: Button,
+    pub rename_entry: Entry,
 }
 
 impl RenameDialog {
@@ -39,17 +39,5 @@ impl RenameDialog {
             rename_button,
             rename_entry,
         }
-    }
-
-    pub fn rename_button(&self) -> Button {
-        self.rename_button.clone()
-    }
-
-    pub fn rename_entry(&self) -> Entry {
-        self.rename_entry.clone()
-    }
-
-    pub fn dialog(&self) -> Dialog {
-        self.dialog.clone()
     }
 }

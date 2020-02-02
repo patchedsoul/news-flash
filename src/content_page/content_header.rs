@@ -3,7 +3,7 @@ use crate::app::Action;
 use crate::main_window_state::MainWindowState;
 use crate::util::{BuilderHelper, GtkUtil, Util};
 use gio::{ActionMapExt, Menu, MenuItem, SimpleAction};
-use glib::{object::Cast, source::Continue, translate::ToGlib, Sender};
+use glib::{clone, object::Cast, source::Continue, translate::ToGlib, Sender};
 use gtk::{
     Button, ButtonExt, EntryExt, Inhibit, MenuButton, MenuButtonExt, Popover, PopoverExt, SearchEntry, SearchEntryExt,
     Stack, StackExt, ToggleButton, ToggleButtonExt, WidgetExt,
@@ -64,18 +64,18 @@ impl ContentHeader {
         let mark_article_stack = builder.get::<Stack>("mark_article_stack");
         let mark_article_read_stack = builder.get::<Stack>("mark_article_read_stack");
 
-        let sender_clone = sender.clone();
-        let mark_all_read_stack_clone = mark_all_read_stack.clone();
-        mark_all_read_button.connect_clicked(move |button| {
+        mark_all_read_button.connect_clicked(clone!(
+            @weak mark_all_read_stack,
+            @strong sender => move |button|
+        {
             button.set_sensitive(false);
-            mark_all_read_stack_clone.set_visible_child_name("spinner");
-            Util::send(&sender_clone, Action::SetSidebarRead);
-        });
+            mark_all_read_stack.set_visible_child_name("spinner");
+            Util::send(&sender, Action::SetSidebarRead);
+        }));
 
-        let sender_clone = sender.clone();
-        offline_button.connect_clicked(move |_button| {
-            Util::send(&sender_clone, Action::SetOfflineMode(false));
-        });
+        offline_button.connect_clicked(clone!(@strong sender => move |_button| {
+            Util::send(&sender, Action::SetOfflineMode(false));
+        }));
 
         let linked_button_timeout: Arc<RwLock<Option<u32>>> = Arc::new(RwLock::new(None));
         let header_selection = Arc::new(RwLock::new(HeaderSelection::All));
@@ -209,12 +209,13 @@ impl ContentHeader {
             Inhibit(false)
         });
 
-        let other_button_1 = other_button_1.clone();
-        let other_button_2 = other_button_2.clone();
-        let header_selection = header_selection.clone();
-        let linked_button_timeout = linked_button_timeout.clone();
-        let sender = sender.clone();
-        button.connect_toggled(move |button| {
+        button.connect_toggled(clone!(
+            @weak other_button_1,
+            @weak other_button_2,
+            @strong header_selection,
+            @strong linked_button_timeout,
+            @strong sender => move |button|
+        {
             if !button.get_active() {
                 // ignore deactivating toggle-button
                 return;
@@ -230,7 +231,7 @@ impl ContentHeader {
             }
 
             Self::linked_button_toggled(&sender, button, &header_selection, &linked_button_timeout);
-        });
+        }));
     }
 
     fn linked_button_toggled(
@@ -245,107 +246,97 @@ impl ContentHeader {
             return;
         }
 
-        let toggle_button = button.clone();
         let mode_before_cooldown = (*header_selection.read()).clone();
-        let header_selection = header_selection.clone();
-        let linked_button_timeout_clone = linked_button_timeout.clone();
-        let sender_clone = sender.clone();
         linked_button_timeout.write().replace(
-            gtk::timeout_add(250, move || {
-                linked_button_timeout_clone.write().take();
+            gtk::timeout_add(250, clone!(
+                @weak button as toggle_button,
+                @strong header_selection,
+                @strong linked_button_timeout,
+                @strong sender => @default-panic, move ||
+            {
+                linked_button_timeout.write().take();
                 if mode_before_cooldown != *header_selection.read() {
                     Self::linked_button_toggled(
-                        &sender_clone,
+                        &sender,
                         &toggle_button,
                         &header_selection,
-                        &linked_button_timeout_clone,
+                        &linked_button_timeout,
                     );
                 }
                 Continue(false)
-            })
+            }))
             .to_glib(),
         );
     }
 
     fn setup_update_button(button: &Button, sender: &Sender<Action>) {
-        let sender = sender.clone();
-        button.connect_clicked(move |_button| {
+        button.connect_clicked(clone!(@strong sender => move |_button| {
             Util::send(&sender, Action::Sync);
-        });
+        }));
     }
 
     fn setup_search_button(search_button: &ToggleButton, search_bar: &SearchBar) {
-        let search_bar = search_bar.clone();
-        search_button.connect_toggled(move |button| {
+        search_button.connect_toggled(clone!(@weak search_bar => move |button| {
             if button.get_active() {
                 search_bar.set_search_mode(true);
             } else {
                 search_bar.set_search_mode(false);
             }
-        });
+        }));
     }
 
     fn setup_search_bar(search_bar: &SearchBar, search_button: &ToggleButton, search_entry: &SearchEntry) {
         search_bar.connect_entry(search_entry);
-        let search_button = search_button.clone();
-        search_bar.connect_property_search_mode_enabled_notify(move |search_bar| {
+        search_bar.connect_property_search_mode_enabled_notify(clone!(@weak search_button => move |search_bar| {
             if !search_bar.get_search_mode() {
                 search_button.set_active(false);
             }
-        });
+        }));
     }
 
     fn setup_search_entry(search_entry: &SearchEntry, sender: &Sender<Action>) {
-        let sender = sender.clone();
-        search_entry.connect_search_changed(move |search_entry| {
+        search_entry.connect_search_changed(clone!(@strong sender => move |search_entry| {
             if let Some(text) = search_entry.get_text() {
                 Util::send(&sender, Action::SearchTerm(text.as_str().to_owned()));
             }
-        });
+        }));
     }
 
     fn setup_menu_button(button: &MenuButton, sender: &Sender<Action>) {
-        let sender_clone = sender.clone();
         let show_shortcut_window_action = SimpleAction::new("shortcut-window", None);
-        show_shortcut_window_action.connect_activate(move |_action, _parameter| {
-            Util::send(&sender_clone, Action::ShowShortcutWindow);
-        });
+        show_shortcut_window_action.connect_activate(clone!(@strong sender => move |_action, _parameter| {
+            Util::send(&sender, Action::ShowShortcutWindow);
+        }));
 
-        let sender_clone = sender.clone();
         let show_about_window_action = SimpleAction::new("about-window", None);
-        show_about_window_action.connect_activate(move |_action, _parameter| {
-            Util::send(&sender_clone, Action::ShowAboutWindow);
-        });
+        show_about_window_action.connect_activate(clone!(@strong sender => move |_action, _parameter| {
+            Util::send(&sender, Action::ShowAboutWindow);
+        }));
 
-        let sender_clone = sender.clone();
         let settings_window_action = SimpleAction::new("settings", None);
-        settings_window_action.connect_activate(move |_action, _parameter| {
-            Util::send(&sender_clone, Action::ShowSettingsWindow);
-        });
+        settings_window_action.connect_activate(clone!(@strong sender => move |_action, _parameter| {
+            Util::send(&sender, Action::ShowSettingsWindow);
+        }));
 
-        let sender_clone = sender.clone();
         let quit_action = SimpleAction::new("quit-application", None);
-        quit_action.connect_activate(move |_action, _parameter| {
-            Util::send(&sender_clone, Action::QueueQuit);
-        });
+        quit_action.connect_activate(clone!(@strong sender => move |_action, _parameter| {
+            Util::send(&sender, Action::QueueQuit);
+        }));
 
-        let sender_clone = sender.clone();
         let export_opml_action = SimpleAction::new("export-opml", None);
-        export_opml_action.connect_activate(move |_action, _parameter| {
-            Util::send(&sender_clone, Action::ExportOpml);
-        });
+        export_opml_action.connect_activate(clone!(@strong sender => move |_action, _parameter| {
+            Util::send(&sender, Action::ExportOpml);
+        }));
 
-        let sender_clone = sender.clone();
         let relogin_action = SimpleAction::new("relogin", None);
-        relogin_action.connect_activate(move |_action, _parameter| {
-            Util::send(&sender_clone, Action::RetryLogin);
-        });
+        relogin_action.connect_activate(clone!(@strong sender => move |_action, _parameter| {
+            Util::send(&sender, Action::RetryLogin);
+        }));
 
-        let sender_clone = sender.clone();
         let reset_account_action = SimpleAction::new("reset-account", None);
-        reset_account_action.connect_activate(move |_action, _parameter| {
-            Util::send(&sender_clone, Action::ShowResetPage);
-        });
+        reset_account_action.connect_activate(clone!(@strong sender => move |_action, _parameter| {
+            Util::send(&sender, Action::ShowResetPage);
+        }));
 
         if let Ok(main_window) = GtkUtil::get_main_window(button) {
             main_window.add_action(&show_shortcut_window_action);
@@ -381,29 +372,26 @@ impl ContentHeader {
     fn setup_mode_button(button: &MenuButton, sender: &Sender<Action>) {
         let model = Menu::new();
 
-        let sender_clone = sender.clone();
         let headerbar_selection_all_action = SimpleAction::new("headerbar-selection-all", None);
-        headerbar_selection_all_action.connect_activate(move |_action, _parameter| {
-            Util::send(&sender_clone, Action::HeaderSelection(HeaderSelection::All));
-        });
+        headerbar_selection_all_action.connect_activate(clone!(@strong sender => move |_action, _parameter| {
+            Util::send(&sender, Action::HeaderSelection(HeaderSelection::All));
+        }));
         let all_item = MenuItem::new(Some("All"), None);
         all_item.set_action_and_target_value(Some("win.headerbar-selection-all"), None);
         model.append_item(&all_item);
 
-        let sender_clone = sender.clone();
         let headerbar_selection_unread_action = SimpleAction::new("headerbar-selection-unread", None);
-        headerbar_selection_unread_action.connect_activate(move |_action, _parameter| {
-            Util::send(&sender_clone, Action::HeaderSelection(HeaderSelection::Unread));
-        });
+        headerbar_selection_unread_action.connect_activate(clone!(@strong sender => move |_action, _parameter| {
+            Util::send(&sender, Action::HeaderSelection(HeaderSelection::Unread));
+        }));
         let unread_item = MenuItem::new(Some("Unread"), None);
         unread_item.set_action_and_target_value(Some("win.headerbar-selection-unread"), None);
         model.append_item(&unread_item);
 
-        let sender_clone = sender.clone();
         let headerbar_selection_marked_action = SimpleAction::new("headerbar-selection-marked", None);
-        headerbar_selection_marked_action.connect_activate(move |_action, _parameter| {
-            Util::send(&sender_clone, Action::HeaderSelection(HeaderSelection::Marked));
-        });
+        headerbar_selection_marked_action.connect_activate(clone!(@strong sender => move |_action, _parameter| {
+            Util::send(&sender, Action::HeaderSelection(HeaderSelection::Marked));
+        }));
         let marked_item = MenuItem::new(Some("Starred"), None);
         marked_item.set_action_and_target_value(Some("win.headerbar-selection-marked"), None);
         model.append_item(&marked_item);
@@ -418,23 +406,20 @@ impl ContentHeader {
     }
 
     fn setup_more_actions_button(button: &MenuButton, sender: &Sender<Action>) {
-        let sender_clone = sender.clone();
         let close_article_action = SimpleAction::new("close-article", None);
-        close_article_action.connect_activate(move |_action, _parameter| {
-            Util::send(&sender_clone, Action::CloseArticle);
-        });
+        close_article_action.connect_activate(clone!(@strong sender => move |_action, _parameter| {
+            Util::send(&sender, Action::CloseArticle);
+        }));
 
-        let sender_clone = sender.clone();
         let export_article_action = SimpleAction::new("export-article", None);
-        export_article_action.connect_activate(move |_action, _parameter| {
-            Util::send(&sender_clone, Action::ExportArticle);
-        });
+        export_article_action.connect_activate(clone!(@strong sender => move |_action, _parameter| {
+            Util::send(&sender, Action::ExportArticle);
+        }));
 
-        let sender_clone = sender.clone();
         let grab_article_content_action = SimpleAction::new("grab-article-content", None);
-        grab_article_content_action.connect_activate(move |_action, _parameter| {
-            Util::send(&sender_clone, Action::StartGrabArticleContent);
-        });
+        grab_article_content_action.connect_activate(clone!(@strong sender => move |_action, _parameter| {
+            Util::send(&sender, Action::StartGrabArticleContent);
+        }));
 
         if let Ok(main_window) = GtkUtil::get_main_window(button) {
             main_window.add_action(&close_article_action);
@@ -485,33 +470,35 @@ impl ContentHeader {
         self.mark_article_button.set_active(marked_active);
         self.mark_article_read_button.set_active(unread_active);
 
-        let sender_clone = self.sender.clone();
-        let toggle_stack = self.mark_article_stack.clone();
         self.mark_article_event.write().replace(
             self.mark_article_button
-                .connect_toggled(move |toggle_button| {
+                .connect_toggled(clone!(
+                    @weak self.mark_article_stack as toggle_stack,
+                    @strong self.sender as sender => move |toggle_button|
+                {
                     if toggle_button.get_active() {
                         toggle_stack.set_visible_child_name("marked");
                     } else {
                         toggle_stack.set_visible_child_name("unmarked");
                     }
-                    Util::send(&sender_clone, Action::ToggleArticleMarked);
-                })
+                    Util::send(&sender, Action::ToggleArticleMarked);
+                }))
                 .to_glib(),
         );
 
-        let sender_clone = self.sender.clone();
-        let toggle_stack = self.mark_article_read_stack.clone();
         self.mark_article_read_event.write().replace(
             self.mark_article_read_button
-                .connect_toggled(move |toggle_button| {
+                .connect_toggled(clone!(
+                    @weak self.mark_article_read_stack as toggle_stack,
+                    @strong self.sender as sender => move |toggle_button|
+                {
                     if toggle_button.get_active() {
                         toggle_stack.set_visible_child_name("unread");
                     } else {
                         toggle_stack.set_visible_child_name("read");
                     }
-                    Util::send(&sender_clone, Action::ToggleArticleRead);
-                })
+                    Util::send(&sender, Action::ToggleArticleRead);
+                }))
                 .to_glib(),
         );
 

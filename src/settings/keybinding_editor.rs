@@ -1,7 +1,7 @@
 use super::keybindings::Keybindings;
 use crate::util::BuilderHelper;
 use gdk::enums::key;
-use glib::object::IsA;
+use glib::{clone, object::IsA};
 use gtk::{
     Align, Button, ButtonExt, Dialog, DialogExt, GtkWindowExt, Inhibit, Label, LabelExt, ShortcutLabel, Stack,
     StackExt, StyleContextExt, WidgetExt, Window,
@@ -38,29 +38,30 @@ impl KeybindingEditor {
         shortcut_label.get_style_context().add_class("h2");
         shortcut_label.show();
         let stack = builder.get::<Stack>("stack");
-        let keybinding_internal_clone = keybinding_internal.clone();
-        let keybinding_public_clone = keybinding_public.clone();
-        let set_button_clone = set_button.clone();
-        let cancel_button_clone = cancel_button.clone();
         let dialog = builder.get::<Dialog>("dialog");
         stack.add_named(&shortcut_label, "vis");
         dialog.set_transient_for(Some(settings_dialog));
-        dialog.connect_key_press_event(move |widget, event| {
+        dialog.connect_key_press_event(clone!(
+            @weak keybinding_internal,
+            @weak keybinding_public,
+            @weak cancel_button,
+            @weak set_button => @default-panic, move |widget, event|
+        {
             let keyval = event.get_keyval();
             let modifier = Keybindings::clean_modifier(event.get_state());
 
             if keyval == key::Escape {
-                *keybinding_public_clone.write() = KeybindState::Canceled;
+                *keybinding_public.write() = KeybindState::Canceled;
                 widget.emit_close();
                 return Inhibit(true);
             }
 
             if keyval == key::BackSpace {
                 shortcut_meta.set_label("Disable Keybinding");
-                set_button_clone.set_visible(true);
-                cancel_button_clone.set_visible(true);
+                set_button.set_visible(true);
+                cancel_button.set_visible(true);
                 stack.set_visible_child_name("confirm");
-                *keybinding_internal_clone.write() = KeybindState::Disabled;
+                *keybinding_internal.write() = KeybindState::Disabled;
                 return Inhibit(false);
             }
 
@@ -69,33 +70,29 @@ impl KeybindingEditor {
                 .to_string();
 
             if Keybindings::parse_keyval(keyval).is_some() {
-                set_button_clone.set_visible(true);
-                cancel_button_clone.set_visible(true);
+                set_button.set_visible(true);
+                cancel_button.set_visible(true);
                 shortcut_label.set_accelerator(&internal_shortcut);
                 stack.set_visible_child_name("vis");
-                *keybinding_internal_clone.write() = KeybindState::Enabled(internal_shortcut);
+                *keybinding_internal.write() = KeybindState::Enabled(internal_shortcut);
             } else {
-                set_button_clone.set_visible(false);
+                set_button.set_visible(false);
                 shortcut_meta.set_label("Illegal Keybinding");
                 stack.set_visible_child_name("confirm");
-                *keybinding_internal_clone.write() = KeybindState::Illegal;
+                *keybinding_internal.write() = KeybindState::Illegal;
             }
 
             Inhibit(false)
-        });
+        }));
 
-        let dialog_clone_set = dialog.clone();
-        let keybinding_public_set = keybinding_public.clone();
-        set_button.connect_clicked(move |_button| {
-            *keybinding_public_set.write() = (*keybinding_internal.read()).clone();
-            dialog_clone_set.emit_close();
-        });
-        let dialog_clone_cancel = dialog.clone();
-        let keybinding_public_cancel = keybinding_public.clone();
-        cancel_button.connect_clicked(move |_button| {
-            *keybinding_public_cancel.write() = KeybindState::Canceled;
-            dialog_clone_cancel.emit_close();
-        });
+        set_button.connect_clicked(clone!(@weak dialog, @weak keybinding_public => move |_button| {
+            *keybinding_public.write() = (*keybinding_internal.read()).clone();
+            dialog.emit_close();
+        }));
+        cancel_button.connect_clicked(clone!(@weak dialog, @weak keybinding_public => move |_button| {
+            *keybinding_public.write() = KeybindState::Canceled;
+            dialog.emit_close();
+        }));
 
         let label = builder.get::<Label>("instuction_label");
         label.set_label(setting_name);

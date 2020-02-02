@@ -8,7 +8,7 @@ use futures::channel::oneshot::{self, Sender as OneShotSender};
 use futures::executor::ThreadPool;
 use futures::FutureExt;
 use gio::{prelude::ApplicationExtManual, ApplicationExt, Notification, NotificationPriority, ThemedIcon};
-use glib::{source::Continue, translate::ToGlib, Receiver, Sender};
+use glib::{clone, source::Continue, translate::ToGlib, Receiver, Sender};
 use gtk::{
     prelude::GtkWindowExtManual, Application, ButtonExt, DialogExt, EntryExt, FileChooserAction, FileChooserDialog,
     FileChooserExt, FileFilter, GtkApplicationExt, GtkWindowExt, ResponseType, WidgetExt,
@@ -167,18 +167,17 @@ impl App {
     fn setup_signals(&self) {
         self.application.connect_startup(|_app| {});
 
-        let window = self.window.widget.clone();
-        self.application.connect_activate(move |app| {
-            app.add_window(&window);
-            window.show_all();
-            window.present();
-        });
+        self.application
+            .connect_activate(clone!(@weak self.window.widget as window => move |app| {
+                app.add_window(&window);
+                window.show_all();
+                window.present();
+            }));
     }
 
     pub fn run(&self, app: Rc<Self>) {
-        let a = app.clone();
         let receiver = self.receiver.write().take().expect(CHANNEL_ERROR);
-        receiver.attach(None, move |action| a.process_action(action));
+        receiver.attach(None, move |action| app.process_action(action));
 
         let args: Vec<String> = env::args().collect();
         self.application.run(&args);
@@ -315,9 +314,10 @@ impl App {
             sender.send(result).expect(CHANNEL_ERROR);
         };
 
-        let oauth_login_page = self.window.oauth_login_page.clone();
-        let password_login_page = self.window.password_login_page.clone();
-        let glib_future = receiver.map(move |res| {
+        let glib_future = receiver.map(clone!(
+            @weak self.window.oauth_login_page as oauth_login_page,
+            @weak self.window.password_login_page as password_login_page => move |res|
+        {
             if let Ok(Err(error)) = res {
                 match data {
                     LoginData::OAuth(_) => {
@@ -331,7 +331,7 @@ impl App {
                     }
                 }
             }
-        });
+        }));
 
         self.threadpool.spawn_ok(thread_future);
         Util::glib_spawn_future(glib_future);
@@ -366,10 +366,11 @@ impl App {
             }
         };
 
-        let main_window = self.window.clone();
-        let news_flash = self.news_flash.clone();
-        let sender = self.sender.clone();
-        let glib_future = receiver.map(move |res| match res {
+        let glib_future = receiver.map(clone!(
+            @weak self.window as main_window,
+            @weak self.news_flash as news_flash,
+            @strong self.sender as sender => move |res| match res
+        {
             Ok(Ok(())) => {
                 news_flash.write().take();
                 main_window.content_page.clear();
@@ -380,7 +381,7 @@ impl App {
                 Util::send(&sender, Action::ResetAccountError(error));
             }
             Err(_) => {}
-        });
+        }));
 
         self.threadpool.spawn_ok(thread_future);
         Util::glib_spawn_future(glib_future);
@@ -390,12 +391,14 @@ impl App {
         GtkUtil::remove_source(*self.sync_source_id.read());
         let sync_interval = self.settings.read().get_sync_interval();
         if let Some(sync_interval) = sync_interval.to_seconds() {
-            let sender = self.sender.clone();
             self.sync_source_id.write().replace(
-                gtk::timeout_add_seconds(sync_interval, move || {
-                    Util::send(&sender, Action::Sync);
-                    Continue(true)
-                })
+                gtk::timeout_add_seconds(
+                    sync_interval,
+                    clone!(@strong self.sender as sender => move || {
+                        Util::send(&sender, Action::Sync);
+                        Continue(true)
+                    }),
+                )
                 .to_glib(),
             );
         } else {
@@ -415,10 +418,11 @@ impl App {
             }
         };
 
-        let news_flash = self.news_flash.clone();
-        let sender = self.sender.clone();
-        let content_header = self.window.content_header.clone();
-        let glib_future = receiver.map(move |res| {
+        let glib_future = receiver.map(clone!(
+            @strong self.news_flash as news_flash,
+            @weak self.window.content_header as content_header,
+            @strong self.sender as sender => move |res|
+        {
             if let Some(news_flash) = news_flash.read().as_ref() {
                 let unread_count = match news_flash.unread_count_all() {
                     Ok(unread_count) => unread_count,
@@ -442,7 +446,7 @@ impl App {
                     Err(_) => {}
                 }
             }
-        });
+        }));
 
         self.threadpool.spawn_ok(thread_future);
         Util::glib_spawn_future(glib_future);
@@ -460,10 +464,11 @@ impl App {
             }
         };
 
-        let news_flash = self.news_flash.clone();
-        let sender = self.sender.clone();
-        let content_header = self.window.content_header.clone();
-        let glib_future = receiver.map(move |res| {
+        let glib_future = receiver.map(clone!(
+            @strong self.news_flash as news_flash,
+            @weak self.window.content_header as content_header,
+            @strong self.sender as sender => move |res|
+        {
             if let Some(news_flash) = news_flash.read().as_ref() {
                 let unread_count = match news_flash.unread_count_all() {
                     Ok(unread_count) => unread_count,
@@ -487,7 +492,7 @@ impl App {
                     Err(_) => {}
                 }
             }
-        });
+        }));
 
         self.threadpool.spawn_ok(thread_future);
         Util::glib_spawn_future(glib_future);
@@ -540,10 +545,11 @@ impl App {
             }
         };
 
-        let global_sender = self.sender.clone();
-        let content_page = self.window.content_page.clone();
-        let content_header = self.window.content_header.clone();
-        let glib_future = receiver.map(move |res| {
+        let glib_future = receiver.map(clone!(
+            @strong self.sender as global_sender,
+            @weak self.window.content_page as content_page,
+            @weak self.window.content_header as content_header => move |res|
+        {
             match res {
                 Ok(Ok(())) => {}
                 Ok(Err(error)) => {
@@ -572,7 +578,7 @@ impl App {
                         .update_visible_article(Some(visible_article.unread), None);
                 }
             }
-        });
+        }));
 
         self.threadpool.spawn_ok(thread_future);
         Util::glib_spawn_future(glib_future);
@@ -601,10 +607,11 @@ impl App {
             }
         };
 
-        let global_sender = self.sender.clone();
-        let content_page = self.window.content_page.clone();
-        let content_header = self.window.content_header.clone();
-        let glib_future = receiver.map(move |res| {
+        let glib_future = receiver.map(clone!(
+            @strong self.sender as global_sender,
+            @weak self.window.content_header as content_header,
+            @weak self.window.content_page as content_page => move |res|
+        {
             match res {
                 Ok(Ok(())) => {}
                 Ok(Err(error)) => {
@@ -633,7 +640,7 @@ impl App {
                         .update_visible_article(None, Some(visible_article.marked));
                 }
             }
-        });
+        }));
 
         self.threadpool.spawn_ok(thread_future);
         Util::glib_spawn_future(glib_future);
@@ -700,9 +707,10 @@ impl App {
                     return;
                 }
             };
+
             let dialog = AddPopover::new(&add_button, categories, self.threadpool.clone());
-            let sender = self.sender.clone();
-            dialog.add_button().connect_clicked(move |_button| {
+            dialog.add_button().connect_clicked(clone!(
+                @strong dialog, @strong self.sender as sender => move |_button| {
                 let feed_url = match dialog.get_feed_url() {
                     Some(url) => url,
                     None => {
@@ -716,7 +724,7 @@ impl App {
 
                 Util::send(&sender, Action::AddFeed((feed_url, feed_title, feed_category)));
                 dialog.close();
-            });
+            }));
         }
     }
 
@@ -791,11 +799,12 @@ impl App {
                 &self.window.widget,
                 &SidebarSelection::Feed((feed_id, feed.label.clone())),
             );
-            let rename_button = dialog.rename_button();
-            let rename_entry = dialog.rename_entry();
-            let rename_dialog = dialog.dialog();
-            let sender = self.sender.clone();
-            rename_button.connect_clicked(move |_button| {
+
+            dialog.rename_button.connect_clicked(clone!(
+                @weak dialog.rename_entry as rename_entry,
+                @weak dialog.dialog as rename_dialog,
+                @strong self.sender as sender => move |_button|
+            {
                 let new_label = match rename_entry.get_text().map(|label| label.to_owned()) {
                     Some(label) => label,
                     None => {
@@ -811,7 +820,7 @@ impl App {
                 let feed = feed.clone();
                 Util::send(&sender, Action::RenameFeed((feed, new_label)));
                 rename_dialog.emit_close();
-            });
+            }));
         }
     }
 
@@ -860,11 +869,11 @@ impl App {
                 &SidebarSelection::Cateogry((category_id, category.label.clone())),
             );
 
-            let rename_button = dialog.rename_button();
-            let rename_entry = dialog.rename_entry();
-            let rename_dialog = dialog.dialog();
-            let sender = self.sender.clone();
-            rename_button.connect_clicked(move |_button| {
+            dialog.rename_button.connect_clicked(clone!(
+                @weak dialog.dialog as rename_dialog,
+                @weak dialog.rename_entry as rename_entry,
+                @strong self.sender as sender => move |_button|
+            {
                 let new_label = match rename_entry.get_text().map(|label| label.to_owned()) {
                     Some(label) => label,
                     None => {
@@ -880,7 +889,7 @@ impl App {
                 let category = category.clone();
                 Util::send(&sender, Action::RenameCategory((category, new_label)));
                 rename_dialog.emit_close();
-            });
+            }));
         }
     }
 
@@ -1136,10 +1145,11 @@ impl App {
                     }
                 };
 
-                let content_header = self.window.content_header.clone();
-                let glib_future = receiver.map(move |_res| {
-                    content_header.stop_more_actions_spinner();
-                });
+                let glib_future = receiver.map(
+                    clone!(@weak self.window.content_header as content_header => move |_res| {
+                        content_header.stop_more_actions_spinner();
+                    }),
+                );
 
                 self.threadpool.spawn_ok(thread_future);
                 Util::glib_spawn_future(glib_future);
@@ -1165,25 +1175,26 @@ impl App {
                 }
             };
 
-            let article_id = article.article_id.clone();
-            let global_sender = self.sender.clone();
-            let glib_future = receiver.map(move |res| match res {
+            let glib_future = receiver.map(clone!(
+                @strong self.sender as sender,
+                @strong article.article_id as article_id => move |res| match res
+            {
                 Ok(Ok(article)) => {
-                    Util::send(&global_sender, Action::FinishGrabArticleContent(Some(article)));
+                    Util::send(&sender, Action::FinishGrabArticleContent(Some(article)));
                 }
                 Ok(Err(error)) => {
                     let message = format!("Failed to scrap article content: '{}'", article_id);
                     error!("{}", message);
-                    Util::send(&global_sender, Action::Error(message, error));
-                    Util::send(&global_sender, Action::FinishGrabArticleContent(None));
+                    Util::send(&sender, Action::Error(message, error));
+                    Util::send(&sender, Action::FinishGrabArticleContent(None));
                 }
                 Err(error) => {
                     let message = format!("Sender error: {}", error);
                     error!("{}", message);
-                    Util::send(&global_sender, Action::ErrorSimpleMessage(message));
-                    Util::send(&global_sender, Action::FinishGrabArticleContent(None));
+                    Util::send(&sender, Action::ErrorSimpleMessage(message));
+                    Util::send(&sender, Action::FinishGrabArticleContent(None));
                 }
-            });
+            }));
 
             self.threadpool.spawn_ok(thread_future);
             Util::glib_spawn_future(glib_future);

@@ -1,7 +1,7 @@
 use crate::app::Action;
 use crate::main_window_state::MainWindowState;
 use crate::util::{BuilderHelper, Util};
-use glib::Sender;
+use glib::{clone, Sender};
 use gtk::{Button, ButtonExt, WidgetExt};
 use parking_lot::RwLock;
 use std::sync::Arc;
@@ -18,15 +18,13 @@ impl SidebarFooter {
         let add_button = builder.get::<Button>("add_button");
         let remove_button = builder.get::<Button>("remove_button");
 
-        let sender_clone = sender.clone();
-        remove_button.connect_clicked(move |_button| {
-            Util::send(&sender_clone, Action::DeleteSidebarSelection);
-        });
+        remove_button.connect_clicked(clone!(@strong sender => move |_button| {
+            Util::send(&sender, Action::DeleteSidebarSelection);
+        }));
 
-        let sender_clone = sender.clone();
-        add_button.connect_clicked(move |_button| {
-            Util::send(&sender_clone, Action::AddFeedDialog);
-        });
+        add_button.connect_clicked(clone!(@strong sender => move |_button| {
+            Util::send(&sender, Action::AddFeedDialog);
+        }));
 
         SidebarFooter {
             add_button,

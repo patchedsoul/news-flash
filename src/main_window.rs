@@ -18,7 +18,7 @@ use futures::channel::oneshot;
 use futures::executor::ThreadPool;
 use futures::FutureExt;
 use gdk::EventKey;
-use glib::{self, Sender};
+use glib::{self, clone, Sender};
 use gtk::{
     self, ApplicationWindow, CssProvider, CssProviderExt, GtkWindowExt, Inhibit, Settings as GtkSettings, SettingsExt,
     Stack, StackExt, StackTransitionType, StyleContext, StyleContextExt, WidgetExt,
@@ -27,7 +27,6 @@ use log::{error, warn};
 use news_flash::models::{ArticleID, PasswordLogin as PasswordLoginData, PluginID};
 use news_flash::{NewsFlash, NewsFlashError};
 use parking_lot::RwLock;
-use std::rc::Rc;
 use std::sync::Arc;
 use tokio::runtime::Runtime;
 
@@ -37,14 +36,14 @@ pub struct MainWindow {
     pub widget: ApplicationWindow,
     error_bar: ErrorBar,
     undo_bar: UndoBar,
-    pub oauth_login_page: Rc<WebLogin>,
-    pub password_login_page: Rc<PasswordLogin>,
-    pub content_page: Rc<ContentPage>,
+    pub oauth_login_page: Arc<WebLogin>,
+    pub password_login_page: Arc<PasswordLogin>,
+    pub content_page: Arc<ContentPage>,
     pub content_header: Arc<ContentHeader>,
     reset_page: ResetPage,
     stack: Stack,
     header_stack: Stack,
-    responsive_layout: ResponsiveLayout,
+    responsive_layout: Arc<ResponsiveLayout>,
     pub state: Arc<RwLock<MainWindowState>>,
     sender: Sender<Action>,
 }
@@ -56,14 +55,14 @@ impl MainWindow {
         shutdown_in_progress: Arc<RwLock<bool>>,
     ) -> Self {
         GtkUtil::register_symbolic_icons();
-        let provider_handle = Arc::new(RwLock::new(CssProvider::new()));
+        let css_provider = Arc::new(RwLock::new(CssProvider::new()));
 
         if let Some(gtk_settings) = GtkSettings::get_default() {
             gtk_settings.set_property_gtk_application_prefer_dark_theme(settings.read().get_prefer_dark_theme());
         }
 
         // setup CSS for window
-        Self::load_css(&provider_handle);
+        Self::load_css(&css_provider);
 
         let state = Arc::new(RwLock::new(MainWindowState::new()));
         let builder = BuilderHelper::new("main_window");
@@ -85,34 +84,35 @@ impl MainWindow {
             window.get_style_context().add_class("devel");
         }
 
-        let delete_event_settings = settings.clone();
-        let sender_clone = sender.clone();
-        let main_stack = stack.clone();
-        window.connect_delete_event(move |win, _| {
+        window.connect_delete_event(clone!(
+            @strong sender,
+            @weak stack,
+            @weak settings => @default-panic, move |win, _|
+        {
             if *shutdown_in_progress.read() {
                 win.hide_on_delete();
                 return Inhibit(true);
             }
-            if delete_event_settings.read().get_keep_running_in_background() {
-                if let Some(visible_child) = main_stack.get_visible_child_name() {
+            if settings.read().get_keep_running_in_background() {
+                if let Some(visible_child) = stack.get_visible_child_name() {
                     if visible_child == CONTENT_PAGE {
                         win.hide_on_delete();
                     } else {
-                        Util::send(&sender_clone, Action::QueueQuit);
+                        Util::send(&sender, Action::QueueQuit);
                     }
                 }
             } else {
-                Util::send(&sender_clone, Action::QueueQuit);
+                Util::send(&sender, Action::QueueQuit);
             }
 
             Inhibit(true)
-        });
+        }));
 
         // setup pages
         let _welcome = WelcomePage::new(&builder, sender.clone());
-        let password_login_page = Rc::new(PasswordLogin::new(&builder, sender.clone()));
-        let oauth_login_page = Rc::new(WebLogin::new(&builder, sender.clone()));
-        let content_page = Rc::new(ContentPage::new(
+        let password_login_page = Arc::new(PasswordLogin::new(&builder, sender.clone()));
+        let oauth_login_page = Arc::new(WebLogin::new(&builder, sender.clone()));
+        let content_page = Arc::new(ContentPage::new(
             &builder,
             &state,
             &settings,
@@ -134,12 +134,12 @@ impl MainWindow {
         if let Some(gtk_settings) = GtkSettings::get_default() {
             gtk_settings.set_property_gtk_application_prefer_dark_theme(settings.read().get_prefer_dark_theme());
 
-            let provider = provider_handle.clone();
-            let sender_clone = sender.clone();
-            gtk_settings.connect_property_gtk_application_prefer_dark_theme_notify(move |_settings| {
-                Self::load_css(&provider);
-                Util::send(&sender_clone, Action::RedrawArticle);
-            });
+            gtk_settings.connect_property_gtk_application_prefer_dark_theme_notify(
+                clone!(@strong sender, @weak css_provider => move |_settings| {
+                    Self::load_css(&css_provider);
+                    Util::send(&sender, Action::RedrawArticle);
+                }),
+            );
         }
 
         MainWindow {
@@ -160,22 +160,23 @@ impl MainWindow {
     }
 
     fn setup_shortcuts(
-        window: &ApplicationWindow,
+        main_window: &ApplicationWindow,
         sender: &Sender<Action>,
-        content_page: &Rc<ContentPage>,
+        content_page: &Arc<ContentPage>,
         main_stack: &Stack,
         settings: &Arc<RwLock<Settings>>,
         content_header: &Arc<ContentHeader>,
         state: &Arc<RwLock<MainWindowState>>,
     ) {
-        let main_stack = main_stack.clone();
-        let sender = sender.clone();
-        let settings = settings.clone();
-        let content_page = content_page.clone();
-        let main_window = window.clone();
-        let content_header = content_header.clone();
-        let state = state.clone();
-        window.connect_key_press_event(move |_widget, event| {
+        main_window.connect_key_press_event(clone!(
+            @weak state,
+            @strong sender,
+            @weak main_stack,
+            @weak settings,
+            @weak content_page,
+            @weak content_header,
+            @weak main_window => @default-panic, move |_widget, event|
+        {
             // ignore shortcuts when not on content page
             if let Some(visible_child) = main_stack.get_visible_child_name() {
                 if visible_child != CONTENT_PAGE {
@@ -319,7 +320,7 @@ impl MainWindow {
             }
 
             Inhibit(false)
-        });
+        }));
     }
 
     fn check_shortcut(id: &str, settings: &Arc<RwLock<Settings>>, event: &EventKey) -> bool {
@@ -602,9 +603,10 @@ impl MainWindow {
                     Runtime::new().expect(RUNTIME_ERROR).block_on(future);
                 };
 
-                let sender = self.sender.clone();
-                let content_header = self.content_header.clone();
-                let glib_future = receiver.map(move |res| {
+                let glib_future = receiver.map(clone!(
+                    @strong self.sender as sender,
+                    @weak self.content_header as content_header => move |res|
+                {
                     content_header.finish_mark_all_read();
                     res.map(|result| match result {
                         Ok(_) => {}
@@ -618,7 +620,7 @@ impl MainWindow {
                     Util::send(&sender, Action::UpdateArticleHeader);
                     Util::send(&sender, Action::UpdateArticleList);
                     Util::send(&sender, Action::UpdateSidebar);
-                });
+                }));
 
                 threadpool.spawn_ok(thread_future);
                 Util::glib_spawn_future(glib_future);
@@ -640,9 +642,10 @@ impl MainWindow {
                     }
                 };
 
-                let sender = self.sender.clone();
-                let content_header = self.content_header.clone();
-                let glib_future = receiver.map(move |res| {
+                let glib_future = receiver.map(clone!(
+                    @strong self.sender as sender,
+                    @weak self.content_header as content_header => move |res|
+                {
                     content_header.finish_mark_all_read();
                     res.map(|result| match result {
                         Ok(_) => {}
@@ -656,7 +659,7 @@ impl MainWindow {
                     Util::send(&sender, Action::UpdateArticleHeader);
                     Util::send(&sender, Action::UpdateArticleList);
                     Util::send(&sender, Action::UpdateSidebar);
-                });
+                }));
 
                 threadpool.spawn_ok(thread_future);
                 Util::glib_spawn_future(glib_future);
@@ -678,9 +681,10 @@ impl MainWindow {
                     }
                 };
 
-                let sender = self.sender.clone();
-                let content_header = self.content_header.clone();
-                let glib_future = receiver.map(move |res| {
+                let glib_future = receiver.map(clone!(
+                    @strong self.sender as sender,
+                    @weak self.content_header as content_header => move |res|
+                {
                     content_header.finish_mark_all_read();
                     res.map(|result| match result {
                         Ok(_) => {}
@@ -694,7 +698,7 @@ impl MainWindow {
                     Util::send(&sender, Action::UpdateArticleHeader);
                     Util::send(&sender, Action::UpdateArticleList);
                     Util::send(&sender, Action::UpdateSidebar);
-                });
+                }));
 
                 threadpool.spawn_ok(thread_future);
                 Util::glib_spawn_future(glib_future);
@@ -716,9 +720,10 @@ impl MainWindow {
                     }
                 };
 
-                let sender = self.sender.clone();
-                let content_header = self.content_header.clone();
-                let glib_future = receiver.map(move |res| {
+                let glib_future = receiver.map(clone!(
+                    @strong self.sender as sender,
+                    @weak self.content_header as content_header => move |res|
+                {
                     content_header.finish_mark_all_read();
                     res.map(|result| match result {
                         Ok(_) => {}
@@ -732,7 +737,7 @@ impl MainWindow {
                     Util::send(&sender, Action::UpdateArticleHeader);
                     Util::send(&sender, Action::UpdateArticleList);
                     Util::send(&sender, Action::UpdateSidebar);
-                });
+                }));
 
                 threadpool.spawn_ok(thread_future);
                 Util::glib_spawn_future(glib_future);

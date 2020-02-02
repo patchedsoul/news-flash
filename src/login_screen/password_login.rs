@@ -3,7 +3,7 @@ use crate::app::Action;
 use crate::error_dialog::ErrorDialog;
 use crate::util::{BuilderHelper, GtkUtil, Util};
 use failure::{Fail, ResultExt};
-use glib::{signal::SignalHandlerId, source::Continue, translate::ToGlib, Sender};
+use glib::{clone, signal::SignalHandlerId, source::Continue, translate::ToGlib, Sender};
 use gtk::{
     self, Box, Button, ButtonExt, Entry, EntryExt, Image, ImageExt, InfoBar, InfoBarExt, Label, LabelExt, ResponseType,
     Revealer, RevealerExt, WidgetExt,
@@ -165,17 +165,18 @@ impl PasswordLogin {
                 .replace(self.setup_entry(&self.http_pass_entry, &pw_gui_desc).to_glib());
 
             // harvest login data
-            let url_entry = self.url_entry.clone();
-            let user_entry = self.user_entry.clone();
-            let pass_entry = self.pass_entry.clone();
-            let http_user_entry = self.http_user_entry.clone();
-            let http_pass_entry = self.http_pass_entry.clone();
-            let pw_gui_desc = pw_gui_desc.clone();
-            let sender = self.sender.clone();
-            let plugin_id = info.id;
             self.login_button_signal.write().replace(
                 self.login_button
-                    .connect_clicked(move |_button| {
+                    .connect_clicked(clone!(
+                        @weak self.url_entry as url_entry,
+                        @weak self.user_entry as user_entry,
+                        @weak self.pass_entry as pass_entry,
+                        @weak self.http_user_entry as http_user_entry,
+                        @weak self.http_pass_entry as http_pass_entry,
+                        @strong pw_gui_desc,
+                        @strong info.id as plugin_id,
+                        @strong self.sender as sender => move |_button|
+                    {
                         let url: Option<String> = if pw_gui_desc.url {
                             match url_entry.get_text() {
                                 Some(url) => Some(url.as_str().to_owned()),
@@ -221,7 +222,7 @@ impl PasswordLogin {
                         };
                         let login_data = LoginData::Password(login_data);
                         Util::send(&sender, Action::Login(login_data));
-                    })
+                    }))
                     .to_glib(),
             );
 
@@ -264,11 +265,10 @@ impl PasswordLogin {
 
     fn hide_info_bar(info_bar: &gtk::InfoBar) {
         info_bar.set_revealed(false);
-        let clone = info_bar.clone();
-        gtk::timeout_add(200, move || {
-            clone.set_visible(false);
+        gtk::timeout_add(200, clone!(@weak info_bar => @default-panic, move || {
+            info_bar.set_visible(false);
             Continue(false)
-        });
+        }));
     }
 
     pub fn show_error(&self, error: NewsFlashError) {
@@ -344,17 +344,16 @@ impl PasswordLogin {
         }
     }
 
-    fn setup_entry(&self, entry: &gtk::Entry, gui_desc: &PasswordLoginGUI) -> SignalHandlerId {
-        let entry = entry.clone();
-        let gui_desc = gui_desc.clone();
-        let button = self.login_button.clone();
-        let url_entry = self.url_entry.clone();
-        let user_entry = self.user_entry.clone();
-        let pass_entry = self.pass_entry.clone();
-        let http_user_entry = self.http_user_entry.clone();
-        let http_pass_entry = self.http_pass_entry.clone();
-
-        entry.connect_property_text_notify(move |_entry| {
+    fn setup_entry(&self, entry: &Entry, gui_desc: &PasswordLoginGUI) -> SignalHandlerId {
+        entry.connect_property_text_notify(clone!(
+            @weak self.login_button as button,
+            @weak self.url_entry as url_entry,
+            @weak self.user_entry as user_entry,
+            @weak self.pass_entry as pass_entry,
+            @weak self.http_user_entry as http_user_entry,
+            @weak self.http_pass_entry as http_pass_entry,
+            @strong gui_desc => move |_entry|
+        {
             if gui_desc.url && GtkUtil::is_entry_emty(&url_entry) {
                 button.set_sensitive(false);
                 return;
@@ -379,6 +378,6 @@ impl PasswordLogin {
             }
 
             button.set_sensitive(true);
-        })
+        }))
     }
 }

@@ -1,7 +1,7 @@
 use crate::app::Action;
 use crate::error_dialog::ErrorDialog;
 use crate::util::{BuilderHelper, GtkUtil, Util};
-use glib::{translate::ToGlib, Sender};
+use glib::{clone, translate::ToGlib, Sender};
 use gtk::{Button, ButtonExt, InfoBar, InfoBarExt, Label, LabelExt, ResponseType, WidgetExt};
 use log::error;
 use news_flash::{NewsFlash, NewsFlashError};
@@ -44,13 +44,14 @@ impl ErrorBar {
         self.widget.set_visible(true);
         self.widget.set_revealed(false);
 
-        let detail_signal = self.detail_signal.clone();
-        let relogin_signal = self.relogin_signal.clone();
-        let detail_button = self.detail_button.clone();
-        let login_button = self.login_button.clone();
-        let offline_button = self.offline_button.clone();
-        let offline_signal = self.offline_signal.clone();
-        self.widget.connect_response(move |info_bar, response_type| {
+        self.widget.connect_response(clone!(
+            @weak self.detail_signal as detail_signal,
+            @weak self.relogin_signal as relogin_signal,
+            @weak self.detail_button as detail_button,
+            @weak self.login_button as login_button,
+            @weak self.offline_button as offline_button,
+            @weak self.offline_signal as offline_signal => move |info_bar, response_type|
+        {
             if response_type == ResponseType::Close {
                 Self::close(
                     &info_bar,
@@ -62,7 +63,7 @@ impl ErrorBar {
                     &offline_signal,
                 );
             }
-        });
+        }));
     }
 
     fn close(
@@ -107,27 +108,27 @@ impl ErrorBar {
         GtkUtil::disconnect_signal(*self.offline_signal.read(), &self.offline_button);
 
         if show_login_button {
-            let sender = self.sender.clone();
             *self.relogin_signal.write() = Some(
                 self.login_button
-                    .connect_clicked(move |_button| {
+                    .connect_clicked(clone!(@strong self.sender as sender => move |_button| {
                         log::info!("retry login");
                         Util::send(&sender, Action::RetryLogin);
-                    })
+                    }))
                     .to_glib(),
             );
 
-            let sender = self.sender.clone();
-            let info_bar = self.widget.clone();
-            let detail_signal = self.detail_signal.clone();
-            let relogin_signal = self.relogin_signal.clone();
-            let detail_button = self.detail_button.clone();
-            let login_button = self.login_button.clone();
-            let offline_button = self.offline_button.clone();
-            let offline_signal = self.offline_signal.clone();
             *self.offline_signal.write() = Some(
                 self.offline_button
-                    .connect_clicked(move |_button| {
+                    .connect_clicked(clone!(
+                        @strong self.sender as sender,
+                        @weak self.widget as info_bar,
+                        @weak self.detail_signal as detail_signal,
+                        @weak self.relogin_signal as relogin_signal,
+                        @weak self.detail_button as detail_button,
+                        @weak self.login_button as login_button,
+                        @weak self.offline_button as offline_button,
+                        @weak self.offline_signal as offline_signal => move |_button|
+                    {
                         log::info!("switch into offline mode");
                         Self::close(
                             &info_bar,
@@ -139,7 +140,7 @@ impl ErrorBar {
                             &offline_signal,
                         );
                         Util::send(&sender, Action::SetOfflineMode(true));
-                    })
+                    }))
                     .to_glib(),
             );
         }

@@ -19,7 +19,7 @@ use failure::ResultExt;
 use futures::channel::oneshot;
 use futures::executor::ThreadPool;
 use futures_util::future::FutureExt;
-use glib::Sender;
+use glib::{clone, Sender};
 use gtk::{Box, BoxExt, WidgetExt};
 use libhandy::Leaflet;
 use news_flash::models::{Article, ArticleFilter, Marked, PluginCapabilities, PluginID, Read, NEWSFLASH_TOPLEVEL};
@@ -169,15 +169,16 @@ impl ContentPage {
             }
         };
 
-        let window_state = self.state.clone();
-        let article_list = self.article_list.clone();
-        let glib_future = receiver.map(move |res| {
+        let glib_future = receiver.map(clone!(
+            @weak self.state as window_state,
+            @weak self.article_list as article_list => move |res|
+        {
             if let Ok(res) = res {
                 if let Ok(article_list_model) = res {
                     article_list.write().update(article_list_model, &window_state);
                 }
             }
-        });
+        }));
 
         thread_pool.spawn_ok(thread_future);
         Util::glib_spawn_future(glib_future);
@@ -244,14 +245,13 @@ impl ContentPage {
             }
         };
 
-        let article_list = self.article_list.clone();
-        let glib_future = receiver.map(move |res| {
+        let glib_future = receiver.map(clone!(@weak self.article_list as article_list => move |res| {
             if let Ok(res) = res {
                 if let Ok(article_list_model) = res {
                     article_list.write().add_more_articles(article_list_model);
                 }
             }
-        });
+        }));
 
         thread_pool.spawn_ok(thread_future);
         Util::glib_spawn_future(glib_future);
@@ -505,8 +505,7 @@ impl ContentPage {
             }
         };
 
-        let sidebar = self.sidebar.clone();
-        let glib_future = receiver.map(move |res| {
+        let glib_future = receiver.map(clone!(@weak self.sidebar as sidebar => move |res| {
             if let Ok(res) = res {
                 if let Ok((total_count, feed_list_model, tag_list_model)) = res {
                     sidebar.write().update_feedlist(feed_list_model);
@@ -523,7 +522,7 @@ impl ContentPage {
                     }
                 }
             }
-        });
+        }));
 
         thread_pool.spawn_ok(thread_future);
         Util::glib_spawn_future(glib_future);

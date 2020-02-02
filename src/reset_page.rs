@@ -1,7 +1,7 @@
 use crate::app::Action;
 use crate::error_dialog::ErrorDialog;
 use crate::util::{BuilderHelper, GtkUtil, Util};
-use glib::{translate::ToGlib, Sender};
+use glib::{clone, translate::ToGlib, Sender};
 use gtk::{Button, ButtonExt, InfoBar, InfoBarExt, ResponseType, Stack, StackExt, WidgetExt};
 use news_flash::NewsFlashError;
 use parking_lot::RwLock;
@@ -23,18 +23,15 @@ impl ResetPage {
         let info_bar = builder.get::<InfoBar>("reset_info_bar");
         let error_details_button = builder.get::<Button>("details_button");
 
-        let reset_sender = sender.clone();
-        let reset_stack_clone = reset_stack.clone();
-        reset_button.connect_clicked(move |button| {
-            reset_stack_clone.set_visible_child_name("reset_spinner");
+        reset_button.connect_clicked(clone!(@weak reset_stack, @strong sender => move |button| {
+            reset_stack.set_visible_child_name("reset_spinner");
             button.set_sensitive(false);
-            Util::send(&reset_sender, Action::ResetAccount);
-        });
+            Util::send(&sender, Action::ResetAccount);
+        }));
 
-        let cancel_sender = sender.clone();
-        cancel_button.connect_clicked(move |_button| {
-            Util::send(&cancel_sender, Action::ShowContentPage(None));
-        });
+        cancel_button.connect_clicked(clone!(@strong sender => move |_button| {
+            Util::send(&sender, Action::ShowContentPage(None));
+        }));
 
         // setup infobar
         info_bar.connect_close(|info_bar| {

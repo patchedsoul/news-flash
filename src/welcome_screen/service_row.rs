@@ -1,5 +1,6 @@
 use crate::util::{BuilderHelper, GtkUtil};
 use gdk::{EventType, NotifyType};
+use glib::clone;
 use gtk::{
     self, BinExt, EventBox, Image, ImageExt, Inhibit, Label, LabelExt, Revealer, RevealerExt, StyleContextExt,
     WidgetExt,
@@ -26,6 +27,9 @@ impl ServiceRow {
         label.set_label(&info.name);
         let arrow_revealer = builder.get::<Revealer>("arrow_revealer");
         let info_revealer = builder.get::<Revealer>("info_revealer");
+        let arrow_event = builder.get::<EventBox>("arrow_event");
+        let arrow_image = builder.get::<Image>("arrow_image");
+        let image = builder.get::<Image>("icon");
 
         // Website
         let website_label = builder.get::<Label>("website_label");
@@ -69,22 +73,20 @@ impl ServiceRow {
         };
         price_label.set_text(price_string);
 
-        let arrow_event = builder.get::<EventBox>("arrow_event");
-        let arrow_image = builder.get::<Image>("arrow_image");
-        arrow_event.connect_leave_notify_event(move |_widget, _| {
-            arrow_image.set_opacity(0.8);
-            gtk::Inhibit(false)
-        });
-        let arrow_image = builder.get::<Image>("arrow_image");
-        arrow_event.connect_enter_notify_event(move |_widget, _| {
-            arrow_image.set_opacity(1.0);
-            gtk::Inhibit(false)
-        });
+        arrow_event.connect_leave_notify_event(
+            clone!(@weak arrow_image => @default-panic, move |_widget, _| {
+                arrow_image.set_opacity(0.8);
+                gtk::Inhibit(false)
+            }),
+        );
+        arrow_event.connect_enter_notify_event(
+            clone!(@weak arrow_image => @default-panic, move |_widget, _| {
+                arrow_image.set_opacity(1.0);
+                gtk::Inhibit(false)
+            }),
+        );
 
-        let arrow_image = builder.get::<Image>("arrow_image");
         let scale = GtkUtil::get_scale(&row);
-
-        let image = builder.get::<Image>("icon");
         let surface = if let Some(icon) = info.icon {
             match icon {
                 PluginIcon::Vector(icon) => GtkUtil::create_surface_from_bytes(&icon.data, 64, 64, scale)
@@ -112,48 +114,48 @@ impl ServiceRow {
     }
 
     fn setup_events(&self, handle: Arc<RwLock<ServiceRow>>) {
-        let arrow_revealer_1 = self.arrow_revealer.clone();
-        let arrow_revealer_2 = self.arrow_revealer.clone();
-        let handle_1 = handle.clone();
-        self.row.connect_enter_notify_event(move |_widget, crossing| {
+        self.row.connect_enter_notify_event(clone!(
+            @weak self.arrow_revealer as arrow_revealer => @default-panic, move |_widget, crossing| {
             if crossing.get_detail() != NotifyType::Inferior {
-                arrow_revealer_1.read().set_reveal_child(true);
+                arrow_revealer.read().set_reveal_child(true);
             }
             Inhibit(false)
-        });
-        self.row.connect_leave_notify_event(move |_widget, crossing| {
-            if crossing.get_detail() != NotifyType::Inferior && !handle_1.read().show_info {
-                arrow_revealer_2.write().set_reveal_child(false);
-            }
-            Inhibit(false)
-        });
+        }));
 
-        let info_revealer = self.info_revealer.clone();
-        self.arrow_event
-            .read()
-            .connect_button_press_event(move |widget, event| {
-                if event.get_button() != 1 {
-                    return gtk::Inhibit(false);
-                }
-                match event.get_event_type() {
-                    EventType::ButtonPress => (),
-                    _ => return gtk::Inhibit(false),
-                }
-                let arrow_image = widget.get_child().expect("arrow_image is not child of arrow_event");
-                let context = arrow_image.get_style_context();
-                let expanded = handle.read().show_info;
-                if !expanded {
-                    context.add_class("backward-arrow-expanded");
-                    context.remove_class("backward-arrow-collapsed");
-                    info_revealer.read().set_reveal_child(true);
-                } else {
-                    context.remove_class("backward-arrow-expanded");
-                    context.add_class("backward-arrow-collapsed");
-                    info_revealer.read().set_reveal_child(false);
-                }
-                handle.write().show_info = !expanded;
-                gtk::Inhibit(true)
-            });
+        self.row.connect_leave_notify_event(clone!(
+            @weak self.arrow_revealer as arrow_revealer,
+            @weak handle => @default-panic, move |_widget, crossing| {
+            if crossing.get_detail() != NotifyType::Inferior && !handle.read().show_info {
+                arrow_revealer.write().set_reveal_child(false);
+            }
+            Inhibit(false)
+        }));
+
+        self.arrow_event.read().connect_button_press_event(clone!(
+            @weak self.info_revealer as info_revealer => @default-panic, move |widget, event|
+        {
+            if event.get_button() != 1 {
+                return gtk::Inhibit(false);
+            }
+            match event.get_event_type() {
+                EventType::ButtonPress => (),
+                _ => return gtk::Inhibit(false),
+            }
+            let arrow_image = widget.get_child().expect("arrow_image is not child of arrow_event");
+            let context = arrow_image.get_style_context();
+            let expanded = handle.read().show_info;
+            if !expanded {
+                context.add_class("backward-arrow-expanded");
+                context.remove_class("backward-arrow-collapsed");
+                info_revealer.read().set_reveal_child(true);
+            } else {
+                context.remove_class("backward-arrow-expanded");
+                context.add_class("backward-arrow-collapsed");
+                info_revealer.read().set_reveal_child(false);
+            }
+            handle.write().show_info = !expanded;
+            gtk::Inhibit(true)
+        }));
     }
 
     pub fn widget(&self) -> gtk::EventBox {

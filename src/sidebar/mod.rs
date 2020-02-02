@@ -13,7 +13,7 @@ use failure::ResultExt;
 pub use feed_list::models::{FeedListDndAction, FeedListItemID, FeedListTree};
 use feed_list::FeedList;
 use gdk::{EventMask, EventType};
-use glib::{source::Continue, translate::ToGlib, Sender};
+use glib::{clone, source::Continue, translate::ToGlib, Sender};
 use gtk::{
     prelude::WidgetExtManual, Box, BoxExt, EventBox, Image, ImageExt, Inhibit, Label, LabelExt, ListBoxExt, Revealer,
     RevealerExt, ScrolledWindow, StyleContextExt, WidgetExt,
@@ -86,76 +86,67 @@ impl SideBar {
         feed_list_box.pack_start(&feed_list_handle.read().widget(), false, true, 0);
         tag_list_box.pack_start(&tag_list_handle.read().widget(), false, true, 0);
 
-        let feed_list_selection_handle = selection_handle.clone();
-        let sender_clone = sender.clone();
-        feed_list_handle
-            .read()
-            .widget()
-            .connect_row_activated(move |_list, _row| {
+        feed_list_handle.read().widget().connect_row_activated(
+            clone!(@strong sender, @weak selection_handle => move |_list, _row| {
                 Util::send(
-                    &sender_clone,
-                    Action::SidebarSelection((*feed_list_selection_handle.read()).clone()),
+                    &sender,
+                    Action::SidebarSelection((*selection_handle.read()).clone()),
                 );
-            });
+            }),
+        );
 
-        let feed_list_all_event_box = all_event_box.clone();
-        let feed_list_tag_list_handle = tag_list_handle.clone();
-        let feed_list_feed_list_handle = feed_list_handle.clone();
-        let feed_list_selection_handle = selection_handle.clone();
-        let feed_list_delayed_all_selection = delayed_all_selection.clone();
-        let feed_list_footer_handle = footer_handle.clone();
-        feed_list_handle
-            .read()
-            .widget()
-            .connect_row_selected(move |_list, row| {
-                // do nothing if selection was cleared
-                if row.is_none() {
-                    return;
-                }
-                // deselect 'all' & tag_list
-                Self::deselect_all_button(&feed_list_all_event_box, &feed_list_delayed_all_selection);
-                feed_list_footer_handle.read().set_remove_button_sensitive(true);
-                feed_list_tag_list_handle.read().deselect();
-
-                if let Some((item, title)) = feed_list_feed_list_handle.read().get_selection() {
-                    let selection = SidebarSelection::from_feed_list_selection(item, title);
-                    *feed_list_selection_handle.write() = selection.clone();
-                }
-            });
-
-        let tag_list_selection_handle = selection_handle.clone();
-        let sender_clone = sender.clone();
-        tag_list_handle
-            .read()
-            .widget()
-            .connect_row_activated(move |_list, _row| {
-                Util::send(
-                    &sender_clone,
-                    Action::SidebarSelection((*tag_list_selection_handle.read()).clone()),
-                );
-            });
-
-        let tag_list_all_event_box = all_event_box.clone();
-        let tag_list_feed_list_handle = feed_list_handle.clone();
-        let tag_list_tag_list_handle = tag_list_handle.clone();
-        let tag_list_selection_handle = selection_handle.clone();
-        let tag_list_delayed_all_selection = delayed_all_selection.clone();
-        let tag_list_footer_handle = footer_handle.clone();
-        tag_list_handle.read().widget().connect_row_selected(move |_list, row| {
+        feed_list_handle.read().widget().connect_row_selected(clone!(
+            @weak all_event_box,
+            @weak tag_list_handle,
+            @strong feed_list_handle as self_handle,
+            @strong selection_handle,
+            @weak delayed_all_selection,
+            @weak footer_handle => move |_list, row| {
             // do nothing if selection was cleared
             if row.is_none() {
                 return;
             }
             // deselect 'all' & tag_list
-            Self::deselect_all_button(&tag_list_all_event_box, &tag_list_delayed_all_selection);
-            tag_list_footer_handle.read().set_remove_button_sensitive(true);
-            tag_list_feed_list_handle.read().deselect();
+            Self::deselect_all_button(&all_event_box, &delayed_all_selection);
+            footer_handle.read().set_remove_button_sensitive(true);
+            tag_list_handle.read().deselect();
 
-            if let Some(selected_id) = tag_list_tag_list_handle.read().get_selection() {
-                let selection = SidebarSelection::Tag(selected_id);
-                *tag_list_selection_handle.write() = selection.clone();
+            if let Some((item, title)) = self_handle.read().get_selection() {
+                let selection = SidebarSelection::from_feed_list_selection(item, title);
+                *selection_handle.write() = selection.clone();
             }
-        });
+        }));
+
+        tag_list_handle.read().widget().connect_row_activated(
+            clone!(@weak selection_handle, @strong sender => move |_list, _row| {
+                Util::send(
+                    &sender,
+                    Action::SidebarSelection((*selection_handle.read()).clone()),
+                );
+            }),
+        );
+
+        tag_list_handle.read().widget().connect_row_selected(clone!(
+            @weak all_event_box,
+            @weak feed_list_handle,
+            @strong tag_list_handle,
+            @weak selection_handle,
+            @weak delayed_all_selection,
+            @weak footer_handle => move |_list, row| {
+            // do nothing if selection was cleared
+            if row.is_none() {
+                return;
+            }
+            // deselect 'all' & tag_list
+            Self::deselect_all_button(&all_event_box, &delayed_all_selection);
+            footer_handle.read().set_remove_button_sensitive(true);
+            feed_list_handle.read().deselect();
+
+            if let Some(selected_id) = tag_list_handle.read().get_selection() {
+                let selection = SidebarSelection::Tag(selected_id);
+                *selection_handle.write() = selection.clone();
+            }
+        }));
 
         let scale = GtkUtil::get_scale(&sidebar);
 
@@ -280,9 +271,6 @@ impl SideBar {
     }
 
     fn setup_expander(event_box: &EventBox, expander: &Image, revealer: &Revealer, expanded: &Arc<RwLock<bool>>) {
-        let expander = expander.clone();
-        let expanded = expanded.clone();
-        let revealer = revealer.clone();
         event_box.set_events(EventMask::BUTTON_PRESS_MASK);
         event_box.set_events(EventMask::ENTER_NOTIFY_MASK);
         event_box.set_events(EventMask::LEAVE_NOTIFY_MASK);
@@ -297,7 +285,10 @@ impl SideBar {
             Inhibit(false)
         });
 
-        event_box.connect_button_press_event(move |_widget, event| {
+        event_box.connect_button_press_event(clone!(
+            @weak expander,
+            @weak expanded,
+            @weak revealer => @default-panic, move |_widget, event| {
             if event.get_event_type() == EventType::ButtonPress {
                 if event.get_button() != 1 {
                     return Inhibit(false);
@@ -310,7 +301,7 @@ impl SideBar {
                 Self::expand_list(!is_expanded, &revealer, &expander, &expanded);
             }
             Inhibit(false)
-        });
+        }));
     }
 
     fn expand_list(expand: bool, revealer: &Revealer, expander: &Image, expanded: &Arc<RwLock<bool>>) {
@@ -352,9 +343,9 @@ impl SideBar {
             Inhibit(false)
         });
 
-        let delayed_selection = delayed_selection.clone();
-        let sender = sender.clone();
-        event_box.connect_button_press_event(move |widget, event| {
+        event_box.connect_button_press_event(clone!(
+            @strong sender,
+            @weak delayed_selection => @default-panic, move |widget, event| {
             if event.get_button() != 1 {
                 return Inhibit(false);
             }
@@ -369,7 +360,7 @@ impl SideBar {
             Self::select_all_button(widget, &sender, &selection_handle, &delayed_selection);
             footer_handle.read().set_remove_button_sensitive(false);
             Inhibit(false)
-        });
+        }));
     }
 
     pub fn select_all_button_no_update(&self) {
@@ -390,19 +381,20 @@ impl SideBar {
         context.add_class("selected");
 
         GtkUtil::remove_source(*delayed_selection.read());
-        let source_id = delayed_selection.clone();
-        let sender = sender.clone();
         *delayed_selection.write() = Some(
-            gtk::timeout_add(300, move || {
-                let sender = sender.clone();
-                gtk::idle_add(move || {
-                    Util::send(&sender, Action::SidebarSelection(SidebarSelection::All));
-                    Continue(false)
-                });
+            gtk::timeout_add(
+                300,
+                clone!(
+                    @strong sender, @weak delayed_selection as source_id => @default-panic, move || {
+                    gtk::idle_add(clone!(@strong sender => move || {
+                        Util::send(&sender, Action::SidebarSelection(SidebarSelection::All));
+                        Continue(false)
+                    }));
 
-                *source_id.write() = None;
-                Continue(false)
-            })
+                    *source_id.write() = None;
+                    Continue(false)
+                }),
+            )
             .to_glib(),
         );
     }

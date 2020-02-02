@@ -3,6 +3,7 @@ use crate::sidebar::tag_list::models::TagListTagModel;
 use crate::util::{BuilderHelper, GtkUtil};
 use cairo::{Context, FillRule};
 use gdk::WindowExt;
+use glib::clone;
 use gtk::{Box, ContainerExt, Image, ImageExt, Label, LabelExt, ListBoxRow, ListBoxRowExt, StyleContextExt, WidgetExt};
 use news_flash::models::TagID;
 use parking_lot::RwLock;
@@ -27,11 +28,11 @@ impl TagRow {
         let title_label = builder.get::<Label>("tag_title");
         let tag_color_circle = builder.get::<Image>("tag_color");
 
-        let tag_image_update = tag_color_circle.clone();
-        let tag_color_update = model.color.clone();
-        tag_color_circle.connect_realize(move |_widget| {
-            Self::update_color_cirlce(&tag_image_update, &tag_color_update);
-        });
+        tag_color_circle.connect_realize(
+            clone!(@weak tag_color_circle, @strong model.color as color => move |_widget| {
+                Self::update_color_cirlce(&tag_color_circle, &color);
+            }),
+        );
 
         let tag = TagRow {
             id: model.id.clone(),

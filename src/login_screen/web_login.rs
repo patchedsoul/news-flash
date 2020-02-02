@@ -3,6 +3,7 @@ use crate::app::Action;
 use crate::error_dialog::ErrorDialog;
 use crate::util::{BuilderHelper, GtkUtil, Util, GTK_BUILDER_ERROR};
 use glib::{
+    clone,
     object::ObjectExt,
     signal::SignalHandlerId,
     source::Continue,
@@ -59,11 +60,10 @@ impl WebLogin {
 
     fn hide_info_bar(info_bar: &gtk::InfoBar) {
         info_bar.set_revealed(false);
-        let clone = info_bar.clone();
-        gtk::timeout_add(200, move || {
-            clone.set_visible(false);
+        gtk::timeout_add(200, clone!(@weak info_bar => @default-panic, move || {
+            info_bar.set_visible(false);
             Continue(false)
-        });
+        }));
     }
 
     pub fn show_error(&self, error: NewsFlashError) {
@@ -110,9 +110,10 @@ impl WebLogin {
         if let LoginGUI::OAuth(web_login_desc) = info.login_gui.clone() {
             if let Some(url) = web_login_desc.clone().login_website {
                 self.webview.load_uri(url.as_str());
-                let redirect_signal_id = self.redirect_signal_id.clone();
-                let sender = self.sender.clone();
-                let signal_id = self.webview.connect_load_changed(move |webview, event| {
+                let signal_id = self.webview.connect_load_changed(clone!(
+                    @weak self.redirect_signal_id as redirect_signal_id,
+                    @strong self.sender as sender => move |webview, event|
+                {
                     match event {
                         LoadEvent::Started | LoadEvent::Redirected => {
                             if let Some(redirect_url) = &web_login_desc.catch_redirect {
@@ -137,7 +138,7 @@ impl WebLogin {
                             // do nothing
                         }
                     }
-                });
+                }));
 
                 self.redirect_signal_id.write().replace(signal_id.to_glib());
                 return Ok(());

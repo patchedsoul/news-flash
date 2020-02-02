@@ -6,7 +6,7 @@ use crate::app::Action;
 use crate::settings::Settings;
 use crate::util::{BuilderHelper, Util, GTK_BUILDER_ERROR};
 use gdk::{EventMask, EventType};
-use glib::{object::Cast, Sender};
+use glib::{clone, object::Cast, Sender};
 use gtk::{
     prelude::GtkWindowExtManual, prelude::WidgetExtManual, DialogExt, EventBox, FontButton, FontButtonExt,
     FontChooserExt, GtkWindowExt, Inhibit, Label, LabelExt, ListBox, ListBoxExt, ListBoxRowExt, Popover, PopoverExt,
@@ -19,19 +19,106 @@ use std::sync::Arc;
 
 pub struct SettingsDialog {
     pub widget: Window,
+    keep_running_switch: Switch,
+    dark_theme_switch: Switch,
+    sync_label: Label,
+    sync_pop: Popover,
+    sync_list: ListBox,
+    sync_event: EventBox,
+    sync_row: ActionRow,
+    article_order_pop: Popover,
+    article_order_list: ListBox,
+    article_order_label: Label,
+    article_order_event: EventBox,
+    article_order_row: ActionRow,
+    article_theme_label: Label,
+    article_theme_row: ActionRow,
+    article_theme_event: EventBox,
+    allow_selection_switch: Switch,
+    font_row: ActionRow,
+    font_button: FontButton,
+    use_system_font_switch: Switch,
     settings: Arc<RwLock<Settings>>,
     builder: BuilderHelper,
 }
 
 impl SettingsDialog {
     pub fn new(window: &gtk::ApplicationWindow, sender: &Sender<Action>, settings: &Arc<RwLock<Settings>>) -> Self {
+        let have_custom_font = settings.read().get_article_view_font().is_some();
+
         let builder = BuilderHelper::new("settings");
 
         let dialog = builder.get::<Window>("dialog");
         dialog.set_transient_for(Some(window));
 
+        let keep_running_switch = builder.get::<Switch>("keep_running_switch");
+        keep_running_switch.set_state(settings.read().get_keep_running_in_background());
+
+        let dark_theme_switch = builder.get::<Switch>("dark_theme_switch");
+        dark_theme_switch.set_state(settings.read().get_prefer_dark_theme());
+
+        let sync_label = builder.get::<Label>("sync_label");
+        sync_label.set_label(&settings.read().get_sync_interval().to_string());
+
+        let sync_pop = builder.get::<Popover>("sync_pop");
+        let sync_list = builder.get::<ListBox>("sync_list");
+
+        let sync_event = builder.get::<EventBox>("sync_event");
+        sync_event.set_events(EventMask::BUTTON_PRESS_MASK);
+
+        let sync_row = builder.get::<ActionRow>("sync_row");
+        let article_order_pop = builder.get::<Popover>("article_order_pop");
+
+        let article_order_label = builder.get::<Label>("article_order_label");
+        article_order_label.set_label(settings.read().get_article_list_order().to_str());
+
+        let article_order_list = builder.get::<ListBox>("article_order_list");
+        let article_order_row = builder.get::<ActionRow>("article_order_row");
+
+        let article_order_event = builder.get::<EventBox>("article_order_event");
+        article_order_event.set_events(EventMask::BUTTON_PRESS_MASK);
+
+        let article_theme_label = builder.get::<Label>("article_theme_label");
+        let article_theme_row = builder.get::<ActionRow>("article_theme_row");
+        let article_theme_event = builder.get::<EventBox>("article_theme_event");
+        article_theme_event.set_events(EventMask::BUTTON_PRESS_MASK);
+
+        let allow_selection_switch = builder.get::<Switch>("allow_selection_switch");
+        allow_selection_switch.set_state(settings.read().get_article_view_allow_select());
+
+        let font_row = builder.get::<ActionRow>("font_row");
+        font_row.set_sensitive(have_custom_font);
+
+        let font_button = builder.get::<FontButton>("font_button");
+        font_button.set_sensitive(have_custom_font);
+        if let Some(font) = settings.read().get_article_view_font() {
+            font_button.set_font(&font);
+        }
+
+        let use_system_font_switch = builder.get::<Switch>("use_system_font_switch");
+        use_system_font_switch.set_state(!have_custom_font);
+
         let settings_dialog = SettingsDialog {
             widget: dialog,
+            keep_running_switch,
+            dark_theme_switch,
+            sync_label,
+            sync_pop,
+            sync_list,
+            sync_event,
+            sync_row,
+            article_order_pop,
+            article_order_label,
+            article_order_list,
+            article_order_event,
+            article_order_row,
+            article_theme_label,
+            article_theme_row,
+            article_theme_event,
+            allow_selection_switch,
+            font_row,
+            font_button,
+            use_system_font_switch,
             settings: settings.clone(),
             builder,
         };
@@ -43,58 +130,40 @@ impl SettingsDialog {
     }
 
     fn setup_ui_section(&self, sender: &Sender<Action>) {
-        let settings_1 = self.settings.clone();
-        let settings_2 = self.settings.clone();
-        let settings_3 = self.settings.clone();
-        let settings_4 = self.settings.clone();
-        let settings_5 = self.settings.clone();
-        let settings_6 = self.settings.clone();
-        let settings_7 = self.settings.clone();
-        let settings_8 = self.settings.clone();
-        let settings_9 = self.settings.clone();
-
-        let sender_1 = sender.clone();
-        let sender_2 = sender.clone();
-        let sender_3 = sender.clone();
-        let sender_4 = sender.clone();
-        let sender_5 = sender.clone();
-        let sender_6 = sender.clone();
-        let sender_7 = sender.clone();
-        let sender_8 = sender.clone();
-        let sender_9 = sender.clone();
-
-        let keep_running_switch = self.builder.get::<Switch>("keep_running_switch");
-        keep_running_switch.set_state(self.settings.read().get_keep_running_in_background());
-        keep_running_switch.connect_state_set(move |_switch, is_set| {
-            if settings_1.write().set_keep_running_in_background(is_set).is_err() {
+        self.keep_running_switch.connect_state_set(clone!(
+            @weak self.settings as settings,
+            @strong sender => @default-panic, move |_switch, is_set|
+        {
+            if settings.write().set_keep_running_in_background(is_set).is_err() {
                 Util::send(
-                    &sender_1,
+                    &sender,
                     Action::ErrorSimpleMessage("Failed to set setting 'keep running'.".to_owned()),
                 );
             }
             Inhibit(false)
-        });
+        }));
 
-        let dark_theme_switch = self.builder.get::<Switch>("dark_theme_switch");
-        dark_theme_switch.set_state(self.settings.read().get_prefer_dark_theme());
-        dark_theme_switch.connect_state_set(move |_switch, is_set| {
-            if settings_2.write().set_prefer_dark_theme(is_set).is_ok() {
+        self.dark_theme_switch.connect_state_set(clone!(
+            @weak self.settings as settings,
+            @strong sender => @default-panic, move |_switch, is_set| {
+            if settings.write().set_prefer_dark_theme(is_set).is_ok() {
                 if let Some(settings) = GtkSettings::get_default() {
                     settings.set_property_gtk_application_prefer_dark_theme(is_set);
                 }
             } else {
                 Util::send(
-                    &sender_2,
+                    &sender,
                     Action::ErrorSimpleMessage("Failed to set setting 'dark theme'.".to_owned()),
                 );
             }
             Inhibit(false)
-        });
+        }));
 
-        let sync_label = self.builder.get::<Label>("sync_label");
-        let sync_pop = self.builder.get::<Popover>("sync_pop");
-        let sync_list = self.builder.get::<ListBox>("sync_list");
-        sync_list.connect_row_activated(move |_list, row| {
+        self.sync_list.connect_row_activated(clone!(
+            @weak self.settings as settings,
+            @weak self.sync_pop as sync_pop,
+            @weak self.sync_label as sync_label,
+            @strong sender => move |_list, row| {
             sync_pop.popdown();
             let sync_interval = match row.get_index() {
                 0 => SyncInterval::Never,
@@ -106,22 +175,19 @@ impl SettingsDialog {
                 _ => SyncInterval::Never,
             };
             sync_label.set_label(&sync_interval.to_string());
-            if settings_3.write().set_sync_interval(sync_interval).is_ok() {
-                Util::send(&sender_3, Action::ScheduleSync);
+            if settings.write().set_sync_interval(sync_interval).is_ok() {
+                Util::send(&sender, Action::ScheduleSync);
             } else {
                 Util::send(
-                    &sender_3,
+                    &sender,
                     Action::ErrorSimpleMessage("Failed to set setting 'sync interval'.".to_owned()),
                 );
             }
-        });
+        }));
 
-        let sync_label = self.builder.get::<Label>("sync_label");
-        sync_label.set_label(&self.settings.read().get_sync_interval().to_string());
-        let sync_event = self.builder.get::<EventBox>("sync_event");
-        sync_event.set_events(EventMask::BUTTON_PRESS_MASK);
-        let sync_pop = self.builder.get::<Popover>("sync_pop");
-        sync_event.connect_button_press_event(move |_eventbox, event| {
+        self.sync_event.connect_button_press_event(clone!(
+            @weak self.sync_pop as sync_pop => @default-panic, move |_eventbox, event|
+        {
             if event.get_button() != 1 {
                 return Inhibit(false);
             }
@@ -134,48 +200,44 @@ impl SettingsDialog {
 
             sync_pop.popup();
             Inhibit(false)
-        });
+        }));
 
-        let sync_pop = self.builder.get::<Popover>("sync_pop");
-        let sync_row = self.builder.get::<ActionRow>("sync_row");
-        if let Some(listbox) = sync_row.get_parent() {
+        if let Some(listbox) = self.sync_row.get_parent() {
             if let Ok(listbox) = listbox.downcast::<ListBox>() {
-                listbox.connect_row_activated(move |_list, row| {
+                listbox.connect_row_activated(clone!(@weak self.sync_pop as sync_pop => move |_list, row| {
                     if let Some(name) = row.get_widget_name() {
                         if name == "sync_row" {
                             sync_pop.popup();
                         }
                     }
-                });
+                }));
             }
         }
 
-        let article_order_pop = self.builder.get::<Popover>("article_order_pop");
-        let article_order_label = self.builder.get::<Label>("article_order_label");
-        let article_order_list = self.builder.get::<ListBox>("article_order_list");
-        article_order_list.connect_row_activated(move |_list, row| {
+        self.article_order_list.connect_row_activated(clone!(
+            @weak self.article_order_pop as article_order_pop,
+            @weak self.article_order_label as article_order_label,
+            @weak self.settings as settings,
+            @strong sender => move |_list, row| {
             article_order_pop.popdown();
             let new_order = match row.get_index() {
                 0 => ArticleOrder::NewestFirst,
                 _ => ArticleOrder::OldestFirst,
             };
             article_order_label.set_label(new_order.to_str());
-            if settings_4.write().set_article_list_order(new_order).is_ok() {
-                Util::send(&sender_4, Action::UpdateArticleList);
+            if settings.write().set_article_list_order(new_order).is_ok() {
+                Util::send(&sender, Action::UpdateArticleList);
             } else {
                 Util::send(
-                    &sender_4,
+                    &sender,
                     Action::ErrorSimpleMessage("Failed to set setting 'article order'.".to_owned()),
                 );
             }
-        });
+        }));
 
-        let article_order_label = self.builder.get::<Label>("article_order_label");
-        article_order_label.set_label(self.settings.read().get_article_list_order().to_str());
-        let article_order_event = self.builder.get::<EventBox>("article_order_event");
-        article_order_event.set_events(EventMask::BUTTON_PRESS_MASK);
-        let article_order_pop = self.builder.get::<Popover>("article_order_pop");
-        article_order_event.connect_button_press_event(move |_eventbox, event| {
+        self.article_order_event.connect_button_press_event(clone!(
+            @weak self.article_order_pop as article_order_pop => @default-panic, move |_eventbox, event|
+        {
             if event.get_button() != 1 {
                 return Inhibit(false);
             }
@@ -188,26 +250,27 @@ impl SettingsDialog {
 
             article_order_pop.popup();
             Inhibit(false)
-        });
+        }));
 
-        let article_order_pop = self.builder.get::<Popover>("article_order_pop");
-        let article_order_row = self.builder.get::<ActionRow>("article_order_row");
-        if let Some(listbox) = article_order_row.get_parent() {
+        if let Some(listbox) = self.article_order_row.get_parent() {
             if let Ok(listbox) = listbox.downcast::<ListBox>() {
-                listbox.connect_row_activated(move |_list, row| {
-                    if let Some(name) = row.get_widget_name() {
-                        if name == "article_order_row" {
-                            article_order_pop.popup();
+                listbox.connect_row_activated(
+                    clone!(@weak self.article_order_pop as article_order_pop => move |_list, row| {
+                        if let Some(name) = row.get_widget_name() {
+                            if name == "article_order_row" {
+                                article_order_pop.popup();
+                            }
                         }
-                    }
-                });
+                    }),
+                );
             }
         }
 
-        let article_theme_label = self.builder.get::<Label>("article_theme_label");
-        let article_theme_event = self.builder.get::<EventBox>("article_theme_event");
-        article_theme_event.set_events(EventMask::BUTTON_PRESS_MASK);
-        article_theme_event.connect_button_press_event(move |eventbox, event| {
+        self.article_theme_event.connect_button_press_event(clone!(
+            @weak self.settings as settings,
+            @weak self.article_theme_label as article_theme_label,
+            @strong sender => @default-panic, move |eventbox, event|
+        {
             if event.get_button() != 1 {
                 return Inhibit(false);
             }
@@ -218,83 +281,83 @@ impl SettingsDialog {
                 _ => {}
             }
 
-            let settings = settings_5.clone();
-            let article_theme_label = article_theme_label.clone();
-            let theme_chooser = ThemeChooser::new(eventbox, &sender_5, &settings);
-            let sender = sender_5.clone();
-            theme_chooser.widget().connect_closed(move |_pop| {
+            let theme_chooser = ThemeChooser::new(eventbox, &sender, &settings);
+            theme_chooser.widget().connect_closed(clone!(
+                @weak settings,
+                @weak article_theme_label,
+                @strong sender => move |_pop|
+            {
                 article_theme_label.set_label(settings.read().get_article_view_theme().name());
                 Util::send(&sender, Action::RedrawArticle);
-            });
+            }));
             theme_chooser.widget().popup();
 
             Inhibit(false)
-        });
+        }));
 
-        let article_theme_label = self.builder.get::<Label>("article_theme_label");
-        let article_theme_event = self.builder.get::<EventBox>("article_theme_event");
-        let article_theme_row = self.builder.get::<ActionRow>("article_theme_row");
-        if let Some(listbox) = article_theme_row.get_parent() {
+        if let Some(listbox) = self.article_theme_row.get_parent() {
             if let Ok(listbox) = listbox.downcast::<ListBox>() {
-                listbox.connect_row_activated(move |_list, row| {
+                listbox.connect_row_activated(clone!(
+                    @weak self.article_theme_label as article_theme_label,
+                    @weak self.article_theme_event as article_theme_event,
+                    @weak self.settings as settings,
+                    @strong sender => move |_list, row|
+                {
                     if let Some(name) = row.get_widget_name() {
                         if name == "article_theme_row" {
-                            let settings = settings_6.clone();
-                            let article_theme_label = article_theme_label.clone();
-                            let sender = sender_6.clone();
-                            let theme_chooser = ThemeChooser::new(&article_theme_event, &sender_6, &settings);
-                            theme_chooser.widget().connect_closed(move |_pop| {
+                            let theme_chooser = ThemeChooser::new(&article_theme_event, &sender, &settings);
+                            theme_chooser.widget().connect_closed(clone!(
+                                @strong sender,
+                                @weak settings => move |_pop|
+                            {
                                 article_theme_label.set_label(settings.read().get_article_view_theme().name());
                                 Util::send(&sender, Action::RedrawArticle);
-                            });
+                            }));
                             theme_chooser.widget().popup();
                         }
                     }
-                });
+                }));
             }
         }
 
-        let allow_selection_switch = self.builder.get::<Switch>("allow_selection_switch");
-        allow_selection_switch.set_state(self.settings.read().get_article_view_allow_select());
-        allow_selection_switch.connect_state_set(move |_switch, is_set| {
-            if settings_7.write().set_article_view_allow_select(is_set).is_ok() {
-                Util::send(&sender_7, Action::RedrawArticle);
+        self.allow_selection_switch.connect_state_set(clone!(
+            @weak self.settings as settings,
+            @strong sender => @default-panic, move |_switch, is_set|
+        {
+            if settings.write().set_article_view_allow_select(is_set).is_ok() {
+                Util::send(&sender, Action::RedrawArticle);
             } else {
                 Util::send(
-                    &sender_7,
+                    &sender,
                     Action::ErrorSimpleMessage("Failed to set setting 'allow article selection'.".to_owned()),
                 );
             }
             Inhibit(false)
-        });
+        }));
 
-        let font_row = self.builder.get::<ActionRow>("font_row");
-        let font_button = self.builder.get::<FontButton>("font_button");
-        if let Some(font) = self.settings.read().get_article_view_font() {
-            font_button.set_font(&font);
-        }
-        font_button.connect_font_set(move |button| {
-            let font = match button.get_font() {
-                Some(font) => Some(font.to_string()),
-                None => None,
-            };
-            if settings_8.write().set_article_view_font(font).is_ok() {
-                Util::send(&sender_8, Action::RedrawArticle);
-            } else {
-                Util::send(
-                    &sender_8,
-                    Action::ErrorSimpleMessage("Failed to set setting 'article font'.".to_owned()),
-                );
-            }
-        });
+        self.font_button.connect_font_set(
+            clone!(@weak self.settings as settings, @strong sender => move |button| {
+                let font = match button.get_font() {
+                    Some(font) => Some(font.to_string()),
+                    None => None,
+                };
+                if settings.write().set_article_view_font(font).is_ok() {
+                    Util::send(&sender, Action::RedrawArticle);
+                } else {
+                    Util::send(
+                        &sender,
+                        Action::ErrorSimpleMessage("Failed to set setting 'article font'.".to_owned()),
+                    );
+                }
+            }),
+        );
 
-        let use_system_font_switch = self.builder.get::<Switch>("use_system_font_switch");
-        let have_custom_font = self.settings.read().get_article_view_font().is_some();
-
-        use_system_font_switch.set_state(!have_custom_font);
-        font_button.set_sensitive(have_custom_font);
-        font_row.set_sensitive(have_custom_font);
-        use_system_font_switch.connect_state_set(move |_switch, is_set| {
+        self.use_system_font_switch.connect_state_set(clone!(
+            @weak self.font_button as font_button,
+            @weak self.font_row as font_row,
+            @weak self.settings as settings,
+            @strong sender => @default-panic, move |_switch, is_set|
+        {
             let font = if is_set {
                 None
             } else if let Some(font_name) = font_button.get_font() {
@@ -304,16 +367,16 @@ impl SettingsDialog {
             };
             font_button.set_sensitive(!is_set);
             font_row.set_sensitive(!is_set);
-            if settings_9.write().set_article_view_font(font).is_ok() {
-                Util::send(&sender_9, Action::RedrawArticle);
+            if settings.write().set_article_view_font(font).is_ok() {
+                Util::send(&sender, Action::RedrawArticle);
             } else {
                 Util::send(
-                    &sender_9,
+                    &sender,
                     Action::ErrorSimpleMessage("Failed to set setting 'use system font'.".to_owned()),
                 );
             }
             Inhibit(false)
-        });
+        }));
     }
 
     fn setup_keybindings_section(&self, sender: &Sender<Action>) {
@@ -382,23 +445,27 @@ impl SettingsDialog {
         Self::keybind_label_text(keybinding.clone(), &label);
         let row_name = format!("{}_row", id);
         let row = self.builder.get::<ActionRow>(&row_name);
+        let id = id.to_owned();
+
         if let Some(listbox) = row.get_parent() {
             if let Ok(listbox) = listbox.downcast::<ListBox>() {
-                let dialog = self.widget.clone();
-                let id = id.to_owned();
                 let info_text = row.get_title().expect(GTK_BUILDER_ERROR);
-                let settings = self.settings.clone();
-                let sender = sender.clone();
-                listbox.connect_row_activated(move |_list, row| {
+                listbox.connect_row_activated(clone!(
+                    @weak self.widget as dialog,
+                    @weak self.settings as settings,
+                    @strong sender,
+                    @strong id => move |_list, row|
+                {
                     if let Some(name) = row.get_widget_name() {
                         if name.as_str() == row_name {
-                            let id = id.clone();
-                            let label = label.clone();
-                            let settings = settings.clone();
-                            let sender = sender.clone();
                             let editor = KeybindingEditor::new(&dialog, &info_text);
                             editor.widget().present();
-                            editor.widget().connect_close(move |_dialog| {
+                            editor.widget().connect_close(clone!(
+                                @weak label,
+                                @weak settings,
+                                @strong sender,
+                                @strong id => move |_dialog|
+                            {
                                 let _settings = settings.clone();
                                 match &*editor.keybinding.read() {
                                     KeybindState::Canceled | KeybindState::Illegal => {}
@@ -424,10 +491,10 @@ impl SettingsDialog {
                                         }
                                     }
                                 }
-                            });
+                            }));
                         }
                     }
-                });
+                }));
             }
         }
     }

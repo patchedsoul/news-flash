@@ -1,19 +1,19 @@
 use super::service_row::ServiceRow;
 use crate::app::Action;
 use crate::util::{BuilderHelper, Util};
-use glib::Sender;
+use glib::{clone, Sender};
 use gtk::{Box, ListBox, ListBoxExt, ListBoxRowExt};
 use news_flash::models::{LoginData, LoginGUI, PluginID};
 use news_flash::NewsFlash;
 use parking_lot::RwLock;
 use std::collections::HashMap;
-use std::rc::Rc;
+use std::sync::Arc;
 
 #[derive(Clone, Debug)]
 pub struct WelcomePage {
     page: gtk::Box,
     list: gtk::ListBox,
-    services: Rc<RwLock<HashMap<i32, (PluginID, LoginGUI)>>>,
+    services: Arc<RwLock<HashMap<i32, (PluginID, LoginGUI)>>>,
 }
 
 impl WelcomePage {
@@ -24,7 +24,7 @@ impl WelcomePage {
         let page = WelcomePage {
             page,
             list,
-            services: Rc::new(RwLock::new(HashMap::new())),
+            services: Arc::new(RwLock::new(HashMap::new())),
         };
 
         page.populate();
@@ -45,22 +45,22 @@ impl WelcomePage {
     }
 
     fn connect_signals(&self, sender: Sender<Action>) {
-        let services = self.services.clone();
-        let sender = sender.clone();
-        self.list.connect_row_activated(move |_list, row| {
-            if let Some((id, login_desc)) = services.read().get(&row.get_index()) {
-                match login_desc {
-                    LoginGUI::OAuth(_) => {
-                        Util::send(&sender, Action::ShowOauthLogin(id.clone()));
-                    }
-                    LoginGUI::Password(_) => {
-                        Util::send(&sender, Action::ShowPasswordLogin(id.clone(), None));
-                    }
-                    LoginGUI::None => {
-                        Util::send(&sender, Action::Login(LoginData::None(id.clone())));
-                    }
-                };
-            }
-        });
+        self.list.connect_row_activated(
+            clone!(@strong sender, @strong self.services as services => move |_list, row| {
+                if let Some((id, login_desc)) = services.read().get(&row.get_index()) {
+                    match login_desc {
+                        LoginGUI::OAuth(_) => {
+                            Util::send(&sender, Action::ShowOauthLogin(id.clone()));
+                        }
+                        LoginGUI::Password(_) => {
+                            Util::send(&sender, Action::ShowPasswordLogin(id.clone(), None));
+                        }
+                        LoginGUI::None => {
+                            Util::send(&sender, Action::Login(LoginData::None(id.clone())));
+                        }
+                    };
+                }
+            }),
+        );
     }
 }

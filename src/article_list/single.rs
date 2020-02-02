@@ -6,7 +6,7 @@ use crate::article_list::ReadUpdate;
 use crate::content_page::ContentHeader;
 use crate::main_window_state::MainWindowState;
 use crate::util::{BuilderHelper, GtkUtil, Util};
-use glib::{object::Cast, source::Continue, translate::ToGlib, Sender};
+use glib::{clone, object::Cast, source::Continue, translate::ToGlib, Sender};
 use gtk::{
     prelude::WidgetExtManual, AdjustmentExt, ContainerExt, ListBox, ListBoxExt, ListBoxRowExt, ScrolledWindow,
     ScrolledWindowExt, SettingsExt, TickCallbackId, WidgetExt,
@@ -50,24 +50,24 @@ impl SingleArticleList {
 
         let scroll_cooldown = Arc::new(RwLock::new(false));
 
-        let cooldown = scroll_cooldown.clone();
-        let sender_clone = sender.clone();
         if let Some(vadjustment) = scroll.get_vadjustment() {
-            vadjustment.connect_value_changed(move |vadj| {
-                let is_on_cooldown = *cooldown.read();
+            vadjustment.connect_value_changed(clone!(
+                @weak scroll_cooldown,
+                @strong sender => move |vadj|
+            {
+                let is_on_cooldown = *scroll_cooldown.read();
                 if !is_on_cooldown {
                     let max = vadj.get_upper() - vadj.get_page_size();
                     if max > 0.0 && vadj.get_value() >= (max - LIST_BOTTOM_THREASHOLD) {
-                        *cooldown.write() = true;
-                        let cooldown = cooldown.clone();
-                        gtk::timeout_add(800, move || {
-                            *cooldown.write() = false;
+                        *scroll_cooldown.write() = true;
+                        gtk::timeout_add(800, clone!(@weak scroll_cooldown => @default-panic, move || {
+                            *scroll_cooldown.write() = false;
                             Continue(false)
-                        });
-                        Util::send(&sender_clone, Action::LoadMoreArticles);
+                        }));
+                        Util::send(&sender, Action::LoadMoreArticles);
                     }
                 }
-            });
+            }));
         }
 
         SingleArticleList {
@@ -120,11 +120,10 @@ impl SingleArticleList {
     pub fn clear(&mut self) {
         *self.scroll_cooldown.write() = true;
         for row in self.list.get_children() {
-            let list = self.list.clone();
-            gtk::idle_add(move || {
+            gtk::idle_add(clone!(@weak self.list as list => @default-panic, move || {
                 list.remove(&row);
                 Continue(false)
-            });
+            }));
         }
         self.articles.clear();
         if let Some(vadjustment) = self.scroll.get_vadjustment() {
@@ -165,11 +164,12 @@ impl SingleArticleList {
             GtkUtil::remove_source(*self.select_after_signal.read());
             *self.select_after_signal.write() = None;
 
-            let select_after_signal = self.select_after_signal.clone();
             let article_widget = article_handle.read().widget();
-            let content_header = self.content_header.clone();
             *self.select_after_signal.write() = Some(
-                gtk::timeout_add(time, move || {
+                gtk::timeout_add(time, clone!(
+                    @weak self.select_after_signal as select_after_signal,
+                    @weak self.content_header as content_header => @default-panic, move ||
+                {
                     if content_header.is_search_focused() {
                         return Continue(false);
                     }
@@ -178,7 +178,7 @@ impl SingleArticleList {
 
                     *select_after_signal.write() = None;
                     Continue(false)
-                })
+                }))
                 .to_glib(),
             );
         }
@@ -227,13 +227,13 @@ impl SingleArticleList {
 
         *self.scroll_animation_data.transition_start_value.write() = Some(self.get_scroll_value());
 
-        let transition_start_value = self.scroll_animation_data.transition_start_value.clone();
-        let transition_diff = self.scroll_animation_data.transition_diff.clone();
-        let end_time = self.scroll_animation_data.end_time.clone();
-        let start_time = self.scroll_animation_data.start_time.clone();
-        let callback_id = self.scroll_animation_data.scroll_callback_id.clone();
         *self.scroll_animation_data.scroll_callback_id.write() =
-            Some(self.scroll.add_tick_callback(move |widget, clock| {
+            Some(self.scroll.add_tick_callback(clone!(
+                @weak self.scroll_animation_data.transition_diff as transition_diff,
+                @weak self.scroll_animation_data.transition_start_value as transition_start_value,
+                @weak self.scroll_animation_data.scroll_callback_id as callback_id,
+                @weak self.scroll_animation_data.start_time as start_time,
+                @weak self.scroll_animation_data.end_time as end_time => @default-panic, move |widget, clock| {
                 let scroll = widget
                     .clone()
                     .downcast::<ScrolledWindow>()
@@ -275,7 +275,7 @@ impl SingleArticleList {
                 }
 
                 Continue(true)
-            }));
+            })));
     }
 
     fn set_scroll_value(&self, pos: f64) {

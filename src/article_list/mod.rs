@@ -9,7 +9,7 @@ use crate::main_window_state::MainWindowState;
 use crate::settings::Settings;
 use crate::sidebar::models::SidebarSelection;
 use crate::util::{BuilderHelper, GtkUtil, Util};
-use glib::{source::Continue, translate::ToGlib, Sender};
+use glib::{clone, source::Continue, translate::ToGlib, Sender};
 use gtk::{Label, LabelExt, ListBoxExt, ListBoxRowExt, ScrolledWindow, Stack, StackExt, StackTransitionType};
 use models::ArticleListChangeSet;
 pub use models::{ArticleListArticleModel, ArticleListModel, MarkUpdate, ReadUpdate};
@@ -150,14 +150,15 @@ impl ArticleList {
 
         for model in new_list.models() {
             self.list_model.write().add_model(model.clone());
-            let model = model.clone();
-            let list = list.clone();
-            let list_model = self.list_model.clone();
-            let global_state = self.global_state.clone();
-            gtk::idle_add(move || {
+            gtk::idle_add(clone!(
+                @weak self.global_state as global_state,
+                @weak self.list_model as list_model,
+                @strong list,
+                @strong model => @default-panic, move ||
+            {
                 list.write().add(&model, -1, &list_model, &global_state);
                 Continue(false)
-            });
+            }));
         }
     }
 
@@ -215,15 +216,16 @@ impl ArticleList {
             CurrentList::Empty => return,
         };
         GtkUtil::disconnect_signal(self.list_select_signal, &old_list.read().list());
-        let current_list = self.current_list.clone();
-        let list_1 = self.list_1.clone();
-        let list_2 = self.list_2.clone();
-        let global_state = self.global_state.clone();
-        let sender = self.sender.clone();
         let select_signal_id = new_list
             .read()
             .list()
-            .connect_row_activated(move |_list, row| {
+            .connect_row_activated(clone!(
+                @strong self.sender as sender,
+                @weak self.global_state as global_state,
+                @weak self.current_list as current_list,
+                @weak self.list_1 as list_1,
+                @weak self.list_2 as list_2 => move |_list, row|
+            {
                 let selected_index = row.get_index();
                 let selected_article = list_model.write().calculate_selection(selected_index).cloned();
                 if let Some(selected_article) = selected_article {
@@ -243,7 +245,7 @@ impl ArticleList {
 
                     Util::send(&sender, Action::ShowArticle(selected_article.id.clone()));
                 }
-            })
+            }))
             .to_glib();
         self.list_select_signal = Some(select_signal_id);
     }

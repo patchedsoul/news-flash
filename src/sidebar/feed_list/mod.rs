@@ -17,7 +17,7 @@ use crate::sidebar::feed_list::{
 use crate::sidebar::SidebarIterateItem;
 use crate::util::{BuilderHelper, GtkUtil, Util};
 use gdk::{DragAction, EventType};
-use glib::{source::Continue, translate::ToGlib, Sender};
+use glib::{clone, source::Continue, translate::ToGlib, Sender};
 use gtk::{
     self, prelude::WidgetExtManual, ContainerExt, DestDefaults, Inhibit, ListBox, ListBoxExt, ListBoxRowExt,
     ScrolledWindow, SelectionMode, StyleContextExt, TargetEntry, TargetFlags, WidgetExt,
@@ -49,11 +49,13 @@ impl FeedList {
         // set selection mode from NONE -> SINGLE after a delay after it's been shown
         // this ensures selection mode is in SINGLE without having a selected row in the list
         list_box.connect_show(|list| {
-            let list = list.clone();
-            gtk::timeout_add(50, move || {
-                list.set_selection_mode(SelectionMode::Single);
-                Continue(false)
-            });
+            gtk::timeout_add(
+                50,
+                clone!(@weak list => @default-panic, move || {
+                    list.set_selection_mode(SelectionMode::Single);
+                    Continue(false)
+                }),
+            );
         });
 
         let feed_list = FeedList {
@@ -86,15 +88,16 @@ impl FeedList {
 
     fn setup_dnd(&self) {
         let entry = TargetEntry::new("FeedRow", TargetFlags::SAME_APP, 0);
-        let tree = self.tree.clone();
-        let feeds = self.feeds.clone();
-        let categories = self.categories.clone();
-        let hovered_category_expand = self.hovered_category_expand.clone();
         self.list
             .drag_dest_set(DestDefaults::DROP | DestDefaults::MOTION, &[entry], DragAction::MOVE);
         self.list.drag_dest_add_text_targets();
         self.list
-            .connect_drag_motion(move |widget, _drag_context, _x, y, _time| {
+            .connect_drag_motion(clone!(
+                @weak self.tree as tree,
+                @weak self.feeds as feeds,
+                @weak self.hovered_category_expand as hovered_category_expand,
+                @weak self.categories as categories => @default-panic, move |widget, _drag_context, _x, y, _time|
+            {
                 // maybe we should keep track of the previous highlighted rows instead of iterating over all of them
                 let children = widget.get_children();
                 for widget in children {
@@ -142,21 +145,21 @@ impl FeedList {
                                 }
 
                                 if start_hover {
-                                    let tree2 = tree.clone();
-                                    let feeds2 = feeds.clone();
-                                    let categories2 = categories.clone();
-                                    let id2 = id.clone();
-                                    let hovered_category_expand2 = hovered_category_expand.clone();
-
                                     *hovered_category_expand.write() = Some((
-                                        gtk::timeout_add(1200, move || {
-                                            if let Some(category_row) = categories2.read().get(&id2) {
+                                        gtk::timeout_add(1200, clone!(
+                                            @strong id,
+                                            @weak tree,
+                                            @weak categories,
+                                            @weak hovered_category_expand,
+                                            @weak feeds => @default-panic, move ||
+                                        {
+                                            if let Some(category_row) = categories.read().get(&id) {
                                                 category_row.write().expand_collapse_arrow();
-                                                Self::expand_collapse_category(&id2, &tree2, &categories2, &feeds2);
+                                                Self::expand_collapse_category(&id, &tree, &categories, &feeds);
                                             }
-                                            *hovered_category_expand2.write() = None;
+                                            *hovered_category_expand.write() = None;
                                             Continue(false)
-                                        })
+                                        }))
                                         .to_glib(),
                                         id,
                                     ));
@@ -196,9 +199,10 @@ impl FeedList {
                 }
 
                 Inhibit(false)
-            });
-        let hovered_category_expand = self.hovered_category_expand.clone();
-        self.list.connect_drag_leave(move |widget, _drag_context, _time| {
+            }));
+        self.list.connect_drag_leave(clone!(
+            @weak self.hovered_category_expand as hovered_category_expand => move |widget, _drag_context, _time|
+        {
             Self::clear_hovered_expand(&hovered_category_expand);
             let children = widget.get_children();
             for widget in children {
@@ -207,81 +211,80 @@ impl FeedList {
                     ctx.remove_class("drag-top");
                 }
             }
-        });
-        self.list.connect_drag_drop(move |widget, drag_context, _x, _y, time| {
+        }));
+        self.list.connect_drag_drop(|widget, drag_context, _x, _y, time| {
             if let Some(target_type) = drag_context.list_targets().get(0) {
                 widget.drag_get_data(drag_context, target_type, time);
                 return Inhibit(true);
             }
             Inhibit(false)
         });
-        let tree = self.tree.clone();
-        let sender = self.sender.clone();
-        let hovered_category_expand = self.hovered_category_expand.clone();
-        self.list
-            .connect_drag_data_received(move |widget, _ctx, _x, y, selection_data, _info, _time| {
-                Self::clear_hovered_expand(&hovered_category_expand);
-                let children = widget.get_children();
-                for widget in children {
-                    if let Some(ctx) = GtkUtil::get_dnd_style_context_widget(&widget) {
-                        ctx.remove_class("drag-bottom");
-                        ctx.remove_class("drag-top");
-                    }
+        self.list.connect_drag_data_received(clone!(
+            @weak self.tree as tree,
+            @weak self.hovered_category_expand as hovered_category_expand,
+            @strong self.sender as sender => move |widget, _ctx, _x, y, selection_data, _info, _time| {
+            Self::clear_hovered_expand(&hovered_category_expand);
+            let children = widget.get_children();
+            for widget in children {
+                if let Some(ctx) = GtkUtil::get_dnd_style_context_widget(&widget) {
+                    ctx.remove_class("drag-bottom");
+                    ctx.remove_class("drag-top");
                 }
+            }
 
-                if let Some(row) = widget.get_row_at_y(y) {
-                    let alloc = row.get_allocation();
-                    let index = row.get_index();
+            if let Some(row) = widget.get_row_at_y(y) {
+                let alloc = row.get_allocation();
+                let index = row.get_index();
 
-                    let index = if y < alloc.y + (alloc.height / 2) {
-                        if index > 0 {
-                            index - 1
-                        } else {
-                            index
-                        }
-                    } else if index + 1 >= 0 {
-                        index + 1
+                let index = if y < alloc.y + (alloc.height / 2) {
+                    if index > 0 {
+                        index - 1
                     } else {
                         index
-                    };
+                    }
+                } else if index + 1 >= 0 {
+                    index + 1
+                } else {
+                    index
+                };
 
-                    if let Ok((parent_category, sort_index)) = tree.read().calculate_dnd(index).map_err(|_| {
-                        error!("Failed to calculate Drag&Drop action");
-                    }) {
-                        if let Some(dnd_data_string) = selection_data.get_text() {
-                            if dnd_data_string.contains("FeedID") {
-                                let dnd_data_string = dnd_data_string.as_str().to_owned().split_off(6);
-                                let dnd_data_string: Vec<&str> = dnd_data_string.split(";").collect();
-                                let feed_string =
-                                    dnd_data_string.get(0).expect("Didn't receive feed ID with DnD data.");
-                                let feed: FeedID =
-                                    serde_json::from_str(feed_string).expect("Failed to deserialize FeedID.");
-                                let category_string = dnd_data_string
-                                    .get(1)
-                                    .expect("Didn't receive category ID with DnD data.");
-                                let current_category: CategoryID =
-                                    serde_json::from_str(category_string).expect("Failed to deserialize FeedID.");
-                                let dnd_data = FeedListDndAction::MoveFeed(
-                                    feed,
-                                    current_category,
-                                    parent_category.clone(),
-                                    sort_index,
-                                );
-                                Util::send(&sender, Action::DragAndDrop(dnd_data));
-                            }
+                if let Ok((parent_category, sort_index)) = tree.read().calculate_dnd(index).map_err(|_| {
+                    error!("Failed to calculate Drag&Drop action");
+                }) {
+                    if let Some(dnd_data_string) = selection_data.get_text() {
+                        if dnd_data_string.contains("FeedID") {
+                            let dnd_data_string = dnd_data_string.as_str().to_owned().split_off(6);
+                            let dnd_data_string: Vec<&str> = dnd_data_string.split(";").collect();
+                            let feed_string =
+                                dnd_data_string.get(0).expect("Didn't receive feed ID with DnD data.");
+                            let feed: FeedID =
+                                serde_json::from_str(feed_string).expect("Failed to deserialize FeedID.");
+                            let category_string = dnd_data_string
+                                .get(1)
+                                .expect("Didn't receive category ID with DnD data.");
+                            let current_category: CategoryID =
+                                serde_json::from_str(category_string).expect("Failed to deserialize FeedID.");
+                            let dnd_data = FeedListDndAction::MoveFeed(
+                                feed,
+                                current_category,
+                                parent_category.clone(),
+                                sort_index,
+                            );
+                            Util::send(&sender, Action::DragAndDrop(dnd_data));
+                        }
 
-                            if dnd_data_string.contains("CategoryID") {
-                                let category: CategoryID =
-                                    serde_json::from_str(&dnd_data_string.as_str().to_owned().split_off(10))
-                                        .expect("Failed to deserialize CategoryID.");
-                                let dnd_data =
-                                    FeedListDndAction::MoveCategory(category, parent_category.clone(), sort_index);
-                                Util::send(&sender, Action::DragAndDrop(dnd_data));
-                            }
+                        if dnd_data_string.contains("CategoryID") {
+                            let category: CategoryID =
+                                serde_json::from_str(&dnd_data_string.as_str().to_owned().split_off(10))
+                                    .expect("Failed to deserialize CategoryID.");
+                            let dnd_data =
+                                FeedListDndAction::MoveCategory(category, parent_category.clone(), sort_index);
+                            Util::send(&sender, Action::DragAndDrop(dnd_data));
                         }
                     }
                 }
-            });
+            }
+        }));
     }
 
     pub fn update(&mut self, new_tree: FeedListTree) {
@@ -338,10 +341,6 @@ impl FeedList {
 
     fn add_category(&mut self, category: &FeedListCategoryModel, pos: i32, visible: bool) {
         let category_widget = CategoryRow::new(category, &self.state, visible, self.sender.clone());
-        let feeds = self.feeds.clone();
-        let categories = self.categories.clone();
-        let category_id = category.id.clone();
-        let tree = self.tree.clone();
         self.list.insert(&category_widget.read().widget(), pos);
         self.categories
             .write()
@@ -350,7 +349,12 @@ impl FeedList {
         category_widget
             .read()
             .expander_event()
-            .connect_button_press_event(move |_widget, event| {
+            .connect_button_press_event(clone!(
+                @weak self.feeds as feeds,
+                @weak self.categories as categories,
+                @strong category.id as category_id,
+                @weak self.tree as tree => @default-panic, move |_widget, event|
+            {
                 if event.get_button() != 1 {
                     return Inhibit(false);
                 }
@@ -360,7 +364,7 @@ impl FeedList {
                 }
                 Self::expand_collapse_category(&category_id, &tree, &categories, &feeds);
                 Inhibit(true)
-            });
+            }));
     }
 
     pub fn expand_collapse_selected_category(&self) {
@@ -470,25 +474,27 @@ impl FeedList {
             },
         };
 
-        let list = self.list.clone();
-        let selected_row = row.clone();
-        let delayed_selection = self.delayed_selection.clone();
-        gtk::idle_add(move || {
-            list.select_row(Some(&selected_row));
+        gtk::idle_add(clone!(
+            @weak self.list as list,
+            @weak self.delayed_selection as delayed_selection,
+            @weak row => @default-panic, move ||
+        {
+            list.select_row(Some(&row));
 
-            let row = row.clone();
-            let source_id = delayed_selection.clone();
             *delayed_selection.write() = Some(
-                gtk::timeout_add(300, move || {
+                gtk::timeout_add(300, clone!(
+                    @weak delayed_selection,
+                    @weak row => @default-panic, move ||
+                {
                     row.emit_activate();
-                    *source_id.write() = None;
+                    delayed_selection.write().take();
                     Continue(false)
-                })
+                }))
                 .to_glib(),
             );
 
             Continue(false)
-        });
+        }));
 
         Ok(())
     }

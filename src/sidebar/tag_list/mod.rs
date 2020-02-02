@@ -5,7 +5,7 @@ mod tag_row;
 use self::error::{TagListError, TagListErrorKind};
 use crate::sidebar::SidebarIterateItem;
 use crate::util::{BuilderHelper, GtkUtil};
-use glib::{source::Continue, translate::ToGlib};
+use glib::{clone, source::Continue, translate::ToGlib};
 use gtk::{ContainerExt, ListBox, ListBoxExt, ListBoxRowExt, SelectionMode, WidgetExt};
 use models::{TagListChangeSet, TagListModel, TagListTagModel};
 use news_flash::models::TagID;
@@ -30,11 +30,13 @@ impl TagList {
         // set selection mode from NONE -> SINGLE after a delay after it's been shown
         // this ensures selection mode is in SINGLE without having a selected row in the list
         list_box.connect_show(|list| {
-            let list = list.clone();
-            gtk::timeout_add(50, move || {
-                list.set_selection_mode(SelectionMode::Single);
-                Continue(false)
-            });
+            gtk::timeout_add(
+                50,
+                clone!(@weak list => @default-panic, move || {
+                    list.set_selection_mode(SelectionMode::Single);
+                    Continue(false)
+                }),
+            );
         });
 
         TagList {
@@ -122,10 +124,11 @@ impl TagList {
         self.cancel_selection();
 
         if let Some(tag_row) = self.tags.get(&selection) {
-            let list = self.list.clone();
-            let delayed_selection = self.delayed_selection.clone();
             let row = tag_row.read().widget();
-            gtk::idle_add(move || {
+            gtk::idle_add(clone!(
+                @weak self.delayed_selection as delayed_selection,
+                @weak self.list as list => @default-panic, move ||
+            {
                 list.select_row(Some(&row));
 
                 let active_row = row.clone();
@@ -141,7 +144,7 @@ impl TagList {
 
                 row.emit_activate();
                 Continue(false)
-            });
+            }));
             return Ok(());
         }
 

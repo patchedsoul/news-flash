@@ -5,10 +5,11 @@ use crate::undo_bar::UndoActionModel;
 use crate::util::{BuilderHelper, GtkUtil, Util};
 use gdk::{EventMask, EventType};
 use gio::{ActionMapExt, Menu, MenuItem, SimpleAction};
-use glib::{object::Cast, Sender};
+use glib::{clone, object::IsA, Sender};
 use gtk::{
     self, prelude::WidgetExtManual, BinExt, Box, ContainerExt, EventBox, Image, Inhibit, Label, LabelExt, ListBoxRow,
-    ListBoxRowExt, Popover, PopoverExt, PositionType, Revealer, RevealerExt, StateFlags, StyleContextExt, WidgetExt,
+    ListBoxRowExt, Popover, PopoverExt, PositionType, Revealer, RevealerExt, StateFlags, StyleContextExt, Widget,
+    WidgetExt,
 };
 use news_flash::models::CategoryID;
 use parking_lot::RwLock;
@@ -57,7 +58,7 @@ impl CategoryRow {
         };
         category.update_title(&model.label);
         category.update_item_count(model.item_count);
-        Self::rotate_arrow(&arrow_image.upcast::<gtk::Widget>(), model.expanded);
+        Self::rotate_arrow(&arrow_image, model.expanded);
         if !visible {
             category.collapse();
         }
@@ -68,37 +69,40 @@ impl CategoryRow {
         arrow_event.set_events(EventMask::ENTER_NOTIFY_MASK);
         arrow_event.set_events(EventMask::LEAVE_NOTIFY_MASK);
 
-        let arrow_image = builder.get::<Image>("arrow_image");
-        arrow_event.connect_enter_notify_event(move |_widget, _| {
-            arrow_image.set_opacity(1.0);
-            gtk::Inhibit(false)
-        });
+        arrow_event.connect_enter_notify_event(
+            clone!(@weak arrow_image => @default-panic, move |_widget, _| {
+                arrow_image.set_opacity(1.0);
+                Inhibit(false)
+            }),
+        );
 
-        let arrow_image = builder.get::<Image>("arrow_image");
-        arrow_event.connect_leave_notify_event(move |_widget, _| {
-            arrow_image.set_opacity(0.8);
-            gtk::Inhibit(false)
-        });
+        arrow_event.connect_leave_notify_event(
+            clone!(@weak arrow_image => @default-panic, move |_widget, _| {
+                arrow_image.set_opacity(0.8);
+                Inhibit(false)
+            }),
+        );
 
-        let arrow_image = builder.get::<Image>("arrow_image");
-        arrow_event.connect_button_press_event(move |_widget, event| {
-            if event.get_button() != 1 {
-                return gtk::Inhibit(false);
-            }
-            match event.get_event_type() {
-                EventType::ButtonPress => (),
-                _ => return gtk::Inhibit(false),
-            }
-            let expanded = handle1.read().expanded;
-            Self::rotate_arrow(&arrow_image.clone().upcast::<gtk::Widget>(), !expanded);
-            handle1.write().expanded = !expanded;
-            gtk::Inhibit(false)
-        });
+        arrow_event.connect_button_press_event(
+            clone!(@weak arrow_image => @default-panic, move |_widget, event| {
+                if event.get_button() != 1 {
+                    return Inhibit(false);
+                }
+                match event.get_event_type() {
+                    EventType::ButtonPress => (),
+                    _ => return gtk::Inhibit(false),
+                }
+                let expanded = handle1.read().expanded;
+                Self::rotate_arrow(&arrow_image, !expanded);
+                handle1.write().expanded = !expanded;
+                Inhibit(false)
+            }),
+        );
 
         handle
     }
 
-    fn rotate_arrow(arrow_image: &gtk::Widget, expanded: bool) {
+    fn rotate_arrow<W: IsA<Widget>>(arrow_image: &W, expanded: bool) {
         let context = arrow_image.get_style_context();
 
         if expanded {
@@ -128,12 +132,12 @@ impl CategoryRow {
         row.add(&eventbox);
         eventbox.add(widget);
 
-        let category_id = id.clone();
-        let label = label.clone();
-        let listbox_row = row.clone();
-        let sender = sender.clone();
-        let state = state.clone();
-        eventbox.connect_button_press_event(move |_eventbox, event| {
+        eventbox.connect_button_press_event(clone!(
+            @strong id as category_id,
+            @strong sender,
+            @weak label,
+            @weak state,
+            @weak row => @default-panic, move |_eventbox, event| {
             if event.get_button() != 3 {
                 return Inhibit(false);
             }
@@ -151,15 +155,12 @@ impl CategoryRow {
 
             let model = Menu::new();
 
-            let sender_clone = sender.clone();
-            let category_id_clone = category_id.clone();
             let rename_category_dialog_action = SimpleAction::new("rename-category-dialog", None);
-            rename_category_dialog_action.connect_activate(move |_action, _parameter| {
-                let category_id = category_id_clone.clone();
-                Util::send(&sender_clone, Action::RenameCategoryDialog(category_id));
-            });
+            rename_category_dialog_action.connect_activate(clone!(@strong sender, @strong category_id => move |_action, _parameter| {
+                Util::send(&sender, Action::RenameCategoryDialog(category_id.clone()));
+            }));
 
-            if let Ok(main_window) = GtkUtil::get_main_window(&listbox_row) {
+            if let Ok(main_window) = GtkUtil::get_main_window(&row) {
                 main_window.add_action(&rename_category_dialog_action);
             }
 
@@ -169,35 +170,35 @@ impl CategoryRow {
 
             let delete_category_item = MenuItem::new(Some("Delete"), None);
             let delete_category_action = SimpleAction::new("enqueue-delete-category", None);
-            let sender = sender.clone();
-            let category_id = category_id.clone();
-            let label = label.clone();
-            delete_category_action.connect_activate(move |_action, _parameter| {
+            delete_category_action.connect_activate(clone!(
+                @weak label,
+                @strong category_id,
+                @strong sender => move |_action, _parameter|
+            {
                 let label = match label.get_text() {
                     Some(label) => label.as_str().to_owned(),
                     None => "".to_owned(),
                 };
                 let remove_action = UndoActionModel::DeleteCategory((category_id.clone(), label));
                 Util::send(&sender, Action::UndoableAction(remove_action));
-            });
-            if let Ok(main_window) = GtkUtil::get_main_window(&listbox_row) {
+            }));
+            if let Ok(main_window) = GtkUtil::get_main_window(&row) {
                 main_window.add_action(&delete_category_action);
             }
             delete_category_item.set_action_and_target_value(Some("enqueue-delete-category"), None);
             model.append_item(&delete_category_item);
 
-            let popover = Popover::new(Some(&listbox_row));
+            let popover = Popover::new(Some(&row));
             popover.set_position(PositionType::Bottom);
             popover.bind_model(Some(&model), Some("win"));
             popover.show();
-            let row_clone = listbox_row.clone();
-            popover.connect_closed(move |_popover| {
-                row_clone.unset_state_flags(StateFlags::PRELIGHT);
-            });
-            listbox_row.set_state_flags(StateFlags::PRELIGHT, false);
+            popover.connect_closed(clone!(@weak row => move |_popover| {
+                row.unset_state_flags(StateFlags::PRELIGHT);
+            }));
+            row.set_state_flags(StateFlags::PRELIGHT, false);
 
             Inhibit(true)
-        });
+        }));
 
         row
     }

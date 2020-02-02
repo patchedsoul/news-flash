@@ -16,7 +16,7 @@ use gdk::{
     Display, EventMask, ModifierType, ScrollDirection,
 };
 use gio::{Cancellable, Settings as GSettings, SettingsExt as GSettingsExt};
-use glib::{object::Cast, source::Continue, translate::ToGlib, MainLoop};
+use glib::{clone, object::Cast, source::Continue, translate::ToGlib, MainLoop};
 use gtk::{
     prelude::WidgetExtManual, Button, ButtonExt, ContainerExt, Inhibit, Overlay, OverlayExt,
     SettingsExt as GtkSettingsExt, Stack, StackExt, TickCallbackId, WidgetExt,
@@ -75,7 +75,7 @@ pub struct ArticleView {
     drag_y_pos: Arc<RwLock<f64>>,
     drag_momentum: Arc<RwLock<f64>>,
     pointer_pos: Arc<RwLock<(f64, f64)>>,
-    scroll_animation_data: ScrollAnimationProperties,
+    scroll_animation_data: Arc<ScrollAnimationProperties>,
 }
 
 impl ArticleView {
@@ -92,10 +92,9 @@ impl ArticleView {
 
         let visible_article: Arc<RwLock<Option<FatArticle>>> = Arc::new(RwLock::new(None));
         let visible_feed_name: Arc<RwLock<Option<String>>> = Arc::new(RwLock::new(None));
-        let visible_article_crash_view = visible_article.clone();
         let view_html_button = builder.get::<Button>("view_html_button");
-        view_html_button.connect_clicked(move |_button| {
-            if let Some(article) = visible_article_crash_view.read().as_ref() {
+        view_html_button.connect_clicked(clone!(@strong visible_article => move |_button| {
+            if let Some(article) = visible_article.read().as_ref() {
                 if let Some(html) = &article.html {
                     if let Ok(path) = FileUtil::write_temp_file("crashed_article.html", html) {
                         if let Some(default_screen) = gdk::Screen::get_default() {
@@ -111,7 +110,7 @@ impl ArticleView {
                     }
                 }
             }
-        });
+        }));
 
         let stack = builder.get::<Stack>("article_view_stack");
         stack.set_visible_child_name("empty");
@@ -147,13 +146,13 @@ impl ArticleView {
             drag_y_pos: Arc::new(RwLock::new(0.0)),
             drag_momentum: Arc::new(RwLock::new(0.0)),
             pointer_pos: Arc::new(RwLock::new((0.0, 0.0))),
-            scroll_animation_data: ScrollAnimationProperties {
+            scroll_animation_data: Arc::new(ScrollAnimationProperties {
                 start_time: Arc::new(RwLock::new(None)),
                 end_time: Arc::new(RwLock::new(None)),
                 scroll_callback_id: Arc::new(RwLock::new(None)),
                 transition_start_value: Arc::new(RwLock::new(None)),
                 transition_diff: Arc::new(RwLock::new(None)),
-            },
+            }),
         };
 
         article_view.stack.show_all();
@@ -317,15 +316,14 @@ impl ArticleView {
         }
 
         // remove old view after timeout
-        let stack_clone = stack.clone();
-        gtk::timeout_add(timeout, move || {
+        gtk::timeout_add(timeout, clone!(@weak stack => @default-panic, move || {
             if let Some(old_state) = old_state.to_str() {
-                if let Some(old_view) = stack_clone.get_child_by_name(&old_state) {
-                    stack_clone.remove(&old_view);
+                if let Some(old_view) = stack.get_child_by_name(&old_state) {
+                    stack.remove(&old_view);
                 }
             }
             Continue(false)
-        });
+        }));
     }
 
     fn new_webview(&self) -> WebView {
@@ -420,12 +418,13 @@ impl ArticleView {
         //----------------------------------
         // show url overlay
         //----------------------------------
-        let url_overlay_handle = self.url_overlay_label.clone();
-        let stack = self.stack.clone();
-        let pointer_pos = self.pointer_pos.clone();
         self.mouse_over_signal.write().replace(
             webview
-                .connect_mouse_target_changed(move |_closure_webivew, hit_test, _modifiers| {
+                .connect_mouse_target_changed(clone!(
+                    @weak self.url_overlay_label as url_overlay_label,
+                    @weak self.pointer_pos as pointer_pos,
+                    @weak self.stack as stack => move |_closure_webivew, hit_test, _modifiers|
+                {
                     if hit_test.context_is_link() {
                         if let Some(uri) = hit_test.get_link_uri() {
                             let allocation = stack.get_allocation();
@@ -438,13 +437,13 @@ impl ArticleView {
                                 gtk::Align::Start
                             };
 
-                            url_overlay_handle.read().set_url(uri.as_str().to_owned(), align);
-                            url_overlay_handle.read().reveal(true);
+                            url_overlay_label.read().set_url(uri.as_str().to_owned(), align);
+                            url_overlay_label.read().reveal(true);
                         }
                     } else {
-                        url_overlay_handle.read().reveal(false);
+                        url_overlay_label.read().reveal(false);
                     }
-                })
+                }))
                 .to_glib(),
         );
 
@@ -530,21 +529,21 @@ impl ArticleView {
         //----------------------------------
         // display load progress
         //----------------------------------
-        let progress_handle = self.progress_overlay_label.clone();
-        let progress_overlay_delay_signal = self.progress_overlay_delay_signal.clone();
-        let load_signal = self.load_signal.clone();
-        let progress_webview = webview.clone();
         self.progress_overlay_delay_signal.write().replace(
-            gtk::timeout_add(1500, move || {
+            gtk::timeout_add(1500, clone!(
+                @weak webview,
+                @weak self.progress_overlay_label as progress_handle,
+                @weak self.progress_overlay_delay_signal as progress_overlay_delay_signal,
+                @weak self.load_signal as load_signal => @default-panic, move ||
+            {
                 progress_overlay_delay_signal.write().take();
-                if (progress_webview.get_estimated_load_progress() - 1.0).abs() < 0.01 {
+                if (webview.get_estimated_load_progress() - 1.0).abs() < 0.01 {
                     return Continue(false);
                 }
 
-                let progress_handle = progress_handle.clone();
                 load_signal.write().replace(
-                    progress_webview
-                        .connect_property_estimated_load_progress_notify(move |closure_webivew| {
+                    webview
+                        .connect_property_estimated_load_progress_notify(clone!(@weak progress_handle => move |closure_webivew| {
                             let progress = closure_webivew.get_estimated_load_progress();
                             if progress >= 1.0 {
                                 progress_handle.read().reveal(false);
@@ -552,28 +551,29 @@ impl ArticleView {
                             }
                             progress_handle.read().reveal(true);
                             progress_handle.read().set_percentage(progress);
-                        })
+                        }))
                         .to_glib(),
                 );
                 Continue(false)
-            })
+            }))
             .to_glib(),
         );
 
         //----------------------------------
         // drag page
         //----------------------------------
-        let drag_buffer = self.drag_buffer.clone();
-        let drag_ongoing = self.drag_ongoing.clone();
-        let widget = self.top_overlay.clone();
-        let drag_y_pos = self.drag_y_pos.clone();
-        let drag_momentum = self.drag_momentum.clone();
-        let drag_motion_notify_signal = self.drag_motion_notify_signal.clone();
-        let drag_buffer_update_signal = self.drag_buffer_update_signal.clone();
-        let scroll_animation_data = self.scroll_animation_data.clone();
         self.click_signal.write().replace(
             webview
-                .connect_button_press_event(move |closure_webview, event| {
+                .connect_button_press_event(clone!(
+                    @weak self.top_overlay as widget,
+                    @weak self.drag_ongoing as drag_ongoing,
+                    @weak self.drag_y_pos as drag_y_pos,
+                    @weak self.drag_momentum as drag_momentum,
+                    @weak self.drag_motion_notify_signal as drag_motion_notify_signal,
+                    @weak self.drag_buffer_update_signal as drag_buffer_update_signal,
+                    @weak self.scroll_animation_data as scroll_animation_data,
+                    @weak self.drag_buffer as drag_buffer => @default-panic, move |closure_webview, event|
+                {
                     if event.get_button() == MIDDLE_MOUSE_BUTTON {
                         Self::stop_scroll_animation(&closure_webview, &scroll_animation_data);
                         let (_, y) = event.get_position();
@@ -597,42 +597,42 @@ impl ArticleView {
                                         );
 
                                         gtk::device_grab_add(&widget, &pointer, false);
-                                        let drag_buffer_update = drag_buffer.clone();
-                                        let drag_momentum_update = drag_momentum.clone();
-                                        let drag_ongoing_update = drag_ongoing.clone();
-                                        let drag_y_pos_update = drag_y_pos.clone();
-                                        let drag_buffer_update_signal_clone = drag_buffer_update_signal.clone();
                                         drag_buffer_update_signal.write().replace(
-                                            gtk::timeout_add(10, move || {
-                                                if !*drag_ongoing_update.read() {
-                                                    drag_buffer_update_signal_clone.write().take();
+                                            gtk::timeout_add(10, clone!(
+                                                @weak drag_ongoing,
+                                                @weak drag_y_pos,
+                                                @weak drag_momentum,
+                                                @weak drag_buffer_update_signal,
+                                                @weak drag_buffer => @default-panic, move ||
+                                            {
+                                                if !*drag_ongoing.read() {
+                                                    drag_buffer_update_signal.write().take();
                                                     return Continue(false);
                                                 }
 
                                                 for i in (1..10).rev() {
-                                                    let value = (*drag_buffer_update.read())[i - 1];
-                                                    (*drag_buffer_update.write())[i] = value;
+                                                    let value = (*drag_buffer.read())[i - 1];
+                                                    (*drag_buffer.write())[i] = value;
                                                 }
 
-                                                (*drag_buffer_update.write())[0] = *drag_y_pos_update.read();
-                                                *drag_momentum_update.write() =
-                                                    (*drag_buffer_update.read())[9] - (*drag_buffer_update.read())[0];
+                                                (*drag_buffer.write())[0] = *drag_y_pos.read();
+                                                *drag_momentum.write() =
+                                                    (*drag_buffer.read())[9] - (*drag_buffer.read())[0];
                                                 Continue(true)
-                                            })
+                                            }))
                                             .to_glib(),
                                         );
 
-                                        let drag_y_pos_motion_update = drag_y_pos.clone();
                                         drag_motion_notify_signal.write().replace(
                                             closure_webview
-                                                .connect_motion_notify_event(move |view, event| {
+                                                .connect_motion_notify_event(clone!(@weak drag_y_pos => @default-panic, move |view, event| {
                                                     let (_, y) = event.get_position();
-                                                    let scroll = *drag_y_pos_motion_update.read() - y;
-                                                    *drag_y_pos_motion_update.write() = y;
+                                                    let scroll = *drag_y_pos.read() - y;
+                                                    *drag_y_pos.write() = y;
                                                     let scroll_pos = Self::get_scroll_pos_static(view);
                                                     Self::set_scroll_pos_static(view, scroll_pos + scroll);
                                                     Inhibit(false)
-                                                })
+                                                }))
                                                 .to_glib(),
                                         );
                                     }
@@ -642,27 +642,29 @@ impl ArticleView {
                         return Inhibit(true);
                     }
                     Inhibit(false)
-                })
+                }))
                 .to_glib(),
         );
 
-        let drag_motion_notify_signal = self.drag_motion_notify_signal.clone();
-        let drag_released_motion_signal = self.drag_released_motion_signal.clone();
-        let drag_ongoing = self.drag_ongoing.clone();
-        let drag_momentum = self.drag_momentum.clone();
-        let widget = self.top_overlay.clone();
         self.click_release_signal.write().replace(
             webview
-                .connect_button_release_event(move |closure_webivew, event| {
+                .connect_button_release_event(clone!(
+                    @weak self.drag_ongoing as drag_ongoing,
+                    @weak self.drag_momentum as drag_momentum,
+                    @weak self.drag_motion_notify_signal as drag_motion_notify_signal,
+                    @weak self.drag_released_motion_signal as drag_released_motion_signal,
+                    @weak self.top_overlay as widget => @default-panic, move |view, event|
+                {
                     if event.get_button() == MIDDLE_MOUSE_BUTTON {
-                        GtkUtil::disconnect_signal(*drag_motion_notify_signal.read(), closure_webivew);
+                        GtkUtil::disconnect_signal(*drag_motion_notify_signal.read(), view);
                         *drag_ongoing.write() = false;
 
-                        let drag_momentum = drag_momentum.clone();
-                        let drag_released_motion_signal_clone = drag_released_motion_signal.clone();
-                        let view = closure_webivew.clone();
                         drag_released_motion_signal.write().replace(
-                            gtk::timeout_add(20, move || {
+                            gtk::timeout_add(20, clone!(
+                                @weak view,
+                                @weak drag_released_motion_signal,
+                                @weak drag_momentum => @default-panic, move ||
+                            {
                                 *drag_momentum.write() /= 1.2;
                                 let allocation = view.get_allocation();
 
@@ -681,12 +683,12 @@ impl ArticleView {
                                 Self::set_scroll_pos_static(&view, new_scroll_pos);
 
                                 if drag_momentum.read().abs() < 1.0 {
-                                    drag_released_motion_signal_clone.write().take();
+                                    drag_released_motion_signal.write().take();
                                     return Continue(false);
                                 }
 
                                 Continue(true)
-                            })
+                            }))
                             .to_glib(),
                         );
 
@@ -702,29 +704,30 @@ impl ArticleView {
                         return Inhibit(true);
                     }
                     Inhibit(false)
-                })
+                }))
                 .to_glib(),
         );
 
         //----------------------------------
         // crash view
         //----------------------------------
-        let stack = self.stack.clone();
-        let progress_overlay_label = self.progress_overlay_label.clone();
-        let internal_state = self.internal_state.clone();
-        let load_changed_signal = self.load_changed_signal.clone();
-        let decide_policy_signal = self.decide_policy_signal.clone();
-        let mouse_over_signal = self.mouse_over_signal.clone();
-        let scroll_signal = self.scroll_signal.clone();
-        let key_press_signal = self.key_press_signal.clone();
-        let ctx_menu_signal = self.ctx_menu_signal.clone();
-        let load_signal = self.load_signal.clone();
-        let click_signal = self.click_signal.clone();
-        let click_release_signal = self.click_release_signal.clone();
-        let drag_released_motion_signal = self.drag_released_motion_signal.clone();
-        let drag_buffer_update_signal = self.drag_buffer_update_signal.clone();
-        let progress_overlay_delay_signal = self.progress_overlay_delay_signal.clone();
-        webview.connect_web_process_crashed(move |_closure_webivew| {
+        webview.connect_web_process_crashed(clone!(
+            @weak self.progress_overlay_delay_signal as progress_overlay_delay_signal,
+            @weak self.drag_buffer_update_signal as drag_buffer_update_signal,
+            @weak self.drag_released_motion_signal as drag_released_motion_signal,
+            @weak self.click_release_signal as click_release_signal,
+            @weak self.click_signal as click_signal,
+            @weak self.load_signal as load_signal,
+            @weak self.ctx_menu_signal as ctx_menu_signal,
+            @weak self.key_press_signal as key_press_signal,
+            @weak self.scroll_signal as scroll_signal,
+            @weak self.mouse_over_signal as mouse_over_signal,
+            @weak self.decide_policy_signal as decide_policy_signal,
+            @weak self.load_changed_signal as load_changed_signal,
+            @weak self.internal_state as internal_state,
+            @weak self.progress_overlay_label as progress_overlay_label,
+            @weak self.stack as stack => @default-panic, move |_closure_webivew|
+        {
             Self::remove_old_view_static(
                 150,
                 &progress_overlay_label,
@@ -746,13 +749,12 @@ impl ArticleView {
             stack.set_visible_child_name("crash");
             *internal_state.write() = InternalState::Crash;
             false
-        });
+        }));
 
-        let pointer_pos = self.pointer_pos.clone();
-        webview.connect_motion_notify_event(move |_closure_webivew, event| {
+        webview.connect_motion_notify_event(clone!(@weak self.pointer_pos as pointer_pos => @default-panic, move |_closure_webivew, event| {
             *pointer_pos.write() = event.get_position();
             Inhibit(false)
-        });
+        }));
 
         // webview.enter_fullscreen.connect(enterFullscreenVideo);
         // webview.leave_fullscreen.connect(leaveFullscreenVideo);
@@ -922,21 +924,19 @@ impl ArticleView {
 
     fn webview_js_get_f64(view: &WebView, java_script: &str) -> Result<f64, ArticleViewError> {
         let wait_loop = Arc::new(MainLoop::new(None, false));
-        let callback_wait_loop = wait_loop.clone();
         let value: Arc<RwLock<Option<f64>>> = Arc::new(RwLock::new(None));
-        let callback_value = value.clone();
         let cancellable: Option<&Cancellable> = None;
-        view.run_javascript(java_script, cancellable, move |res| {
+        view.run_javascript(java_script, cancellable, clone!(@weak wait_loop, @weak value => move |res| {
             match res {
                 Ok(result) => {
                     let context = result.get_global_context().expect("Failed to get webkit js context.");
-                    let value = result.get_value().expect("Failed to get value from js result.");
-                    *callback_value.write() = value.to_number(&context);
+                    let new_value = result.get_value().expect("Failed to get value from js result.");
+                    *value.write() = new_value.to_number(&context);
                 }
                 Err(_) => error!("Getting scroll pos failed"),
             }
-            callback_wait_loop.quit();
-        });
+            wait_loop.quit();
+        }));
 
         wait_loop.run();
 
@@ -1079,11 +1079,12 @@ impl ArticleView {
             .get_child_by_name(&view_name)
             .ok_or_else(|| ArticleViewErrorKind::InvalidActiveWebView)?;
 
-        let scroll_animation_data = self.scroll_animation_data.clone();
         self.scroll_animation_data
             .scroll_callback_id
             .write()
-            .replace(view.add_tick_callback(move |widget, clock| {
+            .replace(view.add_tick_callback(clone!(
+                @weak self.scroll_animation_data as scroll_animation_data => @default-panic, move |widget, clock|
+            {
                 let view = widget
                     .clone()
                     .downcast::<WebView>()
@@ -1122,7 +1123,7 @@ impl ArticleView {
                 }
 
                 Continue(true)
-            }));
+            })));
 
         Ok(())
     }
