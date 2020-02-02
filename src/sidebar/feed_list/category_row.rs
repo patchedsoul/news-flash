@@ -69,35 +69,29 @@ impl CategoryRow {
         arrow_event.set_events(EventMask::ENTER_NOTIFY_MASK);
         arrow_event.set_events(EventMask::LEAVE_NOTIFY_MASK);
 
-        arrow_event.connect_enter_notify_event(
-            clone!(@weak arrow_image => @default-panic, move |_widget, _| {
-                arrow_image.set_opacity(1.0);
-                Inhibit(false)
-            }),
-        );
+        arrow_event.connect_enter_notify_event(clone!(@weak arrow_image => @default-panic, move |_widget, _| {
+            arrow_image.set_opacity(1.0);
+            Inhibit(false)
+        }));
 
-        arrow_event.connect_leave_notify_event(
-            clone!(@weak arrow_image => @default-panic, move |_widget, _| {
-                arrow_image.set_opacity(0.8);
-                Inhibit(false)
-            }),
-        );
+        arrow_event.connect_leave_notify_event(clone!(@weak arrow_image => @default-panic, move |_widget, _| {
+            arrow_image.set_opacity(0.8);
+            Inhibit(false)
+        }));
 
-        arrow_event.connect_button_press_event(
-            clone!(@weak arrow_image => @default-panic, move |_widget, event| {
-                if event.get_button() != 1 {
-                    return Inhibit(false);
-                }
-                match event.get_event_type() {
-                    EventType::ButtonPress => (),
-                    _ => return gtk::Inhibit(false),
-                }
-                let expanded = handle1.read().expanded;
-                Self::rotate_arrow(&arrow_image, !expanded);
-                handle1.write().expanded = !expanded;
-                Inhibit(false)
-            }),
-        );
+        arrow_event.connect_button_press_event(clone!(@weak arrow_image => @default-panic, move |_widget, event| {
+            if event.get_button() != 1 {
+                return Inhibit(false);
+            }
+            match event.get_event_type() {
+                EventType::ButtonPress => (),
+                _ => return gtk::Inhibit(false),
+            }
+            let expanded = handle1.read().expanded;
+            Self::rotate_arrow(&arrow_image, !expanded);
+            handle1.write().expanded = !expanded;
+            Inhibit(false)
+        }));
 
         handle
     }

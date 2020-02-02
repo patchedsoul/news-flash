@@ -265,10 +265,13 @@ impl PasswordLogin {
 
     fn hide_info_bar(info_bar: &gtk::InfoBar) {
         info_bar.set_revealed(false);
-        gtk::timeout_add(200, clone!(@weak info_bar => @default-panic, move || {
-            info_bar.set_visible(false);
-            Continue(false)
-        }));
+        gtk::timeout_add(
+            200,
+            clone!(@weak info_bar => @default-panic, move || {
+                info_bar.set_visible(false);
+                Continue(false)
+            }),
+        );
     }
 
     pub fn show_error(&self, error: NewsFlashError) {

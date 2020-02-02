@@ -166,19 +166,22 @@ impl SingleArticleList {
 
             let article_widget = article_handle.read().widget();
             *self.select_after_signal.write() = Some(
-                gtk::timeout_add(time, clone!(
-                    @weak self.select_after_signal as select_after_signal,
-                    @weak self.content_header as content_header => @default-panic, move ||
-                {
-                    if content_header.is_search_focused() {
-                        return Continue(false);
-                    }
+                gtk::timeout_add(
+                    time,
+                    clone!(
+                        @weak self.select_after_signal as select_after_signal,
+                        @weak self.content_header as content_header => @default-panic, move ||
+                    {
+                        if content_header.is_search_focused() {
+                            return Continue(false);
+                        }
 
-                    article_widget.activate();
+                        article_widget.activate();
 
-                    *select_after_signal.write() = None;
-                    Continue(false)
-                }))
+                        *select_after_signal.write() = None;
+                        Continue(false)
+                    }),
+                )
                 .to_glib(),
             );
         }
@@ -227,55 +230,54 @@ impl SingleArticleList {
 
         *self.scroll_animation_data.transition_start_value.write() = Some(self.get_scroll_value());
 
-        *self.scroll_animation_data.scroll_callback_id.write() =
-            Some(self.scroll.add_tick_callback(clone!(
-                @weak self.scroll_animation_data.transition_diff as transition_diff,
-                @weak self.scroll_animation_data.transition_start_value as transition_start_value,
-                @weak self.scroll_animation_data.scroll_callback_id as callback_id,
-                @weak self.scroll_animation_data.start_time as start_time,
-                @weak self.scroll_animation_data.end_time as end_time => @default-panic, move |widget, clock| {
-                let scroll = widget
-                    .clone()
-                    .downcast::<ScrolledWindow>()
-                    .expect("Scroll tick not on ScrolledWindow");
+        *self.scroll_animation_data.scroll_callback_id.write() = Some(self.scroll.add_tick_callback(clone!(
+            @weak self.scroll_animation_data.transition_diff as transition_diff,
+            @weak self.scroll_animation_data.transition_start_value as transition_start_value,
+            @weak self.scroll_animation_data.scroll_callback_id as callback_id,
+            @weak self.scroll_animation_data.start_time as start_time,
+            @weak self.scroll_animation_data.end_time as end_time => @default-panic, move |widget, clock| {
+            let scroll = widget
+                .clone()
+                .downcast::<ScrolledWindow>()
+                .expect("Scroll tick not on ScrolledWindow");
 
-                let start_value = Util::some_or_default(*transition_start_value.read(), 0.0);
-                let diff_value = Util::some_or_default(*transition_diff.read(), 0.0);
-                let now = clock.get_frame_time();
-                let end_time_value = Util::some_or_default(*end_time.read(), 0);
-                let start_time_value = Util::some_or_default(*start_time.read(), 0);
+            let start_value = Util::some_or_default(*transition_start_value.read(), 0.0);
+            let diff_value = Util::some_or_default(*transition_diff.read(), 0.0);
+            let now = clock.get_frame_time();
+            let end_time_value = Util::some_or_default(*end_time.read(), 0);
+            let start_time_value = Util::some_or_default(*start_time.read(), 0);
 
-                if !widget.get_mapped() {
-                    Self::set_scroll_value_static(&scroll, start_value + diff_value);
-                    return Continue(false);
-                }
+            if !widget.get_mapped() {
+                Self::set_scroll_value_static(&scroll, start_value + diff_value);
+                return Continue(false);
+            }
 
-                if end_time.read().is_none() {
-                    return Continue(false);
-                }
+            if end_time.read().is_none() {
+                return Continue(false);
+            }
 
-                let t = if now < end_time_value {
-                    (now - start_time_value) as f64 / (end_time_value - start_time_value) as f64
-                } else {
-                    1.0
-                };
+            let t = if now < end_time_value {
+                (now - start_time_value) as f64 / (end_time_value - start_time_value) as f64
+            } else {
+                1.0
+            };
 
-                let t = Util::ease_out_cubic(t);
+            let t = Util::ease_out_cubic(t);
 
-                Self::set_scroll_value_static(&scroll, start_value + (t * diff_value));
+            Self::set_scroll_value_static(&scroll, start_value + (t * diff_value));
 
-                if Self::get_scroll_value_static(&scroll) <= 0.0 || now >= end_time_value {
-                    scroll.queue_draw();
-                    *transition_start_value.write() = None;
-                    *transition_diff.write() = None;
-                    *start_time.write() = None;
-                    *end_time.write() = None;
-                    *callback_id.write() = None;
-                    return Continue(false);
-                }
+            if Self::get_scroll_value_static(&scroll) <= 0.0 || now >= end_time_value {
+                scroll.queue_draw();
+                *transition_start_value.write() = None;
+                *transition_diff.write() = None;
+                *start_time.write() = None;
+                *end_time.write() = None;
+                *callback_id.write() = None;
+                return Continue(false);
+            }
 
-                Continue(true)
-            })));
+            Continue(true)
+        })));
     }
 
     fn set_scroll_value(&self, pos: f64) {

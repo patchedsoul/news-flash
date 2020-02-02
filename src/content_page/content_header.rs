@@ -248,23 +248,26 @@ impl ContentHeader {
 
         let mode_before_cooldown = (*header_selection.read()).clone();
         linked_button_timeout.write().replace(
-            gtk::timeout_add(250, clone!(
-                @weak button as toggle_button,
-                @strong header_selection,
-                @strong linked_button_timeout,
-                @strong sender => @default-panic, move ||
-            {
-                linked_button_timeout.write().take();
-                if mode_before_cooldown != *header_selection.read() {
-                    Self::linked_button_toggled(
-                        &sender,
-                        &toggle_button,
-                        &header_selection,
-                        &linked_button_timeout,
-                    );
-                }
-                Continue(false)
-            }))
+            gtk::timeout_add(
+                250,
+                clone!(
+                    @weak button as toggle_button,
+                    @strong header_selection,
+                    @strong linked_button_timeout,
+                    @strong sender => @default-panic, move ||
+                {
+                    linked_button_timeout.write().take();
+                    if mode_before_cooldown != *header_selection.read() {
+                        Self::linked_button_toggled(
+                            &sender,
+                            &toggle_button,
+                            &header_selection,
+                            &linked_button_timeout,
+                        );
+                    }
+                    Continue(false)
+                }),
+            )
             .to_glib(),
         );
     }

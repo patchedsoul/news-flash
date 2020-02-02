@@ -91,115 +91,114 @@ impl FeedList {
         self.list
             .drag_dest_set(DestDefaults::DROP | DestDefaults::MOTION, &[entry], DragAction::MOVE);
         self.list.drag_dest_add_text_targets();
-        self.list
-            .connect_drag_motion(clone!(
-                @weak self.tree as tree,
-                @weak self.feeds as feeds,
-                @weak self.hovered_category_expand as hovered_category_expand,
-                @weak self.categories as categories => @default-panic, move |widget, _drag_context, _x, y, _time|
-            {
-                // maybe we should keep track of the previous highlighted rows instead of iterating over all of them
-                let children = widget.get_children();
-                for widget in children {
-                    if let Some(ctx) = GtkUtil::get_dnd_style_context_widget(&widget) {
-                        ctx.remove_class("drag-bottom");
-                        ctx.remove_class("drag-top");
-                        ctx.remove_class("drag-category");
+        self.list.connect_drag_motion(clone!(
+            @weak self.tree as tree,
+            @weak self.feeds as feeds,
+            @weak self.hovered_category_expand as hovered_category_expand,
+            @weak self.categories as categories => @default-panic, move |widget, _drag_context, _x, y, _time|
+        {
+            // maybe we should keep track of the previous highlighted rows instead of iterating over all of them
+            let children = widget.get_children();
+            for widget in children {
+                if let Some(ctx) = GtkUtil::get_dnd_style_context_widget(&widget) {
+                    ctx.remove_class("drag-bottom");
+                    ctx.remove_class("drag-top");
+                    ctx.remove_class("drag-category");
+                }
+            }
+
+            if let Some(row) = widget.get_row_at_y(y) {
+                let alloc = row.get_allocation();
+                let index = row.get_index();
+                let is_category = GtkUtil::listboxrow_is_category(&row);
+                let height_threshold = if is_category { 4 } else { 2 };
+
+                if y <= alloc.y + (alloc.height / height_threshold) {
+                    Self::clear_hovered_expand(&hovered_category_expand);
+                    if let Some(ctx) = GtkUtil::get_dnd_style_context_listboxrow(&row) {
+                        ctx.add_class("drag-top");
+                        return Inhibit(false);
                     }
                 }
 
-                if let Some(row) = widget.get_row_at_y(y) {
-                    let alloc = row.get_allocation();
-                    let index = row.get_index();
-                    let is_category = GtkUtil::listboxrow_is_category(&row);
-                    let height_threshold = if is_category { 4 } else { 2 };
+                if is_category
+                    && y >= alloc.y + (alloc.height / height_threshold)
+                    && y <= alloc.y + (alloc.height * 3 / 4)
+                {
+                    if let Some(ctx) = GtkUtil::get_dnd_style_context_listboxrow(&row) {
+                        ctx.add_class("drag-category");
+                    }
 
-                    if y <= alloc.y + (alloc.height / height_threshold) {
-                        Self::clear_hovered_expand(&hovered_category_expand);
-                        if let Some(ctx) = GtkUtil::get_dnd_style_context_listboxrow(&row) {
+                    // expand/collapse category on 1.2s hover
+                    let hover = tree.read().calculate_selection(index);
+                    if let Some(hovered_item) = hover {
+                        if let (FeedListItemID::Category(id), _title) = hovered_item {
+                            let mut start_hover = false;
+                            if let Some((saved_source, saved_id)) = &*hovered_category_expand.read() {
+                                if saved_id != &id {
+                                    GtkUtil::remove_source(Some(*saved_source));
+                                    start_hover = true;
+                                }
+                            } else {
+                                start_hover = true;
+                            }
+
+                            if start_hover {
+                                *hovered_category_expand.write() = Some((
+                                    gtk::timeout_add(1200, clone!(
+                                        @strong id,
+                                        @weak tree,
+                                        @weak categories,
+                                        @weak hovered_category_expand,
+                                        @weak feeds => @default-panic, move ||
+                                    {
+                                        if let Some(category_row) = categories.read().get(&id) {
+                                            category_row.write().expand_collapse_arrow();
+                                            Self::expand_collapse_category(&id, &tree, &categories, &feeds);
+                                        }
+                                        *hovered_category_expand.write() = None;
+                                        Continue(false)
+                                    }))
+                                    .to_glib(),
+                                    id,
+                                ));
+                            }
+                        }
+                    }
+
+                    return Inhibit(false);
+                }
+
+                Self::clear_hovered_expand(&hovered_category_expand);
+
+                // check next visible item
+                let next_item = tree.write().calculate_next_item(index);
+                if let SidebarIterateItem::SelectFeedListCategory(id) = &next_item {
+                    if let Some(category_row) = categories.read().get(&id) {
+                        if let Some(ctx) = GtkUtil::get_dnd_style_context_listboxrow(&category_row.read().widget())
+                        {
                             ctx.add_class("drag-top");
                             return Inhibit(false);
                         }
                     }
-
-                    if is_category
-                        && y >= alloc.y + (alloc.height / height_threshold)
-                        && y <= alloc.y + (alloc.height * 3 / 4)
-                    {
-                        if let Some(ctx) = GtkUtil::get_dnd_style_context_listboxrow(&row) {
-                            ctx.add_class("drag-category");
+                } else if let SidebarIterateItem::SelectFeedListFeed(id) = &next_item {
+                    if let Some(feed_row) = feeds.read().get(&id) {
+                        if let Some(ctx) = GtkUtil::get_dnd_style_context_listboxrow(&feed_row.read().widget()) {
+                            ctx.add_class("drag-top");
+                            return Inhibit(false);
                         }
-
-                        // expand/collapse category on 1.2s hover
-                        let hover = tree.read().calculate_selection(index);
-                        if let Some(hovered_item) = hover {
-                            if let (FeedListItemID::Category(id), _title) = hovered_item {
-                                let mut start_hover = false;
-                                if let Some((saved_source, saved_id)) = &*hovered_category_expand.read() {
-                                    if saved_id != &id {
-                                        GtkUtil::remove_source(Some(*saved_source));
-                                        start_hover = true;
-                                    }
-                                } else {
-                                    start_hover = true;
-                                }
-
-                                if start_hover {
-                                    *hovered_category_expand.write() = Some((
-                                        gtk::timeout_add(1200, clone!(
-                                            @strong id,
-                                            @weak tree,
-                                            @weak categories,
-                                            @weak hovered_category_expand,
-                                            @weak feeds => @default-panic, move ||
-                                        {
-                                            if let Some(category_row) = categories.read().get(&id) {
-                                                category_row.write().expand_collapse_arrow();
-                                                Self::expand_collapse_category(&id, &tree, &categories, &feeds);
-                                            }
-                                            *hovered_category_expand.write() = None;
-                                            Continue(false)
-                                        }))
-                                        .to_glib(),
-                                        id,
-                                    ));
-                                }
-                            }
-                        }
-
-                        return Inhibit(false);
-                    }
-
-                    Self::clear_hovered_expand(&hovered_category_expand);
-
-                    // check next visible item
-                    let next_item = tree.write().calculate_next_item(index);
-                    if let SidebarIterateItem::SelectFeedListCategory(id) = &next_item {
-                        if let Some(category_row) = categories.read().get(&id) {
-                            if let Some(ctx) = GtkUtil::get_dnd_style_context_listboxrow(&category_row.read().widget())
-                            {
-                                ctx.add_class("drag-top");
-                                return Inhibit(false);
-                            }
-                        }
-                    } else if let SidebarIterateItem::SelectFeedListFeed(id) = &next_item {
-                        if let Some(feed_row) = feeds.read().get(&id) {
-                            if let Some(ctx) = GtkUtil::get_dnd_style_context_listboxrow(&feed_row.read().widget()) {
-                                ctx.add_class("drag-top");
-                                return Inhibit(false);
-                            }
-                        }
-                    }
-
-                    // row after doesn't exist -> insert at last pos
-                    if let Some(ctx) = GtkUtil::get_dnd_style_context_listboxrow(&row) {
-                        ctx.add_class("drag-bottom");
-                        return Inhibit(false);
                     }
                 }
 
-                Inhibit(false)
-            }));
+                // row after doesn't exist -> insert at last pos
+                if let Some(ctx) = GtkUtil::get_dnd_style_context_listboxrow(&row) {
+                    ctx.add_class("drag-bottom");
+                    return Inhibit(false);
+                }
+            }
+
+            Inhibit(false)
+        }));
         self.list.connect_drag_leave(clone!(
             @weak self.hovered_category_expand as hovered_category_expand => move |widget, _drag_context, _time|
         {

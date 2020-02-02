@@ -73,18 +73,14 @@ impl ServiceRow {
         };
         price_label.set_text(price_string);
 
-        arrow_event.connect_leave_notify_event(
-            clone!(@weak arrow_image => @default-panic, move |_widget, _| {
-                arrow_image.set_opacity(0.8);
-                gtk::Inhibit(false)
-            }),
-        );
-        arrow_event.connect_enter_notify_event(
-            clone!(@weak arrow_image => @default-panic, move |_widget, _| {
-                arrow_image.set_opacity(1.0);
-                gtk::Inhibit(false)
-            }),
-        );
+        arrow_event.connect_leave_notify_event(clone!(@weak arrow_image => @default-panic, move |_widget, _| {
+            arrow_image.set_opacity(0.8);
+            gtk::Inhibit(false)
+        }));
+        arrow_event.connect_enter_notify_event(clone!(@weak arrow_image => @default-panic, move |_widget, _| {
+            arrow_image.set_opacity(1.0);
+            gtk::Inhibit(false)
+        }));
 
         let scale = GtkUtil::get_scale(&row);
         let surface = if let Some(icon) = info.icon {

@@ -316,14 +316,17 @@ impl ArticleView {
         }
 
         // remove old view after timeout
-        gtk::timeout_add(timeout, clone!(@weak stack => @default-panic, move || {
-            if let Some(old_state) = old_state.to_str() {
-                if let Some(old_view) = stack.get_child_by_name(&old_state) {
-                    stack.remove(&old_view);
+        gtk::timeout_add(
+            timeout,
+            clone!(@weak stack => @default-panic, move || {
+                if let Some(old_state) = old_state.to_str() {
+                    if let Some(old_view) = stack.get_child_by_name(&old_state) {
+                        stack.remove(&old_view);
+                    }
                 }
-            }
-            Continue(false)
-        }));
+                Continue(false)
+            }),
+        );
     }
 
     fn new_webview(&self) -> WebView {
@@ -751,10 +754,12 @@ impl ArticleView {
             false
         }));
 
-        webview.connect_motion_notify_event(clone!(@weak self.pointer_pos as pointer_pos => @default-panic, move |_closure_webivew, event| {
-            *pointer_pos.write() = event.get_position();
-            Inhibit(false)
-        }));
+        webview.connect_motion_notify_event(
+            clone!(@weak self.pointer_pos as pointer_pos => @default-panic, move |_closure_webivew, event| {
+                *pointer_pos.write() = event.get_position();
+                Inhibit(false)
+            }),
+        );
 
         // webview.enter_fullscreen.connect(enterFullscreenVideo);
         // webview.leave_fullscreen.connect(leaveFullscreenVideo);
@@ -926,17 +931,21 @@ impl ArticleView {
         let wait_loop = Arc::new(MainLoop::new(None, false));
         let value: Arc<RwLock<Option<f64>>> = Arc::new(RwLock::new(None));
         let cancellable: Option<&Cancellable> = None;
-        view.run_javascript(java_script, cancellable, clone!(@weak wait_loop, @weak value => move |res| {
-            match res {
-                Ok(result) => {
-                    let context = result.get_global_context().expect("Failed to get webkit js context.");
-                    let new_value = result.get_value().expect("Failed to get value from js result.");
-                    *value.write() = new_value.to_number(&context);
+        view.run_javascript(
+            java_script,
+            cancellable,
+            clone!(@weak wait_loop, @weak value => move |res| {
+                match res {
+                    Ok(result) => {
+                        let context = result.get_global_context().expect("Failed to get webkit js context.");
+                        let new_value = result.get_value().expect("Failed to get value from js result.");
+                        *value.write() = new_value.to_number(&context);
+                    }
+                    Err(_) => error!("Getting scroll pos failed"),
                 }
-                Err(_) => error!("Getting scroll pos failed"),
-            }
-            wait_loop.quit();
-        }));
+                wait_loop.quit();
+            }),
+        );
 
         wait_loop.run();
 
