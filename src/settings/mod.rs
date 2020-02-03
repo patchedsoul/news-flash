@@ -1,3 +1,4 @@
+mod advanced;
 mod article_list;
 mod article_view;
 mod dialog;
@@ -6,11 +7,10 @@ mod general;
 mod keybinding_editor;
 mod keybindings;
 mod theme_chooser;
-mod advanced;
 
+pub use self::advanced::{AdvancedSettings, ProxyModel, ProxyProtocoll};
 use self::error::{SettingsError, SettingsErrorKind};
 use self::general::SyncInterval;
-use self::advanced::AdvancedSettings;
 use crate::article_view::ArticleTheme;
 use article_list::ArticleListSettings;
 use article_view::ArticleViewSettings;
@@ -335,5 +335,9 @@ impl Settings {
         self.advanced.accept_invalid_hostnames = accept_invalid_hostnames;
         self.write()?;
         Ok(())
+    }
+
+    pub fn get_proxy(&self) -> Vec<ProxyModel> {
+        self.advanced.proxy.clone()
     }
 }

@@ -330,6 +330,7 @@ impl ArticleView {
     }
 
     fn new_webview(&self) -> WebView {
+        // FIXME: apply proxy settings
         let settings = WebkitSettings::new();
         settings.set_enable_accelerated_2d_canvas(true);
         settings.set_enable_html5_database(false);

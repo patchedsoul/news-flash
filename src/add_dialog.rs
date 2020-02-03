@@ -14,9 +14,9 @@ use news_flash::models::{Category, CategoryID, FavIcon, Feed, FeedID, Url};
 use news_flash::{FeedParserError, ParsedUrl};
 use pango::EllipsizeMode;
 use parking_lot::RwLock;
+use reqwest::Client;
 use std::rc::Rc;
 use tokio::runtime::Runtime;
-use reqwest::Client;
 
 pub const NEW_CATEGORY_ICON: &str = "folder-new-symbolic";
 pub const WARN_ICON: &str = "dialog-warning-symbolic";

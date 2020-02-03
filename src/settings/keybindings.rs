@@ -8,9 +8,9 @@ use gtk::{BinExt, Box, ContainerExt, GtkWindowExt, ShortcutsWindow, Stack, Stack
 use log::warn;
 use parking_lot::RwLock;
 use serde::{Deserialize, Serialize};
+use std::default::Default;
 use std::str;
 use std::sync::Arc;
-use std::default::Default;
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct Keybindings {

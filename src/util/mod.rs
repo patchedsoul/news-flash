@@ -16,7 +16,9 @@ pub use stopwatch::StopWatch;
 
 use self::error::{UtilError, UtilErrorKind};
 use crate::app::Action;
+use crate::settings::{ProxyModel, ProxyProtocoll};
 use failure::ResultExt;
+use gio::{Cancellable, ProxyResolver, ProxyResolverExt};
 use glib::Sender;
 use news_flash::models::{Category, CategoryID, FeedID, FeedMapping};
 use serde::Serialize;
@@ -110,5 +112,44 @@ impl Util {
             .sum::<i64>();
 
         count
+    }
+
+    pub fn discover_gnome_proxy() -> Vec<ProxyModel> {
+        let mut proxy_vec = Vec::new();
+
+        if let Some(proxy_resolver) = ProxyResolver::get_default() {
+            let cancellable: Option<&Cancellable> = None;
+            if let Ok(proxy_list) = proxy_resolver.lookup("http://example.com/", cancellable) {
+                for http_proxy in proxy_list {
+                    if http_proxy != "direct://" {
+                        let url = http_proxy.as_str().to_owned();
+                        log::info!("HTTP proxy: '{}'", url);
+                        proxy_vec.push(ProxyModel {
+                            protocoll: ProxyProtocoll::HTTP,
+                            url,
+                            user: None,
+                            password: None,
+                        });
+                    }
+                }
+            }
+
+            if let Ok(proxy_list) = proxy_resolver.lookup("https://example.com/", cancellable) {
+                for https_proxy in proxy_list {
+                    if https_proxy != "direct://" {
+                        let url = https_proxy.as_str().to_owned();
+                        log::info!("HTTPS proxy: '{}'", url);
+                        proxy_vec.push(ProxyModel {
+                            protocoll: ProxyProtocoll::HTTPS,
+                            url,
+                            user: None,
+                            password: None,
+                        });
+                    }
+                }
+            }
+        }
+
+        proxy_vec
     }
 }

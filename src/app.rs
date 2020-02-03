@@ -20,8 +20,8 @@ use news_flash::models::{
 };
 use news_flash::{NewsFlash, NewsFlashError};
 use parking_lot::RwLock;
+use reqwest::{Client, ClientBuilder, Proxy};
 use tokio::runtime::Runtime;
-use reqwest::{Client, ClientBuilder};
 
 use crate::about_dialog::NewsFlashAbout;
 use crate::add_dialog::{AddCategory, AddPopover};
@@ -31,7 +31,7 @@ use crate::config::APP_ID;
 use crate::content_page::HeaderSelection;
 use crate::main_window::MainWindow;
 use crate::rename_dialog::RenameDialog;
-use crate::settings::{NewsFlashShortcutWindow, Settings, SettingsDialog};
+use crate::settings::{NewsFlashShortcutWindow, ProxyProtocoll, Settings, SettingsDialog};
 use crate::sidebar::{models::SidebarSelection, FeedListDndAction};
 use crate::undo_bar::UndoActionModel;
 use crate::util::{FileUtil, GtkUtil, Util, CHANNEL_ERROR, RUNTIME_ERROR};
@@ -152,10 +152,6 @@ impl App {
 
         app.setup_signals();
 
-        let data_dir = DATA_DIR.clone();
-        let config_dir = CONFIG_DIR.clone();
-        println!("data: {:?}", data_dir.to_str());
-        println!("config: {:?}", config_dir.to_str());
         if let Ok(news_flash_lib) = NewsFlash::try_load(&DATA_DIR, &CONFIG_DIR, (*app.client.read()).clone()) {
             info!("Successful load from config");
             app.news_flash.write().replace(news_flash_lib);
@@ -1312,19 +1308,47 @@ impl App {
     }
 
     fn build_client(settings: &Arc<RwLock<Settings>>) -> Client {
-        ClientBuilder::new()
+        let proxy_error = "Failed to build proxy";
+
+        let mut builder = ClientBuilder::new()
             .danger_accept_invalid_certs(settings.read().get_accept_invalid_certs())
-            .danger_accept_invalid_hostnames(settings.read().get_accept_invalid_hostnames())
-            .build()
-            .expect("Failed to build reqwest client")
+            .danger_accept_invalid_hostnames(settings.read().get_accept_invalid_hostnames());
+
+        let mut proxys = settings.read().get_proxy();
+        proxys.append(&mut Util::discover_gnome_proxy());
+
+        for proxy_model in proxys {
+            let mut proxy = match &proxy_model.protocoll {
+                ProxyProtocoll::ALL => Proxy::all(&proxy_model.url),
+                ProxyProtocoll::HTTP => Proxy::http(&proxy_model.url),
+                ProxyProtocoll::HTTPS => Proxy::https(&proxy_model.url),
+            }
+            .expect(proxy_error);
+
+            if let Some(proxy_user) = &proxy_model.user {
+                if let Some(proxy_password) = &proxy_model.password {
+                    proxy = proxy.basic_auth(proxy_user, proxy_password);
+                }
+            }
+
+            builder = builder.proxy(proxy);
+        }
+
+        builder.build().expect("Failed to build reqwest client")
     }
 
     fn ignore_tls_errors(&self) {
         if self.settings.write().set_accept_invalid_certs(true).is_err() {
-            Util::send(&self.sender, Action::ErrorSimpleMessage("Error writing settings.".to_owned()));
+            Util::send(
+                &self.sender,
+                Action::ErrorSimpleMessage("Error writing settings.".to_owned()),
+            );
         }
         if self.settings.write().set_accept_invalid_hostnames(true).is_err() {
-            Util::send(&self.sender, Action::ErrorSimpleMessage("Error writing settings.".to_owned()));
+            Util::send(
+                &self.sender,
+                Action::ErrorSimpleMessage("Error writing settings.".to_owned()),
+            );
         }
         *self.client.write() = Self::build_client(&self.settings);
 
