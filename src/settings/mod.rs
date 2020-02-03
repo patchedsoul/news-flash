@@ -23,7 +23,7 @@ use serde::{Deserialize, Serialize};
 use std::fs;
 use std::path::PathBuf;
 
-static CONFIG_NAME: &str = "newflash_gtk.json";
+static CONFIG_NAME: &str = "newsflash_gtk.json";
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct Settings {
