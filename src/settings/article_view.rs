@@ -1,5 +1,6 @@
 use crate::article_view::ArticleTheme;
 use serde::{Deserialize, Serialize};
+use std::default::Default;
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct ArticleViewSettings {
@@ -10,8 +11,8 @@ pub struct ArticleViewSettings {
     pub font: Option<String>,
 }
 
-impl ArticleViewSettings {
-    pub fn default() -> Self {
+impl Default for ArticleViewSettings {
+    fn default() -> Self {
         ArticleViewSettings {
             theme: ArticleTheme::Default,
             allow_select: false,

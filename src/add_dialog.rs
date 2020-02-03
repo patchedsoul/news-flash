@@ -16,6 +16,7 @@ use pango::EllipsizeMode;
 use parking_lot::RwLock;
 use std::rc::Rc;
 use tokio::runtime::Runtime;
+use reqwest::Client;
 
 pub const NEW_CATEGORY_ICON: &str = "folder-new-symbolic";
 pub const WARN_ICON: &str = "dialog-warning-symbolic";
@@ -36,7 +37,7 @@ pub struct AddPopover {
 }
 
 impl AddPopover {
-    pub fn new(parent: &Button, categories: Vec<Category>, threadpool: ThreadPool) -> Self {
+    pub fn new(parent: &Button, categories: Vec<Category>, threadpool: ThreadPool, client: &Client) -> Self {
         let builder = BuilderHelper::new("add_dialog");
         let popover = builder.get::<Popover>("add_pop");
         let url_entry = builder.get::<Entry>("url_entry");
@@ -98,7 +99,8 @@ impl AddPopover {
             @weak select_button_stack,
             @weak feed_url,
             @weak parse_button_stack,
-            @weak add_button_stack => move |button|
+            @weak add_button_stack,
+            @strong client => move |button|
         {
             if let Some(url_text) = url_entry.get_text() {
                 let mut url_text = url_text.as_str().to_owned();
@@ -114,9 +116,10 @@ impl AddPopover {
 
                     let feed_id = FeedID::new(&url_text);
                     let thread_url = url.clone();
+                    let client_clone = client.clone();
                     let thread_future = async move {
                         let result = Runtime::new().expect(RUNTIME_ERROR).block_on(
-                            news_flash::feed_parser::download_and_parse_feed(&thread_url, &feed_id, None, None),
+                            news_flash::feed_parser::download_and_parse_feed(&thread_url, &feed_id, None, None, &client_clone),
                         );
                         sender.send(result).expect(CHANNEL_ERROR);
                     };
@@ -134,6 +137,7 @@ impl AddPopover {
                         @weak add_button_stack,
                         @weak button as parse_button,
                         @weak url_entry,
+                        @strong client,
                         @strong url => move |res|
                     {
                         // parse url
@@ -153,6 +157,7 @@ impl AddPopover {
                                         &add_button_stack,
                                         &feed_url,
                                         parse_button_threadpool,
+                                        &client,
                                     );
                                 }
                                 ParsedUrl::SingleFeed(feed) => {
@@ -165,6 +170,7 @@ impl AddPopover {
                                         &favicon_image,
                                         &feed_url,
                                         parse_button_threadpool,
+                                        &client,
                                     );
                                 }
                             },
@@ -263,6 +269,7 @@ impl AddPopover {
         favicon_image: &Image,
         feed_url: &Rc<RwLock<Option<Url>>>,
         threadpool: ThreadPool,
+        client: &Client,
     ) {
         title_entry.set_text(&feed.label);
         if let Some(new_feed_url) = &feed.feed_url {
@@ -288,7 +295,8 @@ impl AddPopover {
         let glib_future = receiver.map(clone!(
             @weak favicon_image,
             @weak add_button_stack,
-            @strong threadpool => move |res|
+            @strong threadpool,
+            @strong client => move |res|
         {
             if let Some(favicon) = res.expect(CHANNEL_ERROR) {
                 if let Some(data) = &favicon.data {
@@ -304,7 +312,7 @@ impl AddPopover {
 
                 let thread_future = async move {
                     let mut runtime = Runtime::new().expect(RUNTIME_ERROR);
-                    let res = match runtime.block_on(reqwest::get(icon_url.get())) {
+                    let res = match runtime.block_on(client.get(icon_url.get()).send()) {
                         Ok(response) => match runtime.block_on(response.bytes()) {
                             Ok(bytes) => Some(Vec::from(bytes.as_ref())),
                             Err(_) => None,
@@ -345,6 +353,7 @@ impl AddPopover {
         add_button_stack: &Stack,
         feed_url: &Rc<RwLock<Option<Url>>>,
         threadpool: ThreadPool,
+        client: &Client,
     ) {
         list.connect_row_selected(clone!(@weak select_button => move |_list, row| {
             select_button.set_sensitive(row.is_some());
@@ -356,6 +365,7 @@ impl AddPopover {
             @weak list,
             @weak favicon,
             @strong feed_url,
+            @strong client,
             @weak select_button_stack,
             @weak add_button_stack => move |button|
         {
@@ -369,11 +379,12 @@ impl AddPopover {
 
                     let (sender, receiver) = oneshot::channel::<Option<ParsedUrl>>();
 
+                    let client_clone = client.clone();
                     let thread_future = async move {
                         let result = Runtime::new()
                             .expect(RUNTIME_ERROR)
                             .block_on(news_flash::feed_parser::download_and_parse_feed(
-                                &url, &feed_id, None, None,
+                                &url, &feed_id, None, None, &client_clone,
                             ))
                             .ok();
                         sender.send(result).expect(CHANNEL_ERROR);
@@ -385,6 +396,7 @@ impl AddPopover {
                         @weak button as select_button,
                         @weak select_button_stack,
                         @strong feed_url,
+                        @strong client,
                         @weak favicon,
                         @weak title_entry,
                         @weak stack as add_feed_stack => move |res|
@@ -397,6 +409,7 @@ impl AddPopover {
                                 &favicon,
                                 &feed_url,
                                 threadpool,
+                                &client,
                             );
                             add_feed_stack.set_visible_child_name("feed_page");
                         } else if let Some(child) = row.get_child() {

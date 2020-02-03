@@ -6,9 +6,11 @@ mod general;
 mod keybinding_editor;
 mod keybindings;
 mod theme_chooser;
+mod advanced;
 
 use self::error::{SettingsError, SettingsErrorKind};
 use self::general::SyncInterval;
+use self::advanced::AdvancedSettings;
 use crate::article_view::ArticleTheme;
 use article_list::ArticleListSettings;
 use article_view::ArticleViewSettings;
@@ -26,6 +28,7 @@ static CONFIG_NAME: &str = "newflash_gtk.json";
 #[derive(Debug, Serialize, Deserialize)]
 pub struct Settings {
     general: GeneralSettings,
+    advanced: AdvancedSettings,
     article_list: ArticleListSettings,
     article_view: ArticleViewSettings,
     keybindings: Keybindings,
@@ -48,6 +51,7 @@ impl Settings {
 
         let settings = Settings {
             general: GeneralSettings::default(),
+            advanced: AdvancedSettings::default(),
             article_list: ArticleListSettings::default(),
             article_view: ArticleViewSettings::default(),
             keybindings: Keybindings::default(),
@@ -309,6 +313,26 @@ impl Settings {
 
     pub fn set_keybind_sidebar_set_read(&mut self, key: Option<String>) -> Result<(), SettingsError> {
         self.keybindings.feed_list.read = key;
+        self.write()?;
+        Ok(())
+    }
+
+    pub fn get_accept_invalid_certs(&self) -> bool {
+        self.advanced.accept_invalid_certs
+    }
+
+    pub fn set_accept_invalid_certs(&mut self, accept_invalid_certs: bool) -> Result<(), SettingsError> {
+        self.advanced.accept_invalid_certs = accept_invalid_certs;
+        self.write()?;
+        Ok(())
+    }
+
+    pub fn get_accept_invalid_hostnames(&self) -> bool {
+        self.advanced.accept_invalid_hostnames
+    }
+
+    pub fn set_accept_invalid_hostnames(&mut self, accept_invalid_hostnames: bool) -> Result<(), SettingsError> {
+        self.advanced.accept_invalid_hostnames = accept_invalid_hostnames;
         self.write()?;
         Ok(())
     }

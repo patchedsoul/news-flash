@@ -10,6 +10,7 @@ use parking_lot::RwLock;
 use serde::{Deserialize, Serialize};
 use std::str;
 use std::sync::Arc;
+use std::default::Default;
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct Keybindings {
@@ -19,8 +20,8 @@ pub struct Keybindings {
     pub feed_list: KeybindingsFeedList,
 }
 
-impl Keybindings {
-    pub fn default() -> Self {
+impl Default for Keybindings {
+    fn default() -> Self {
         Keybindings {
             general: KeybindingsGeneral::default(),
             article_view: KeybindingsArticleView::default(),
@@ -28,7 +29,9 @@ impl Keybindings {
             feed_list: KeybindingsFeedList::default(),
         }
     }
+}
 
+impl Keybindings {
     pub fn parse_shortcut_string(keybinding: &str) -> Option<String> {
         let (keyval, modifier) = gtk::accelerator_parse(&keybinding);
         Self::parse_shortcut(keyval, modifier)

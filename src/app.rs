@@ -21,6 +21,7 @@ use news_flash::models::{
 use news_flash::{NewsFlash, NewsFlashError};
 use parking_lot::RwLock;
 use tokio::runtime::Runtime;
+use reqwest::{Client, ClientBuilder};
 
 use crate::about_dialog::NewsFlashAbout;
 use crate::add_dialog::{AddCategory, AddPopover};
@@ -107,10 +108,12 @@ pub enum Action {
     QueueQuit,
     ForceQuit,
     SetOfflineMode(bool),
+    IgnoreTLSErrors,
 }
 pub struct App {
     application: gtk::Application,
     window: Arc<MainWindow>,
+    client: Arc<RwLock<Client>>,
     sender: Sender<Action>,
     receiver: RwLock<Option<Receiver<Action>>>,
     news_flash: Arc<RwLock<Option<NewsFlash>>>,
@@ -131,11 +134,13 @@ impl App {
 
         let news_flash = Arc::new(RwLock::new(None));
         let settings = Arc::new(RwLock::new(Settings::open().expect("Failed to access settings file")));
+        let client = Arc::new(RwLock::new(Self::build_client(&settings)));
         let window = Arc::new(MainWindow::new(&settings, sender.clone(), shutdown_in_progress.clone()));
 
         let app = Rc::new(Self {
             application,
             window,
+            client,
             sender,
             receiver,
             news_flash,
@@ -151,7 +156,7 @@ impl App {
         let config_dir = CONFIG_DIR.clone();
         println!("data: {:?}", data_dir.to_str());
         println!("config: {:?}", config_dir.to_str());
-        if let Ok(news_flash_lib) = NewsFlash::try_load(&DATA_DIR, &CONFIG_DIR) {
+        if let Ok(news_flash_lib) = NewsFlash::try_load(&DATA_DIR, &CONFIG_DIR, (*app.client.read()).clone()) {
             info!("Successful load from config");
             app.news_flash.write().replace(news_flash_lib);
             Util::send(&app.sender, Action::ScheduleSync);
@@ -247,6 +252,7 @@ impl App {
             Action::QueueQuit => self.queue_quit(),
             Action::ForceQuit => self.force_quit(),
             Action::SetOfflineMode(offline) => self.set_offline(offline),
+            Action::IgnoreTLSErrors => self.ignore_tls_errors(),
         }
         glib::Continue(true)
     }
@@ -277,7 +283,7 @@ impl App {
             LoginData::Password(pass) => pass.id.clone(),
             LoginData::None(id) => id.clone(),
         };
-        let news_flash_lib = match NewsFlash::new(&DATA_DIR, &CONFIG_DIR, &id) {
+        let news_flash_lib = match NewsFlash::new(&DATA_DIR, &CONFIG_DIR, &id, (*self.client.read()).clone()) {
             Ok(news_flash) => news_flash,
             Err(error) => {
                 match &data {
@@ -708,7 +714,7 @@ impl App {
                 }
             };
 
-            let dialog = AddPopover::new(&add_button, categories, self.threadpool.clone());
+            let dialog = AddPopover::new(&add_button, categories, self.threadpool.clone(), &self.client.read());
             dialog.add_button().connect_clicked(clone!(
                 @strong dialog, @strong self.sender as sender => move |_button| {
                 let feed_url = match dialog.get_feed_url() {
@@ -1303,5 +1309,27 @@ impl App {
             .feed_list
             .read()
             .set_offline(offline);
+    }
+
+    fn build_client(settings: &Arc<RwLock<Settings>>) -> Client {
+        ClientBuilder::new()
+            .danger_accept_invalid_certs(settings.read().get_accept_invalid_certs())
+            .danger_accept_invalid_hostnames(settings.read().get_accept_invalid_hostnames())
+            .build()
+            .expect("Failed to build reqwest client")
+    }
+
+    fn ignore_tls_errors(&self) {
+        if self.settings.write().set_accept_invalid_certs(true).is_err() {
+            Util::send(&self.sender, Action::ErrorSimpleMessage("Error writing settings.".to_owned()));
+        }
+        if self.settings.write().set_accept_invalid_hostnames(true).is_err() {
+            Util::send(&self.sender, Action::ErrorSimpleMessage("Error writing settings.".to_owned()));
+        }
+        *self.client.write() = Self::build_client(&self.settings);
+
+        if let Some(news_flash) = self.news_flash.write().as_mut() {
+            news_flash.set_client((*self.client.read()).clone());
+        }
     }
 }

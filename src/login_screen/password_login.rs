@@ -67,6 +67,12 @@ impl PasswordLogin {
         let surface = GtkUtil::create_surface_from_icon_name("feed-service-generic", 64, scale_factor);
         logo.set_from_surface(Some(&surface));
 
+        ignore_tls_button.connect_clicked(clone!(@weak info_bar, @strong sender => @default-panic, move |button| {
+            Util::send(&sender, Action::IgnoreTLSErrors);
+            PasswordLogin::hide_info_bar(&info_bar);
+            button.set_visible(false);
+        }));
+
         PasswordLogin {
             sender,
             page,
@@ -296,7 +302,6 @@ impl PasswordLogin {
                             FeedApiErrorKind::TLSCert => {
                                 self.info_bar_label.set_text("No valid CA certificate available.");
                                 self.ignore_tls_button.set_visible(true);
-                                // FIXME: make button do something
                                 return;
                             }
                             FeedApiErrorKind::Login | FeedApiErrorKind::Api | _ => {

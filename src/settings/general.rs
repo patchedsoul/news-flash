@@ -1,4 +1,5 @@
 use serde::{Deserialize, Serialize};
+use std::default::Default;
 use std::fmt;
 
 #[derive(Debug, Clone, Copy, Serialize, Deserialize)]
@@ -47,10 +48,10 @@ pub struct GeneralSettings {
     pub prefer_dark_theme: bool,
 }
 
-impl GeneralSettings {
-    pub fn default() -> Self {
+impl Default for GeneralSettings {
+    fn default() -> Self {
         GeneralSettings {
-            keep_running_in_background: true,
+            keep_running_in_background: false,
             sync_every: SyncInterval::QuaterHour,
             prefer_dark_theme: false,
         }
