@@ -5,14 +5,15 @@ use crate::util::{BuilderHelper, DateUtil, GtkUtil, Util};
 use futures::channel::oneshot;
 use futures::future::FutureExt;
 use gdk::{EventType, NotifyType};
-use glib::{clone, Sender};
+use glib::{clone, object::Cast, translate::ToGlib, Sender};
 use gtk::{
     ContainerExt, EventBox, Image, ImageExt, Inhibit, Label, LabelExt, ListBoxRow, ListBoxRowExt, Stack, StackExt,
-    StyleContextExt, WidgetExt,
+    StyleContextExt, Widget, WidgetExt,
 };
 use log::warn;
 use news_flash::models::{ArticleID, FavIcon, Marked, Read};
 use parking_lot::RwLock;
+use std::ops::Drop;
 use std::sync::Arc;
 
 pub struct ArticleRow {
@@ -23,6 +24,7 @@ pub struct ArticleRow {
     unread_stack: Stack,
     title_label: Label,
     row_hovered: Arc<RwLock<bool>>,
+    connected_signals: Vec<(u64, Widget)>,
 }
 
 impl ArticleRow {
@@ -95,7 +97,9 @@ impl ArticleRow {
         let marked_handle = Arc::new(RwLock::new(article.marked));
         let row_hovered = Arc::new(RwLock::new(false));
 
-        Self::setup_row_eventbox(
+        let mut connected_signals = Vec::new();
+
+        connected_signals.append(&mut Self::setup_row_eventbox(
             &article_eventbox,
             &read_handle,
             &marked_handle,
@@ -103,8 +107,8 @@ impl ArticleRow {
             &marked_stack,
             &title_label,
             &row_hovered,
-        );
-        Self::setup_unread_eventbox(
+        ));
+        connected_signals.append(&mut Self::setup_unread_eventbox(
             &sender,
             state,
             &unread_eventbox,
@@ -113,8 +117,8 @@ impl ArticleRow {
             &title_label,
             &article.id,
             list_model,
-        );
-        Self::setup_marked_eventbox(
+        ));
+        connected_signals.append(&mut Self::setup_marked_eventbox(
             &sender,
             state,
             &marked_eventbox,
@@ -122,7 +126,7 @@ impl ArticleRow {
             &marked_stack,
             &article.id,
             list_model,
-        );
+        ));
 
         ArticleRow {
             widget: row,
@@ -132,6 +136,7 @@ impl ArticleRow {
             unread_stack,
             title_label,
             row_hovered,
+            connected_signals,
         }
     }
 
@@ -170,65 +175,85 @@ impl ArticleRow {
         title_label: &Label,
         article_id: &ArticleID,
         list_model: &Arc<RwLock<ArticleListModel>>,
-    ) {
-        eventbox.connect_enter_notify_event(clone!(
-            @weak unread_stack,
-            @weak state as window_state,
-            @weak read => @default-panic, move |_widget, _event|
-        {
-            if !window_state.read().get_offline() {
-                match *read.read() {
-                    Read::Unread => unread_stack.set_visible_child_name("read"),
-                    Read::Read => unread_stack.set_visible_child_name("unread"),
-                }
-            }
-            Inhibit(false)
-        }));
-        eventbox.connect_leave_notify_event(clone!(
-            @weak state as window_state,
-            @weak unread_stack,
-            @weak read => @default-panic, move |_widget, _event|
-        {
-            if !window_state.read().get_offline() {
-                match *read.read() {
-                    Read::Unread => unread_stack.set_visible_child_name("unread"),
-                    Read::Read => unread_stack.set_visible_child_name("read"),
-                }
-            }
-            Inhibit(false)
-        }));
-        eventbox.connect_button_press_event(clone!(
-            @weak state as window_state,
-            @weak list_model,
-            @weak title_label,
-            @weak read,
-            @strong article_id,
-            @strong sender => @default-panic, move |_widget, event|
-        {
-            if event.get_button() != 1 {
-                return Inhibit(false);
-            }
-            match event.get_event_type() {
-                EventType::ButtonRelease | EventType::DoubleButtonPress | EventType::TripleButtonPress => {
-                    return Inhibit(false);
-                }
-                _ => {}
-            }
-            if window_state.read().get_offline() {
-                return Inhibit(false);
-            }
+    ) -> Vec<(u64, Widget)> {
+        let mut vec = Vec::new();
+        vec.push((
+            eventbox
+                .connect_enter_notify_event(clone!(
+                    @weak unread_stack,
+                    @weak state as window_state,
+                    @weak read => @default-panic, move |_widget, _event|
+                {
+                    if !window_state.read().get_offline() {
+                        match *read.read() {
+                            Read::Unread => unread_stack.set_visible_child_name("read"),
+                            Read::Read => unread_stack.set_visible_child_name("unread"),
+                        }
+                    }
+                    Inhibit(false)
+                }))
+                .to_glib(),
+            eventbox.clone().upcast::<Widget>(),
+        ));
 
-            let new_state = read.read().invert();
-            *read.write() = new_state;
-            Self::update_title_label(&title_label, new_state);
-            list_model.write().set_read(&article_id, new_state);
-            let update = ReadUpdate {
-                article_id: article_id.clone(),
-                read: new_state,
-            };
-            Util::send(&sender, Action::MarkArticleRead(update));
-            Inhibit(true)
-        }));
+        vec.push((
+            eventbox
+                .connect_leave_notify_event(clone!(
+                    @weak state as window_state,
+                    @weak unread_stack,
+                    @weak read => @default-panic, move |_widget, _event|
+                {
+                    if !window_state.read().get_offline() {
+                        match *read.read() {
+                            Read::Unread => unread_stack.set_visible_child_name("unread"),
+                            Read::Read => unread_stack.set_visible_child_name("read"),
+                        }
+                    }
+                    Inhibit(false)
+                }))
+                .to_glib(),
+            eventbox.clone().upcast::<Widget>(),
+        ));
+
+        vec.push((
+            eventbox
+                .connect_button_press_event(clone!(
+                    @weak state as window_state,
+                    @weak list_model,
+                    @weak title_label,
+                    @weak read,
+                    @strong article_id,
+                    @strong sender => @default-panic, move |_widget, event|
+                {
+                    if event.get_button() != 1 {
+                        return Inhibit(false);
+                    }
+                    match event.get_event_type() {
+                        EventType::ButtonRelease | EventType::DoubleButtonPress | EventType::TripleButtonPress => {
+                            return Inhibit(false);
+                        }
+                        _ => {}
+                    }
+                    if window_state.read().get_offline() {
+                        return Inhibit(false);
+                    }
+
+                    let new_state = read.read().invert();
+                    *read.write() = new_state;
+                    Self::update_title_label(&title_label, new_state);
+                    list_model.write().set_read(&article_id, new_state);
+                    let update = ReadUpdate {
+                        article_id: article_id.clone(),
+                        read: new_state,
+                    };
+                    Util::send(&sender, Action::MarkArticleRead(update));
+                    Inhibit(true)
+                }))
+                .to_glib(),
+            eventbox.clone().upcast::<Widget>(),
+        ));
+
+        vec
     }
 
     fn setup_marked_eventbox(
@@ -239,63 +264,84 @@ impl ArticleRow {
         marked_stack: &Stack,
         article_id: &ArticleID,
         list_model: &Arc<RwLock<ArticleListModel>>,
-    ) {
-        eventbox.connect_enter_notify_event(clone!(
-            @weak marked_stack,
-            @weak state as window_state,
-            @weak marked => @default-panic, move |_widget, _event|
-        {
-            if !window_state.read().get_offline() {
-                match *marked.read() {
-                    Marked::Marked => marked_stack.set_visible_child_name("unmarked"),
-                    Marked::Unmarked => marked_stack.set_visible_child_name("marked"),
-                }
-            }
-            Inhibit(false)
-        }));
-        eventbox.connect_leave_notify_event(clone!(
-            @weak marked_stack,
-            @weak state as window_state,
-            @weak marked => @default-panic, move |_widget, _event|
-        {
-            if !window_state.read().get_offline() {
-                match *marked.read() {
-                    Marked::Marked => marked_stack.set_visible_child_name("marked"),
-                    Marked::Unmarked => marked_stack.set_visible_child_name("unmarked"),
-                }
-            }
-            Inhibit(false)
-        }));
-        eventbox.connect_button_press_event(clone!(
-            @strong sender,
-            @strong article_id,
-            @weak list_model,
-            @weak state as window_state,
-            @weak marked => @default-panic, move |_widget, event|
-        {
-            if event.get_button() != 1 {
-                return Inhibit(false);
-            }
-            match event.get_event_type() {
-                EventType::ButtonRelease | EventType::DoubleButtonPress | EventType::TripleButtonPress => {
-                    return Inhibit(false);
-                }
-                _ => {}
-            }
-            if window_state.read().get_offline() {
-                return Inhibit(false);
-            }
-            let new_marked = marked.read().invert();
-            *marked.write() = new_marked;
-            list_model.write().set_marked(&article_id, new_marked);
+    ) -> Vec<(u64, Widget)> {
+        let mut vec = Vec::new();
 
-            let update = MarkUpdate {
-                article_id: article_id.clone(),
-                marked: new_marked,
-            };
-            Util::send(&sender, Action::MarkArticle(update));
-            Inhibit(true)
-        }));
+        vec.push((
+            eventbox
+                .connect_enter_notify_event(clone!(
+                    @weak marked_stack,
+                    @weak state as window_state,
+                    @weak marked => @default-panic, move |_widget, _event|
+                {
+                    if !window_state.read().get_offline() {
+                        match *marked.read() {
+                            Marked::Marked => marked_stack.set_visible_child_name("unmarked"),
+                            Marked::Unmarked => marked_stack.set_visible_child_name("marked"),
+                        }
+                    }
+                    Inhibit(false)
+                }))
+                .to_glib(),
+            eventbox.clone().upcast::<Widget>(),
+        ));
+
+        vec.push((
+            eventbox
+                .connect_leave_notify_event(clone!(
+                    @weak marked_stack,
+                    @weak state as window_state,
+                    @weak marked => @default-panic, move |_widget, _event|
+                {
+                    if !window_state.read().get_offline() {
+                        match *marked.read() {
+                            Marked::Marked => marked_stack.set_visible_child_name("marked"),
+                            Marked::Unmarked => marked_stack.set_visible_child_name("unmarked"),
+                        }
+                    }
+                    Inhibit(false)
+                }))
+                .to_glib(),
+            eventbox.clone().upcast::<Widget>(),
+        ));
+
+        vec.push((
+            eventbox
+                .connect_button_press_event(clone!(
+                    @strong sender,
+                    @strong article_id,
+                    @weak list_model,
+                    @weak state as window_state,
+                    @weak marked => @default-panic, move |_widget, event|
+                {
+                    if event.get_button() != 1 {
+                        return Inhibit(false);
+                    }
+                    match event.get_event_type() {
+                        EventType::ButtonRelease | EventType::DoubleButtonPress | EventType::TripleButtonPress => {
+                            return Inhibit(false);
+                        }
+                        _ => {}
+                    }
+                    if window_state.read().get_offline() {
+                        return Inhibit(false);
+                    }
+                    let new_marked = marked.read().invert();
+                    *marked.write() = new_marked;
+                    list_model.write().set_marked(&article_id, new_marked);
+
+                    let update = MarkUpdate {
+                        article_id: article_id.clone(),
+                        marked: new_marked,
+                    };
+                    Util::send(&sender, Action::MarkArticle(update));
+                    Inhibit(true)
+                }))
+                .to_glib(),
+            eventbox.clone().upcast::<Widget>(),
+        ));
+
+        vec
     }
 
     fn setup_row_eventbox(
@@ -306,54 +352,68 @@ impl ArticleRow {
         marked_stack: &Stack,
         title_label: &Label,
         row_hovered: &Arc<RwLock<bool>>,
-    ) {
+    ) -> Vec<(u64, Widget)> {
         Self::update_title_label(&title_label, *read.read());
         Self::update_unread_stack(&unread_stack, *read.read(), *row_hovered.read());
         Self::update_marked_stack(&marked_stack, *marked.read());
 
-        eventbox.connect_enter_notify_event(clone!(
-            @weak row_hovered,
-            @weak unread_stack,
-            @weak marked_stack,
-            @weak marked,
-            @weak read => @default-panic, move |_widget, event|
-        {
-            if event.get_detail() == NotifyType::Inferior {
-                return Inhibit(false);
-            }
-            *row_hovered.write() = true;
-            match *read.read() {
-                Read::Read => unread_stack.set_visible_child_name("read"),
-                Read::Unread => unread_stack.set_visible_child_name("unread"),
-            }
-            match *marked.read() {
-                Marked::Marked => marked_stack.set_visible_child_name("marked"),
-                Marked::Unmarked => marked_stack.set_visible_child_name("unmarked"),
-            }
-            Inhibit(true)
-        }));
+        let mut vec = Vec::new();
 
-        eventbox.connect_leave_notify_event(clone!(
-            @weak row_hovered,
-            @weak marked_stack,
-            @weak unread_stack,
-            @weak marked,
-            @weak read => @default-panic, move |_widget, event|
-        {
-            if event.get_detail() == NotifyType::Inferior {
-                return Inhibit(false);
-            }
-            *row_hovered.write() = false;
-            match *read.read() {
-                Read::Read => unread_stack.set_visible_child_name("empty"),
-                Read::Unread => unread_stack.set_visible_child_name("unread"),
-            }
-            match *marked.read() {
-                Marked::Marked => marked_stack.set_visible_child_name("marked"),
-                Marked::Unmarked => marked_stack.set_visible_child_name("empty"),
-            }
-            Inhibit(true)
-        }));
+        vec.push((
+            eventbox
+                .connect_enter_notify_event(clone!(
+                    @weak row_hovered,
+                    @weak unread_stack,
+                    @weak marked_stack,
+                    @weak marked,
+                    @weak read => @default-panic, move |_widget, event|
+                {
+                    if event.get_detail() == NotifyType::Inferior {
+                        return Inhibit(false);
+                    }
+                    *row_hovered.write() = true;
+                    match *read.read() {
+                        Read::Read => unread_stack.set_visible_child_name("read"),
+                        Read::Unread => unread_stack.set_visible_child_name("unread"),
+                    }
+                    match *marked.read() {
+                        Marked::Marked => marked_stack.set_visible_child_name("marked"),
+                        Marked::Unmarked => marked_stack.set_visible_child_name("unmarked"),
+                    }
+                    Inhibit(true)
+                }))
+                .to_glib(),
+            eventbox.clone().upcast::<Widget>(),
+        ));
+
+        vec.push((
+            eventbox
+                .connect_leave_notify_event(clone!(
+                    @weak row_hovered,
+                    @weak marked_stack,
+                    @weak unread_stack,
+                    @weak marked,
+                    @weak read => @default-panic, move |_widget, event|
+                {
+                    if event.get_detail() == NotifyType::Inferior {
+                        return Inhibit(false);
+                    }
+                    *row_hovered.write() = false;
+                    match *read.read() {
+                        Read::Read => unread_stack.set_visible_child_name("empty"),
+                        Read::Unread => unread_stack.set_visible_child_name("unread"),
+                    }
+                    match *marked.read() {
+                        Marked::Marked => marked_stack.set_visible_child_name("marked"),
+                        Marked::Unmarked => marked_stack.set_visible_child_name("empty"),
+                    }
+                    Inhibit(true)
+                }))
+                .to_glib(),
+            eventbox.clone().upcast::<Widget>(),
+        ));
+
+        vec
     }
 
     fn update_title_label(title_label: &Label, read: Read) {
@@ -381,6 +441,14 @@ impl ArticleRow {
         match marked {
             Marked::Unmarked => marked_stack.set_visible_child_name("empty"),
             Marked::Marked => marked_stack.set_visible_child_name("marked"),
+        }
+    }
+}
+
+impl Drop for ArticleRow {
+    fn drop(&mut self) {
+        for (signal_id, widget) in &self.connected_signals {
+            GtkUtil::disconnect_signal(Some(*signal_id), widget);
         }
     }
 }

@@ -8,15 +8,23 @@ use futures::channel::oneshot;
 use futures::future::FutureExt;
 use gdk::{DragAction, EventType, ModifierType};
 use gio::{ActionMapExt, Menu, MenuItem, SimpleAction};
-use glib::{clone, source::Continue, source::SourceId, translate::FromGlib, translate::ToGlib, Sender, Source};
+use glib::{
+    clone,
+    object::Cast,
+    source::Continue,
+    source::SourceId,
+    translate::{FromGlib, ToGlib},
+    Sender, Source,
+};
 use gtk::{
     self, prelude::DragContextExtManual, prelude::WidgetExtManual, BinExt, Box, ContainerExt, EventBox, Image,
     ImageExt, Inhibit, Label, LabelExt, ListBoxRow, ListBoxRowExt, Popover, PopoverExt, PositionType, Revealer,
-    RevealerExt, StateFlags, StyleContextExt, TargetEntry, TargetFlags, WidgetExt,
+    RevealerExt, StateFlags, StyleContextExt, TargetEntry, TargetFlags, Widget, WidgetExt,
 };
 use log::warn;
 use news_flash::models::{CategoryID, FavIcon, Feed, FeedID};
 use parking_lot::RwLock;
+use std::ops::Drop;
 use std::str;
 use std::sync::Arc;
 
@@ -30,6 +38,7 @@ pub struct FeedRow {
     revealer: Revealer,
     hide_timeout: Arc<RwLock<Option<u32>>>,
     favicon: Image,
+    connected_signals: Vec<(u64, Widget)>,
 }
 
 impl FeedRow {
@@ -51,14 +60,24 @@ impl FeedRow {
 
         let mut feed = FeedRow {
             id: model.id.clone(),
-            widget: Self::create_row(&sender, state, &revealer, &model.id, &model.parent_id, &title_label),
+            widget: ListBoxRow::new(),
             item_count: item_count_label,
             title: title_label,
-            revealer,
+            revealer: revealer.clone(),
             hide_timeout: Arc::new(RwLock::new(None)),
             item_count_event,
             favicon,
+            connected_signals: Vec::new(),
         };
+        feed.connected_signals = Self::setup_row(
+            &feed.widget,
+            &sender,
+            state,
+            &revealer,
+            &model.id,
+            &model.parent_id,
+            model.label.clone(),
+        );
         feed.update_item_count(model.item_count);
         feed.update_title(&model.label);
         feed.update_favicon(&model.news_flash_model, &sender);
@@ -68,52 +87,66 @@ impl FeedRow {
         Arc::new(RwLock::new(feed))
     }
 
-    fn create_row(
+    fn setup_row(
+        row: &ListBoxRow,
         sender: &Sender<Action>,
         window_state: &Arc<RwLock<MainWindowState>>,
-        widget: &gtk::Revealer,
+        revealer: &gtk::Revealer,
         id: &FeedID,
         parent_id: &CategoryID,
-        label: &Label,
-    ) -> ListBoxRow {
-        let row = gtk::ListBoxRow::new();
+        label: String,
+    ) -> Vec<(u64, Widget)> {
+        let mut vec = Vec::new();
+
         row.set_activatable(true);
         row.set_can_focus(false);
-        row.add(widget);
+        row.add(revealer);
         row.get_style_context().remove_class("activatable");
 
         let entry = TargetEntry::new("FeedRow", TargetFlags::SAME_APP, 0);
-        widget.drag_source_set(ModifierType::BUTTON1_MASK, &[entry], DragAction::MOVE);
-        widget.drag_source_add_text_targets();
-        widget.connect_drag_data_get(clone!(
-            @strong parent_id,
-            @strong id as feed_id => move |_widget, _ctx, selection_data, _info, _time|
-        {
-            if let Ok(feed_id_json) = serde_json::to_string(&feed_id.clone()) {
-                if let Ok(category_id_json) = serde_json::to_string(&parent_id.clone()) {
-                    let mut data = String::from("FeedID ");
-                    data.push_str(&feed_id_json);
-                    data.push_str(";");
-                    data.push_str(&category_id_json);
-                    selection_data.set_text(&data);
-                }
-            }
-        }));
-        widget.connect_drag_begin(clone!(@weak row => move |_widget, drag_context| {
-            let alloc = row.get_allocation();
-            let surface = ImageSurface::create(Format::ARgb32, alloc.width, alloc.height)
-                .expect("Failed to create Cairo ImageSurface.");
-            let cairo_context = cairo::Context::new(&surface);
-            let style_context = row.get_style_context();
-            style_context.add_class("drag-icon");
-            row.draw(&cairo_context);
-            style_context.remove_class("drag-icon");
-            drag_context.drag_set_icon_surface(&surface);
-        }));
+        revealer.drag_source_set(ModifierType::BUTTON1_MASK, &[entry], DragAction::MOVE);
+        revealer.drag_source_add_text_targets();
 
-        row.connect_button_press_event(clone!(
+        vec.push((
+            revealer
+                .connect_drag_data_get(clone!(
+                    @strong parent_id,
+                    @strong id as feed_id => move |_widget, _ctx, selection_data, _info, _time|
+                {
+                    if let Ok(feed_id_json) = serde_json::to_string(&feed_id.clone()) {
+                        if let Ok(category_id_json) = serde_json::to_string(&parent_id.clone()) {
+                            let mut data = String::from("FeedID ");
+                            data.push_str(&feed_id_json);
+                            data.push_str(";");
+                            data.push_str(&category_id_json);
+                            selection_data.set_text(&data);
+                        }
+                    }
+                }))
+                .to_glib(),
+            revealer.clone().upcast::<Widget>(),
+        ));
+
+        vec.push((
+            revealer
+                .connect_drag_begin(clone!(@weak row => move |_widget, drag_context| {
+                    let alloc = row.get_allocation();
+                    let surface = ImageSurface::create(Format::ARgb32, alloc.width, alloc.height)
+                        .expect("Failed to create Cairo ImageSurface.");
+                    let cairo_context = cairo::Context::new(&surface);
+                    let style_context = row.get_style_context();
+                    style_context.add_class("drag-icon");
+                    row.draw(&cairo_context);
+                    style_context.remove_class("drag-icon");
+                    drag_context.drag_set_icon_surface(&surface);
+                }))
+                .to_glib(),
+            revealer.clone().upcast::<Widget>(),
+        ));
+
+        vec.push((row.connect_button_press_event(clone!(
             @strong id as feed_id,
-            @weak label,
+            @strong label,
             @weak window_state,
             @strong sender => @default-panic, move |row, event|
         {
@@ -135,38 +168,40 @@ impl FeedRow {
             let model = Menu::new();
             model.append(Some("Move"), Some("move-feed"));
 
-            let rename_feed_dialog_action = SimpleAction::new("rename-feed-dialog", None);
-            rename_feed_dialog_action.connect_activate(clone!(@strong feed_id, @strong sender => move |_action, _parameter| {
+            let rename_feed_dialog_action = SimpleAction::new(&format!("rename-feed-{}-dialog", feed_id), None);
+            rename_feed_dialog_action.connect_activate(clone!(@weak row, @strong feed_id, @strong sender => move |_action, _parameter| {
                 Util::send(&sender, Action::RenameFeedDialog(feed_id.clone()));
+
+                if let Ok(main_window) = GtkUtil::get_main_window(&row) {
+                    main_window.remove_action(&format!("rename-feed-{}-dialog", feed_id));
+                }
             }));
 
-            if let Ok(main_window) = GtkUtil::get_main_window(row) {
-                main_window.add_action(&rename_feed_dialog_action);
-            }
-
             let rename_feed_item = MenuItem::new(Some("Rename"), None);
-            rename_feed_item.set_action_and_target_value(Some("rename-feed-dialog"), None);
+            rename_feed_item.set_action_and_target_value(Some(&format!("rename-feed-{}-dialog", feed_id)), None);
             model.append_item(&rename_feed_item);
 
             let delete_feed_item = MenuItem::new(Some("Delete"), None);
-            let delete_feed_action = SimpleAction::new("enqueue-delete-feed", None);
+            let delete_feed_action = SimpleAction::new(&format!("enqueue-delete-feed-{}", feed_id), None);
             delete_feed_action.connect_activate(clone!(
-                @weak label,
+                @weak row,
+                @strong label,
                 @strong feed_id,
                 @strong sender => move |_action, _parameter|
             {
-                let label = match label.get_text() {
-                    Some(label) => label.as_str().to_owned(),
-                    None => "".to_owned(),
-                };
-                let remove_action = UndoActionModel::DeleteFeed((feed_id.clone(), label));
+                let remove_action = UndoActionModel::DeleteFeed((feed_id.clone(), label.clone()));
                 Util::send(&sender, Action::UndoableAction(remove_action));
+
+                if let Ok(main_window) = GtkUtil::get_main_window(&row) {
+                    main_window.remove_action(&format!("enqueue-delete-feed-{}", feed_id));
+                }
             }));
 
             if let Ok(main_window) = GtkUtil::get_main_window(row) {
                 main_window.add_action(&delete_feed_action);
+                main_window.add_action(&rename_feed_dialog_action);
             }
-            delete_feed_item.set_action_and_target_value(Some("enqueue-delete-feed"), None);
+            delete_feed_item.set_action_and_target_value(Some(&format!("enqueue-delete-feed-{}", feed_id)), None);
             model.append_item(&delete_feed_item);
 
             let popover = Popover::new(Some(row));
@@ -179,9 +214,9 @@ impl FeedRow {
             row.set_state_flags(StateFlags::PRELIGHT, false);
 
             Inhibit(true)
-        }));
+        })).to_glib(), row.clone().upcast::<Widget>()));
 
-        row
+        vec
     }
 
     pub fn widget(&self) -> ListBoxRow {
@@ -276,6 +311,14 @@ impl FeedRow {
         if let Some(widget) = self.widget.get_child() {
             let entry = TargetEntry::new("FeedRow", TargetFlags::SAME_APP, 0);
             widget.drag_source_set(ModifierType::BUTTON1_MASK, &[entry], DragAction::MOVE);
+        }
+    }
+}
+
+impl Drop for FeedRow {
+    fn drop(&mut self) {
+        for (signal_id, widget) in &self.connected_signals {
+            GtkUtil::disconnect_signal(Some(*signal_id), widget);
         }
     }
 }
