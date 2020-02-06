@@ -12,6 +12,10 @@ pub enum UtilErrorKind {
     CreateFile,
     #[fail(display = "Error writing file to disc")]
     WriteFile,
+    #[fail(display = "Error opening file from disc")]
+    OpenFile,
+    #[fail(display = "Error reading file contents to a string")]
+    ReadFile,
     #[fail(display = "Provided widget is not a main window")]
     WidgetIsMainwindow,
     #[fail(display = "Error (de)serializing an object")]

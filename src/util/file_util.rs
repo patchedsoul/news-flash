@@ -2,7 +2,7 @@ use super::error::{UtilError, UtilErrorKind};
 use failure::ResultExt;
 use std::env;
 use std::fs::File;
-use std::io::Write;
+use std::io::{Read, Write};
 use std::path::PathBuf;
 
 pub struct FileUtil;
@@ -22,5 +22,12 @@ impl FileUtil {
         let mut file = File::create(file_path).context(UtilErrorKind::CreateFile)?;
         file.write_all(content.as_bytes()).context(UtilErrorKind::WriteFile)?;
         Ok(())
+    }
+
+    pub fn read_text_file(file_path: &PathBuf) -> Result<String, UtilError> {
+        let mut file = File::open(file_path).context(UtilErrorKind::OpenFile)?;
+        let mut contents = String::new();
+        file.read_to_string(&mut contents).context(UtilErrorKind::ReadFile)?;
+        Ok(contents)
     }
 }

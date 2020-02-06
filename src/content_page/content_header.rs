@@ -326,6 +326,11 @@ impl ContentHeader {
             Util::send(&sender, Action::QueueQuit);
         }));
 
+        let import_opml_action = SimpleAction::new("import-opml", None);
+        import_opml_action.connect_activate(clone!(@strong sender => move |_action, _parameter| {
+            Util::send(&sender, Action::ImportOpml);
+        }));
+
         let export_opml_action = SimpleAction::new("export-opml", None);
         export_opml_action.connect_activate(clone!(@strong sender => move |_action, _parameter| {
             Util::send(&sender, Action::ExportOpml);
@@ -346,6 +351,7 @@ impl ContentHeader {
             main_window.add_action(&show_about_window_action);
             main_window.add_action(&settings_window_action);
             main_window.add_action(&quit_action);
+            main_window.add_action(&import_opml_action);
             main_window.add_action(&export_opml_action);
             main_window.add_action(&relogin_action);
             main_window.add_action(&reset_account_action);
@@ -357,7 +363,7 @@ impl ContentHeader {
         about_model.append(Some("Quit"), Some("win.quit-application"));
 
         let im_export_model = Menu::new();
-        im_export_model.append(Some("Import OPML"), Some("win.import"));
+        im_export_model.append(Some("Import OPML"), Some("win.import-opml"));
         im_export_model.append(Some("Export OPML"), Some("win.export-opml"));
 
         let account_model = Menu::new();

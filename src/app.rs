@@ -104,6 +104,7 @@ pub enum Action {
     ExportArticle,
     StartGrabArticleContent,
     FinishGrabArticleContent(Option<FatArticle>),
+    ImportOpml,
     ExportOpml,
     QueueQuit,
     ForceQuit,
@@ -244,6 +245,7 @@ impl App {
             Action::ExportArticle => self.export_article(),
             Action::StartGrabArticleContent => self.start_grab_article_content(),
             Action::FinishGrabArticleContent(article) => self.finish_grab_article_content(article),
+            Action::ImportOpml => self.import_opml(),
             Action::ExportOpml => self.export_opml(),
             Action::QueueQuit => self.queue_quit(),
             Action::ForceQuit => self.force_quit(),
@@ -1209,6 +1211,52 @@ impl App {
         if let Some(article) = article {
             self.window.show_article(article.article_id, &self.news_flash);
         }
+    }
+
+    fn import_opml(&self) {
+        let dialog = FileChooserDialog::with_buttons(
+            Some("Import OPML"),
+            Some(&self.window.widget),
+            FileChooserAction::Open,
+            &[("Cancel", ResponseType::Cancel), ("Import", ResponseType::Ok)],
+        );
+
+        let filter = FileFilter::new();
+        filter.add_pattern("*.OPML");
+        filter.add_pattern("*.opml");
+        filter.add_mime_type("application/xml");
+        filter.add_mime_type("text/xml");
+        filter.add_mime_type("text/x-opml");
+        filter.set_name(Some("OPML"));
+        dialog.add_filter(&filter);
+        dialog.set_filter(&filter);
+        
+        if let ResponseType::Ok = dialog.run() {
+            if let Some(filename) = dialog.get_filename() {
+                if let Ok(opml_content) = FileUtil::read_text_file(&filename) {
+                    let news_flash = self.news_flash.clone();
+                    let sender = self.sender.clone();
+                    let thread_future = async move {
+                        if let Some(news_flash) = news_flash.read().as_ref() {
+                            let result = Runtime::new()
+                                .expect(RUNTIME_ERROR)
+                                .block_on(news_flash.import_opml(&opml_content, false));
+
+                            if let Err(error) = result {
+                                Util::send(&sender, Action::Error("Failed to import OPML.".to_owned(), error));
+                            } else {
+                                Util::send(&sender, Action::UpdateSidebar);
+                            }
+                        }
+                    };
+                    self.threadpool.spawn_ok(thread_future);
+                } else {
+                    Util::send(&self.sender, Action::ErrorSimpleMessage("Failed to read content of OPML file.".to_owned()));
+                }
+            }
+        }
+
+        dialog.emit_close();
     }
 
     fn export_opml(&self) {
