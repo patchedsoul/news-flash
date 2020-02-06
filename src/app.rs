@@ -1230,7 +1230,7 @@ impl App {
         filter.set_name(Some("OPML"));
         dialog.add_filter(&filter);
         dialog.set_filter(&filter);
-        
+
         if let ResponseType::Ok = dialog.run() {
             if let Some(filename) = dialog.get_filename() {
                 if let Ok(opml_content) = FileUtil::read_text_file(&filename) {
@@ -1251,7 +1251,10 @@ impl App {
                     };
                     self.threadpool.spawn_ok(thread_future);
                 } else {
-                    Util::send(&self.sender, Action::ErrorSimpleMessage("Failed to read content of OPML file.".to_owned()));
+                    Util::send(
+                        &self.sender,
+                        Action::ErrorSimpleMessage("Failed to read content of OPML file.".to_owned()),
+                    );
                 }
             }
         }
