@@ -6,6 +6,7 @@ mod article_view;
 mod color;
 mod config;
 mod content_page;
+mod discover;
 mod error_bar;
 mod error_dialog;
 mod login_screen;
