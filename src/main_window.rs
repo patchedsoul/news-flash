@@ -1,5 +1,5 @@
 use crate::about_dialog::APP_NAME;
-use crate::app::Action;
+use crate::app::{Action, App};
 use crate::article_list::{MarkUpdate, ReadUpdate};
 use crate::config::{APP_ID, PROFILE};
 use crate::content_page::{ContentHeader, ContentPage, HeaderSelection};
@@ -585,7 +585,12 @@ impl MainWindow {
         Util::send(&self.sender, Action::UpdateArticleList);
     }
 
-    pub fn set_sidebar_read(&self, news_flash: &Arc<RwLock<Option<NewsFlash>>>, threadpool: ThreadPool) {
+    pub fn set_sidebar_read(
+        &self,
+        news_flash: &Arc<RwLock<Option<NewsFlash>>>,
+        threadpool: ThreadPool,
+        settings: Arc<RwLock<Settings>>,
+    ) {
         let sidebar_selection = self.state.read().get_sidebar_selection().clone();
 
         match sidebar_selection {
@@ -597,7 +602,9 @@ impl MainWindow {
                     let news_flash = news_flash.clone();
                     let future = async move {
                         if let Some(news_flash) = news_flash.read().as_ref() {
-                            sender.send(news_flash.set_all_read().await).expect(CHANNEL_ERROR);
+                            sender
+                                .send(news_flash.set_all_read(&App::build_client(&settings)).await)
+                                .expect(CHANNEL_ERROR);
                         }
                     };
                     Runtime::new().expect(RUNTIME_ERROR).block_on(future);
@@ -633,11 +640,9 @@ impl MainWindow {
                 let thread_future = async move {
                     if let Some(news_flash) = news_flash.read().as_ref() {
                         sender
-                            .send(
-                                Runtime::new()
-                                    .expect(RUNTIME_ERROR)
-                                    .block_on(news_flash.set_category_read(&category_id_vec)),
-                            )
+                            .send(Runtime::new().expect(RUNTIME_ERROR).block_on(
+                                news_flash.set_category_read(&category_id_vec, &App::build_client(&settings)),
+                            ))
                             .expect(CHANNEL_ERROR);
                     }
                 };
@@ -675,7 +680,7 @@ impl MainWindow {
                             .send(
                                 Runtime::new()
                                     .expect(RUNTIME_ERROR)
-                                    .block_on(news_flash.set_feed_read(&feed_id_vec)),
+                                    .block_on(news_flash.set_feed_read(&feed_id_vec, &App::build_client(&settings))),
                             )
                             .expect(CHANNEL_ERROR);
                     }
@@ -714,7 +719,7 @@ impl MainWindow {
                             .send(
                                 Runtime::new()
                                     .expect(RUNTIME_ERROR)
-                                    .block_on(news_flash.set_tag_read(&tag_id_vec)),
+                                    .block_on(news_flash.set_tag_read(&tag_id_vec, &App::build_client(&settings))),
                             )
                             .expect(CHANNEL_ERROR);
                     }
