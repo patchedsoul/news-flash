@@ -321,6 +321,11 @@ impl ContentHeader {
             Util::send(&sender, Action::ShowSettingsWindow);
         }));
 
+        let discover_dialog_action = SimpleAction::new("discover", None);
+        discover_dialog_action.connect_activate(clone!(@strong sender => move |_action, _parameter| {
+            Util::send(&sender, Action::ShowDiscoverDialog);
+        }));
+
         let quit_action = SimpleAction::new("quit-application", None);
         quit_action.connect_activate(clone!(@strong sender => move |_action, _parameter| {
             Util::send(&sender, Action::QueueQuit);
@@ -350,6 +355,7 @@ impl ContentHeader {
             main_window.add_action(&show_shortcut_window_action);
             main_window.add_action(&show_about_window_action);
             main_window.add_action(&settings_window_action);
+            main_window.add_action(&discover_dialog_action);
             main_window.add_action(&quit_action);
             main_window.add_action(&import_opml_action);
             main_window.add_action(&export_opml_action);
@@ -371,6 +377,7 @@ impl ContentHeader {
 
         let main_model = Menu::new();
         main_model.append(Some("Settings"), Some("win.settings"));
+        main_model.append(Some("Discover Feeds"), Some("win.discover"));
         main_model.append_section(Some(""), &account_model);
         main_model.append_section(Some(""), &im_export_model);
         main_model.append_section(Some(""), &about_model);

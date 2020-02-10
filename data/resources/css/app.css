@@ -146,6 +146,22 @@
 }
 
 
+/**************************/
+/*    Discover dialog     */
+/**************************/
+.cover-card {
+  border-radius: 4px;
+  border: 1px solid @borders;
+  background-color: @theme_base_color;
+}
+
+.search-item-separator {
+	border-bottom-width: 1px;
+	border-bottom-style: solid;
+	border-bottom-color: rgba(128, 128, 128, 0.3);
+}
+
+
 /***************/
 /*    misc     */
 /***************/

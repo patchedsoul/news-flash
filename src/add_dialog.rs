@@ -1,3 +1,5 @@
+use crate::app::App;
+use crate::settings::Settings;
 use crate::util::{BuilderHelper, GtkUtil, Util, CHANNEL_ERROR, RUNTIME_ERROR};
 use futures::channel::oneshot;
 use futures::executor::ThreadPool;
@@ -14,8 +16,7 @@ use news_flash::models::{Category, CategoryID, FavIcon, Feed, FeedID, Url};
 use news_flash::{FeedParserError, ParsedUrl};
 use pango::EllipsizeMode;
 use parking_lot::RwLock;
-use reqwest::Client;
-use std::rc::Rc;
+use std::sync::Arc;
 use tokio::runtime::Runtime;
 
 pub const NEW_CATEGORY_ICON: &str = "folder-new-symbolic";
@@ -32,12 +33,17 @@ pub struct AddPopover {
     popover: Popover,
     add_button: Button,
     feed_title_entry: Entry,
-    feed_url: Rc<RwLock<Option<Url>>>,
-    feed_category: Rc<RwLock<Option<AddCategory>>>,
+    feed_url: Arc<RwLock<Option<Url>>>,
+    feed_category: Arc<RwLock<Option<AddCategory>>>,
 }
 
 impl AddPopover {
-    pub fn new(parent: &Button, categories: Vec<Category>, threadpool: ThreadPool, client: &Client) -> Self {
+    pub fn new(
+        parent: &Button,
+        categories: Vec<Category>,
+        threadpool: ThreadPool,
+        settings: &Arc<RwLock<Settings>>,
+    ) -> Self {
         let builder = BuilderHelper::new("add_dialog");
         let popover = builder.get::<Popover>("add_pop");
         let url_entry = builder.get::<Entry>("url_entry");
@@ -53,8 +59,8 @@ impl AddPopover {
         let category_entry = builder.get::<Entry>("category_entry");
         let add_button = builder.get::<Button>("add_button");
         let add_button_stack = builder.get::<Stack>("add_button_stack");
-        let feed_url: Rc<RwLock<Option<Url>>> = Rc::new(RwLock::new(None));
-        let feed_category = Rc::new(RwLock::new(None));
+        let feed_url: Arc<RwLock<Option<Url>>> = Arc::new(RwLock::new(None));
+        let feed_category = Arc::new(RwLock::new(None));
 
         // setup list of categories to add feed to
         if !categories.is_empty() {
@@ -100,7 +106,7 @@ impl AddPopover {
             @weak feed_url,
             @weak parse_button_stack,
             @weak add_button_stack,
-            @strong client => move |button|
+            @strong settings => move |button|
         {
             if let Some(url_text) = url_entry.get_text() {
                 let mut url_text = url_text.as_str().to_owned();
@@ -116,10 +122,10 @@ impl AddPopover {
 
                     let feed_id = FeedID::new(&url_text);
                     let thread_url = url.clone();
-                    let client_clone = client.clone();
+                    let settings_clone = settings.clone();
                     let thread_future = async move {
                         let result = Runtime::new().expect(RUNTIME_ERROR).block_on(
-                            news_flash::feed_parser::download_and_parse_feed(&thread_url, &feed_id, None, None, &client_clone),
+                            news_flash::feed_parser::download_and_parse_feed(&thread_url, &feed_id, None, None, &App::build_client(&settings_clone)),
                         );
                         sender.send(result).expect(CHANNEL_ERROR);
                     };
@@ -137,7 +143,7 @@ impl AddPopover {
                         @weak add_button_stack,
                         @weak button as parse_button,
                         @weak url_entry,
-                        @strong client,
+                        @strong settings,
                         @strong url => move |res|
                     {
                         // parse url
@@ -157,7 +163,7 @@ impl AddPopover {
                                         &add_button_stack,
                                         &feed_url,
                                         parse_button_threadpool,
-                                        &client,
+                                        &settings,
                                     );
                                 }
                                 ParsedUrl::SingleFeed(feed) => {
@@ -170,7 +176,7 @@ impl AddPopover {
                                         &favicon_image,
                                         &feed_url,
                                         parse_button_threadpool,
-                                        &client,
+                                        &settings,
                                     );
                                 }
                             },
@@ -267,9 +273,9 @@ impl AddPopover {
         add_button_stack: &Stack,
         title_entry: &Entry,
         favicon_image: &Image,
-        feed_url: &Rc<RwLock<Option<Url>>>,
+        feed_url: &Arc<RwLock<Option<Url>>>,
         threadpool: ThreadPool,
-        client: &Client,
+        settings: &Arc<RwLock<Settings>>,
     ) {
         title_entry.set_text(&feed.label);
         if let Some(new_feed_url) = &feed.feed_url {
@@ -296,7 +302,7 @@ impl AddPopover {
             @weak favicon_image,
             @weak add_button_stack,
             @strong threadpool,
-            @strong client => move |res|
+            @strong settings => move |res|
         {
             if let Some(favicon) = res.expect(CHANNEL_ERROR) {
                 if let Some(data) = &favicon.data {
@@ -312,7 +318,7 @@ impl AddPopover {
 
                 let thread_future = async move {
                     let mut runtime = Runtime::new().expect(RUNTIME_ERROR);
-                    let res = match runtime.block_on(client.get(icon_url.get()).send()) {
+                    let res = match runtime.block_on(App::build_client(&settings).get(icon_url.get()).send()) {
                         Ok(response) => match runtime.block_on(response.bytes()) {
                             Ok(bytes) => Some(Vec::from(bytes.as_ref())),
                             Err(_) => None,
@@ -351,9 +357,9 @@ impl AddPopover {
         title_entry: &Entry,
         favicon: &Image,
         add_button_stack: &Stack,
-        feed_url: &Rc<RwLock<Option<Url>>>,
+        feed_url: &Arc<RwLock<Option<Url>>>,
         threadpool: ThreadPool,
-        client: &Client,
+        settings: &Arc<RwLock<Settings>>,
     ) {
         list.connect_row_selected(clone!(@weak select_button => move |_list, row| {
             select_button.set_sensitive(row.is_some());
@@ -365,7 +371,7 @@ impl AddPopover {
             @weak list,
             @weak favicon,
             @strong feed_url,
-            @strong client,
+            @strong settings,
             @weak select_button_stack,
             @weak add_button_stack => move |button|
         {
@@ -379,12 +385,12 @@ impl AddPopover {
 
                     let (sender, receiver) = oneshot::channel::<Option<ParsedUrl>>();
 
-                    let client_clone = client.clone();
+                    let settings_clone = settings.clone();
                     let thread_future = async move {
                         let result = Runtime::new()
                             .expect(RUNTIME_ERROR)
                             .block_on(news_flash::feed_parser::download_and_parse_feed(
-                                &url, &feed_id, None, None, &client_clone,
+                                &url, &feed_id, None, None, &App::build_client(&settings_clone),
                             ))
                             .ok();
                         sender.send(result).expect(CHANNEL_ERROR);
@@ -396,7 +402,7 @@ impl AddPopover {
                         @weak button as select_button,
                         @weak select_button_stack,
                         @strong feed_url,
-                        @strong client,
+                        @strong settings,
                         @weak favicon,
                         @weak title_entry,
                         @weak stack as add_feed_stack => move |res|
@@ -409,7 +415,7 @@ impl AddPopover {
                                 &favicon,
                                 &feed_url,
                                 threadpool,
-                                &client,
+                                &settings,
                             );
                             add_feed_stack.set_visible_child_name("feed_page");
                         } else if let Some(child) = row.get_child() {

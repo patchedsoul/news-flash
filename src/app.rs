@@ -29,6 +29,7 @@ use crate::article_list::{MarkUpdate, ReadUpdate};
 use crate::article_view::ArticleView;
 use crate::config::APP_ID;
 use crate::content_page::HeaderSelection;
+use crate::discover::DiscoverDialog;
 use crate::main_window::MainWindow;
 use crate::rename_dialog::RenameDialog;
 use crate::settings::{NewsFlashShortcutWindow, ProxyProtocoll, Settings, SettingsDialog};
@@ -63,6 +64,7 @@ pub enum Action {
     ShowPasswordLogin(PluginID, Option<PasswordLogin>),
     ShowOauthLogin(PluginID),
     ShowResetPage,
+    ShowDiscoverDialog,
     ShowSettingsWindow,
     ShowShortcutWindow,
     ShowAboutWindow,
@@ -197,6 +199,7 @@ impl App {
             Action::ShowPasswordLogin(plugin_id, data) => self.window.show_password_login_page(&plugin_id, data),
             Action::ShowOauthLogin(plugin_id) => self.window.show_oauth_login_page(&plugin_id),
             Action::ShowResetPage => self.window.show_reset_page(),
+            Action::ShowDiscoverDialog => self.spawn_discover_dialog(),
             Action::ShowSettingsWindow => self.spawn_settings_window(),
             Action::ShowShortcutWindow => self.spawn_shortcut_window(),
             Action::ShowAboutWindow => self.spawn_about_window(),
@@ -698,6 +701,16 @@ impl App {
         dialog.widget.present();
     }
 
+    fn spawn_discover_dialog(&self) {
+        let dialog = DiscoverDialog::new(
+            &self.window.widget,
+            &self.sender,
+            &self.settings,
+            self.threadpool.clone(),
+        );
+        dialog.widget.present();
+    }
+
     fn add_feed_dialog(&self) {
         if let Some(news_flash) = self.news_flash.read().as_ref() {
             let error_message = "Failed to add feed".to_owned();
@@ -712,7 +725,7 @@ impl App {
                 }
             };
 
-            let dialog = AddPopover::new(&add_button, categories, self.threadpool.clone(), &self.client.read());
+            let dialog = AddPopover::new(&add_button, categories, self.threadpool.clone(), &self.settings);
             dialog.add_button().connect_clicked(clone!(
                 @strong dialog, @strong self.sender as sender => move |_button| {
                 let feed_url = match dialog.get_feed_url() {
@@ -1358,7 +1371,7 @@ impl App {
             .set_offline(offline);
     }
 
-    fn build_client(settings: &Arc<RwLock<Settings>>) -> Client {
+    pub fn build_client(settings: &Arc<RwLock<Settings>>) -> Client {
         let proxy_error = "Failed to build proxy";
 
         let mut builder = ClientBuilder::new()
