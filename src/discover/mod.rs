@@ -146,7 +146,7 @@ impl DiscoverDialog {
         search_result_stack.set_visible_child_name("spinner");
         Self::clear_list(search_result_list);
         Self::clear_list(related_list);
-        let count = Some(5);
+        let count = Some(15);
 
         let (sender, receiver) = oneshot::channel::<(String, Result<SearchResult, ApiError>)>();
 

@@ -10,7 +10,7 @@ impl RelatedTopicRow {
         let builder = BuilderHelper::new("discover_dialog");
         let label = builder.get::<Label>("related_topic");
 
-        label.set_label(related_topic);
+        label.set_label(&format!("# {}",related_topic));
 
         let row = ListBoxRow::new();
         row.set_activatable(true);
