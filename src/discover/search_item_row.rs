@@ -1,12 +1,16 @@
-use crate::app::App;
+use crate::app::{Action, App};
 use crate::settings::Settings;
 use crate::util::{BuilderHelper, GtkUtil, Util, CHANNEL_ERROR, RUNTIME_ERROR};
 use feedly_api::models::SearchResultItem;
 use futures::channel::oneshot;
 use futures::executor::ThreadPool;
 use futures::FutureExt;
-use glib::clone;
-use gtk::{Box, ContainerExt, Image, ImageExt, Label, LabelExt, ListBoxRow, ListBoxRowExt, StyleContextExt, WidgetExt};
+use glib::{clone, Sender};
+use gtk::{
+    Button, ContainerExt, EventBox, Image, ImageExt, Label, LabelExt, ListBoxRow, ListBoxRowExt, Stack, StackExt,
+    StyleContextExt, WidgetExt, Inhibit,
+};
+use gdk::NotifyType;
 use parking_lot::RwLock;
 use std::sync::Arc;
 use tokio::runtime::Runtime;
@@ -20,20 +24,55 @@ impl SearchItemRow {
         item: &SearchResultItem,
         settings: &Arc<RwLock<Settings>>,
         threadpool: &ThreadPool,
+        sender: &Sender<Action>,
         is_last: bool,
     ) -> Self {
         let builder = BuilderHelper::new("discover_dialog");
-        let search_item_row = builder.get::<Box>("search_item_row");
+        let search_item_row = builder.get::<EventBox>("search_item_row");
         let search_item_title = builder.get::<Label>("search_item_title");
         let search_item_description = builder.get::<Label>("search_item_description");
         let search_item_image = builder.get::<Image>("search_item_image");
+        let subscribe_button = builder.get::<Button>("subscribe_button");
+        let subscribe_stack = builder.get::<Stack>("subscribe_stack");
+
+        search_item_row.connect_leave_notify_event(
+            clone!(@weak subscribe_stack => @default-panic, move |_widget, event| {
+                if event.get_detail() == NotifyType::Inferior {
+                    return Inhibit(false);
+                }
+                subscribe_stack.set_visible_child_name("empty");
+                gtk::Inhibit(false)
+            }),
+        );
+        search_item_row.connect_enter_notify_event(
+            clone!(@weak subscribe_stack => @default-panic, move |_widget, event| {
+                if event.get_detail() == NotifyType::Inferior {
+                    return Inhibit(false);
+                }
+                subscribe_stack.set_visible_child_name("button");
+                gtk::Inhibit(false)
+            }),
+        );
 
         let scale = GtkUtil::get_scale(&search_item_image);
 
-        search_item_title.set_label(&item.title);
-        if let Some(description) = &item.description {
-            search_item_description.set_label(description);
-        }
+        search_item_title.set_label(
+            &item
+                .title
+                .clone()
+                .expect("Empty titles should not be created in the first place!"),
+        );
+
+        let description = if let Some(description) = &item.description {
+            let description = str::replace(&description, "\n", " ");
+            let description = str::replace(&description, "\r", " ");
+            let description = str::replace(&description, "_", " ");
+            description
+        } else {
+            "No description".to_owned()
+        };
+
+        search_item_description.set_label(&description);
 
         let row = ListBoxRow::new();
         row.set_activatable(true);

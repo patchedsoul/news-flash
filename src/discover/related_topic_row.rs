@@ -1,27 +1,29 @@
 use crate::util::BuilderHelper;
-use gtk::{ContainerExt, Label, LabelExt, ListBoxRow, ListBoxRowExt, StyleContextExt, WidgetExt};
+use glib::clone;
+use gtk::{Button, ButtonExt, ContainerExt, EntryExt, FlowBoxChild, SearchEntry, WidgetExt};
 
 pub struct RelatedTopicRow {
-    pub widget: ListBoxRow,
+    pub widget: FlowBoxChild,
 }
 
 impl RelatedTopicRow {
-    pub fn new(related_topic: &str, is_last: bool) -> Self {
+    pub fn new(related_topic: &str, search_entry: &SearchEntry) -> Self {
         let builder = BuilderHelper::new("discover_dialog");
-        let label = builder.get::<Label>("related_topic");
+        let button = builder.get::<Button>("related_topic");
 
-        label.set_label(&format!("# {}",related_topic));
+        button.set_label(&format!("# {}", related_topic));
 
-        let row = ListBoxRow::new();
-        row.set_activatable(true);
+        let topic_name_string = related_topic.to_owned();
+        button.connect_clicked(clone!(
+            @weak search_entry => @default-panic, move |_button|
+        {
+            search_entry.set_text(&format!("#{}", topic_name_string));
+        }));
+
+        let row = FlowBoxChild::new();
         row.set_can_focus(false);
-        row.add(&label);
+        row.add(&button);
         row.show_all();
-        let context = row.get_style_context();
-        context.remove_class("activatable");
-        if !is_last {
-            context.add_class("search-item-separator");
-        }
 
         RelatedTopicRow { widget: row }
     }

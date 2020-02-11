@@ -554,5 +554,19 @@ impl ContentHeader {
             self.offline_popover.popdown();
             self.online_popover.popup();
         }
+        if let Ok(main_window) = GtkUtil::get_main_window(&self.offline_button) {
+            if let Some(import_opml_action) = main_window.lookup_action("import-opml") {
+                import_opml_action
+                    .downcast::<SimpleAction>()
+                    .expect("downcast Action to SimpleAction")
+                    .set_enabled(!offline);
+            }
+            if let Some(discover_action) = main_window.lookup_action("discover") {
+                discover_action
+                    .downcast::<SimpleAction>()
+                    .expect("downcast Action to SimpleAction")
+                    .set_enabled(!offline);
+            }
+        }
     }
 }

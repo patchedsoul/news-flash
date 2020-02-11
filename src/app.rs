@@ -727,6 +727,7 @@ impl App {
             &self.window.widget,
             &self.sender,
             &self.settings,
+            &self.news_flash,
             self.threadpool.clone(),
         );
         dialog.widget.present();
