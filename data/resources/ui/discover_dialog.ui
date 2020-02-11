@@ -115,6 +115,8 @@
                       <object class="GtkStack" id="search_page_stack">
                         <property name="visible">True</property>
                         <property name="can_focus">False</property>
+                        <property name="hhomogeneous">False</property>
+                        <property name="vhomogeneous">False</property>
                         <property name="transition_duration">50</property>
                         <property name="transition_type">crossfade</property>
                         <child>
@@ -329,6 +331,7 @@
                           <object class="GtkBox">
                             <property name="visible">True</property>
                             <property name="can_focus">False</property>
+                            <property name="margin_top">10</property>
                             <property name="spacing">10</property>
                             <child>
                               <object class="GtkStack" id="search_result_stack">
@@ -364,13 +367,26 @@
                                   </packing>
                                 </child>
                                 <child>
-                                  <object class="GtkSpinner">
+                                  <object class="GtkBox">
                                     <property name="visible">True</property>
                                     <property name="can_focus">False</property>
-                                    <property name="active">True</property>
-                                    <style>
-                                      <class name="cover-card"/>
-                                    </style>
+                                    <property name="orientation">vertical</property>
+                                    <child>
+                                      <object class="GtkSpinner">
+                                        <property name="height_request">300</property>
+                                        <property name="visible">True</property>
+                                        <property name="can_focus">False</property>
+                                        <property name="active">True</property>
+                                        <style>
+                                          <class name="cover-card"/>
+                                        </style>
+                                      </object>
+                                      <packing>
+                                        <property name="expand">False</property>
+                                        <property name="fill">True</property>
+                                        <property name="position">0</property>
+                                      </packing>
+                                    </child>
                                   </object>
                                   <packing>
                                     <property name="name">spinner</property>
@@ -390,7 +406,7 @@
                                 <property name="visible">True</property>
                                 <property name="can_focus">False</property>
                                 <property name="transition_type">slide-left</property>
-                                <property name="reveal_child">True</property>
+                                <property name="transition_duration">100</property>
                                 <child>
                                   <object class="GtkBox">
                                     <property name="visible">True</property>
@@ -403,7 +419,7 @@
                                         <property name="can_focus">False</property>
                                         <property name="label" translatable="yes">Related Topics</property>
                                         <style>
-                                          <class name="h2"/>
+                                          <class name="h3"/>
                                         </style>
                                       </object>
                                       <packing>
@@ -416,6 +432,8 @@
                                       <object class="GtkListBox" id="related_list">
                                         <property name="visible">True</property>
                                         <property name="can_focus">False</property>
+                                        <property name="selection_mode">none</property>
+                                        <property name="activate_on_single_click">False</property>
                                         <style>
                                           <class name="cover-card"/>
                                         </style>
@@ -467,6 +485,11 @@
       </object>
     </child>
   </object>
+  <object class="GtkLabel" id="related_topic">
+    <property name="visible">True</property>
+    <property name="can_focus">False</property>
+    <property name="label" translatable="yes">label</property>
+  </object>
   <object class="GtkBox" id="search_item_row">
     <property name="visible">True</property>
     <property name="can_focus">False</property>
@@ -474,14 +497,18 @@
     <property name="margin_right">5</property>
     <property name="margin_top">5</property>
     <property name="margin_bottom">5</property>
-    <property name="spacing">5</property>
+    <property name="spacing">8</property>
     <child>
       <object class="GtkImage" id="search_item_image">
         <property name="width_request">64</property>
         <property name="height_request">64</property>
         <property name="visible">True</property>
         <property name="can_focus">False</property>
-        <property name="stock">gtk-missing-image</property>
+        <property name="icon_name">application-rss+xml-symbolic</property>
+        <property name="icon_size">6</property>
+        <style>
+          <class name="cover-card"/>
+        </style>
       </object>
       <packing>
         <property name="expand">False</property>
@@ -500,6 +527,7 @@
             <property name="visible">True</property>
             <property name="can_focus">False</property>
             <property name="label" translatable="yes">Title</property>
+            <property name="ellipsize">end</property>
             <property name="xalign">0</property>
             <style>
               <class name="headline"/>
