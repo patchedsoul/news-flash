@@ -11,7 +11,7 @@ use gtk::{
     Button, ButtonExt, ContainerExt, EventBox, Image, ImageExt, Inhibit, Label, LabelExt, ListBoxRow, ListBoxRowExt,
     Stack, StackExt, StyleContextExt, WidgetExt,
 };
-use news_flash::NewsFlash;
+use news_flash::{models::Url, NewsFlash};
 use parking_lot::RwLock;
 use std::sync::Arc;
 use tokio::runtime::Runtime;
@@ -37,21 +37,11 @@ impl SearchItemRow {
         let subscribe_stack = builder.get::<Stack>("subscribe_stack");
         let subscribe_button = builder.get::<Button>("subscribe_button");
 
-        let search_item_website = item.website.clone();
-        subscribe_button.connect_clicked(clone!(@strong news_flash => move |button| {
-            button.set_sensitive(false);
-            // FIXME: show spinner in button
-            // FIXME: parse website and download feed -> if feed already subscribed show popopver
-
-            if let Some(news_flash) = news_flash.read().as_ref() {
-                if let Ok((feeds, _mappings)) = news_flash.get_feeds() {
-                    if !feeds
-                        .iter()
-                        .any(|f| f.feed_url.as_ref().map(|u| u.get().to_string()) == search_item_website)
-                    {
-
-                    }
-                }
+        let search_item_feed_url = Arc::new(RwLock::new(Self::feedly_id_to_rss_url(&item.feed_id)));
+        subscribe_button.set_sensitive(false);
+        subscribe_button.connect_clicked(clone!(@strong sender, @strong search_item_feed_url => move |_button| {
+            if let Some(feed_url) = search_item_feed_url.read().as_ref() {
+                Util::send(&sender, Action::AddFeed((feed_url.clone(), None, None)));
             }
         }));
 
@@ -105,9 +95,9 @@ impl SearchItemRow {
             context.add_class("search-item-separator");
         }
 
-        let (sender, receiver) = oneshot::channel::<Option<Vec<u8>>>();
+        
 
-        let settings = settings.clone();
+        
         let icon_url = if let Some(visual_url) = &item.visual_url {
             Some(visual_url.clone())
         } else if let Some(logo) = &item.logo {
@@ -119,9 +109,14 @@ impl SearchItemRow {
         };
 
         if let Some(icon_url) = icon_url {
+            let (sender, receiver) = oneshot::channel::<Option<Vec<u8>>>();
+
+            let settings = settings.clone();
             let thread_future = async move {
                 let mut runtime = Runtime::new().expect(RUNTIME_ERROR);
-                let res = match runtime.block_on(App::build_client(&settings).get(&icon_url).send()) {
+                let client = App::build_client(&settings);
+                
+                let res = match runtime.block_on(client.get(&icon_url).send()) {
                     Ok(response) => match runtime.block_on(response.bytes()) {
                         Ok(bytes) => Some(Vec::from(bytes.as_ref())),
                         Err(_) => None,
@@ -143,6 +138,54 @@ impl SearchItemRow {
             Util::glib_spawn_future(glib_future);
         }
 
+        let (sender, receiver) = oneshot::channel::<Option<Url>>();
+        let settings = settings.clone();
+        let thread_future = async move {
+            let mut runtime = Runtime::new().expect(RUNTIME_ERROR);
+            let client = App::build_client(&settings);
+
+            if let Some(url) = search_item_feed_url.read().as_ref() {
+                let res = runtime.block_on(client.head(url.get()).send()).expect(&format!("HEAD request to '{}' failed", url));
+                if res.status().is_success() {
+                    sender.send(Some(Url::new(res.url().clone()))).expect(CHANNEL_ERROR);
+                    return;
+                } else {
+                    log::warn!("HEAD request failed: '{}'", res.status());
+                }
+            }
+
+            sender.send(None).expect(CHANNEL_ERROR);
+        };
+
+        let glib_future = receiver.map(clone!(@strong news_flash => @default-panic, move |res| {
+            let url = res.expect(CHANNEL_ERROR);
+            if url.is_none() {
+                return;
+            }
+            if let Some(news_flash) = news_flash.read().as_ref() {
+                if let Ok((feeds, _mappings)) = news_flash.get_feeds() {
+                    if !feeds
+                        .iter()
+                        .any(|f| f.feed_url == url)
+                    {
+                        subscribe_button.set_sensitive(true);
+                    }
+                }
+            }
+        }));
+
+        threadpool.spawn_ok(thread_future);
+        Util::glib_spawn_future(glib_future);
+
         SearchItemRow { widget: row }
+    }
+
+    fn feedly_id_to_rss_url(feedly_id: &str) -> Option<Url> {
+        let url_string : String = feedly_id.chars().skip(5).collect();
+        if let Ok(url) = Url::parse(&url_string) {
+            Some(url)
+        } else {
+            None
+        }
     }
 }
