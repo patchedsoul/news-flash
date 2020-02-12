@@ -5,12 +5,13 @@ use feedly_api::models::SearchResultItem;
 use futures::channel::oneshot;
 use futures::executor::ThreadPool;
 use futures::FutureExt;
+use gdk::NotifyType;
 use glib::{clone, Sender};
 use gtk::{
-    Button, ContainerExt, EventBox, Image, ImageExt, Label, LabelExt, ListBoxRow, ListBoxRowExt, Stack, StackExt,
-    StyleContextExt, WidgetExt, Inhibit,
+    Button, ContainerExt, EventBox, Image, ImageExt, Inhibit, Label, LabelExt, ListBoxRow, ListBoxRowExt, Stack,
+    StackExt, StyleContextExt, WidgetExt,
 };
-use gdk::NotifyType;
+use news_flash::NewsFlash;
 use parking_lot::RwLock;
 use std::sync::Arc;
 use tokio::runtime::Runtime;
@@ -25,6 +26,7 @@ impl SearchItemRow {
         settings: &Arc<RwLock<Settings>>,
         threadpool: &ThreadPool,
         sender: &Sender<Action>,
+        news_flash: &Arc<RwLock<Option<NewsFlash>>>,
         is_last: bool,
     ) -> Self {
         let builder = BuilderHelper::new("discover_dialog");
@@ -32,8 +34,9 @@ impl SearchItemRow {
         let search_item_title = builder.get::<Label>("search_item_title");
         let search_item_description = builder.get::<Label>("search_item_description");
         let search_item_image = builder.get::<Image>("search_item_image");
-        let subscribe_button = builder.get::<Button>("subscribe_button");
         let subscribe_stack = builder.get::<Stack>("subscribe_stack");
+        let subscribe_button = builder.get::<Button>("subscribe_button");
+        subscribe_button.set_sensitive(false);
 
         search_item_row.connect_leave_notify_event(
             clone!(@weak subscribe_stack => @default-panic, move |_widget, event| {
@@ -121,6 +124,18 @@ impl SearchItemRow {
 
             threadpool.spawn_ok(thread_future);
             Util::glib_spawn_future(glib_future);
+        }
+
+        if let Some(news_flash) = news_flash.read().as_ref() {
+            if let Ok((feeds, _mappings)) = news_flash.get_feeds() {
+                // FIXME: parse website and download feed -> activate subscribe button if not already subscribed
+                if !feeds
+                    .iter()
+                    .any(|f| f.feed_url.as_ref().map(|u| u.get().to_string()) == item.website)
+                {
+                    subscribe_button.set_sensitive(true);
+                }
+            }
         }
 
         SearchItemRow { widget: row }

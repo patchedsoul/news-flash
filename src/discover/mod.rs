@@ -17,10 +17,10 @@ use gtk::{
     Image, ListBox, ListBoxExt, Revealer, RevealerExt, SearchEntry, SearchEntryExt, Stack, StackExt, StyleContextExt,
     WidgetExt, Window,
 };
+use news_flash::NewsFlash;
 use parking_lot::RwLock;
 use std::sync::Arc;
 use tokio::runtime::Runtime;
-use news_flash::NewsFlash;
 
 pub struct DiscoverDialog {
     pub widget: Window,
@@ -103,6 +103,7 @@ impl DiscoverDialog {
             @strong current_query,
             @strong arrow_expanded,
             @strong sender,
+            @strong news_flash,
             @weak language_combo,
             @weak arrow_image,
             @weak search_result_stack,
@@ -119,6 +120,7 @@ impl DiscoverDialog {
                 Self::feedly_search(
                     locale,
                     &sender,
+                    &news_flash,
                     &settings,
                     &threadpool,
                     &search_entry,
@@ -148,6 +150,7 @@ impl DiscoverDialog {
             @strong current_query,
             @strong arrow_expanded,
             @strong sender,
+            @strong news_flash,
             @weak arrow_image,
             @weak search_entry,
             @weak search_result_list,
@@ -164,6 +167,7 @@ impl DiscoverDialog {
                 Self::feedly_search(
                     locale,
                     &sender,
+                    &news_flash,
                     &settings,
                     &threadpool,
                     &search_entry,
@@ -193,6 +197,7 @@ impl DiscoverDialog {
     fn feedly_search(
         locale: Option<String>,
         global_sender: &Sender<Action>,
+        news_flash: &Arc<RwLock<Option<NewsFlash>>>,
         settings: &Arc<RwLock<Settings>>,
         threadpool: &ThreadPool,
         search_entry: &SearchEntry,
@@ -231,6 +236,7 @@ impl DiscoverDialog {
             @strong settings,
             @strong threadpool,
             @strong global_sender,
+            @strong news_flash,
             @weak search_result_list,
             @weak search_entry,
             @weak related_flow_box,
@@ -253,7 +259,7 @@ impl DiscoverDialog {
                                     continue;
                                 }
                                 let is_last_row = i + 1 == result_count;
-                                let search_item_row = SearchItemRow::new(&search_item, &settings, &threadpool, &global_sender, is_last_row);
+                                let search_item_row = SearchItemRow::new(&search_item, &settings, &threadpool, &global_sender, &news_flash, is_last_row);
                                 search_result_list.insert(&search_item_row.widget, -1);
                             }
 
