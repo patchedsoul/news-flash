@@ -8,8 +8,8 @@ use futures::FutureExt;
 use gdk::NotifyType;
 use glib::{clone, Sender};
 use gtk::{
-    Button, ContainerExt, EventBox, Image, ImageExt, Inhibit, Label, LabelExt, ListBoxRow, ListBoxRowExt, Stack,
-    StackExt, StyleContextExt, WidgetExt,
+    Button, ButtonExt, ContainerExt, EventBox, Image, ImageExt, Inhibit, Label, LabelExt, ListBoxRow, ListBoxRowExt,
+    Stack, StackExt, StyleContextExt, WidgetExt,
 };
 use news_flash::NewsFlash;
 use parking_lot::RwLock;
@@ -36,7 +36,24 @@ impl SearchItemRow {
         let search_item_image = builder.get::<Image>("search_item_image");
         let subscribe_stack = builder.get::<Stack>("subscribe_stack");
         let subscribe_button = builder.get::<Button>("subscribe_button");
-        subscribe_button.set_sensitive(false);
+
+        let search_item_website = item.website.clone();
+        subscribe_button.connect_clicked(clone!(@strong news_flash => move |button| {
+            button.set_sensitive(false);
+            // FIXME: show spinner in button
+            // FIXME: parse website and download feed -> if feed already subscribed show popopver
+
+            if let Some(news_flash) = news_flash.read().as_ref() {
+                if let Ok((feeds, _mappings)) = news_flash.get_feeds() {
+                    if !feeds
+                        .iter()
+                        .any(|f| f.feed_url.as_ref().map(|u| u.get().to_string()) == search_item_website)
+                    {
+
+                    }
+                }
+            }
+        }));
 
         search_item_row.connect_leave_notify_event(
             clone!(@weak subscribe_stack => @default-panic, move |_widget, event| {
@@ -124,18 +141,6 @@ impl SearchItemRow {
 
             threadpool.spawn_ok(thread_future);
             Util::glib_spawn_future(glib_future);
-        }
-
-        if let Some(news_flash) = news_flash.read().as_ref() {
-            if let Ok((feeds, _mappings)) = news_flash.get_feeds() {
-                // FIXME: parse website and download feed -> activate subscribe button if not already subscribed
-                if !feeds
-                    .iter()
-                    .any(|f| f.feed_url.as_ref().map(|u| u.get().to_string()) == item.website)
-                {
-                    subscribe_button.set_sensitive(true);
-                }
-            }
         }
 
         SearchItemRow { widget: row }
