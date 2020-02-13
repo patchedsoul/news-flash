@@ -8,7 +8,7 @@ use futures::channel::oneshot::{self, Sender as OneShotSender};
 use futures::executor::ThreadPool;
 use futures::FutureExt;
 use gio::{prelude::ApplicationExtManual, ApplicationExt, Notification, NotificationPriority, ThemedIcon};
-use glib::{clone, source::Continue, translate::ToGlib, Receiver, Sender, object::Cast};
+use glib::{clone, object::Cast, source::Continue, translate::ToGlib, Receiver, Sender};
 use gtk::{
     prelude::GtkWindowExtManual, Application, ButtonExt, DialogExt, EntryExt, FileChooserAction, FileChooserDialog,
     FileChooserExt, FileFilter, GtkApplicationExt, GtkWindowExt, ResponseType, Widget, WidgetExt,
@@ -747,7 +747,12 @@ impl App {
                 }
             };
 
-            let dialog = AddPopover::new(&add_button.upcast::<Widget>(), categories, self.threadpool.clone(), &self.settings);
+            let dialog = AddPopover::new(
+                &add_button.upcast::<Widget>(),
+                categories,
+                self.threadpool.clone(),
+                &self.settings,
+            );
             dialog.add_button().connect_clicked(clone!(
                 @strong dialog, @strong self.sender as sender => move |_button| {
                 let feed_url = match dialog.get_feed_url() {

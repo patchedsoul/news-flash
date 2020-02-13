@@ -1,23 +1,23 @@
+use crate::add_dialog::AddPopover;
 use crate::app::{Action, App};
 use crate::settings::Settings;
 use crate::util::{BuilderHelper, GtkUtil, Util, CHANNEL_ERROR, RUNTIME_ERROR};
-use crate::add_dialog::AddPopover;
 use feedly_api::models::SearchResultItem;
 use futures::channel::oneshot;
 use futures::executor::ThreadPool;
 use futures::FutureExt;
 use gdk::EventType;
-use glib::{clone, Sender, object::Cast};
+use glib::{clone, object::Cast, Sender};
 use gtk::{
     ButtonExt, ContainerExt, EventBox, Image, ImageExt, Inhibit, Label, LabelExt, ListBoxRow, ListBoxRowExt,
     StyleContextExt, Widget, WidgetExt,
 };
+use log::error;
 use news_flash::models::Url;
+use news_flash::NewsFlash;
 use parking_lot::RwLock;
 use std::sync::Arc;
 use tokio::runtime::Runtime;
-use news_flash::NewsFlash;
-use log::error;
 
 pub struct SearchItemRow {
     pub widget: ListBoxRow,

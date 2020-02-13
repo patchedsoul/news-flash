@@ -17,10 +17,10 @@ use gtk::{
     Image, ListBox, ListBoxExt, Revealer, RevealerExt, SearchEntry, SearchEntryExt, Stack, StackExt, StyleContextExt,
     WidgetExt, Window,
 };
+use news_flash::NewsFlash;
 use parking_lot::RwLock;
 use std::sync::Arc;
 use tokio::runtime::Runtime;
-use news_flash::NewsFlash;
 
 pub struct DiscoverDialog {
     pub widget: Window,

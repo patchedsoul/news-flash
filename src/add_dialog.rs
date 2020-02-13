@@ -71,11 +71,12 @@ impl AddPopover {
             &dialog.parse_button_stack,
             &dialog.add_button_stack,
             &dialog.parse_button,
-            &dialog.url_entry);
-        
+            &dialog.url_entry,
+        );
+
         dialog
     }
-    
+
     pub fn new(
         parent: &Widget,
         categories: Vec<Category>,
@@ -503,9 +504,16 @@ impl AddPopover {
         let thread_url = url.clone();
         let settings_clone = settings.clone();
         let thread_future = async move {
-            let result = Runtime::new().expect(RUNTIME_ERROR).block_on(
-                news_flash::feed_parser::download_and_parse_feed(&thread_url, &feed_id, None, None, &App::build_client(&settings_clone)),
-            );
+            let result =
+                Runtime::new()
+                    .expect(RUNTIME_ERROR)
+                    .block_on(news_flash::feed_parser::download_and_parse_feed(
+                        &thread_url,
+                        &feed_id,
+                        None,
+                        None,
+                        &App::build_client(&settings_clone),
+                    ));
             sender.send(result).expect(CHANNEL_ERROR);
         };
 
