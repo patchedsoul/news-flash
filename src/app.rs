@@ -8,10 +8,10 @@ use futures::channel::oneshot::{self, Sender as OneShotSender};
 use futures::executor::ThreadPool;
 use futures::FutureExt;
 use gio::{prelude::ApplicationExtManual, ApplicationExt, Notification, NotificationPriority, ThemedIcon};
-use glib::{clone, source::Continue, translate::ToGlib, Receiver, Sender};
+use glib::{clone, source::Continue, translate::ToGlib, Receiver, Sender, object::Cast};
 use gtk::{
     prelude::GtkWindowExtManual, Application, ButtonExt, DialogExt, EntryExt, FileChooserAction, FileChooserDialog,
-    FileChooserExt, FileFilter, GtkApplicationExt, GtkWindowExt, ResponseType, WidgetExt,
+    FileChooserExt, FileFilter, GtkApplicationExt, GtkWindowExt, ResponseType, Widget, WidgetExt,
 };
 use lazy_static::lazy_static;
 use log::{error, info, warn};
@@ -727,6 +727,7 @@ impl App {
             &self.window.widget,
             &self.sender,
             &self.settings,
+            &self.news_flash,
             self.threadpool.clone(),
         );
         dialog.widget.present();
@@ -746,7 +747,7 @@ impl App {
                 }
             };
 
-            let dialog = AddPopover::new(&add_button, categories, self.threadpool.clone(), &self.settings);
+            let dialog = AddPopover::new(&add_button.upcast::<Widget>(), categories, self.threadpool.clone(), &self.settings);
             dialog.add_button().connect_clicked(clone!(
                 @strong dialog, @strong self.sender as sender => move |_button| {
                 let feed_url = match dialog.get_feed_url() {

@@ -1,20 +1,23 @@
 use crate::app::{Action, App};
 use crate::settings::Settings;
 use crate::util::{BuilderHelper, GtkUtil, Util, CHANNEL_ERROR, RUNTIME_ERROR};
+use crate::add_dialog::AddPopover;
 use feedly_api::models::SearchResultItem;
 use futures::channel::oneshot;
 use futures::executor::ThreadPool;
 use futures::FutureExt;
-use gdk::NotifyType;
-use glib::{clone, Sender};
+use gdk::EventType;
+use glib::{clone, Sender, object::Cast};
 use gtk::{
-    Button, ButtonExt, ContainerExt, EventBox, Image, ImageExt, Inhibit, Label, LabelExt, ListBoxRow, ListBoxRowExt,
-    Stack, StackExt, StyleContextExt, WidgetExt,
+    ButtonExt, ContainerExt, EventBox, Image, ImageExt, Inhibit, Label, LabelExt, ListBoxRow, ListBoxRowExt,
+    StyleContextExt, Widget, WidgetExt,
 };
 use news_flash::models::Url;
 use parking_lot::RwLock;
 use std::sync::Arc;
 use tokio::runtime::Runtime;
+use news_flash::NewsFlash;
+use log::error;
 
 pub struct SearchItemRow {
     pub widget: ListBoxRow,
@@ -26,6 +29,7 @@ impl SearchItemRow {
         settings: &Arc<RwLock<Settings>>,
         threadpool: &ThreadPool,
         sender: &Sender<Action>,
+        news_flash: &Arc<RwLock<Option<NewsFlash>>>,
         is_last: bool,
     ) -> Self {
         let builder = BuilderHelper::new("discover_dialog");
@@ -33,35 +37,58 @@ impl SearchItemRow {
         let search_item_title = builder.get::<Label>("search_item_title");
         let search_item_description = builder.get::<Label>("search_item_description");
         let search_item_image = builder.get::<Image>("search_item_image");
-        let subscribe_stack = builder.get::<Stack>("subscribe_stack");
-        let subscribe_button = builder.get::<Button>("subscribe_button");
 
-        let search_item_feed_url = Arc::new(RwLock::new(Self::feedly_id_to_rss_url(&item.feed_id)));
-        subscribe_button.set_sensitive(false);
-        subscribe_button.connect_clicked(clone!(@strong sender, @strong search_item_feed_url => move |_button| {
-            if let Some(feed_url) = search_item_feed_url.read().as_ref() {
-                Util::send(&sender, Action::AddFeed((feed_url.clone(), None, None)));
+        let search_item_feed_url = Self::feedly_id_to_rss_url(&item.feed_id);
+        search_item_row.connect_button_press_event(clone!(
+            @strong settings,
+            @strong threadpool,
+            @strong sender,
+            @strong news_flash => move |eventbox, event|
+        {
+            if event.get_button() != 1 {
+                return Inhibit(false);
             }
-        }));
+            match event.get_event_type() {
+                EventType::ButtonRelease | EventType::DoubleButtonPress | EventType::TripleButtonPress => {
+                    return Inhibit(false);
+                }
+                _ => {}
+            }
 
-        search_item_row.connect_leave_notify_event(
-            clone!(@weak subscribe_stack => @default-panic, move |_widget, event| {
-                if event.get_detail() == NotifyType::Inferior {
-                    return Inhibit(false);
+            if let Some(search_item_feed_url) = &search_item_feed_url {
+                if let Some(news_flash) = news_flash.read().as_ref() {
+                    let error_message = "Failed to add feed".to_owned();
+        
+                    let categories = match news_flash.get_categories() {
+                        Ok(categories) => categories,
+                        Err(error) => {
+                            error!("{}", error_message);
+                            Util::send(&sender, Action::Error(error_message.clone(), error));
+                            return Inhibit(false);
+                        }
+                    };
+        
+                    let dialog = AddPopover::new_for_feed_url(&eventbox.clone().upcast::<Widget>(), categories, &threadpool, &settings, &search_item_feed_url);
+                    dialog.add_button().connect_clicked(clone!(
+                        @strong dialog, @strong sender as sender => move |_button| {
+                        let feed_url = match dialog.get_feed_url() {
+                            Some(url) => url,
+                            None => {
+                                error!("{}: No valid url", error_message);
+                                Util::send(&sender, Action::ErrorSimpleMessage(error_message.clone()));
+                                return;
+                            }
+                        };
+                        let feed_title = dialog.get_feed_title();
+                        let feed_category = dialog.get_category();
+        
+                        Util::send(&sender, Action::AddFeed((feed_url, feed_title, feed_category)));
+                        dialog.close();
+                    }));
                 }
-                subscribe_stack.set_visible_child_name("empty");
-                gtk::Inhibit(false)
-            }),
-        );
-        search_item_row.connect_enter_notify_event(
-            clone!(@weak subscribe_stack => @default-panic, move |_widget, event| {
-                if event.get_detail() == NotifyType::Inferior {
-                    return Inhibit(false);
-                }
-                subscribe_stack.set_visible_child_name("button");
-                gtk::Inhibit(false)
-            }),
-        );
+            }
+            Inhibit(false)
+        }));
 
         let scale = GtkUtil::get_scale(&search_item_image);
 

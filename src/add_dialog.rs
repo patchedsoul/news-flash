@@ -9,7 +9,7 @@ use gtk::{
     prelude::GtkListStoreExtManual, BinExt, Box, BoxExt, Button, ButtonExt, ComboBox, ComboBoxExt, ContainerExt,
     EditableSignals, Entry, EntryExt, GtkListStoreExt, IconSize, Image, ImageExt, Label, LabelExt, ListBox, ListBoxExt,
     ListBoxRow, ListBoxRowExt, ListStore, Orientation, Popover, PopoverExt, Separator, Stack, StackExt,
-    StyleContextExt, WidgetExt,
+    StyleContextExt, Widget, WidgetExt,
 };
 use log::error;
 use news_flash::models::{Category, CategoryID, FavIcon, Feed, FeedID, Url};
@@ -33,13 +33,51 @@ pub struct AddPopover {
     popover: Popover,
     add_button: Button,
     feed_title_entry: Entry,
+    add_feed_stack: Stack,
+    feed_list: ListBox,
+    select_button: Button,
+    select_button_stack: Stack,
+    favicon_image: Image,
+    parse_button_stack: Stack,
+    parse_button: Button,
+    add_button_stack: Stack,
+    url_entry: Entry,
     feed_url: Arc<RwLock<Option<Url>>>,
     feed_category: Arc<RwLock<Option<AddCategory>>>,
 }
 
 impl AddPopover {
+    pub fn new_for_feed_url(
+        parent: &Widget,
+        categories: Vec<Category>,
+        threadpool: &ThreadPool,
+        settings: &Arc<RwLock<Settings>>,
+        feed_url: &Url,
+    ) -> Self {
+        let dialog = Self::new(parent, categories, threadpool.clone(), settings);
+        dialog.add_feed_stack.set_visible_child_name("spinner");
+
+        Self::parse_feed_url(
+            &feed_url,
+            settings,
+            &threadpool,
+            &dialog.add_feed_stack,
+            &dialog.feed_list,
+            &dialog.feed_title_entry,
+            &dialog.select_button,
+            &dialog.select_button_stack,
+            &dialog.favicon_image,
+            &dialog.feed_url,
+            &dialog.parse_button_stack,
+            &dialog.add_button_stack,
+            &dialog.parse_button,
+            &dialog.url_entry);
+        
+        dialog
+    }
+    
     pub fn new(
-        parent: &Button,
+        parent: &Widget,
         categories: Vec<Category>,
         threadpool: ThreadPool,
         settings: &Arc<RwLock<Settings>>,
@@ -106,6 +144,7 @@ impl AddPopover {
             @weak feed_url,
             @weak parse_button_stack,
             @weak add_button_stack,
+            @weak url_entry,
             @strong settings => move |button|
         {
             if let Some(url_text) = url_entry.get_text() {
@@ -118,82 +157,21 @@ impl AddPopover {
                     parse_button_stack.set_visible_child_name("spinner");
                     button.set_sensitive(false);
 
-                    let (sender, receiver) = oneshot::channel::<Result<ParsedUrl, FeedParserError>>();
-
-                    let feed_id = FeedID::new(&url_text);
-                    let thread_url = url.clone();
-                    let settings_clone = settings.clone();
-                    let thread_future = async move {
-                        let result = Runtime::new().expect(RUNTIME_ERROR).block_on(
-                            news_flash::feed_parser::download_and_parse_feed(&thread_url, &feed_id, None, None, &App::build_client(&settings_clone)),
-                        );
-                        sender.send(result).expect(CHANNEL_ERROR);
-                    };
-
-                    let parse_button_threadpool = threadpool.clone();
-                    let glib_future = receiver.map(clone!(
-                        @weak add_feed_stack,
-                        @weak feed_list,
-                        @weak feed_title_entry,
-                        @weak select_button,
-                        @weak select_button_stack,
-                        @weak favicon_image,
-                        @weak feed_url,
-                        @weak parse_button_stack,
-                        @weak add_button_stack,
-                        @weak button as parse_button,
-                        @weak url_entry,
-                        @strong settings,
-                        @strong url => move |res|
-                    {
-                        // parse url
-                        match res.expect(CHANNEL_ERROR) {
-                            Ok(result) => match result {
-                                ParsedUrl::MultipleFeeds(feed_vec) => {
-                                    // url has multiple feeds: show selection page and list them there
-                                    add_feed_stack.set_visible_child_name("feed_selection_page");
-                                    Self::fill_mupliple_feed_list(
-                                        feed_vec,
-                                        &feed_list,
-                                        &select_button,
-                                        &select_button_stack,
-                                        &add_feed_stack,
-                                        &feed_title_entry,
-                                        &favicon_image,
-                                        &add_button_stack,
-                                        &feed_url,
-                                        parse_button_threadpool,
-                                        &settings,
-                                    );
-                                }
-                                ParsedUrl::SingleFeed(feed) => {
-                                    // url has single feed: move to feed page
-                                    add_feed_stack.set_visible_child_name("feed_page");
-                                    Self::fill_feed_page(
-                                        feed,
-                                        &add_button_stack,
-                                        &feed_title_entry,
-                                        &favicon_image,
-                                        &feed_url,
-                                        parse_button_threadpool,
-                                        &settings,
-                                    );
-                                }
-                            },
-                            Err(error) => {
-                                error!("No feed found for url '{}': {}", url, error);
-                                url_entry.set_property_secondary_icon_name(Some(WARN_ICON));
-                                url_entry.set_property_secondary_icon_tooltip_text(Some("No Feed found."));
-                            }
-                        }
-
-                        // set 'next' buton sensitive again and show label again
-                        parse_button_stack.set_visible_child_name("text");
-                        parse_button.set_sensitive(true);
-                    }));
-
-                    threadpool.spawn_ok(thread_future);
-                    Util::glib_spawn_future(glib_future);
+                    Self::parse_feed_url(
+                        &url,
+                        &settings,
+                        &threadpool,
+                        &add_feed_stack,
+                        &feed_list,
+                        &feed_title_entry,
+                        &select_button,
+                        &select_button_stack,
+                        &favicon_image,
+                        &feed_url,
+                        &parse_button_stack,
+                        &add_button_stack,
+                        button,
+                        &url_entry);
                 } else {
                     error!("No valid url: '{}'", url_text);
                     url_entry.set_property_secondary_icon_name(Some(WARN_ICON));
@@ -262,7 +240,16 @@ impl AddPopover {
         AddPopover {
             popover,
             add_button,
+            add_feed_stack,
+            feed_list,
             feed_title_entry,
+            select_button,
+            select_button_stack,
+            favicon_image,
+            parse_button_stack,
+            parse_button,
+            add_button_stack,
+            url_entry,
             feed_url,
             feed_category,
         }
@@ -492,6 +479,102 @@ impl AddPopover {
         }
 
         true
+    }
+
+    fn parse_feed_url(
+        url: &Url,
+        settings: &Arc<RwLock<Settings>>,
+        threadpool: &ThreadPool,
+        add_feed_stack: &Stack,
+        feed_list: &ListBox,
+        feed_title_entry: &Entry,
+        select_button: &Button,
+        select_button_stack: &Stack,
+        favicon_image: &Image,
+        feed_url: &Arc<RwLock<Option<Url>>>,
+        parse_button_stack: &Stack,
+        add_button_stack: &Stack,
+        parse_button: &Button,
+        url_entry: &Entry,
+    ) {
+        let (sender, receiver) = oneshot::channel::<Result<ParsedUrl, FeedParserError>>();
+
+        let feed_id = FeedID::new(url.get().as_str());
+        let thread_url = url.clone();
+        let settings_clone = settings.clone();
+        let thread_future = async move {
+            let result = Runtime::new().expect(RUNTIME_ERROR).block_on(
+                news_flash::feed_parser::download_and_parse_feed(&thread_url, &feed_id, None, None, &App::build_client(&settings_clone)),
+            );
+            sender.send(result).expect(CHANNEL_ERROR);
+        };
+
+        let parse_button_threadpool = threadpool.clone();
+        let glib_future = receiver.map(clone!(
+            @weak add_feed_stack,
+            @weak feed_list,
+            @weak feed_title_entry,
+            @weak select_button,
+            @weak select_button_stack,
+            @weak favicon_image,
+            @weak feed_url,
+            @weak parse_button_stack,
+            @weak add_button_stack,
+            @weak parse_button,
+            @weak url_entry,
+            @strong settings,
+            @strong url => move |res|
+        {
+            // parse url
+            match res.expect(CHANNEL_ERROR) {
+                Ok(result) => match result {
+                    ParsedUrl::MultipleFeeds(feed_vec) => {
+                        // url has multiple feeds: show selection page and list them there
+                        add_feed_stack.set_visible_child_name("feed_selection_page");
+                        Self::fill_mupliple_feed_list(
+                            feed_vec,
+                            &feed_list,
+                            &select_button,
+                            &select_button_stack,
+                            &add_feed_stack,
+                            &feed_title_entry,
+                            &favicon_image,
+                            &add_button_stack,
+                            &feed_url,
+                            parse_button_threadpool,
+                            &settings,
+                        );
+                    }
+                    ParsedUrl::SingleFeed(feed) => {
+                        // url has single feed: move to feed page
+                        add_feed_stack.set_visible_child_name("feed_page");
+                        Self::fill_feed_page(
+                            feed,
+                            &add_button_stack,
+                            &feed_title_entry,
+                            &favicon_image,
+                            &feed_url,
+                            parse_button_threadpool,
+                            &settings,
+                        );
+                    }
+                },
+                Err(error) => {
+                    error!("No feed found for url '{}': {}", url, error);
+                    add_feed_stack.set_visible_child_name("feed_url_page");
+                    url_entry.set_text(&url.to_string());
+                    url_entry.set_property_secondary_icon_name(Some(WARN_ICON));
+                    url_entry.set_property_secondary_icon_tooltip_text(Some("No Feed found."));
+                }
+            }
+
+            // set 'next' buton sensitive again and show label again
+            parse_button_stack.set_visible_child_name("text");
+            parse_button.set_sensitive(true);
+        }));
+
+        threadpool.spawn_ok(thread_future);
+        Util::glib_spawn_future(glib_future);
     }
 
     pub fn close(&self) {
