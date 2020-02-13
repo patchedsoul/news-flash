@@ -58,7 +58,6 @@ impl SearchItemRow {
             if let Some(search_item_feed_url) = &search_item_feed_url {
                 if let Some(news_flash) = news_flash.read().as_ref() {
                     let error_message = "Failed to add feed".to_owned();
-        
                     let categories = match news_flash.get_categories() {
                         Ok(categories) => categories,
                         Err(error) => {
@@ -67,7 +66,7 @@ impl SearchItemRow {
                             return Inhibit(false);
                         }
                     };
-        
+
                     let dialog = AddPopover::new_for_feed_url(&eventbox.clone().upcast::<Widget>(), categories, &threadpool, &settings, &search_item_feed_url);
                     dialog.add_button().connect_clicked(clone!(
                         @strong dialog, @strong sender as sender => move |_button| {
@@ -81,7 +80,7 @@ impl SearchItemRow {
                         };
                         let feed_title = dialog.get_feed_title();
                         let feed_category = dialog.get_category();
-        
+
                         Util::send(&sender, Action::AddFeed((feed_url, feed_title, feed_category)));
                         dialog.close();
                     }));
