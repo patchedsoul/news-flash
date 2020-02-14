@@ -214,7 +214,7 @@ impl DiscoverDialog {
         search_result_stack.set_visible_child_name("spinner");
         Self::clear_list(search_result_list);
         Self::clear_flow_box(related_flow_box);
-        let count = Some(5);
+        let count = Some(30);
 
         let (sender, receiver) = oneshot::channel::<(String, Result<SearchResult, ApiError>)>();
 
@@ -272,12 +272,18 @@ impl DiscoverDialog {
                             } else {
                                 related_box_revealer.set_reveal_child(false);
                             }
+
+                            if result_count > 0 {
+                                search_result_stack.set_visible_child_name("list");
+                            } else {
+                                search_result_stack.set_visible_child_name("empty");
+                            }
                         },
                         Err(e) => {
+                            search_result_stack.set_visible_child_name("list");
                             log::error!("Feedly search query failed: '{}'", e);
                         },
                     }
-                    search_result_stack.set_visible_child_name("list");
                     current_query.write().take();
                 }
             } else {
