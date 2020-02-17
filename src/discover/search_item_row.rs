@@ -38,12 +38,24 @@ impl SearchItemRow {
         let search_item_description = builder.get::<Label>("search_item_description");
         let search_item_image = builder.get::<Image>("search_item_image");
 
+        let row = ListBoxRow::new();
+        row.set_activatable(true);
+        row.set_can_focus(true);
+        row.add(&search_item_row);
+        row.show_all();
+        let context = row.get_style_context();
+        //context.remove_class("activatable");
+        if !is_last {
+            context.add_class("search-item-separator");
+        }
+
         let search_item_feed_url = Self::feedly_id_to_rss_url(&item.feed_id);
         search_item_row.connect_button_press_event(clone!(
             @strong settings,
             @strong threadpool,
             @strong sender,
-            @strong news_flash => move |eventbox, event|
+            @strong news_flash,
+            @weak row => @default-panic, move |eventbox, event|
         {
             if event.get_button() != 1 {
                 return Inhibit(false);
@@ -54,6 +66,8 @@ impl SearchItemRow {
                 }
                 _ => {}
             }
+
+            row.emit_grab_focus();
 
             if let Some(search_item_feed_url) = &search_item_feed_url {
                 if let Some(news_flash) = news_flash.read().as_ref() {
@@ -109,16 +123,6 @@ impl SearchItemRow {
 
         search_item_description.set_label(&description);
 
-        let row = ListBoxRow::new();
-        row.set_activatable(true);
-        row.set_can_focus(false);
-        row.add(&search_item_row);
-        row.show_all();
-        let context = row.get_style_context();
-        context.remove_class("activatable");
-        if !is_last {
-            context.add_class("search-item-separator");
-        }
 
         let icon_url = if let Some(visual_url) = &item.visual_url {
             Some(visual_url.clone())
