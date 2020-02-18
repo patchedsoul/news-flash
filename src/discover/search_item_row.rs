@@ -123,7 +123,6 @@ impl SearchItemRow {
 
         search_item_description.set_label(&description);
 
-
         let icon_url = if let Some(visual_url) = &item.visual_url {
             Some(visual_url.clone())
         } else if let Some(logo) = &item.logo {
