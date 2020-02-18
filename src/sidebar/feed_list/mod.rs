@@ -290,8 +290,8 @@ impl FeedList {
         let mut old_tree = new_tree;
         std::mem::swap(&mut old_tree, &mut *self.tree.write());
 
-        //Util::serialize_and_save(&old_tree, "old_tree.json").expect("debug printing");
-        //Util::serialize_and_save(&*self.tree.read(), "new_tree.json").expect("debug printing");
+        Util::serialize_and_save(&old_tree, "old_tree.json").expect("debug printing");
+        Util::serialize_and_save(&*self.tree.read(), "new_tree.json").expect("debug printing");
 
         let tree_diff = old_tree.generate_diff(&mut self.tree.write());
         for diff in tree_diff {
