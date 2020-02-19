@@ -527,7 +527,10 @@ impl App {
                     .block_on(news_flash.get_icon_info(&feed, &Self::build_client(&settings)))
                 {
                     Ok(favicon) => Some(favicon),
-                    Err(_) => None,
+                    Err(_) => {
+                        warn!("Failed to load favicon for feed: '{}'", feed.label);
+                        None
+                    },
                 };
                 oneshot_sender.send(favicon).expect(CHANNEL_ERROR);
             } else {
