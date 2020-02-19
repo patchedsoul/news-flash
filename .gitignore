@@ -7,3 +7,5 @@ _build/
 config.rs
 .flatpak-builder
 .buildconfig
+new_tree.json
+old_tree.json

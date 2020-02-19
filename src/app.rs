@@ -1424,6 +1424,7 @@ impl App {
         let proxy_error = "Failed to build proxy";
 
         let mut builder = ClientBuilder::new()
+            .user_agent("Mozilla/5.0 (X11; Linux x86_64; rv:72.0) Gecko/20100101 Firefox/72.0")
             .danger_accept_invalid_certs(settings.read().get_accept_invalid_certs())
             .danger_accept_invalid_hostnames(settings.read().get_accept_invalid_hostnames());
 

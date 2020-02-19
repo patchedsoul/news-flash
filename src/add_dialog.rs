@@ -277,10 +277,11 @@ impl AddPopover {
         let (sender, receiver) = oneshot::channel::<Option<FavIcon>>();
 
         let feed_clone = feed.clone();
+        let settings_clone = settings.clone();
         let thread_future = async move {
             let result = Runtime::new()
                 .expect(RUNTIME_ERROR)
-                .block_on(news_flash::util::favicon_cache::FavIconCache::scrap(&feed_clone));
+                .block_on(news_flash::util::favicon_cache::FavIconCache::scrap(&feed_clone, &App::build_client(&settings_clone)));
             sender.send(result).expect(CHANNEL_ERROR);
         };
 
