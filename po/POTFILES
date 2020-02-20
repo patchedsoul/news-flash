@@ -1,5 +1,5 @@
-data/com.gitlab.newsflash.appdata.xml.in
-data/com.gitlab.newsflash.desktop.in
+data/com.gitlab.newsflash.appdata.xml.in.in
+data/com.gitlab.newsflash.desktop.in.in
 
 data/resources/ui/add_dialog.ui
 data/resources/ui/article.ui
