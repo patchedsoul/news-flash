@@ -1,4 +1,5 @@
 use crate::app::App;
+use crate::i18n::i18n;
 use crate::settings::Settings;
 use crate::util::{BuilderHelper, GtkUtil, Util, CHANNEL_ERROR, RUNTIME_ERROR};
 use futures::channel::oneshot;
@@ -176,12 +177,12 @@ impl AddPopover {
                 } else {
                     error!("No valid url: '{}'", url_text);
                     url_entry.set_property_secondary_icon_name(Some(WARN_ICON));
-                    url_entry.set_property_secondary_icon_tooltip_text(Some("No valid URL."));
+                    url_entry.set_property_secondary_icon_tooltip_text(Some(&i18n("No valid URL.")));
                 }
             } else {
                 error!("Empty url");
                 url_entry.set_property_secondary_icon_name(Some(WARN_ICON));
-                url_entry.set_property_secondary_icon_tooltip_text(Some("Empty URL"));
+                url_entry.set_property_secondary_icon_tooltip_text(Some(&i18n("Empty URL")));
             }
         }));
 
@@ -279,9 +280,13 @@ impl AddPopover {
         let feed_clone = feed.clone();
         let settings_clone = settings.clone();
         let thread_future = async move {
-            let result = Runtime::new()
-                .expect(RUNTIME_ERROR)
-                .block_on(news_flash::util::favicon_cache::FavIconCache::scrap(&feed_clone, &App::build_client(&settings_clone)));
+            let result =
+                Runtime::new()
+                    .expect(RUNTIME_ERROR)
+                    .block_on(news_flash::util::favicon_cache::FavIconCache::scrap(
+                        &feed_clone,
+                        &App::build_client(&settings_clone),
+                    ));
             sender.send(result).expect(CHANNEL_ERROR);
         };
 
@@ -431,7 +436,7 @@ impl AddPopover {
             label.set_xalign(0.0);
 
             let warn_icon = Image::new_from_icon_name(Some(WARN_ICON), IconSize::Button);
-            warn_icon.set_tooltip_text(Some("Failed to get Feed."));
+            warn_icon.set_tooltip_text(Some(&i18n("Failed to get Feed.")));
             warn_icon.set_no_show_all(true);
 
             let gtk_box = Box::new(Orientation::Horizontal, 0);
@@ -573,7 +578,7 @@ impl AddPopover {
                     add_feed_stack.set_visible_child_name("feed_url_page");
                     url_entry.set_text(&url.to_string());
                     url_entry.set_property_secondary_icon_name(Some(WARN_ICON));
-                    url_entry.set_property_secondary_icon_tooltip_text(Some("No Feed found."));
+                    url_entry.set_property_secondary_icon_tooltip_text(Some(&i18n("No Feed found.")));
                 }
             }
 

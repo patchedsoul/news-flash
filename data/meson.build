@@ -5,7 +5,7 @@ desktop_conf.set('icon', application_id)
 desktop_file = i18n.merge_file ('desktop-file',
   type: 'desktop',
   input: configure_file(
-    input: files('com.gitlab.newsflash.desktop.in.in'),
+    input: files('com.gitlab.newsflash.desktop.in'),
     output: '@BASENAME@',
     configuration: desktop_conf
   ),
@@ -29,7 +29,7 @@ appdata_conf = configuration_data()
 appdata_conf.set('appid', application_id)
 appdata_file = i18n.merge_file ('appdata-file',
   input: configure_file(
-    input: files('com.gitlab.newsflash.appdata.xml.in.in'),
+    input: files('com.gitlab.newsflash.appdata.xml.in'),
     output: '@BASENAME@',
     configuration: appdata_conf
   ),

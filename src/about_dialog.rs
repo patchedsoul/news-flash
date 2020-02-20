@@ -18,7 +18,7 @@ impl NewsFlashAbout {
         widget.set_transient_for(Some(window));
         widget.set_modal(true);
         widget.set_authors(AUTHORS);
-        widget.set_comments(Some(DESCRIPTION));
+        widget.set_comments(Some(&DESCRIPTION));
         widget.set_copyright(Some(COPYRIGHT));
         widget.set_logo_icon_name(Some(APP_ID));
         widget.set_program_name(APP_NAME);

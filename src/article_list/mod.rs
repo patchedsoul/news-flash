@@ -5,6 +5,7 @@ mod single;
 use crate::app::Action;
 use crate::content_page::ContentHeader;
 use crate::content_page::HeaderSelection;
+use crate::i18n::{i18n, i18n_f};
 use crate::main_window_state::MainWindowState;
 use crate::settings::Settings;
 use crate::sidebar::models::SidebarSelection;
@@ -285,58 +286,64 @@ impl ArticleList {
         match new_state.read().get_sidebar_selection() {
             SidebarSelection::All => match new_state.read().get_header_selection() {
                 HeaderSelection::All => match new_state.read().get_search_term() {
-                    Some(search) => format!("No articles that fit \"{}\"", search),
-                    None => "No articles".to_string(),
+                    Some(search) => i18n_f("No articles that fit \"{}\"", &[&search]),
+                    None => i18n("No articles"),
                 },
                 HeaderSelection::Unread => match new_state.read().get_search_term() {
-                    Some(search) => format!("No unread articles that fit \"{}\"", search),
-                    None => "No unread articles".to_string(),
+                    Some(search) => i18n_f("No unread articles that fit \"{}\"", &[&search]),
+                    None => i18n("No unread articles"),
                 },
                 HeaderSelection::Marked => match new_state.read().get_search_term() {
-                    Some(search) => format!("No starred articles that fit \"{}\"", search),
-                    None => "No starred articles".to_string(),
+                    Some(search) => i18n_f("No starred articles that fit \"{}\"", &[&search]),
+                    None => i18n("No starred articles"),
                 },
             },
             SidebarSelection::Cateogry((_id, title)) => match new_state.read().get_header_selection() {
                 HeaderSelection::All => match new_state.read().get_search_term() {
-                    Some(search) => format!("No articles that fit \"{}\" in category \"{}\"", search, title),
-                    None => format!("No articles in category \"{}\"", title),
+                    Some(search) => i18n_f("No articles that fit \"{}\" in category \"{}\"", &[&search, &title]),
+                    None => i18n_f("No articles in category \"{}\"", &[&title]),
                 },
                 HeaderSelection::Unread => match new_state.read().get_search_term() {
-                    Some(search) => format!("No unread articles that fit \"{}\" in category \"{}\"", search, title),
-                    None => format!("No unread articles in category \"{}\"", title),
+                    Some(search) => i18n_f(
+                        "No unread articles that fit \"{}\" in category \"{}\"",
+                        &[&search, &title],
+                    ),
+                    None => i18n_f("No unread articles in category \"{}\"", &[&title]),
                 },
                 HeaderSelection::Marked => match new_state.read().get_search_term() {
-                    Some(search) => format!("No starred articles that fit \"{}\" in category \"{}\"", search, title),
-                    None => format!("No starred articles in category \"{}\"", title),
+                    Some(search) => i18n_f(
+                        "No starred articles that fit \"{}\" in category \"{}\"",
+                        &[&search, &title],
+                    ),
+                    None => i18n_f("No starred articles in category \"{}\"", &[&title]),
                 },
             },
             SidebarSelection::Feed((_id, title)) => match new_state.read().get_header_selection() {
                 HeaderSelection::All => match new_state.read().get_search_term() {
-                    Some(search) => format!("No articles that fit \"{}\" in feed \"{}\"", search, title),
-                    None => format!("No articles in feed \"{}\"", title),
+                    Some(search) => i18n_f("No articles that fit \"{}\" in feed \"{}\"", &[&search, &title]),
+                    None => i18n_f("No articles in feed \"{}\"", &[&title]),
                 },
                 HeaderSelection::Unread => match new_state.read().get_search_term() {
-                    Some(search) => format!("No unread articles that fit \"{}\" in feed \"{}\"", search, title),
-                    None => format!("No unread articles in feed \"{}\"", title),
+                    Some(search) => i18n_f("No unread articles that fit \"{}\" in feed \"{}\"", &[&search, &title]),
+                    None => i18n_f("No unread articles in feed \"{}\"", &[&title]),
                 },
                 HeaderSelection::Marked => match new_state.read().get_search_term() {
-                    Some(search) => format!("No starred articles that fit \"{}\" in feed \"{}\"", search, title),
-                    None => format!("No starred articles in feed \"{}\"", title),
+                    Some(search) => i18n_f("No starred articles that fit \"{}\" in feed \"{}\"", &[&search, &title]),
+                    None => i18n_f("No starred articles in feed \"{}\"", &[&title]),
                 },
             },
             SidebarSelection::Tag((_id, title)) => match new_state.read().get_header_selection() {
                 HeaderSelection::All => match new_state.read().get_search_term() {
-                    Some(search) => format!("No articles that fit \"{}\" in tag \"{}\"", search, title),
-                    None => format!("No articles in tag \"{}\"", title),
+                    Some(search) => i18n_f("No articles that fit \"{}\" in tag \"{}\"", &[&search, &title]),
+                    None => i18n_f("No articles in tag \"{}\"", &[&title]),
                 },
                 HeaderSelection::Unread => match new_state.read().get_search_term() {
-                    Some(search) => format!("No unread articles that fit \"{}\" in tag \"{}\"", search, title),
-                    None => format!("No unread articles in tag \"{}\"", title),
+                    Some(search) => i18n_f("No unread articles that fit \"{}\" in tag \"{}\"", &[&search, &title]),
+                    None => i18n_f("No unread articles in tag \"{}\"", &[&title]),
                 },
                 HeaderSelection::Marked => match new_state.read().get_search_term() {
-                    Some(search) => format!("No starred articles that fit \"{}\" in tag \"{}\"", search, title),
-                    None => format!("No starred articles in tag \"{}\"", title),
+                    Some(search) => i18n_f("No starred articles that fit \"{}\" in tag \"{}\"", &[&search, &title]),
+                    None => i18n_f("No starred articles in tag \"{}\"", &[&title]),
                 },
             },
         }

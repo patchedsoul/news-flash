@@ -1,5 +1,6 @@
 use crate::app::Action;
 use crate::article_view::{ArticleTheme, ArticleView};
+use crate::i18n::i18n;
 use crate::settings::Settings;
 use crate::util::{BuilderHelper, Util};
 use chrono::Utc;
@@ -41,7 +42,7 @@ impl ThemeChooser {
             &mut demo_article,
             ArticleTheme::Default,
             "default",
-            "Default",
+            &i18n("Default"),
         );
         Self::prepare_theme_selection(
             &builder,
@@ -49,7 +50,7 @@ impl ThemeChooser {
             &mut demo_article,
             ArticleTheme::Spring,
             "spring",
-            "Spring",
+            &i18n("Spring"),
         );
         Self::prepare_theme_selection(
             &builder,
@@ -57,7 +58,7 @@ impl ThemeChooser {
             &mut demo_article,
             ArticleTheme::Midnight,
             "midnight",
-            "Midnight",
+            &i18n("Midnight"),
         );
         Self::prepare_theme_selection(
             &builder,
@@ -65,7 +66,7 @@ impl ThemeChooser {
             &mut demo_article,
             ArticleTheme::Parchment,
             "parchment",
-            "Parchment",
+            &i18n("Parchment"),
         );
 
         let theme_list = builder.get::<ListBox>("theme_list");

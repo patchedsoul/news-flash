@@ -1,4 +1,5 @@
 use super::keybindings::Keybindings;
+use crate::i18n::i18n;
 use crate::util::BuilderHelper;
 use gdk::enums::key;
 use glib::{clone, object::IsA};
@@ -57,7 +58,7 @@ impl KeybindingEditor {
             }
 
             if keyval == key::BackSpace {
-                shortcut_meta.set_label("Disable Keybinding");
+                shortcut_meta.set_label(&i18n("Disable Keybinding"));
                 set_button.set_visible(true);
                 cancel_button.set_visible(true);
                 stack.set_visible_child_name("confirm");
@@ -77,7 +78,7 @@ impl KeybindingEditor {
                 *keybinding_internal.write() = KeybindState::Enabled(internal_shortcut);
             } else {
                 set_button.set_visible(false);
-                shortcut_meta.set_label("Illegal Keybinding");
+                shortcut_meta.set_label(&i18n("Illegal Keybinding"));
                 stack.set_visible_child_name("confirm");
                 *keybinding_internal.write() = KeybindState::Illegal;
             }

@@ -7,6 +7,7 @@ mod tag_list;
 use self::error::{SidebarError, SidebarErrorKind};
 use self::footer::SidebarFooter;
 use crate::app::Action;
+use crate::i18n::i18n;
 use crate::main_window_state::MainWindowState;
 use crate::util::{BuilderHelper, GtkUtil, Util};
 use failure::ResultExt;
@@ -234,7 +235,7 @@ impl SideBar {
 
     pub fn set_service(&self, id: Option<&PluginID>, user_name: Option<String>) -> Result<(), SidebarError> {
         let generic_icon = GtkUtil::create_surface_from_icon_name("feed-service-generic", 64, self.scale_factor);
-        let generic_user = "Unitialized";
+        let generic_user = i18n("Unitialized");
 
         if let Some(id) = id {
             let list = NewsFlash::list_backends();
@@ -260,11 +261,11 @@ impl SideBar {
                 }
             } else {
                 self.logo.set_from_surface(Some(&generic_icon));
-                self.service_label.set_text(generic_user);
+                self.service_label.set_text(&generic_user);
             }
         } else {
             self.logo.set_from_surface(Some(&generic_icon));
-            self.service_label.set_text(generic_user);
+            self.service_label.set_text(&generic_user);
         }
 
         Ok(())

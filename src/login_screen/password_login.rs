@@ -1,6 +1,7 @@
 use super::error::{LoginScreenError, LoginScreenErrorKind};
 use crate::app::Action;
 use crate::error_dialog::ErrorDialog;
+use crate::i18n::{i18n, i18n_f};
 use crate::util::{BuilderHelper, GtkUtil, Util};
 use failure::{Fail, ResultExt};
 use glib::{clone, signal::SignalHandlerId, source::Continue, translate::ToGlib, Sender};
@@ -120,7 +121,7 @@ impl PasswordLogin {
 
         // set headline
         self.headline
-            .set_text(&format!("Please log into {} and enjoy using NewsFlash", info.name));
+            .set_text(&i18n_f("Please log into {} and enjoy using NewsFlash", &[&info.name]));
 
         // setup infobar
         self.info_bar_close_signal.write().replace(
@@ -296,22 +297,23 @@ impl PasswordLogin {
                         match api_err.kind() {
                             FeedApiErrorKind::HTTPAuth => {
                                 self.http_revealer.set_reveal_child(true);
-                                self.info_bar_label.set_text("HTTP Authentication required.");
+                                self.info_bar_label.set_text(&i18n("HTTP Authentication required."));
                                 return;
                             }
                             FeedApiErrorKind::TLSCert => {
-                                self.info_bar_label.set_text("No valid CA certificate available.");
+                                self.info_bar_label
+                                    .set_text(&i18n("No valid CA certificate available."));
                                 self.ignore_tls_button.set_visible(true);
                                 return;
                             }
                             FeedApiErrorKind::Login | FeedApiErrorKind::Api | _ => {
-                                self.info_bar_label.set_text("Failed to log in");
+                                self.info_bar_label.set_text(&i18n("Failed to log in"));
                             }
                         }
                     }
                 }
             }
-            _ => self.info_bar_label.set_text("Unknown error."),
+            _ => self.info_bar_label.set_text(&i18n("Unknown error.")),
         }
 
         self.error_details_button.set_visible(true);

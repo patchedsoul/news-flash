@@ -4,6 +4,7 @@ use std::rc::Rc;
 use std::sync::Arc;
 use std::time;
 
+use crate::i18n::{i18n, i18n_f};
 use futures::channel::oneshot::{self, Sender as OneShotSender};
 use futures::executor::ThreadPool;
 use futures::FutureExt;
@@ -260,15 +261,18 @@ impl App {
 
     fn show_notification(&self, counts: NotificationCounts) {
         if counts.new > 0 && counts.unread > 0 {
-            let summary = "New Articles";
+            let summary = i18n("New Articles");
 
             let message = if counts.new == 1 {
-                format!("There is 1 new article ({} unread)", counts.unread)
+                i18n_f("There is 1 new article ({} unread)", &[&counts.unread.to_string()])
             } else {
-                format!("There are {} new articles ({} unread)", counts.new, counts.unread)
+                i18n_f(
+                    "There are {} new articles ({} unread)",
+                    &[&counts.new.to_string(), &counts.unread.to_string()],
+                )
             };
 
-            let notification = Notification::new(summary);
+            let notification = Notification::new(&summary);
             notification.set_body(Some(&message));
             notification.set_priority(NotificationPriority::Normal);
             notification.set_icon(&ThemedIcon::new(APP_ID));
@@ -530,7 +534,7 @@ impl App {
                     Err(_) => {
                         warn!("Failed to load favicon for feed: '{}'", feed.label);
                         None
-                    },
+                    }
                 };
                 oneshot_sender.send(favicon).expect(CHANNEL_ERROR);
             } else {
@@ -1277,10 +1281,13 @@ impl App {
 
     fn import_opml(&self) {
         let dialog = FileChooserDialog::with_buttons(
-            Some("Import OPML"),
+            Some(&i18n("Import OPML")),
             Some(&self.window.widget),
             FileChooserAction::Open,
-            &[("Cancel", ResponseType::Cancel), ("Import", ResponseType::Ok)],
+            &[
+                (&i18n("Cancel"), ResponseType::Cancel),
+                (&i18n("Import"), ResponseType::Ok),
+            ],
         );
 
         let filter = FileFilter::new();
@@ -1329,10 +1336,13 @@ impl App {
 
     fn export_opml(&self) {
         let dialog = FileChooserDialog::with_buttons(
-            Some("Export OPML"),
+            Some(&i18n("Export OPML")),
             Some(&self.window.widget),
             FileChooserAction::Save,
-            &[("Cancel", ResponseType::Cancel), ("Save", ResponseType::Ok)],
+            &[
+                (&i18n("Cancel"), ResponseType::Cancel),
+                (&i18n("Save"), ResponseType::Ok),
+            ],
         );
 
         let filter = FileFilter::new();

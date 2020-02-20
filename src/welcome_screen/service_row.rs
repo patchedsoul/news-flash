@@ -1,3 +1,4 @@
+use crate::i18n::i18n;
 use crate::util::{BuilderHelper, GtkUtil};
 use gdk::{EventType, NotifyType};
 use glib::clone;
@@ -37,41 +38,43 @@ impl ServiceRow {
             let website_string = website.get().to_string();
             website_label.set_markup(&format!("<a href=\"{}\">{}</a>", website_string, website_string));
         } else {
-            website_label.set_text("No Website");
+            website_label.set_text(&i18n("No Website"));
         }
 
         let license_label = builder.get::<Label>("license_label");
+        let unknown = i18n("Unknown Free License");
+        let sad_panda = i18n("Proprietary Software");
         let license_string = match info.license_type {
             ServiceLicense::ApacheV2 => "<a href=\"http://www.apache.org/licenses/LICENSE-2.0\">Apache v2</a>",
             ServiceLicense::GPLv2 => "<a href=\"http://www.gnu.de/documents/gpl-2.0.en.html\">GPLv2</a>",
             ServiceLicense::GPlv3 => "<a href=\"http://www.gnu.de/documents/gpl-3.0.en.html\">GPLv3</a>",
             ServiceLicense::MIT => "<a href=\"https://opensource.org/licenses/MIT\">MIT</a>",
             ServiceLicense::LGPLv21 => "<a href=\"http://www.gnu.de/documents/lgpl-2.1.en.html\">LGPLv2.1</a>",
-            ServiceLicense::GenericFree => "Unknown Free License",
-            ServiceLicense::GenericProprietary => "Proprietary Software",
+            ServiceLicense::GenericFree => &unknown,
+            ServiceLicense::GenericProprietary => &sad_panda,
         };
         license_label.set_markup(license_string);
 
         let type_label = builder.get::<Label>("type_label");
         let type_string = match info.service_type {
-            ServiceType::Local => "Local data only",
+            ServiceType::Local => i18n("Local data only"),
             ServiceType::Remote { self_hosted } => {
                 if self_hosted {
-                    "Synced & self hosted"
+                    i18n("Synced & self hosted")
                 } else {
-                    "Synced"
+                    i18n("Synced")
                 }
             }
         };
-        type_label.set_text(type_string);
+        type_label.set_text(&type_string);
 
         let price_label = builder.get::<Label>("price_label");
         let price_string = match info.service_price {
-            ServicePrice::Free => "Free",
-            ServicePrice::Paid => "Paid",
-            ServicePrice::PaidPremimum => "Free / Paid Premium",
+            ServicePrice::Free => i18n("Free"),
+            ServicePrice::Paid => i18n("Paid"),
+            ServicePrice::PaidPremimum => i18n("Free / Paid Premium"),
         };
-        price_label.set_text(price_string);
+        price_label.set_text(&price_string);
 
         arrow_event.connect_leave_notify_event(clone!(@weak arrow_image => @default-panic, move |_widget, _| {
             arrow_image.set_opacity(0.8);

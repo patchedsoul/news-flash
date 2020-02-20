@@ -9,6 +9,7 @@ mod content_page;
 mod discover;
 mod error_bar;
 mod error_dialog;
+mod i18n;
 mod login_screen;
 mod main_window;
 mod main_window_state;

@@ -1,6 +1,7 @@
 mod models;
 
 use crate::app::Action;
+use crate::i18n::i18n_f;
 use crate::util::{BuilderHelper, GtkUtil, Util};
 use glib::{clone, source::Continue, translate::ToGlib, Sender};
 use gtk::{Button, ButtonExt, InfoBar, InfoBarExt, Label, LabelExt, ResponseType, WidgetExt};
@@ -93,10 +94,10 @@ impl UndoBar {
 
         match &action {
             UndoActionModel::DeleteCategory((_id, label)) => {
-                self.label.set_label(&format!("Deleted Category '{}'", label))
+                self.label.set_label(&i18n_f("Deleted Category '{}'", &[label]))
             }
-            UndoActionModel::DeleteFeed((_id, label)) => self.label.set_label(&format!("Deleted Feed '{}'", label)),
-            UndoActionModel::DeleteTag((_id, label)) => self.label.set_label(&format!("Deleted Tag '{}'", label)),
+            UndoActionModel::DeleteFeed((_id, label)) => self.label.set_label(&i18n_f("Deleted Feed '{}'", &[label])),
+            UndoActionModel::DeleteTag((_id, label)) => self.label.set_label(&i18n_f("Deleted Tag '{}'", &[label])),
         }
 
         self.widget.set_revealed(true);

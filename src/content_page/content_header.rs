@@ -1,5 +1,6 @@
 use super::header_selection::HeaderSelection;
 use crate::app::Action;
+use crate::i18n::i18n;
 use crate::main_window_state::MainWindowState;
 use crate::util::{BuilderHelper, GtkUtil, Util};
 use gio::{ActionMapExt, Menu, MenuItem, SimpleAction};
@@ -364,20 +365,20 @@ impl ContentHeader {
         }
 
         let about_model = Menu::new();
-        about_model.append(Some("Shortcuts"), Some("win.shortcut-window"));
-        about_model.append(Some("About"), Some("win.about-window"));
-        about_model.append(Some("Quit"), Some("win.quit-application"));
+        about_model.append(Some(&i18n("Shortcuts")), Some("win.shortcut-window"));
+        about_model.append(Some(&i18n("About")), Some("win.about-window"));
+        about_model.append(Some(&i18n("Quit")), Some("win.quit-application"));
 
         let im_export_model = Menu::new();
-        im_export_model.append(Some("Import OPML"), Some("win.import-opml"));
-        im_export_model.append(Some("Export OPML"), Some("win.export-opml"));
+        im_export_model.append(Some(&i18n("Import OPML")), Some("win.import-opml"));
+        im_export_model.append(Some(&i18n("Export OPML")), Some("win.export-opml"));
 
         let account_model = Menu::new();
-        account_model.append(Some("Reset Account"), Some("win.reset-account"));
+        account_model.append(Some(&i18n("Reset Account")), Some("win.reset-account"));
 
         let main_model = Menu::new();
-        main_model.append(Some("Settings"), Some("win.settings"));
-        main_model.append(Some("Discover Feeds"), Some("win.discover"));
+        main_model.append(Some(&i18n("Settings")), Some("win.settings"));
+        main_model.append(Some(&i18n("Discover Feeds")), Some("win.discover"));
         main_model.append_section(Some(""), &account_model);
         main_model.append_section(Some(""), &im_export_model);
         main_model.append_section(Some(""), &about_model);
@@ -392,7 +393,7 @@ impl ContentHeader {
         headerbar_selection_all_action.connect_activate(clone!(@strong sender => move |_action, _parameter| {
             Util::send(&sender, Action::HeaderSelection(HeaderSelection::All));
         }));
-        let all_item = MenuItem::new(Some("All"), None);
+        let all_item = MenuItem::new(Some(&i18n("All")), None);
         all_item.set_action_and_target_value(Some("win.headerbar-selection-all"), None);
         model.append_item(&all_item);
 
@@ -400,7 +401,7 @@ impl ContentHeader {
         headerbar_selection_unread_action.connect_activate(clone!(@strong sender => move |_action, _parameter| {
             Util::send(&sender, Action::HeaderSelection(HeaderSelection::Unread));
         }));
-        let unread_item = MenuItem::new(Some("Unread"), None);
+        let unread_item = MenuItem::new(Some(&i18n("Unread")), None);
         unread_item.set_action_and_target_value(Some("win.headerbar-selection-unread"), None);
         model.append_item(&unread_item);
 
@@ -408,7 +409,7 @@ impl ContentHeader {
         headerbar_selection_marked_action.connect_activate(clone!(@strong sender => move |_action, _parameter| {
             Util::send(&sender, Action::HeaderSelection(HeaderSelection::Marked));
         }));
-        let marked_item = MenuItem::new(Some("Starred"), None);
+        let marked_item = MenuItem::new(Some(&i18n("Starred")), None);
         marked_item.set_action_and_target_value(Some("win.headerbar-selection-marked"), None);
         model.append_item(&marked_item);
 
@@ -444,9 +445,9 @@ impl ContentHeader {
         }
 
         let model = Menu::new();
-        model.append(Some("Grab full content"), Some("win.grab-article-content"));
-        model.append(Some("Export Article"), Some("win.export-article"));
-        model.append(Some("Close Article"), Some("win.close-article"));
+        model.append(Some(&i18n("Grab full content")), Some("win.grab-article-content"));
+        model.append(Some(&i18n("Export Article")), Some("win.export-article"));
+        model.append(Some(&i18n("Close Article")), Some("win.close-article"));
         button.set_menu_model(Some(&model));
         button.set_sensitive(false);
     }

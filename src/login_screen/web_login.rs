@@ -1,6 +1,7 @@
 use super::error::{LoginScreenError, LoginScreenErrorKind};
 use crate::app::Action;
 use crate::error_dialog::ErrorDialog;
+use crate::i18n::i18n;
 use crate::util::{BuilderHelper, GtkUtil, Util, GTK_BUILDER_ERROR};
 use glib::{
     clone,
@@ -74,8 +75,8 @@ impl WebLogin {
         self.error_details_signal.write().take();
 
         match error.kind() {
-            NewsFlashErrorKind::Login => self.info_bar_label.set_text("Failed to log in"),
-            _ => self.info_bar_label.set_text("Unknown error."),
+            NewsFlashErrorKind::Login => self.info_bar_label.set_text(&i18n("Failed to log in")),
+            _ => self.info_bar_label.set_text(&i18n("Unknown error.")),
         }
 
         self.error_details_signal.write().replace(
