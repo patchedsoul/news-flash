@@ -31,7 +31,7 @@ use url::{Host, Origin};
 use webkit2gtk::{
     ContextMenuAction, ContextMenuExt, ContextMenuItemExt, HitTestResultExt, LoadEvent, NavigationPolicyDecision,
     NavigationPolicyDecisionExt, PolicyDecisionType, Settings as WebkitSettings, SettingsExt, URIRequestExt, WebView,
-    WebViewExt,
+    WebViewExt, WebContext,
 };
 
 const MIDDLE_MOUSE_BUTTON: u32 = 2;
@@ -76,6 +76,7 @@ pub struct ArticleView {
     drag_momentum: Arc<RwLock<f64>>,
     pointer_pos: Arc<RwLock<(f64, f64)>>,
     scroll_animation_data: Arc<ScrollAnimationProperties>,
+    web_context: WebContext,
 }
 
 impl ArticleView {
@@ -118,6 +119,9 @@ impl ArticleView {
         let internal_state = InternalState::Empty;
         let settings = settings.clone();
 
+        let web_context = WebContext::new();
+        // FIXME: apply appliction wide proxy settings
+
         let article_view = ArticleView {
             settings,
             stack,
@@ -153,6 +157,7 @@ impl ArticleView {
                 transition_start_value: Arc::new(RwLock::new(None)),
                 transition_diff: Arc::new(RwLock::new(None)),
             }),
+            web_context,
         };
 
         article_view.stack.show_all();
@@ -330,9 +335,8 @@ impl ArticleView {
     }
 
     fn new_webview(&self) -> WebView {
-        // FIXME: apply proxy settings
         let settings = WebkitSettings::new();
-        settings.set_enable_accelerated_2d_canvas(true);
+        // settings.set_enable_accelerated_2d_canvas(true);
         settings.set_enable_html5_database(false);
         settings.set_enable_html5_local_storage(false);
         settings.set_enable_java(false);
@@ -346,7 +350,8 @@ impl ArticleView {
         settings.set_media_playback_requires_user_gesture(true);
         settings.set_user_agent_with_application_details(Some("NewsFlash"), None);
 
-        let webview = WebView::new_with_settings(&settings);
+        let webview = WebView::new_with_context(&self.web_context);
+        webview.set_settings(&settings);
         webview.set_events(EventMask::POINTER_MOTION_MASK);
         webview.set_events(EventMask::SCROLL_MASK);
         webview.set_events(EventMask::BUTTON_PRESS_MASK);
