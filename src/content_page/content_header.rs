@@ -29,6 +29,7 @@ pub struct ContentHeader {
     all_button: ToggleButton,
     unread_button: ToggleButton,
     marked_button: ToggleButton,
+    tag_button: ToggleButton,
     more_actions_button: MenuButton,
     more_actions_stack: Stack,
     mode_switch_stack: Stack,
@@ -51,6 +52,7 @@ impl ContentHeader {
         let offline_popover = builder.get::<Popover>("offline_popover");
         let online_popover = builder.get::<Popover>("online_popover");
         let menu_button = builder.get::<MenuButton>("menu_button");
+        let tag_button = builder.get::<ToggleButton>("tag_button");
         let more_actions_button = builder.get::<MenuButton>("more_actions_button");
         let more_actions_stack = builder.get::<Stack>("more_actions_stack");
         let search_button = builder.get::<ToggleButton>("search_button");
@@ -76,6 +78,10 @@ impl ContentHeader {
 
         offline_button.connect_clicked(clone!(@strong sender => move |_button| {
             Util::send(&sender, Action::SetOfflineMode(false));
+        }));
+
+        tag_button.connect_toggled(clone!(@strong sender => move |toggle_button| {
+
         }));
 
         let linked_button_timeout: Arc<RwLock<Option<u32>>> = Arc::new(RwLock::new(None));
@@ -132,6 +138,7 @@ impl ContentHeader {
             all_button,
             unread_button,
             marked_button,
+            tag_button,
             more_actions_button,
             more_actions_stack,
             mode_switch_stack,
@@ -569,5 +576,9 @@ impl ContentHeader {
                     .set_enabled(!offline);
             }
         }
+    }
+
+    pub fn tag_button(&self) -> ToggleButton {
+        self.tag_button.clone()
     }
 }

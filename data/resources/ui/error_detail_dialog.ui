@@ -25,7 +25,7 @@
           <placeholder/>
         </child>
         <style>
-          <class name="error_list"/>
+          <class name="border_list"/>
         </style>
       </object>
     </child>

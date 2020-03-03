@@ -6,6 +6,7 @@
       <file compressed="true" preprocess="xml-stripblanks">resources/icons/read-symbolic.svg</file>
       <file compressed="true" preprocess="xml-stripblanks">resources/icons/unmarked-symbolic.svg</file>
       <file compressed="true" preprocess="xml-stripblanks">resources/icons/unread-symbolic.svg</file>
+      <file compressed="true" preprocess="xml-stripblanks">resources/icons/tag-symbolic.svg</file>
   </gresource>
 </gresources>
 

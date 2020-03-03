@@ -21,6 +21,7 @@ data/resources/ui/shorcuts_window.ui
 data/resources/ui/sidebar.ui
 data/resources/ui/sidebar_list.ui
 data/resources/ui/tag.ui
+data/resources/ui/tag_dialog.ui
 data/resources/ui/theme_chooser.ui
 
 src/add_dialog.rs

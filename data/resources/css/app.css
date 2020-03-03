@@ -207,7 +207,7 @@
   to   { -gtk-icon-transform: rotate(-90deg); }
 }
 
-.error_list {
+.border_list {
   background: white;
   border-width: 1px;
   border-style: solid;
