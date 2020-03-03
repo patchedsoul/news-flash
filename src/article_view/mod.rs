@@ -18,7 +18,7 @@ use gdk::{
 use gio::{Cancellable, Settings as GSettings, SettingsExt as GSettingsExt};
 use glib::{clone, object::Cast, source::Continue, translate::ToGlib, MainLoop};
 use gtk::{
-    prelude::WidgetExtManual, Button, ButtonExt, ContainerExt, Inhibit, Overlay, OverlayExt,
+    prelude::WidgetExtManual, Button, ButtonExt, Inhibit, Overlay, OverlayExt,
     SettingsExt as GtkSettingsExt, Stack, StackExt, TickCallbackId, WidgetExt,
 };
 use log::{error, warn};
@@ -113,14 +113,18 @@ impl ArticleView {
             }
         }));
 
+        let web_context = WebContext::new();
+        // FIXME: apply appliction wide proxy settings
+
         let stack = builder.get::<Stack>("article_view_stack");
         stack.set_visible_child_name("empty");
+        stack.add_named(&Self::new_webview(&web_context), InternalState::View1.to_str().unwrap());
+        stack.add_named(&Self::new_webview(&web_context), InternalState::View2.to_str().unwrap());
 
         let internal_state = InternalState::Empty;
         let settings = settings.clone();
 
-        let web_context = WebContext::new();
-        // FIXME: apply appliction wide proxy settings
+        
 
         let article_view = ArticleView {
             settings,
@@ -169,7 +173,7 @@ impl ArticleView {
     }
 
     pub fn show_article(&self, article: FatArticle, feed_name: String) {
-        let webview = self.switch_view();
+        let webview = self.switch_view().unwrap();
         let html = self.build_article(&article, &feed_name);
         webview.load_html(&html, Self::get_base_url(&article).as_deref());
         self.visible_article.write().replace(article);
@@ -181,7 +185,7 @@ impl ArticleView {
             if let Some(feed_name) = &*self.visible_feed_name.read() {
                 let html = self.build_article(&article, feed_name);
 
-                let webview = self.switch_view();
+                let webview = self.switch_view().unwrap();
                 webview.load_html(&html, Self::get_base_url(&article).as_deref());
                 return;
             }
@@ -224,31 +228,31 @@ impl ArticleView {
     }
 
     pub fn close_article(&self) {
-        self.remove_old_view(150);
+        self.disconnect_old_view();
         self.visible_article.write().take();
         self.visible_feed_name.write().take();
         *self.internal_state.write() = InternalState::Empty;
         self.stack.set_visible_child_name("empty");
     }
 
-    fn switch_view(&self) -> WebView {
-        self.remove_old_view(150);
-
-        let webview = self.new_webview();
+    fn switch_view(&self) -> Result<WebView, ArticleViewError> {
+        self.disconnect_old_view();
         let old_state = (*self.internal_state.read()).clone();
         *self.internal_state.write() = old_state.switch();
         if let Some(new_name) = self.internal_state.read().to_str() {
-            self.stack.add_named(&webview, new_name);
-            self.stack.show_all();
-            self.stack.set_visible_child_name(new_name);
+            if let Some(webview) = self.stack.get_child_by_name(new_name) {
+                let webview = webview.downcast::<WebView>().unwrap();
+                self.connect_webview(&webview);
+                self.stack.set_visible_child_name(new_name);
+                return Ok(webview);
+            }
         }
 
-        webview
+        Err(ArticleViewErrorKind::Unknown)?
     }
 
-    fn remove_old_view(&self, timeout: u32) {
-        Self::remove_old_view_static(
-            timeout,
+    fn disconnect_old_view(&self) {
+        Self::disconnect_old_view_static(
             &self.progress_overlay_label,
             &self.internal_state,
             &self.stack,
@@ -268,8 +272,7 @@ impl ArticleView {
     }
 
     #[allow(clippy::too_many_arguments)]
-    fn remove_old_view_static(
-        timeout: u32,
+    fn disconnect_old_view_static(
         progress_overlay_label: &Arc<RwLock<ProgressOverlay>>,
         old_state: &Arc<RwLock<InternalState>>,
         stack: &gtk::Stack,
@@ -320,21 +323,16 @@ impl ArticleView {
             }
         }
 
-        // remove old view after timeout
-        gtk::timeout_add(
-            timeout,
-            clone!(@weak stack => @default-panic, move || {
-                if let Some(old_state) = old_state.to_str() {
-                    if let Some(old_view) = stack.get_child_by_name(&old_state) {
-                        stack.remove(&old_view);
-                    }
+        if let Some(old_state) = old_state.to_str() {
+            if let Some(old_view) = stack.get_child_by_name(&old_state) {
+                if let Ok(webview) = old_view.downcast::<WebView>() {
+                    webview.load_html("", None);
                 }
-                Continue(false)
-            }),
-        );
+            }
+        }
     }
 
-    fn new_webview(&self) -> WebView {
+    fn new_webview(ctx: &WebContext) -> WebView {
         let settings = WebkitSettings::new();
         // settings.set_enable_accelerated_2d_canvas(true);
         settings.set_enable_html5_database(false);
@@ -350,14 +348,17 @@ impl ArticleView {
         settings.set_media_playback_requires_user_gesture(true);
         settings.set_user_agent_with_application_details(Some("NewsFlash"), None);
 
-        let webview = WebView::new_with_context(&self.web_context);
+        let webview = WebView::new_with_context(ctx);
         webview.set_settings(&settings);
         webview.set_events(EventMask::POINTER_MOTION_MASK);
         webview.set_events(EventMask::SCROLL_MASK);
         webview.set_events(EventMask::BUTTON_PRESS_MASK);
         webview.set_events(EventMask::BUTTON_RELEASE_MASK);
         webview.set_events(EventMask::KEY_PRESS_MASK);
+        webview
+    }
 
+    fn connect_webview(&self, webview: &WebView) {
         //----------------------------------
         // open link in external browser
         //----------------------------------
@@ -737,8 +738,7 @@ impl ArticleView {
             @weak self.progress_overlay_label as progress_overlay_label,
             @weak self.stack as stack => @default-panic, move |_closure_webivew|
         {
-            Self::remove_old_view_static(
-                150,
+            Self::disconnect_old_view_static(
                 &progress_overlay_label,
                 &internal_state,
                 &stack,
@@ -769,8 +769,6 @@ impl ArticleView {
 
         // webview.enter_fullscreen.connect(enterFullscreenVideo);
         // webview.leave_fullscreen.connect(leaveFullscreenVideo);
-
-        webview
     }
 
     fn build_article(&self, article: &FatArticle, feed_name: &str) -> String {
