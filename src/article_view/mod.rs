@@ -18,8 +18,8 @@ use gdk::{
 use gio::{Cancellable, Settings as GSettings, SettingsExt as GSettingsExt};
 use glib::{clone, object::Cast, source::Continue, translate::ToGlib, MainLoop};
 use gtk::{
-    prelude::WidgetExtManual, Button, ButtonExt, Inhibit, Overlay, OverlayExt,
-    SettingsExt as GtkSettingsExt, Stack, StackExt, TickCallbackId, WidgetExt,
+    prelude::WidgetExtManual, Button, ButtonExt, Inhibit, Overlay, OverlayExt, SettingsExt as GtkSettingsExt, Stack,
+    StackExt, TickCallbackId, WidgetExt,
 };
 use log::{error, warn};
 use news_flash::models::{FatArticle, Marked, Read};
@@ -30,8 +30,8 @@ use std::sync::Arc;
 use url::{Host, Origin};
 use webkit2gtk::{
     ContextMenuAction, ContextMenuExt, ContextMenuItemExt, HitTestResultExt, LoadEvent, NavigationPolicyDecision,
-    NavigationPolicyDecisionExt, PolicyDecisionType, Settings as WebkitSettings, SettingsExt, URIRequestExt, WebView,
-    WebViewExt, WebContext,
+    NavigationPolicyDecisionExt, PolicyDecisionType, Settings as WebkitSettings, SettingsExt, URIRequestExt,
+    WebContext, WebView, WebViewExt,
 };
 
 const MIDDLE_MOUSE_BUTTON: u32 = 2;
@@ -123,8 +123,6 @@ impl ArticleView {
 
         let internal_state = InternalState::Empty;
         let settings = settings.clone();
-
-        
 
         let article_view = ArticleView {
             settings,
