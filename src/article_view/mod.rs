@@ -118,8 +118,12 @@ impl ArticleView {
 
         let stack = builder.get::<Stack>("article_view_stack");
         stack.set_visible_child_name("empty");
-        stack.add_named(&Self::new_webview(&web_context), InternalState::View1.to_str().unwrap());
-        stack.add_named(&Self::new_webview(&web_context), InternalState::View2.to_str().unwrap());
+        let view_1 = Self::new_webview(&web_context);
+        let view_2 = Self::new_webview(&web_context);
+        view_1.load_html("", None);
+        view_2.load_html("", None);
+        stack.add_named(&view_1, InternalState::View1.to_str().unwrap());
+        stack.add_named(&view_2, InternalState::View2.to_str().unwrap());
 
         let internal_state = InternalState::Empty;
         let settings = settings.clone();
