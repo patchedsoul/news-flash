@@ -280,7 +280,7 @@ impl App {
 
             info!("app_id: {:?}", self.application.get_application_id());
             self.application
-               .send_notification(Some("newsflash_sync"), &notification);
+                .send_notification(Some("newsflash_sync"), &notification);
         }
     }
 
