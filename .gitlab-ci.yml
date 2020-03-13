@@ -25,6 +25,8 @@ flatpak:
         - >
           sed -i "s/@PASSWORD_CRYPT_KEY@/${PASSWORD_CRYPT_KEY}/g" ${MANIFEST_PATH}
 
+        - rustc -Vv && cargo -Vv
+        
         - flatpak-builder --stop-at=${FLATPAK_MODULE} app ${MANIFEST_PATH}
         # Build the flatpak repo
         - flatpak-builder --run app ${MANIFEST_PATH} meson --prefix=/app ${CONFIGURE_ARGS} _build

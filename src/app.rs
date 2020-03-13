@@ -162,7 +162,7 @@ impl App {
         }
 
         app.window.init(&app.news_flash, app.threadpool.clone());
-
+        app.show_notification(NotificationCounts { new: 2, unread: 5 });
         app
     }
 
@@ -272,13 +272,15 @@ impl App {
                 )
             };
 
+            info!("Notification: new {}, unread {}", counts.new, counts.unread);
             let notification = Notification::new(&summary);
             notification.set_body(Some(&message));
             notification.set_priority(NotificationPriority::Normal);
             notification.set_icon(&ThemedIcon::new(APP_ID));
 
+            info!("app_id: {:?}", self.application.get_application_id());
             self.application
-                .send_notification(Some("newsflash_sync"), &notification);
+               .send_notification(Some("newsflash_sync"), &notification);
         }
     }
 
