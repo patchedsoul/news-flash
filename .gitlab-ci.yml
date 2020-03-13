@@ -24,8 +24,6 @@ flatpak:
           sed -i "s/@FEEDLY_CLIENT_SECRET@/${FEEDLY_CLIENT_SECRET}/g" ${MANIFEST_PATH}
         - >
           sed -i "s/@PASSWORD_CRYPT_KEY@/${PASSWORD_CRYPT_KEY}/g" ${MANIFEST_PATH}
-
-        - rustc -Vv && cargo -Vv
         
         - flatpak-builder --stop-at=${FLATPAK_MODULE} app ${MANIFEST_PATH}
         # Build the flatpak repo
