@@ -162,7 +162,6 @@ impl App {
         }
 
         app.window.init(&app.news_flash, app.threadpool.clone());
-        app.show_notification(NotificationCounts { new: 2, unread: 5 });
         app
     }
 
