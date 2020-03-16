@@ -271,13 +271,11 @@ impl App {
                 )
             };
 
-            info!("Notification: new {}, unread {}", counts.new, counts.unread);
             let notification = Notification::new(&summary);
             notification.set_body(Some(&message));
             notification.set_priority(NotificationPriority::Normal);
             notification.set_icon(&ThemedIcon::new(APP_ID));
 
-            info!("app_id: {:?}", self.application.get_application_id());
             self.application
                 .send_notification(Some("newsflash_sync"), &notification);
         }
