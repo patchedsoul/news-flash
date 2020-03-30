@@ -445,8 +445,14 @@ impl ContentHeader {
             Util::send(&sender, Action::StartGrabArticleContent);
         }));
 
+        let open_article_action = SimpleAction::new("open-article-in-browser", None);
+        open_article_action.connect_activate(clone!(@strong sender => move |_action, _parameter| {
+            Util::send(&sender, Action::OpenSelectedArticle);
+        }));
+
         if let Ok(main_window) = GtkUtil::get_main_window(button) {
             main_window.add_action(&close_article_action);
+            main_window.add_action(&open_article_action);
             main_window.add_action(&export_article_action);
             main_window.add_action(&grab_article_content_action);
         }
@@ -454,6 +460,7 @@ impl ContentHeader {
         let model = Menu::new();
         model.append(Some(&i18n("Grab full content")), Some("win.grab-article-content"));
         model.append(Some(&i18n("Export Article")), Some("win.export-article"));
+        model.append(Some(&i18n("Open in browser")), Some("win.open-article-in-browser"));
         model.append(Some(&i18n("Close Article")), Some("win.close-article"));
         button.set_menu_model(Some(&model));
         button.set_sensitive(false);

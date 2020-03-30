@@ -174,8 +174,7 @@ impl MainWindow {
             @weak main_stack,
             @weak settings,
             @weak content_page,
-            @weak content_header,
-            @weak main_window => @default-panic, move |_widget, event|
+            @weak content_header => @default-panic, move |_widget, event|
         {
             // ignore shortcuts when not on content page
             if let Some(visible_child) = main_stack.get_visible_child_name() {
@@ -262,21 +261,7 @@ impl MainWindow {
             }
 
             if Self::check_shortcut("open_browser", &settings, event) {
-                let article_model = content_page.article_list.read().get_selected_article_model();
-                if let Some(article_model) = article_model {
-                    if let Some(url) = article_model.url {
-                        if gtk::show_uri_on_window(Some(&main_window), url.get().as_str(), 0).is_err() {
-                            Util::send(
-                                &sender,
-                                Action::ErrorSimpleMessage("Failed to open URL in browser.".to_owned()),
-                            );
-                        }
-                    } else {
-                        warn!("Open selected article in browser: No url available.")
-                    }
-                } else {
-                    warn!("Open selected article in browser: No article Selected.")
-                }
+                Util::send(&sender, Action::OpenSelectedArticle);
             }
 
             if Self::check_shortcut("next_item", &settings, event) && content_page.sidebar_select_next_item().is_err() {

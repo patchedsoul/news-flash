@@ -113,6 +113,7 @@ pub enum Action {
     ForceQuit,
     SetOfflineMode(bool),
     IgnoreTLSErrors,
+    OpenSelectedArticle,
 }
 pub struct App {
     application: gtk::Application,
@@ -254,6 +255,7 @@ impl App {
             Action::ForceQuit => self.force_quit(),
             Action::SetOfflineMode(offline) => self.set_offline(offline),
             Action::IgnoreTLSErrors => self.ignore_tls_errors(),
+            Action::OpenSelectedArticle => self.open_selected_article_in_browser(),
         }
         glib::Continue(true)
     }
@@ -1475,6 +1477,24 @@ impl App {
                 &self.sender,
                 Action::ErrorSimpleMessage("Error writing settings.".to_owned()),
             );
+        }
+    }
+
+    fn open_selected_article_in_browser(&self) {
+        let article_model = self.window.content_page.article_view.get_visible_article();
+        if let Some(article_model) = article_model {
+            if let Some(url) = article_model.url {
+                if gtk::show_uri_on_window(Some(&self.window.widget), url.get().as_str(), 0).is_err() {
+                    Util::send(
+                        &self.sender,
+                        Action::ErrorSimpleMessage("Failed to open URL in browser.".to_owned()),
+                    );
+                }
+            } else {
+                warn!("Open selected article in browser: No url available.")
+            }
+        } else {
+            warn!("Open selected article in browser: No article Selected.")
         }
     }
 }
