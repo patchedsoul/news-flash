@@ -21,6 +21,7 @@ mod sidebar;
 mod undo_bar;
 mod util;
 mod welcome_screen;
+mod tag_popover;
 
 use crate::app::App;
 use crate::config::APP_ID;
