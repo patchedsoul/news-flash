@@ -81,7 +81,9 @@ impl ContentHeader {
         }));
 
         tag_button.connect_toggled(clone!(@strong sender => move |toggle_button| {
-
+            if toggle_button.get_active() {
+                Util::send(&sender, Action::ShowTagPopover);
+            }
         }));
 
         let linked_button_timeout: Arc<RwLock<Option<u32>>> = Arc::new(RwLock::new(None));
@@ -538,6 +540,7 @@ impl ContentHeader {
         if !self.state.read().get_offline() {
             self.mark_article_button.set_sensitive(sensitive);
             self.mark_article_read_button.set_sensitive(sensitive);
+            self.tag_button.set_sensitive(sensitive);
         }
     }
 

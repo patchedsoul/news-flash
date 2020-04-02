@@ -12,7 +12,7 @@ use gio::{prelude::ApplicationExtManual, ApplicationExt, Notification, Notificat
 use glib::{clone, object::Cast, source::Continue, translate::ToGlib, Receiver, Sender};
 use gtk::{
     prelude::GtkWindowExtManual, Application, ButtonExt, DialogExt, EntryExt, FileChooserAction, FileChooserDialog,
-    FileChooserExt, FileFilter, GtkApplicationExt, GtkWindowExt, ResponseType, Widget, WidgetExt,
+    FileChooserExt, FileFilter, GtkApplicationExt, GtkWindowExt, ResponseType, Widget, WidgetExt, PopoverExt, ToggleButtonExt,
 };
 use lazy_static::lazy_static;
 use log::{error, info, warn};
@@ -37,6 +37,7 @@ use crate::settings::{NewsFlashShortcutWindow, ProxyProtocoll, Settings, Setting
 use crate::sidebar::{models::SidebarSelection, FeedListDndAction};
 use crate::undo_bar::UndoActionModel;
 use crate::util::{FileUtil, GtkUtil, Util, CHANNEL_ERROR, RUNTIME_ERROR};
+use crate::tag_popover::TagPopover;
 
 lazy_static! {
     pub static ref CONFIG_DIR: PathBuf = glib::get_user_config_dir()
@@ -103,6 +104,7 @@ pub enum Action {
     DeleteFeed(FeedID),
     DeleteCategory(CategoryID),
     DeleteTag(TagID),
+    ShowTagPopover,
     DragAndDrop(FeedListDndAction),
     ExportArticle,
     StartGrabArticleContent,
@@ -245,6 +247,7 @@ impl App {
             Action::DeleteFeed(feed_id) => self.delete_feed(feed_id),
             Action::DeleteCategory(category_id) => self.delete_category(category_id),
             Action::DeleteTag(tag_id) => self.delete_tag(tag_id),
+            Action::ShowTagPopover => self.show_tag_popover(),
             Action::DragAndDrop(action) => self.drag_and_drop(action),
             Action::ExportArticle => self.export_article(),
             Action::StartGrabArticleContent => self.start_grab_article_content(),
@@ -1088,6 +1091,19 @@ impl App {
         };
 
         self.threadpool.spawn_ok(thread_future);
+    }
+
+    fn show_tag_popover(&self) {
+        let visible_article = self.window.content_page.article_view.get_visible_article();
+
+        if let Some(visible_article) = visible_article {
+            let tag_button = self.window.content_header.tag_button();
+            let popover = TagPopover::new(&tag_button, &visible_article.article_id, &self.news_flash);
+            popover.widget.connect_closed(move |_popover| {
+                tag_button.set_active(false);
+            });
+        }
+        
     }
 
     fn drag_and_drop(&self, action: FeedListDndAction) {
