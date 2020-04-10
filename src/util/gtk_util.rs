@@ -1,9 +1,11 @@
 use super::error::{UtilError, UtilErrorKind};
+use super::constants;
 use crate::Resources;
-use cairo::{Context, ImageSurface, Surface};
+use crate::color::ColorRGBA;
+use cairo::{Context, FillRule, ImageSurface, Surface};
 use failure::ResultExt;
-use gdk::prelude::GdkContextExt;
 use gdk_pixbuf::Pixbuf;
+use gdk::{prelude::GdkContextExt, Window, WindowExt};
 use gio::{Cancellable, MemoryInputStream, Resource};
 use glib::{
     object::{Cast, IsA, Object, ObjectExt},
@@ -167,5 +169,54 @@ impl GtkUtil {
             glib::source::source_remove(source_id);
         }
         //warn!("Source ID to remove is NONE");
+    }
+
+    pub fn generate_color_cirlce(window: &Window, color: &str, scale: i32) -> Option<cairo::Surface> {
+        let size = 16;
+        let half_size = f64::from(size / 2);
+        
+        if let Some(surface) = window.create_similar_image_surface(0, size * scale, size * scale, scale) {
+            let cairo_ctx = Context::new(&surface);
+            cairo_ctx.set_fill_rule(FillRule::EvenOdd);
+            cairo_ctx.set_line_width(2.0);
+
+            let rgba_outer = match ColorRGBA::parse_string(color) {
+                Ok(color) => color,
+                Err(_) => ColorRGBA::parse_string(constants::TAG_DEFAULT_OUTER_COLOR)
+                    .expect("Failed to parse default outer RGBA string."),
+            };
+
+            let mut rgba_inner = rgba_outer;
+            if rgba_inner.adjust_lightness(0.05).is_err() {
+                rgba_inner = ColorRGBA::parse_string(constants::TAG_DEFAULT_INNER_COLOR)
+                    .expect("Failed to parse default inner RGBA string.")
+            }
+
+            cairo_ctx.set_source_rgba(
+                rgba_inner.red_normalized(),
+                rgba_inner.green_normalized(),
+                rgba_inner.blue_normalized(),
+                rgba_inner.alpha_normalized(),
+            );
+            cairo_ctx.arc(half_size, half_size, half_size, 0.0, 2.0 * std::f64::consts::PI);
+            cairo_ctx.fill_preserve();
+
+            cairo_ctx.arc(
+                half_size,
+                half_size,
+                half_size - (half_size / 4.0),
+                0.0,
+                2.0 * std::f64::consts::PI,
+            );
+            cairo_ctx.set_source_rgba(
+                rgba_outer.red_normalized(),
+                rgba_outer.green_normalized(),
+                rgba_outer.blue_normalized(),
+                rgba_outer.alpha_normalized(),
+            );
+            cairo_ctx.fill_preserve();
+            return Some(surface)
+        }
+        None
     }
 }

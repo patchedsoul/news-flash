@@ -24,7 +24,7 @@ use gtk::{
     Stack, StackExt, StackTransitionType, StyleContext, StyleContextExt, WidgetExt,
 };
 use log::{error, warn};
-use news_flash::models::{ArticleID, PasswordLogin as PasswordLoginData, PluginID};
+use news_flash::models::{ArticleID, FatArticle, Feed, PasswordLogin as PasswordLoginData, PluginID};
 use news_flash::{NewsFlash, NewsFlashError};
 use parking_lot::RwLock;
 use std::sync::Arc;
@@ -501,37 +501,45 @@ impl MainWindow {
         Util::send(&self.sender, Action::UpdateArticleList);
     }
 
-    pub fn show_article(&self, article_id: ArticleID, news_flash: &RwLock<Option<NewsFlash>>) {
+    pub fn show_article(&self, article_id: ArticleID, news_flash: &Arc<RwLock<Option<NewsFlash>>>) {
+        let mut fat_article : Option<FatArticle> = None;
+        let mut feed_vec : Option<Vec<Feed>> = None;
+
         if let Some(news_flash) = news_flash.read().as_ref() {
-            let article = match news_flash.get_fat_article(&article_id) {
-                Ok(article) => article,
+            match news_flash.get_fat_article(&article_id) {
+                Ok(article) => fat_article = Some(article),
                 Err(error) => {
                     Util::send(&self.sender, Action::Error("Failed to read article.".to_owned(), error));
                     return;
                 }
             };
-            let (feeds, _) = match news_flash.get_feeds() {
-                Ok(res) => res,
+            match news_flash.get_feeds() {
+                Ok((feeds, _mappings)) => feed_vec = Some(feeds),
                 Err(error) => {
                     Util::send(&self.sender, Action::Error("Failed to read feeds.".to_owned(), error));
                     return;
                 }
             };
-            let feed = match feeds.iter().find(|&f| f.feed_id == article.feed_id) {
-                Some(feed) => feed,
-                None => {
-                    Util::send(
-                        &self.sender,
-                        Action::ErrorSimpleMessage(format!("Failed to find feed: '{}'", article.feed_id)),
-                    );
-                    return;
-                }
-            };
-            self.content_header.show_article(Some(&article));
-            self.content_page.article_view.show_article(article, feed.label.clone());
+        }
 
-            self.responsive_layout.state.write().major_leaflet_selected = true;
-            self.responsive_layout.process_state_change();
+        if let Some(article) = fat_article {
+            if let Some(feeds) = feed_vec {
+                let feed = match feeds.iter().find(|&f| f.feed_id == article.feed_id) {
+                    Some(feed) => feed,
+                    None => {
+                        Util::send(
+                            &self.sender,
+                            Action::ErrorSimpleMessage(format!("Failed to find feed: '{}'", article.feed_id)),
+                        );
+                        return;
+                    }
+                };
+                self.content_header.show_article(Some(&article), news_flash);
+                self.content_page.article_view.show_article(article, feed.label.clone());
+        
+                self.responsive_layout.state.write().major_leaflet_selected = true;
+                self.responsive_layout.process_state_change();
+            }
         }
     }
 
@@ -737,15 +745,18 @@ impl MainWindow {
 
     pub fn update_article_header(&self, news_flash: &Arc<RwLock<Option<NewsFlash>>>) {
         let visible_article = self.content_page.article_view.get_visible_article();
+        let mut updated_visible_article: Option<FatArticle> = None;
         if let Some(visible_article) = visible_article {
             if let Some(news_flash) = news_flash.read().as_ref() {
                 if let Ok(visible_article) = news_flash.get_fat_article(&visible_article.article_id) {
-                    self.content_header.show_article(Some(&visible_article));
-                    self.content_page
-                        .article_view
-                        .update_visible_article(Some(visible_article.unread), None);
+                    updated_visible_article = Some(visible_article);
                 }
             }
+        }
+
+        if let Some(updated_visible_article) = updated_visible_article {
+            self.content_header.show_article(Some(&updated_visible_article), news_flash);
+            self.content_page.article_view.update_visible_article(Some(updated_visible_article.unread), None);
         }
     }
 

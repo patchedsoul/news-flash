@@ -2,6 +2,7 @@ use super::header_selection::HeaderSelection;
 use crate::app::Action;
 use crate::i18n::i18n;
 use crate::main_window_state::MainWindowState;
+use crate::tag_popover::TagPopover;
 use crate::util::{BuilderHelper, GtkUtil, Util};
 use gio::{ActionMapExt, Menu, MenuItem, SimpleAction};
 use glib::{clone, object::Cast, source::Continue, translate::ToGlib, Sender};
@@ -10,7 +11,8 @@ use gtk::{
     Stack, StackExt, ToggleButton, ToggleButtonExt, WidgetExt,
 };
 use libhandy::{SearchBar, SearchBarExt};
-use news_flash::models::{FatArticle, Marked, Read};
+use news_flash::models::{FatArticle, PluginCapabilities, Marked, Read};
+use news_flash::NewsFlash;
 use parking_lot::RwLock;
 use std::sync::Arc;
 
@@ -29,7 +31,7 @@ pub struct ContentHeader {
     all_button: ToggleButton,
     unread_button: ToggleButton,
     marked_button: ToggleButton,
-    tag_button: ToggleButton,
+    tag_button: MenuButton,
     more_actions_button: MenuButton,
     more_actions_stack: Stack,
     mode_switch_stack: Stack,
@@ -52,7 +54,7 @@ impl ContentHeader {
         let offline_popover = builder.get::<Popover>("offline_popover");
         let online_popover = builder.get::<Popover>("online_popover");
         let menu_button = builder.get::<MenuButton>("menu_button");
-        let tag_button = builder.get::<ToggleButton>("tag_button");
+        let tag_button = builder.get::<MenuButton>("tag_button");
         let more_actions_button = builder.get::<MenuButton>("more_actions_button");
         let more_actions_stack = builder.get::<Stack>("more_actions_stack");
         let search_button = builder.get::<ToggleButton>("search_button");
@@ -78,12 +80,6 @@ impl ContentHeader {
 
         offline_button.connect_clicked(clone!(@strong sender => move |_button| {
             Util::send(&sender, Action::SetOfflineMode(false));
-        }));
-
-        tag_button.connect_toggled(clone!(@strong sender => move |toggle_button| {
-            if toggle_button.get_active() {
-                Util::send(&sender, Action::ShowTagPopover);
-            }
         }));
 
         let linked_button_timeout: Arc<RwLock<Option<u32>>> = Arc::new(RwLock::new(None));
@@ -152,7 +148,7 @@ impl ContentHeader {
             mark_article_read_event: RwLock::new(None),
         };
 
-        header.show_article(None);
+        header.show_article(None, &Arc::new(RwLock::new(None)));
         header
     }
 
@@ -488,7 +484,7 @@ impl ContentHeader {
         }
     }
 
-    pub fn show_article(&self, article: Option<&FatArticle>) {
+    pub fn show_article(&self, article: Option<&FatArticle>, news_flash: &Arc<RwLock<Option<NewsFlash>>>) {
         let sensitive = article.is_some();
 
         let (unread_icon, unread_active) = Self::unread_button_state(article);
@@ -538,9 +534,20 @@ impl ContentHeader {
         self.more_actions_button.set_sensitive(sensitive);
 
         if !self.state.read().get_offline() {
+            let mut tag_support = false;
+            if let Some(news_flash) = news_flash.read().as_ref() {
+                let plugin_features = news_flash.features().expect("Failed to get plugin features!");
+                tag_support = plugin_features.contains(PluginCapabilities::SUPPORT_TAGS);
+            }
+
             self.mark_article_button.set_sensitive(sensitive);
             self.mark_article_read_button.set_sensitive(sensitive);
-            self.tag_button.set_sensitive(sensitive);
+            self.tag_button.set_sensitive(tag_support && sensitive);
+
+            if let Some(article) = article {
+                let popover = TagPopover::new(&article.article_id, news_flash);
+                self.tag_button.set_popover(Some(&popover.widget));
+            }
         }
     }
 
@@ -586,9 +593,5 @@ impl ContentHeader {
                     .set_enabled(!offline);
             }
         }
-    }
-
-    pub fn tag_button(&self) -> ToggleButton {
-        self.tag_button.clone()
     }
 }

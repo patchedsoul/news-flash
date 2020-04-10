@@ -12,7 +12,7 @@ use gio::{prelude::ApplicationExtManual, ApplicationExt, Notification, Notificat
 use glib::{clone, object::Cast, source::Continue, translate::ToGlib, Receiver, Sender};
 use gtk::{
     prelude::GtkWindowExtManual, Application, ButtonExt, DialogExt, EntryExt, FileChooserAction, FileChooserDialog,
-    FileChooserExt, FileFilter, GtkApplicationExt, GtkWindowExt, ResponseType, Widget, WidgetExt, PopoverExt, ToggleButtonExt,
+    FileChooserExt, FileFilter, GtkApplicationExt, GtkWindowExt, ResponseType, Widget, WidgetExt,
 };
 use lazy_static::lazy_static;
 use log::{error, info, warn};
@@ -37,7 +37,6 @@ use crate::settings::{NewsFlashShortcutWindow, ProxyProtocoll, Settings, Setting
 use crate::sidebar::{models::SidebarSelection, FeedListDndAction};
 use crate::undo_bar::UndoActionModel;
 use crate::util::{FileUtil, GtkUtil, Util, CHANNEL_ERROR, RUNTIME_ERROR};
-use crate::tag_popover::TagPopover;
 
 lazy_static! {
     pub static ref CONFIG_DIR: PathBuf = glib::get_user_config_dir()
@@ -104,7 +103,6 @@ pub enum Action {
     DeleteFeed(FeedID),
     DeleteCategory(CategoryID),
     DeleteTag(TagID),
-    ShowTagPopover,
     DragAndDrop(FeedListDndAction),
     ExportArticle,
     StartGrabArticleContent,
@@ -230,7 +228,7 @@ impl App {
             Action::RedrawArticle => self.window.content_page.article_view.redraw_article(),
             Action::CloseArticle => {
                 self.window.content_page.article_view.close_article();
-                self.window.content_header.show_article(None);
+                self.window.content_header.show_article(None, &self.news_flash);
             }
             Action::SearchTerm(search_term) => self.window.set_search_term(search_term),
             Action::SetSidebarRead => {
@@ -247,7 +245,6 @@ impl App {
             Action::DeleteFeed(feed_id) => self.delete_feed(feed_id),
             Action::DeleteCategory(category_id) => self.delete_category(category_id),
             Action::DeleteTag(tag_id) => self.delete_tag(tag_id),
-            Action::ShowTagPopover => self.show_tag_popover(),
             Action::DragAndDrop(action) => self.drag_and_drop(action),
             Action::ExportArticle => self.export_article(),
             Action::StartGrabArticleContent => self.start_grab_article_content(),
@@ -393,7 +390,7 @@ impl App {
             Ok(Ok(())) => {
                 news_flash.write().take();
                 main_window.content_page.clear();
-                main_window.content_header.show_article(None);
+                main_window.content_header.show_article(None, &Arc::new(RwLock::new(None)));
                 Util::send(&sender, Action::ShowWelcomePage);
             }
             Ok(Err(error)) => {
@@ -581,6 +578,7 @@ impl App {
 
         let glib_future = receiver.map(clone!(
             @strong self.sender as global_sender,
+            @strong self.news_flash as news_flash,
             @weak self.window.content_page as content_page,
             @weak self.window.content_header as content_header => move |res|
         {
@@ -606,7 +604,7 @@ impl App {
                 if visible_article.article_id == update.article_id {
                     let mut visible_article = visible_article.clone();
                     visible_article.unread = update.read;
-                    content_header.show_article(Some(&visible_article));
+                    content_header.show_article(Some(&visible_article), &news_flash);
                     content_page
                         .article_view
                         .update_visible_article(Some(visible_article.unread), None);
@@ -648,6 +646,7 @@ impl App {
 
         let glib_future = receiver.map(clone!(
             @strong self.sender as global_sender,
+            @strong self.news_flash as news_flash,
             @weak self.window.content_header as content_header,
             @weak self.window.content_page as content_page => move |res|
         {
@@ -673,7 +672,7 @@ impl App {
                 if visible_article.article_id == update.article_id {
                     let mut visible_article = visible_article.clone();
                     visible_article.marked = update.marked;
-                    content_header.show_article(Some(&visible_article));
+                    content_header.show_article(Some(&visible_article), &news_flash);
                     content_page
                         .article_view
                         .update_visible_article(None, Some(visible_article.marked));
@@ -1091,19 +1090,6 @@ impl App {
         };
 
         self.threadpool.spawn_ok(thread_future);
-    }
-
-    fn show_tag_popover(&self) {
-        let visible_article = self.window.content_page.article_view.get_visible_article();
-
-        if let Some(visible_article) = visible_article {
-            let tag_button = self.window.content_header.tag_button();
-            let popover = TagPopover::new(&tag_button, &visible_article.article_id, &self.news_flash);
-            popover.widget.connect_closed(move |_popover| {
-                tag_button.set_active(false);
-            });
-        }
-        
     }
 
     fn drag_and_drop(&self, action: FeedListDndAction) {
