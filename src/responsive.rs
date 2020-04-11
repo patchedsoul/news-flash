@@ -65,16 +65,30 @@ impl ResponsiveLayout {
     }
 
     fn setup_signals(layout: &Arc<ResponsiveLayout>) {
+        let major_leaflet = layout.major_leaflet.clone();
+        let minor_leaflet = layout.minor_leaflet.clone();
+
         layout
             .major_leaflet
-            .connect_property_folded_notify(clone!(@weak layout => move |_leaflet| {
+            .connect_property_folded_notify(clone!(
+                @weak layout => move |_leaflet|
+            {
+                if minor_leaflet.get_property_folded() {
+                    layout.state.write().minor_leaflet_folded = true;
+                    Self::process_state_change(&layout);
+                }
                 layout.state.write().major_leaflet_folded = true;
                 Self::process_state_change(&layout);
             }));
 
         layout
             .minor_leaflet
-            .connect_property_folded_notify(clone!(@weak layout => move |_leaflet| {
+            .connect_property_folded_notify(clone!(
+                @weak layout => move |_leaflet|
+            {
+                if !major_leaflet.get_property_folded() {
+                    return;
+                }
                 layout.state.write().minor_leaflet_folded = true;
                 Self::process_state_change(&layout);
             }));
