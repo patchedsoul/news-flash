@@ -6,7 +6,7 @@ use std::time;
 
 use crate::i18n::{i18n, i18n_f};
 use futures::channel::oneshot::{self, Sender as OneShotSender};
-use futures::executor::ThreadPool;
+use futures::executor::{ThreadPool};
 use futures::FutureExt;
 use gio::{prelude::ApplicationExtManual, ApplicationExt, Notification, NotificationPriority, ThemedIcon};
 use glib::{clone, object::Cast, source::Continue, translate::ToGlib, Receiver, Sender};
@@ -22,7 +22,7 @@ use news_flash::models::{
 use news_flash::{NewsFlash, NewsFlashError};
 use parking_lot::RwLock;
 use reqwest::{Client, ClientBuilder, Proxy};
-use tokio::runtime::Runtime;
+use tokio::runtime::{Runtime};
 
 use crate::about_dialog::NewsFlashAbout;
 use crate::add_dialog::{AddCategory, AddPopover};
@@ -124,6 +124,7 @@ pub struct App {
     settings: Arc<RwLock<Settings>>,
     sync_source_id: RwLock<Option<u32>>,
     threadpool: ThreadPool,
+    icon_threadpool: ThreadPool,
     shutdown_in_progress: Arc<RwLock<bool>>,
 }
 
@@ -135,6 +136,10 @@ impl App {
 
         let (sender, r) = glib::MainContext::channel(glib::PRIORITY_DEFAULT);
         let receiver = RwLock::new(Some(r));
+
+        let threadpool = ThreadPool::new().expect("Failed to init thread pool");
+        let icon_threadpool = ThreadPool::new().expect("Failed to init thread pool");
+        
 
         let news_flash = Arc::new(RwLock::new(None));
         let settings = Arc::new(RwLock::new(Settings::open().expect("Failed to access settings file")));
@@ -148,7 +153,8 @@ impl App {
             news_flash,
             settings,
             sync_source_id: RwLock::new(None),
-            threadpool: ThreadPool::new().expect("Failed to init thread pool"),
+            threadpool,
+            icon_threadpool,
             shutdown_in_progress,
         });
 
@@ -545,7 +551,7 @@ impl App {
             }
         };
 
-        self.threadpool.spawn_ok(thread_future);
+        self.icon_threadpool.spawn_ok(thread_future);
     }
 
     fn mark_article_read(&self, update: ReadUpdate) {
