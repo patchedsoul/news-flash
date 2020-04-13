@@ -6,7 +6,7 @@ use std::time;
 
 use crate::i18n::{i18n, i18n_f};
 use futures::channel::oneshot::{self, Sender as OneShotSender};
-use futures::executor::{ThreadPool};
+use futures::executor::{ThreadPool, ThreadPoolBuilder};
 use futures::FutureExt;
 use gio::{prelude::ApplicationExtManual, ApplicationExt, Notification, NotificationPriority, ThemedIcon};
 use glib::{clone, object::Cast, source::Continue, translate::ToGlib, Receiver, Sender};
@@ -137,8 +137,24 @@ impl App {
         let (sender, r) = glib::MainContext::channel(glib::PRIORITY_DEFAULT);
         let receiver = RwLock::new(Some(r));
 
-        let threadpool = ThreadPool::new().expect("Failed to init thread pool");
-        let icon_threadpool = ThreadPool::new().expect("Failed to init thread pool");
+        let cpu_cores = num_cpus::get();
+        let max_size = 64;
+        let min_size = 8;
+        let pool_size = if cpu_cores > max_size {
+            max_size
+        } else if cpu_cores < min_size {
+            min_size
+        } else {
+            cpu_cores
+        };
+        let threadpool = ThreadPoolBuilder::new()
+            .pool_size(pool_size)
+            .create()
+            .expect("Failed to init thread pool");
+        let icon_threadpool = ThreadPoolBuilder::new()
+            .pool_size(16)
+            .create()
+            .expect("Failed to init thread pool");
         
 
         let news_flash = Arc::new(RwLock::new(None));
