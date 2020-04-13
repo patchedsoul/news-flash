@@ -149,6 +149,7 @@ impl SettingsDialog {
             if settings.write().set_prefer_dark_theme(is_set).is_ok() {
                 if let Some(settings) = GtkSettings::get_default() {
                     settings.set_property_gtk_application_prefer_dark_theme(is_set);
+                    Util::send(&sender, Action::RedrawArticle);
                 }
             } else {
                 Util::send(

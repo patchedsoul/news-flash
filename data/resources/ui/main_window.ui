@@ -656,7 +656,7 @@
                         <property name="can_focus">False</property>
                         <property name="selection_mode">none</property>
                         <style>
-                          <class name="service-list"/>
+                          <class name="list-separated"/>
                         </style>
                       </object>
                     </child>

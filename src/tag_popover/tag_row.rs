@@ -3,8 +3,6 @@ use crate::util::{BuilderHelper, constants, GtkUtil};
 use glib::clone;
 use gtk::{Box, ContainerExt, EventBox, Image, ImageExt, Label, LabelExt, ListBoxRow, ListBoxRowExt, StyleContextExt, WidgetExt};
 use news_flash::models::{Tag, TagID};
-use parking_lot::RwLock;
-use std::sync::Arc;
 
 #[derive(Clone, Debug)]
 pub struct TagRow {
@@ -13,7 +11,7 @@ pub struct TagRow {
 }
 
 impl TagRow {
-    pub fn new(tag: &Tag, assigned: bool) -> Arc<RwLock<Self>> {
+    pub fn new(tag: &Tag, assigned: bool) -> Self {
         let builder = BuilderHelper::new("tag");
         let tag_box = builder.get::<Box>("tag_row");
         let title_label = builder.get::<Label>("tag_title");
@@ -43,7 +41,7 @@ impl TagRow {
         };
         title_label.set_label(&tag.label);
 
-        Arc::new(RwLock::new(tag_row))
+        tag_row
     }
 
     fn create_row(widget: &Box) -> ListBoxRow {

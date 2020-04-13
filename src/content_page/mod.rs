@@ -106,7 +106,7 @@ impl ContentPage {
         &self,
         news_flash: &Arc<RwLock<Option<NewsFlash>>>,
         undo_bar: &UndoBar,
-        thread_pool: ThreadPool,
+        threadpool: ThreadPool,
     ) {
         let (sender, receiver) = oneshot::channel::<Result<ArticleListModel, ContentPageErrorKind>>();
 
@@ -180,7 +180,7 @@ impl ContentPage {
             }
         }));
 
-        thread_pool.spawn_ok(thread_future);
+        threadpool.spawn_ok(thread_future);
         Util::glib_spawn_future(glib_future);
     }
 
@@ -189,7 +189,7 @@ impl ContentPage {
         news_flash_handle: &Arc<RwLock<Option<NewsFlash>>>,
         window_state: &Arc<RwLock<MainWindowState>>,
         undo_bar: &UndoBar,
-        thread_pool: ThreadPool,
+        threadpool: ThreadPool,
     ) {
         let (sender, receiver) = oneshot::channel::<Result<ArticleListModel, ContentPageErrorKind>>();
 
@@ -253,7 +253,7 @@ impl ContentPage {
             }
         }));
 
-        thread_pool.spawn_ok(thread_future);
+        threadpool.spawn_ok(thread_future);
         Util::glib_spawn_future(glib_future);
     }
 
@@ -321,7 +321,7 @@ impl ContentPage {
         &self,
         news_flash: &Arc<RwLock<Option<NewsFlash>>>,
         undo_bar: &UndoBar,
-        thread_pool: ThreadPool,
+        threadpool: ThreadPool,
     ) {
         let (sender, receiver) =
             oneshot::channel::<Result<(i64, FeedListTree, Option<TagListModel>), ContentPageErrorKind>>();
@@ -524,7 +524,7 @@ impl ContentPage {
             }
         }));
 
-        thread_pool.spawn_ok(thread_future);
+        threadpool.spawn_ok(thread_future);
         Util::glib_spawn_future(glib_future);
     }
 

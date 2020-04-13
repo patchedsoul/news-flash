@@ -86,10 +86,10 @@
 }
 
 /******************/
-/*  article list  */
+/*     lists      */
 /******************/
 
-.article-list row {
+.list-separated row {
 	border-bottom-width: 1px;
 	border-bottom-style: solid;
 	border-bottom-color: rgba(128, 128, 128, 0.3);
@@ -165,12 +165,6 @@
 /***************/
 /*    misc     */
 /***************/
-.service-list row {
-	border-bottom-width: 1px;
-	border-bottom-style: solid;
-	border-bottom-color: rgba(128, 128, 128, 0.3);
-}
-
 .forward-arrow-expanded {
 	animation: forward-arrow-expand 1 forwards 200ms;
 }
@@ -205,13 +199,6 @@
 @keyframes backward-arrow-expand {
   from { -gtk-icon-transform: rotate(0deg); }
   to   { -gtk-icon-transform: rotate(-90deg); }
-}
-
-.border_list {
-  background: white;
-  border-width: 1px;
-  border-style: solid;
-  border-color: rgba(0, 0, 0, 0.3);
 }
 
 .separator-row {
