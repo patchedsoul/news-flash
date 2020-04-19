@@ -14,4 +14,5 @@ Services & Maintainers:
 
 - Miniflux: JanGernert (me)
 - feedly: still looking
-- local RSS: still looking
+- local RSS: Günther Wagner ([@gunibert](https://gitlab.com/gunibert))
+- fever: Felix Bühler ([@Stunkymonkey](https://gitlab.com/Stunkymonkey))
