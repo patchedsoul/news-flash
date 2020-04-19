@@ -40,7 +40,7 @@ else
   version_suffix = ''
 endif
 
-application_id = 'com.gitlab.newsflash@0@'.format(profile)
+application_id = 'com.gitlab.newsflash.@0@'.format(profile)
 
 newsflash_version = meson.project_version()
 version_array = newsflash_version.split('.')
