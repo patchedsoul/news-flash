@@ -4,7 +4,7 @@ stages:
   - review
 
 variables:
-    BUNDLE: "newsflash-dev.flatpak"
+    BUNDLE: "com.gitlab.newsflash.Devel.flatpak"
 
 flatpak:
     image: "registry.gitlab.gnome.org/gnome/gnome-runtime-images/rust_bundle:3.36"

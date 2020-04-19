@@ -6,7 +6,7 @@
     "sdk-extensions" : [
         "org.freedesktop.Sdk.Extension.rust-stable"
     ],
-    "command" : "newsflash",
+    "command" : "com.gitlab.newsflash",
     "tags" : [
         "nightly"
     ],
