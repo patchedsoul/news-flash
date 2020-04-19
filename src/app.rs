@@ -93,8 +93,10 @@ pub enum Action {
     CloseArticle,
     SearchTerm(String),
     SetSidebarRead,
-    AddFeedDialog,
+    AddDialog,
     AddFeed((Url, Option<String>, Option<AddCategory>)),
+    AddCategory(String),
+    AddTag(String, String),
     RenameFeedDialog(FeedID),
     RenameFeed((Feed, String)),
     RenameCategoryDialog(CategoryID),
@@ -258,8 +260,10 @@ impl App {
                 self.window
                     .set_sidebar_read(&self.news_flash, self.threadpool.clone(), self.settings.clone())
             }
-            Action::AddFeedDialog => self.add_feed_dialog(),
+            Action::AddDialog => self.add_feed_dialog(),
             Action::AddFeed((url, title, category)) => self.add_feed(url, title, category),
+            Action::AddCategory(title) => self.add_category(title),
+            Action::AddTag(color, title) => self.add_tag(color, title),
             Action::RenameFeedDialog(feed_id) => self.rename_feed_dialog(feed_id),
             Action::RenameFeed((feed, new_title)) => self.rename_feed(feed, new_title),
             Action::RenameCategoryDialog(category_id) => self.rename_category_dialog(category_id),
@@ -788,8 +792,9 @@ impl App {
                 self.threadpool.clone(),
                 &self.settings,
             );
-            dialog.add_button().connect_clicked(clone!(
-                @strong dialog, @strong self.sender as sender => move |_button| {
+            dialog.feed_add_button.connect_clicked(clone!(
+                @strong dialog, @strong self.sender as sender => move |_button|
+            {
                 let feed_url = match dialog.get_feed_url() {
                     Some(url) => url,
                     None => {
@@ -803,6 +808,25 @@ impl App {
 
                 Util::send(&sender, Action::AddFeed((feed_url, feed_title, feed_category)));
                 dialog.close();
+            }));
+            dialog.category_add_button.connect_clicked(clone!(
+                @strong dialog, @strong self.sender as sender => move |_button|
+            {
+                let category_title = dialog.get_category_title();
+                if let Some(category_title) = category_title {
+                    Util::send(&sender, Action::AddCategory(category_title));
+                    dialog.close();
+                }
+            }));
+            dialog.tag_add_button.connect_clicked(clone!(
+                @strong dialog, @strong self.sender as sender => move |_button|
+            {
+                let tag_title = dialog.get_tag_title();
+                let color = dialog.get_tag_color();
+                if let Some(tag_title) = tag_title {
+                    Util::send(&sender, Action::AddTag(color, tag_title));
+                    dialog.close();
+                }
             }));
         }
     }
@@ -847,6 +871,66 @@ impl App {
                         }
                     });
                 Runtime::new().expect(RUNTIME_ERROR).block_on(add_feed_future);
+                Util::send(&global_sender, Action::UpdateSidebar);
+            } else {
+                let message = "Failed to lock NewsFlash.".to_owned();
+                error!("{}", message);
+                Util::send(&global_sender, Action::ErrorSimpleMessage(message));
+            }
+        };
+        self.threadpool.spawn_ok(thread_future);
+    }
+
+    fn add_category(&self, title: String) {
+        info!("add category '{}'", title);
+
+        let news_flash = self.news_flash.clone();
+        let settings = self.settings.clone();
+        let global_sender = self.sender.clone();
+        let thread_future = async move {
+            let error_message = "Failed to add category".to_owned();
+            if let Some(news_flash) = news_flash.read().as_ref() {
+                let client = Self::build_client(&settings);
+                let add_category_future = news_flash
+                    .add_category(&title, None, None, &client)
+                    .map(|result| match result {
+                        Ok(_) => {}
+                        Err(error) => {
+                            error!("{}: Can't add Category", error_message);
+                            Util::send(&global_sender, Action::Error(error_message.clone(), error));
+                        }
+                    });
+                Runtime::new().expect(RUNTIME_ERROR).block_on(add_category_future);
+                Util::send(&global_sender, Action::UpdateSidebar);
+            } else {
+                let message = "Failed to lock NewsFlash.".to_owned();
+                error!("{}", message);
+                Util::send(&global_sender, Action::ErrorSimpleMessage(message));
+            }
+        };
+        self.threadpool.spawn_ok(thread_future);
+    }
+
+    fn add_tag(&self, color: String, title: String) {
+        info!("add tag '{}'", title);
+
+        let news_flash = self.news_flash.clone();
+        let settings = self.settings.clone();
+        let global_sender = self.sender.clone();
+        let thread_future = async move {
+            let error_message = "Failed to add tag".to_owned();
+            if let Some(news_flash) = news_flash.read().as_ref() {
+                let client = Self::build_client(&settings);
+                let add_tag_future = news_flash
+                    .add_tag(&title, Some(color), None, &client)
+                    .map(|result| match result {
+                        Ok(_) => {}
+                        Err(error) => {
+                            error!("{}: Can't add Tag", error_message);
+                            Util::send(&global_sender, Action::Error(error_message.clone(), error));
+                        }
+                    });
+                Runtime::new().expect(RUNTIME_ERROR).block_on(add_tag_future);
                 Util::send(&global_sender, Action::UpdateSidebar);
             } else {
                 let message = "Failed to lock NewsFlash.".to_owned();

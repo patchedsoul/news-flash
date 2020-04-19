@@ -15,6 +15,20 @@ pub struct ColorRGBA {
 }
 
 impl ColorRGBA {
+    pub fn from_normalized(red: f64, green: f64, blue: f64, alpha: f64) -> ColorRGBA {
+        let red = (red * 255.0) as u8;
+        let green = (green * 255.0) as u8;
+        let blue = (blue * 255.0) as u8;
+        let alpha = (alpha * 255.0) as u8;
+
+        ColorRGBA {
+            red,
+            green,
+            blue,
+            alpha,
+        }
+    }
+
     pub fn parse_string(color_string: &str) -> Result<Self, ColorError> {
         if color_string.len() != 7 {
             error!(
@@ -42,6 +56,10 @@ impl ColorRGBA {
             blue,
             alpha: 255,
         })
+    }
+
+    pub fn to_string_no_alpha(&self) -> String {
+        format!("#{:X}{:X}{:X}", self.red, self.green, self.blue)
     }
 
     pub fn red(self) -> u8 {

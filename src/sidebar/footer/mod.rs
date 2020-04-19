@@ -23,7 +23,7 @@ impl SidebarFooter {
         }));
 
         add_button.connect_clicked(clone!(@strong sender => move |_button| {
-            Util::send(&sender, Action::AddFeedDialog);
+            Util::send(&sender, Action::AddDialog);
         }));
 
         SidebarFooter {

@@ -82,7 +82,7 @@ impl SearchItemRow {
                     };
 
                     let dialog = AddPopover::new_for_feed_url(&eventbox.clone().upcast::<Widget>(), categories, &threadpool, &settings, &search_item_feed_url);
-                    dialog.add_button().connect_clicked(clone!(
+                    dialog.feed_add_button.connect_clicked(clone!(
                         @strong dialog, @strong sender as sender => move |_button| {
                         let feed_url = match dialog.get_feed_url() {
                             Some(url) => url,

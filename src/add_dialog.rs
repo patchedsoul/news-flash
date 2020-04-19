@@ -1,6 +1,7 @@
 use crate::app::App;
 use crate::i18n::i18n;
 use crate::settings::Settings;
+use crate::color::ColorRGBA;
 use crate::util::{BuilderHelper, GtkUtil, Util, CHANNEL_ERROR, RUNTIME_ERROR};
 use futures::channel::oneshot;
 use futures::executor::ThreadPool;
@@ -10,7 +11,7 @@ use gtk::{
     prelude::GtkListStoreExtManual, BinExt, Box, BoxExt, Button, ButtonExt, ComboBox, ComboBoxExt, ContainerExt,
     EditableSignals, Entry, EntryExt, GtkListStoreExt, IconSize, Image, ImageExt, Label, LabelExt, ListBox, ListBoxExt,
     ListBoxRow, ListBoxRowExt, ListStore, Orientation, Popover, PopoverExt, Separator, Stack, StackExt,
-    StyleContextExt, Widget, WidgetExt,
+    StyleContextExt, Widget, WidgetExt, ColorButton, ColorChooserExt,
 };
 use log::error;
 use news_flash::models::{Category, CategoryID, FavIcon, Feed, FeedID, Url};
@@ -31,17 +32,22 @@ pub enum AddCategory {
 
 #[derive(Clone, Debug)]
 pub struct AddPopover {
+    pub feed_add_button: Button,
+    pub category_add_button: Button,
+    pub tag_add_button: Button,
+    color_button: ColorButton,
     popover: Popover,
-    add_button: Button,
     feed_title_entry: Entry,
-    add_feed_stack: Stack,
+    category_entry: Entry,
+    tag_entry: Entry,
+    main_stack: Stack,
     feed_list: ListBox,
     select_button: Button,
     select_button_stack: Stack,
     favicon_image: Image,
     parse_button_stack: Stack,
     parse_button: Button,
-    add_button_stack: Stack,
+    feed_add_button_stack: Stack,
     url_entry: Entry,
     feed_url: Arc<RwLock<Option<Url>>>,
     feed_category: Arc<RwLock<Option<AddCategory>>>,
@@ -56,13 +62,13 @@ impl AddPopover {
         feed_url: &Url,
     ) -> Self {
         let dialog = Self::new(parent, categories, threadpool.clone(), settings);
-        dialog.add_feed_stack.set_visible_child_name("spinner");
+        dialog.main_stack.set_visible_child_name("spinner");
 
         Self::parse_feed_url(
             &feed_url,
             settings,
             &threadpool,
-            &dialog.add_feed_stack,
+            &dialog.main_stack,
             &dialog.feed_list,
             &dialog.feed_title_entry,
             &dialog.select_button,
@@ -70,7 +76,7 @@ impl AddPopover {
             &dialog.favicon_image,
             &dialog.feed_url,
             &dialog.parse_button_stack,
-            &dialog.add_button_stack,
+            &dialog.feed_add_button_stack,
             &dialog.parse_button,
             &dialog.url_entry,
         );
@@ -89,16 +95,22 @@ impl AddPopover {
         let url_entry = builder.get::<Entry>("url_entry");
         let parse_button = builder.get::<Button>("parse_button");
         let parse_button_stack = builder.get::<Stack>("parse_button_stack");
-        let add_feed_stack = builder.get::<Stack>("add_feed_stack");
+        let main_stack = builder.get::<Stack>("main_stack");
         let feed_list = builder.get::<ListBox>("feed_list");
         let select_button = builder.get::<Button>("select_button");
         let select_button_stack = builder.get::<Stack>("select_button_stack");
         let feed_title_entry = builder.get::<Entry>("feed_title_entry");
         let favicon_image = builder.get::<Image>("favicon_image");
         let category_combo = builder.get::<ComboBox>("category_combo");
+        let feed_category_entry = builder.get::<Entry>("feed_category_entry");
+        let feed_add_button = builder.get::<Button>("add_button");
+        let feed_add_button_stack = builder.get::<Stack>("add_button_stack");
+        let select_list_box = builder.get::<ListBox>("select_list_box");
         let category_entry = builder.get::<Entry>("category_entry");
-        let add_button = builder.get::<Button>("add_button");
-        let add_button_stack = builder.get::<Stack>("add_button_stack");
+        let category_add_button = builder.get::<Button>("add_category_button");
+        let tag_entry = builder.get::<Entry>("tag_entry");
+        let tag_add_button = builder.get::<Button>("add_tag_button");
+        let color_button = builder.get::<ColorButton>("color_button");
         let feed_url: Arc<RwLock<Option<Url>>> = Arc::new(RwLock::new(None));
         let feed_category = Arc::new(RwLock::new(None));
 
@@ -135,9 +147,55 @@ impl AddPopover {
             }
         }));
 
+        // make parse button sensitive if entry contains text and vice versa
+        category_entry.connect_changed(clone!(@weak category_add_button => move |entry| {
+            if let Some(text) = entry.get_text() {
+                if text.as_str().is_empty() {
+                    category_add_button.set_sensitive(false);
+                } else {
+                    category_add_button.set_sensitive(true);
+                }
+            } else {
+                category_add_button.set_sensitive(false);
+            }
+
+            entry.set_property_secondary_icon_name(None);
+            entry.set_property_secondary_icon_tooltip_text(None);
+        }));
+
+        // hit enter in entry to add category
+        category_entry.connect_activate(clone!(@weak category_add_button => move |_entry| {
+            if category_add_button.get_sensitive() {
+                category_add_button.clicked();
+            }
+        }));
+
+        // make parse button sensitive if entry contains text and vice versa
+        tag_entry.connect_changed(clone!(@weak tag_add_button => move |entry| {
+            if let Some(text) = entry.get_text() {
+                if text.as_str().is_empty() {
+                    tag_add_button.set_sensitive(false);
+                } else {
+                    tag_add_button.set_sensitive(true);
+                }
+            } else {
+                tag_add_button.set_sensitive(false);
+            }
+
+            entry.set_property_secondary_icon_name(None);
+            entry.set_property_secondary_icon_tooltip_text(None);
+        }));
+
+        // hit enter in entry to add category
+        tag_entry.connect_activate(clone!(@weak tag_add_button => move |_entry| {
+            if tag_add_button.get_sensitive() {
+                tag_add_button.clicked();
+            }
+        }));
+
         // parse url and switch to feed selection or final page
         parse_button.connect_clicked(clone!(
-            @weak add_feed_stack,
+            @weak main_stack,
             @weak feed_list,
             @weak feed_title_entry,
             @weak favicon_image,
@@ -145,7 +203,7 @@ impl AddPopover {
             @weak select_button_stack,
             @weak feed_url,
             @weak parse_button_stack,
-            @weak add_button_stack,
+            @weak feed_add_button_stack,
             @weak url_entry,
             @strong settings => move |button|
         {
@@ -163,7 +221,7 @@ impl AddPopover {
                         &url,
                         &settings,
                         &threadpool,
-                        &add_feed_stack,
+                        &main_stack,
                         &feed_list,
                         &feed_title_entry,
                         &select_button,
@@ -171,7 +229,7 @@ impl AddPopover {
                         &favicon_image,
                         &feed_url,
                         &parse_button_stack,
-                        &add_button_stack,
+                        &feed_add_button_stack,
                         button,
                         &url_entry);
                 } else {
@@ -187,14 +245,14 @@ impl AddPopover {
         }));
 
         // make add_button sensitive / insensitive
-        category_entry.connect_changed(clone!(
-            @weak add_button,
+        feed_category_entry.connect_changed(clone!(
+            @weak feed_add_button,
             @weak feed_title_entry,
             @weak category_combo,
             @weak feed_category => move |entry|
         {
             let sensitive = Self::calc_add_button_sensitive(&feed_title_entry, &entry);
-            add_button.set_sensitive(sensitive);
+            feed_add_button.set_sensitive(sensitive);
 
             let entry_text = entry.get_text().map(|t| t.as_str().to_owned());
 
@@ -231,26 +289,47 @@ impl AddPopover {
             entry.set_property_secondary_icon_name(folder_icon);
         }));
 
-        feed_title_entry.connect_changed(clone!(@weak add_button, @weak category_entry => move |entry| {
-            let sensitive = Self::calc_add_button_sensitive(&entry, &category_entry);
-            add_button.set_sensitive(sensitive);
+        feed_title_entry.connect_changed(clone!(@weak feed_add_button, @weak feed_category_entry => move |entry| {
+            let sensitive = Self::calc_add_button_sensitive(&entry, &feed_category_entry);
+            feed_add_button.set_sensitive(sensitive);
+        }));
+
+        select_list_box.connect_row_activated(clone!(@weak main_stack => @default-panic, move |_list, row| {
+            let index = row.get_index();
+            if index == 0 {
+                // Feed
+                main_stack.set_visible_child_name("feed_url_page");
+            } else if index == 1 {
+                // Category
+                main_stack.set_visible_child_name("category_page");
+            } else if index == 2 {
+                // Tag
+                main_stack.set_visible_child_name("tag_page");
+            }
         }));
 
         popover.set_relative_to(Some(parent));
         popover.show_all();
 
+        main_stack.set_visible_child_name("start");
+
         AddPopover {
+            feed_add_button,
+            category_add_button,
+            tag_add_button,
+            color_button,
             popover,
-            add_button,
-            add_feed_stack,
+            main_stack,
             feed_list,
             feed_title_entry,
+            category_entry,
+            tag_entry,
             select_button,
             select_button_stack,
             favicon_image,
             parse_button_stack,
             parse_button,
-            add_button_stack,
+            feed_add_button_stack,
             url_entry,
             feed_url,
             feed_category,
@@ -399,7 +478,7 @@ impl AddPopover {
                         @strong settings,
                         @weak favicon,
                         @weak title_entry,
-                        @weak stack as add_feed_stack => move |res|
+                        @weak stack as main_stack => move |res|
                     {
                         if let Some(ParsedUrl::SingleFeed(feed)) = res.expect(CHANNEL_ERROR) {
                             Self::fill_feed_page(
@@ -411,7 +490,7 @@ impl AddPopover {
                                 threadpool,
                                 &settings,
                             );
-                            add_feed_stack.set_visible_child_name("feed_page");
+                            main_stack.set_visible_child_name("feed_page");
                         } else if let Some(child) = row.get_child() {
                             if let Ok(_box) = child.downcast::<Box>() {
                                 if let Some(icon) = _box.get_children().get(1) {
@@ -472,14 +551,14 @@ impl AddPopover {
         }
     }
 
-    fn calc_add_button_sensitive(title_entry: &Entry, category_entry: &Entry) -> bool {
+    fn calc_add_button_sensitive(title_entry: &Entry, feed_category_entry: &Entry) -> bool {
         if let Some(text) = title_entry.get_text() {
             if text.as_str().is_empty() {
                 return false;
             }
         }
 
-        if let Some(text) = category_entry.get_text() {
+        if let Some(text) = feed_category_entry.get_text() {
             if text.as_str().is_empty() {
                 return false;
             }
@@ -492,7 +571,7 @@ impl AddPopover {
         url: &Url,
         settings: &Arc<RwLock<Settings>>,
         threadpool: &ThreadPool,
-        add_feed_stack: &Stack,
+        main_stack: &Stack,
         feed_list: &ListBox,
         feed_title_entry: &Entry,
         select_button: &Button,
@@ -525,7 +604,7 @@ impl AddPopover {
 
         let parse_button_threadpool = threadpool.clone();
         let glib_future = receiver.map(clone!(
-            @weak add_feed_stack,
+            @weak main_stack,
             @weak feed_list,
             @weak feed_title_entry,
             @weak select_button,
@@ -544,13 +623,13 @@ impl AddPopover {
                 Ok(result) => match result {
                     ParsedUrl::MultipleFeeds(feed_vec) => {
                         // url has multiple feeds: show selection page and list them there
-                        add_feed_stack.set_visible_child_name("feed_selection_page");
+                        main_stack.set_visible_child_name("feed_selection_page");
                         Self::fill_mupliple_feed_list(
                             feed_vec,
                             &feed_list,
                             &select_button,
                             &select_button_stack,
-                            &add_feed_stack,
+                            &main_stack,
                             &feed_title_entry,
                             &favicon_image,
                             &add_button_stack,
@@ -561,7 +640,7 @@ impl AddPopover {
                     }
                     ParsedUrl::SingleFeed(feed) => {
                         // url has single feed: move to feed page
-                        add_feed_stack.set_visible_child_name("feed_page");
+                        main_stack.set_visible_child_name("feed_page");
                         Self::fill_feed_page(
                             feed,
                             &add_button_stack,
@@ -575,7 +654,7 @@ impl AddPopover {
                 },
                 Err(error) => {
                     error!("No feed found for url '{}': {}", url, error);
-                    add_feed_stack.set_visible_child_name("feed_url_page");
+                    main_stack.set_visible_child_name("feed_url_page");
                     url_entry.set_text(&url.to_string());
                     url_entry.set_property_secondary_icon_name(Some(WARN_ICON));
                     url_entry.set_property_secondary_icon_tooltip_text(Some(&i18n("No Feed found.")));
@@ -595,10 +674,6 @@ impl AddPopover {
         self.popover.popdown()
     }
 
-    pub fn add_button(&self) -> Button {
-        self.add_button.clone()
-    }
-
     pub fn get_feed_url(&self) -> Option<Url> {
         self.feed_url.read().clone()
     }
@@ -609,5 +684,19 @@ impl AddPopover {
 
     pub fn get_category(&self) -> Option<AddCategory> {
         self.feed_category.read().clone()
+    }
+
+    pub fn get_category_title(&self) -> Option<String> {
+        self.category_entry.get_text().map(|text| text.as_str().to_owned())
+    }
+
+    pub fn get_tag_title(&self) -> Option<String> {
+        self.tag_entry.get_text().map(|text| text.as_str().to_owned())
+    }
+
+    pub fn get_tag_color(&self) -> String {
+        let rgba = self.color_button.get_rgba();
+        let rgba = ColorRGBA::from_normalized(rgba.red, rgba.green, rgba.blue, rgba.alpha);
+        rgba.to_string_no_alpha()
     }
 }
