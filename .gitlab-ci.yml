@@ -47,6 +47,7 @@ flatpak:
           - .flatpak-builder/git/
           - target/
           - target_test/
+          - cargo/
 
 review:
     stage: review
