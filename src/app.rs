@@ -891,15 +891,16 @@ impl App {
             let error_message = "Failed to add category".to_owned();
             if let Some(news_flash) = news_flash.read().as_ref() {
                 let client = Self::build_client(&settings);
-                let add_category_future = news_flash
-                    .add_category(&title, None, None, &client)
-                    .map(|result| match result {
-                        Ok(_) => {}
-                        Err(error) => {
-                            error!("{}: Can't add Category", error_message);
-                            Util::send(&global_sender, Action::Error(error_message.clone(), error));
-                        }
-                    });
+                let add_category_future =
+                    news_flash
+                        .add_category(&title, None, None, &client)
+                        .map(|result| match result {
+                            Ok(_) => {}
+                            Err(error) => {
+                                error!("{}: Can't add Category", error_message);
+                                Util::send(&global_sender, Action::Error(error_message.clone(), error));
+                            }
+                        });
                 Runtime::new().expect(RUNTIME_ERROR).block_on(add_category_future);
                 Util::send(&global_sender, Action::UpdateSidebar);
             } else {
@@ -921,15 +922,16 @@ impl App {
             let error_message = "Failed to add tag".to_owned();
             if let Some(news_flash) = news_flash.read().as_ref() {
                 let client = Self::build_client(&settings);
-                let add_tag_future = news_flash
-                    .add_tag(&title, Some(color), None, &client)
-                    .map(|result| match result {
-                        Ok(_) => {}
-                        Err(error) => {
-                            error!("{}: Can't add Tag", error_message);
-                            Util::send(&global_sender, Action::Error(error_message.clone(), error));
-                        }
-                    });
+                let add_tag_future =
+                    news_flash
+                        .add_tag(&title, Some(color), None, &client)
+                        .map(|result| match result {
+                            Ok(_) => {}
+                            Err(error) => {
+                                error!("{}: Can't add Tag", error_message);
+                                Util::send(&global_sender, Action::Error(error_message.clone(), error));
+                            }
+                        });
                 Runtime::new().expect(RUNTIME_ERROR).block_on(add_tag_future);
                 Util::send(&global_sender, Action::UpdateSidebar);
             } else {

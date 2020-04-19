@@ -1,17 +1,17 @@
 use crate::app::App;
+use crate::color::ColorRGBA;
 use crate::i18n::i18n;
 use crate::settings::Settings;
-use crate::color::ColorRGBA;
 use crate::util::{BuilderHelper, GtkUtil, Util, CHANNEL_ERROR, RUNTIME_ERROR};
 use futures::channel::oneshot;
 use futures::executor::ThreadPool;
 use futures::future::FutureExt;
 use glib::{clone, object::Cast, types::Type};
 use gtk::{
-    prelude::GtkListStoreExtManual, BinExt, Box, BoxExt, Button, ButtonExt, ComboBox, ComboBoxExt, ContainerExt,
-    EditableSignals, Entry, EntryExt, GtkListStoreExt, IconSize, Image, ImageExt, Label, LabelExt, ListBox, ListBoxExt,
-    ListBoxRow, ListBoxRowExt, ListStore, Orientation, Popover, PopoverExt, Separator, Stack, StackExt,
-    StyleContextExt, Widget, WidgetExt, ColorButton, ColorChooserExt,
+    prelude::GtkListStoreExtManual, BinExt, Box, BoxExt, Button, ButtonExt, ColorButton, ColorChooserExt, ComboBox,
+    ComboBoxExt, ContainerExt, EditableSignals, Entry, EntryExt, GtkListStoreExt, IconSize, Image, ImageExt, Label,
+    LabelExt, ListBox, ListBoxExt, ListBoxRow, ListBoxRowExt, ListStore, Orientation, Popover, PopoverExt, Separator,
+    Stack, StackExt, StyleContextExt, Widget, WidgetExt,
 };
 use log::error;
 use news_flash::models::{Category, CategoryID, FavIcon, Feed, FeedID, Url};
@@ -289,10 +289,12 @@ impl AddPopover {
             entry.set_property_secondary_icon_name(folder_icon);
         }));
 
-        feed_title_entry.connect_changed(clone!(@weak feed_add_button, @weak feed_category_entry => move |entry| {
-            let sensitive = Self::calc_add_button_sensitive(&entry, &feed_category_entry);
-            feed_add_button.set_sensitive(sensitive);
-        }));
+        feed_title_entry.connect_changed(
+            clone!(@weak feed_add_button, @weak feed_category_entry => move |entry| {
+                let sensitive = Self::calc_add_button_sensitive(&entry, &feed_category_entry);
+                feed_add_button.set_sensitive(sensitive);
+            }),
+        );
 
         select_list_box.connect_row_activated(clone!(@weak main_stack => @default-panic, move |_list, row| {
             let index = row.get_index();
