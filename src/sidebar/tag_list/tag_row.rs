@@ -1,8 +1,7 @@
-
 use crate::sidebar::tag_list::models::TagListTagModel;
 use crate::util::{BuilderHelper, GtkUtil};
-use gtk::{Box, ContainerExt, Image, ImageExt, Label, LabelExt, ListBoxRow, ListBoxRowExt, StyleContextExt, WidgetExt};
 use glib::clone;
+use gtk::{Box, ContainerExt, Image, ImageExt, Label, LabelExt, ListBoxRow, ListBoxRowExt, StyleContextExt, WidgetExt};
 use news_flash::models::TagID;
 use parking_lot::RwLock;
 use std::str;

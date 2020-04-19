@@ -1,9 +1,9 @@
 use crate::util::{constants, BuilderHelper, GtkUtil};
-use glib::clone;
 use gdk::{EventMask, NotifyType};
+use glib::clone;
 use gtk::{
-    Box, ContainerExt, EventBox, Image, ImageExt, Label, LabelExt, ListBoxRow, ListBoxRowExt, StyleContextExt,
-    WidgetExt, Inhibit, prelude::WidgetExtManual,
+    prelude::WidgetExtManual, Box, ContainerExt, EventBox, Image, ImageExt, Inhibit, Label, LabelExt, ListBoxRow,
+    ListBoxRowExt, StyleContextExt, WidgetExt,
 };
 use news_flash::models::{Tag, TagID};
 

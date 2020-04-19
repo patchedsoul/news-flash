@@ -1,12 +1,13 @@
 mod tag_row;
 
-use crate::util::{GtkUtil, BuilderHelper};
-use glib::{clone, translate::ToGlib, object::Cast};
+use crate::util::{BuilderHelper, GtkUtil};
 use gdk::EventType;
+use glib::{clone, object::Cast, translate::ToGlib};
 use gtk::{
-    Button, ButtonExt, ContainerExt, ListBox, ListBoxExt, ListBoxRowExt, Popover, PopoverExt, Stack, StackExt,
-    StackTransitionType, WidgetExt, Inhibit, ListBoxRow,
+    Button, ButtonExt, ContainerExt, Inhibit, ListBox, ListBoxExt, ListBoxRow, ListBoxRowExt, Popover, PopoverExt,
+    Stack, StackExt, StackTransitionType, WidgetExt,
 };
+use log::info;
 use news_flash::{
     models::{ArticleID, Tag},
     NewsFlash,
@@ -14,7 +15,6 @@ use news_flash::{
 use parking_lot::RwLock;
 use std::sync::Arc;
 use tag_row::TagRow;
-use log::info;
 
 #[derive(Clone, Debug)]
 pub struct TagPopover {
@@ -49,61 +49,81 @@ impl TagPopover {
         let assigned_tags: Arc<RwLock<Vec<Tag>>> = Arc::new(RwLock::new(Vec::new()));
         let unassigned_tags: Arc<RwLock<Vec<Tag>>> = Arc::new(RwLock::new(Vec::new()));
 
-        let add_button_signal = Some(add_button.connect_clicked(clone!(@weak main_stack => move |_button| {
-            main_stack.set_visible_child_full("possible_tags", StackTransitionType::SlideLeft);
-        })).to_glib());
+        let add_button_signal = Some(
+            add_button
+                .connect_clicked(clone!(@weak main_stack => move |_button| {
+                    main_stack.set_visible_child_full("possible_tags", StackTransitionType::SlideLeft);
+                }))
+                .to_glib(),
+        );
 
-        let back_button_signal = Some(back_button.connect_clicked(clone!(@weak main_stack => move |_button| {
-            main_stack.set_visible_child_full("assigned_tags", StackTransitionType::SlideRight);
-        })).to_glib());
+        let back_button_signal = Some(
+            back_button
+                .connect_clicked(clone!(@weak main_stack => move |_button| {
+                    main_stack.set_visible_child_full("assigned_tags", StackTransitionType::SlideRight);
+                }))
+                .to_glib(),
+        );
 
-        let popover_close_signal = Some(popover.connect_closed(clone!(@weak main_stack => move |_button| {
-            main_stack.set_visible_child_full("assigned_tags", StackTransitionType::None);
-        })).to_glib());
+        let popover_close_signal = Some(
+            popover
+                .connect_closed(clone!(@weak main_stack => move |_button| {
+                    main_stack.set_visible_child_full("assigned_tags", StackTransitionType::None);
+                }))
+                .to_glib(),
+        );
 
-        let assigned_click_signal = Some(assigned_tag_list.connect_row_activated(|_list, _row| {
-            info!("click");
-        }).to_glib());
+        let assigned_click_signal = Some(
+            assigned_tag_list
+                .connect_row_activated(|_list, _row| {
+                    info!("click");
+                })
+                .to_glib(),
+        );
 
-        let unassigned_click_signal = Some(unassigned_tags_list.connect_row_activated(clone!(
-            @strong assigned_tags,
-            @strong unassigned_tags,
-            @weak main_stack,
-            @weak assigned_tags_list_stack,
-            @weak unassigned_tags_list_stack,
-            @weak assigned_tag_list => @default-panic, move |list, row|
-        {
-            let index = row.get_index();
-            let tag = unassigned_tags.write().remove(index as usize);
+        let unassigned_click_signal = Some(
+            unassigned_tags_list
+                .connect_row_activated(clone!(
+                    @strong assigned_tags,
+                    @strong unassigned_tags,
+                    @weak main_stack,
+                    @weak assigned_tags_list_stack,
+                    @weak unassigned_tags_list_stack,
+                    @weak assigned_tag_list => @default-panic, move |list, row|
+                {
+                    let index = row.get_index();
+                    let tag = unassigned_tags.write().remove(index as usize);
 
-            let tag_row = TagRow::new(&tag, true);
-            Self::setup_tag_row(
-                &tag_row, &assigned_tags,
-                &unassigned_tags,
-                &assigned_tag_list,
-                list,
-                &assigned_tags_list_stack,
-                &unassigned_tags_list_stack);
-            assigned_tag_list.insert(&tag_row.widget, -1);
-            assigned_tag_list.show_all();
+                    let tag_row = TagRow::new(&tag, true);
+                    Self::setup_tag_row(
+                        &tag_row, &assigned_tags,
+                        &unassigned_tags,
+                        &assigned_tag_list,
+                        list,
+                        &assigned_tags_list_stack,
+                        &unassigned_tags_list_stack);
+                    assigned_tag_list.insert(&tag_row.widget, -1);
+                    assigned_tag_list.show_all();
 
-            assigned_tags.write().push(tag);
+                    assigned_tags.write().push(tag);
 
-            if assigned_tags.read().is_empty() {
-                assigned_tags_list_stack.set_visible_child_name("empty");
-            } else {
-                assigned_tags_list_stack.set_visible_child_name("list");
-            }
-    
-            if unassigned_tags.read().is_empty() {
-                unassigned_tags_list_stack.set_visible_child_name("empty");
-            } else  {
-                unassigned_tags_list_stack.set_visible_child_name("list");
-            }
+                    if assigned_tags.read().is_empty() {
+                        assigned_tags_list_stack.set_visible_child_name("empty");
+                    } else {
+                        assigned_tags_list_stack.set_visible_child_name("list");
+                    }
 
-            main_stack.set_visible_child_full("assigned_tags", StackTransitionType::SlideRight);
-            list.remove(row);
-        })).to_glib());
+                    if unassigned_tags.read().is_empty() {
+                        unassigned_tags_list_stack.set_visible_child_name("empty");
+                    } else  {
+                        unassigned_tags_list_stack.set_visible_child_name("list");
+                    }
+
+                    main_stack.set_visible_child_full("assigned_tags", StackTransitionType::SlideRight);
+                    list.remove(row);
+                }))
+                .to_glib(),
+        );
 
         let popover = TagPopover {
             widget: popover,
@@ -178,11 +198,13 @@ impl TagPopover {
         }
 
         for unassigned_tag in &(*self.unassigned_tags.read()) {
-            self.unassigned_tags_list.insert(&TagRow::new(&unassigned_tag, false).widget, -1);
+            self.unassigned_tags_list
+                .insert(&TagRow::new(&unassigned_tag, false).widget, -1);
         }
 
         for assigned_tag in &(*self.assigned_tags.read()) {
-            self.assigned_tag_list.insert(&TagRow::new(&assigned_tag, true).widget, -1);
+            self.assigned_tag_list
+                .insert(&TagRow::new(&assigned_tag, true).widget, -1);
         }
 
         self.assigned_tag_list.show_all();
@@ -214,7 +236,7 @@ impl TagPopover {
                     EventType::ButtonPress => (),
                     _ => return Inhibit(false),
                 }
-                
+
                 let mut index = -1;
                 for row in &assigned_tag_list.get_children() {
                     if widget.is_ancestor(row) {
@@ -238,7 +260,7 @@ impl TagPopover {
                 } else {
                     assigned_tags_list_stack.set_visible_child_name("list");
                 }
-        
+
                 if unassigned_tags.read().is_empty() {
                     unassigned_tags_list_stack.set_visible_child_name("empty");
                 } else  {
