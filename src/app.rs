@@ -1133,17 +1133,21 @@ impl App {
                 let article = match news_flash.get_article(&article_id) {
                     Ok(res) => res,
                     Err(error) => {
-                        Util::send(&sender, Action::Error("Failed to tag article. Article not found.".to_owned(), error));
+                        Util::send(
+                            &sender,
+                            Action::Error("Failed to tag article. Article not found.".to_owned(), error),
+                        );
                         return;
                     }
                 };
 
                 if let Some(tag) = tags.iter().find(|t| t.tag_id == tag_id).cloned() {
                     info!("tag article '{}' with '{}'", article_id, tag.tag_id);
-                    if let Err(error) = Runtime::new()
-                        .expect(RUNTIME_ERROR)
-                        .block_on(news_flash.tag_article(&article, &tag, &Self::build_client(&settings)))
-                    {
+                    if let Err(error) = Runtime::new().expect(RUNTIME_ERROR).block_on(news_flash.tag_article(
+                        &article,
+                        &tag,
+                        &Self::build_client(&settings),
+                    )) {
                         Util::send(&sender, Action::Error("Failed to tag article.".to_owned(), error));
                     }
                 } else {
@@ -1173,17 +1177,21 @@ impl App {
                 let article = match news_flash.get_article(&article_id) {
                     Ok(res) => res,
                     Err(error) => {
-                        Util::send(&sender, Action::Error("Failed to untag article. Article not found.".to_owned(), error));
+                        Util::send(
+                            &sender,
+                            Action::Error("Failed to untag article. Article not found.".to_owned(), error),
+                        );
                         return;
                     }
                 };
 
                 if let Some(tag) = tags.iter().find(|t| t.tag_id == tag_id).cloned() {
                     info!("untag article '{}' with '{}'", article_id, tag.tag_id);
-                    if let Err(error) = Runtime::new()
-                        .expect(RUNTIME_ERROR)
-                        .block_on(news_flash.untag_article(&article, &tag, &Self::build_client(&settings)))
-                    {
+                    if let Err(error) = Runtime::new().expect(RUNTIME_ERROR).block_on(news_flash.untag_article(
+                        &article,
+                        &tag,
+                        &Self::build_client(&settings),
+                    )) {
                         Util::send(&sender, Action::Error("Failed to untag article.".to_owned(), error));
                     }
                 } else {

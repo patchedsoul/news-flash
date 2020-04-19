@@ -221,9 +221,9 @@ impl TagPopover {
                 &self.assigned_tag_list,
                 &self.unassigned_tags_list,
                 &self.assigned_tags_list_stack,
-                &self.unassigned_tags_list_stack);
-            self.assigned_tag_list
-                .insert(&tag_row.widget, -1);
+                &self.unassigned_tags_list_stack,
+            );
+            self.assigned_tag_list.insert(&tag_row.widget, -1);
         }
 
         self.assigned_tag_list.show_all();
