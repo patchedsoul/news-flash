@@ -171,7 +171,7 @@ impl GtkUtil {
         //warn!("Source ID to remove is NONE");
     }
 
-    pub fn generate_color_cirlce(window: &Window, color: &str, scale: i32) -> Option<cairo::Surface> {
+    pub fn generate_color_cirlce(window: &Window, color: Option<&str>, scale: i32) -> Option<cairo::Surface> {
         let size = 16;
         let half_size = f64::from(size / 2);
 
@@ -180,6 +180,10 @@ impl GtkUtil {
             cairo_ctx.set_fill_rule(FillRule::EvenOdd);
             cairo_ctx.set_line_width(2.0);
 
+            let color = match color {
+                Some(color) => color,
+                None => constants::TAG_DEFAULT_OUTER_COLOR,
+            };
             let rgba_outer = match ColorRGBA::parse_string(color) {
                 Ok(color) => color,
                 Err(_) => ColorRGBA::parse_string(constants::TAG_DEFAULT_OUTER_COLOR)

@@ -1,4 +1,4 @@
-use crate::util::{constants, BuilderHelper, GtkUtil};
+use crate::util::{BuilderHelper, GtkUtil};
 use gdk::{EventMask, NotifyType};
 use glib::clone;
 use gtk::{
@@ -43,11 +43,7 @@ impl TagRow {
             clone!(@weak tag_color_circle, @strong tag.color as color => move |_widget| {
                 if let Some(window) = tag_color_circle.get_window() {
                     let scale = GtkUtil::get_scale(&tag_color_circle);
-                    let color = match &color {
-                        Some(color) => color,
-                        None => constants::TAG_DEFAULT_INNER_COLOR,
-                    };
-                    if let Some(surface) = GtkUtil::generate_color_cirlce(&window, &color, scale) {
+                    if let Some(surface) = GtkUtil::generate_color_cirlce(&window, color.as_deref(), scale) {
                         tag_color_circle.set_from_surface(Some(&surface));
                     }
                 }

@@ -26,7 +26,7 @@ impl TagRow {
             clone!(@weak tag_color_circle, @strong model.color as color => move |_widget| {
                 if let Some(window) = tag_color_circle.get_window() {
                     let scale = GtkUtil::get_scale(&tag_color_circle);
-                    if let Some(surface) = GtkUtil::generate_color_cirlce(&window, &color, scale) {
+                    if let Some(surface) = GtkUtil::generate_color_cirlce(&window, color.as_deref(), scale) {
                         tag_color_circle.set_from_surface(Some(&surface));
                     }
                 }

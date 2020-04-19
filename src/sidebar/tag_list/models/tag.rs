@@ -2,13 +2,11 @@ use news_flash::models::{Tag, TagID};
 use std;
 use std::cmp::Ordering;
 
-pub static DEFAULT_COLOUR: &str = "#008040";
-
 #[derive(Eq, Clone, Debug)]
 pub struct TagListTagModel {
     pub id: TagID,
     pub label: String,
-    pub color: String,
+    pub color: Option<String>,
     pub sort_index: i32,
 }
 
@@ -17,10 +15,7 @@ impl TagListTagModel {
         TagListTagModel {
             id: tag.tag_id.clone(),
             label: tag.label.clone(),
-            color: match &tag.color {
-                Some(colour) => colour.clone(),
-                None => DEFAULT_COLOUR.to_owned(),
-            },
+            color: tag.color.clone(),
             sort_index: match tag.sort_index {
                 Some(index) => index,
                 None => std::i32::MAX,
