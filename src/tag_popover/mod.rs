@@ -1,8 +1,9 @@
 mod tag_row;
 
-use crate::util::{BuilderHelper, GtkUtil};
+use crate::app::Action;
+use crate::util::{BuilderHelper, GtkUtil, Util};
 use gdk::EventType;
-use glib::{clone, object::Cast, translate::ToGlib};
+use glib::{clone, object::Cast, translate::ToGlib, Sender};
 use gtk::{
     Button, ButtonExt, ContainerExt, Inhibit, ListBox, ListBoxExt, ListBoxRow, ListBoxRowExt, Popover, PopoverExt,
     Stack, StackExt, StackTransitionType, WidgetExt,
@@ -35,7 +36,7 @@ pub struct TagPopover {
 }
 
 impl TagPopover {
-    pub fn new(article_id: &ArticleID, news_flash: &Arc<RwLock<Option<NewsFlash>>>) -> Self {
+    pub fn new(article_id: &ArticleID, news_flash: &Arc<RwLock<Option<NewsFlash>>>, sender: &Sender<Action>) -> Self {
         let builder = BuilderHelper::new("tag_dialog");
         let popover = builder.get::<Popover>("popover");
         let assigned_tags_list_stack = builder.get::<Stack>("assigned_tags_list_stack");
@@ -86,6 +87,8 @@ impl TagPopover {
                 .connect_row_activated(clone!(
                     @strong assigned_tags,
                     @strong unassigned_tags,
+                    @strong article_id,
+                    @strong sender,
                     @weak main_stack,
                     @weak assigned_tags_list_stack,
                     @weak unassigned_tags_list_stack,
@@ -94,9 +97,14 @@ impl TagPopover {
                     let index = row.get_index();
                     let tag = unassigned_tags.write().remove(index as usize);
 
+                    Util::send(&sender, Action::TagArticle(article_id.clone(), tag.tag_id.clone()));
+
                     let tag_row = TagRow::new(&tag, true);
                     Self::setup_tag_row(
-                        &tag_row, &assigned_tags,
+                        &article_id,
+                        &sender,
+                        &tag_row,
+                        &assigned_tags,
                         &unassigned_tags,
                         &assigned_tag_list,
                         list,
@@ -141,7 +149,7 @@ impl TagPopover {
             assigned_click_signal,
             unassigned_click_signal,
         };
-        popover.update(article_id, news_flash);
+        popover.update(article_id, news_flash, sender);
         popover
     }
 
@@ -153,7 +161,7 @@ impl TagPopover {
         GtkUtil::disconnect_signal(self.unassigned_click_signal, &self.unassigned_tags_list);
     }
 
-    pub fn update(&self, article_id: &ArticleID, news_flash: &Arc<RwLock<Option<NewsFlash>>>) {
+    pub fn update(&self, article_id: &ArticleID, news_flash: &Arc<RwLock<Option<NewsFlash>>>, sender: &Sender<Action>) {
         self.unassigned_tags.write().clear();
         self.assigned_tags.write().clear();
 
@@ -203,8 +211,19 @@ impl TagPopover {
         }
 
         for assigned_tag in &(*self.assigned_tags.read()) {
+            let tag_row = TagRow::new(&assigned_tag, true);
+            Self::setup_tag_row(
+                &article_id,
+                &sender,
+                &tag_row,
+                &self.assigned_tags,
+                &self.unassigned_tags,
+                &self.assigned_tag_list,
+                &self.unassigned_tags_list,
+                &self.assigned_tags_list_stack,
+                &self.unassigned_tags_list_stack);
             self.assigned_tag_list
-                .insert(&TagRow::new(&assigned_tag, true).widget, -1);
+                .insert(&tag_row.widget, -1);
         }
 
         self.assigned_tag_list.show_all();
@@ -212,6 +231,8 @@ impl TagPopover {
     }
 
     fn setup_tag_row(
+        article_id: &ArticleID,
+        sender: &Sender<Action>,
         tag_row: &TagRow,
         assigned_tags: &Arc<RwLock<Vec<Tag>>>,
         unassigned_tags: &Arc<RwLock<Vec<Tag>>>,
@@ -223,6 +244,8 @@ impl TagPopover {
         tag_row.eventbox.connect_button_press_event(clone!(
             @strong assigned_tags,
             @strong unassigned_tags,
+            @strong article_id,
+            @strong sender,
             @weak assigned_tags_list_stack,
             @weak unassigned_tags_list_stack,
             @weak unassigned_tags_list,
@@ -252,6 +275,8 @@ impl TagPopover {
                 let tag_row = TagRow::new(&tag, false);
                 unassigned_tags_list.insert(&tag_row.widget, -1);
                 unassigned_tags_list.show_all();
+
+                Util::send(&sender, Action::UntagArticle(article_id.clone(), tag.tag_id.clone()));
 
                 unassigned_tags.write().push(tag);
 

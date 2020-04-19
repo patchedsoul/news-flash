@@ -558,7 +558,7 @@ impl ContentHeader {
         if let Some(tag_popover) = self.tag_popover.read().as_ref() {
             tag_popover.disconnect();
         }
-        let popover = TagPopover::new(&article_id, news_flash);
+        let popover = TagPopover::new(&article_id, news_flash, &self.sender);
         self.tag_button.set_popover(Some(&popover.widget));
         self.tag_popover.write().replace(popover);
     }

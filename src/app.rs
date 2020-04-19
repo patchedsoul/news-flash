@@ -103,6 +103,8 @@ pub enum Action {
     DeleteFeed(FeedID),
     DeleteCategory(CategoryID),
     DeleteTag(TagID),
+    TagArticle(ArticleID, TagID),
+    UntagArticle(ArticleID, TagID),
     DragAndDrop(FeedListDndAction),
     ExportArticle,
     StartGrabArticleContent,
@@ -266,6 +268,8 @@ impl App {
             Action::DeleteFeed(feed_id) => self.delete_feed(feed_id),
             Action::DeleteCategory(category_id) => self.delete_category(category_id),
             Action::DeleteTag(tag_id) => self.delete_tag(tag_id),
+            Action::TagArticle(article_id, tag_id) => self.tag_article(article_id, tag_id),
+            Action::UntagArticle(article_id, tag_id) => self.untag_article(article_id, tag_id),
             Action::DragAndDrop(action) => self.drag_and_drop(action),
             Action::ExportArticle => self.export_article(),
             Action::StartGrabArticleContent => self.start_grab_article_content(),
@@ -1104,6 +1108,86 @@ impl App {
                     }
                 } else {
                     let message = format!("Failed to delete tag: tag with id '{}' not found.", tag_id);
+                    Util::send(&sender, Action::ErrorSimpleMessage(message));
+                    error!("tag not found: {}", tag_id);
+                }
+            }
+        };
+
+        self.threadpool.spawn_ok(thread_future);
+    }
+
+    fn tag_article(&self, article_id: ArticleID, tag_id: TagID) {
+        let news_flash = self.news_flash.clone();
+        let settings = self.settings.clone();
+        let sender = self.sender.clone();
+        let thread_future = async move {
+            if let Some(news_flash) = news_flash.read().as_ref() {
+                let tags = match news_flash.get_tags() {
+                    Ok(res) => res,
+                    Err(error) => {
+                        Util::send(&sender, Action::Error("Failed to tag article.".to_owned(), error));
+                        return;
+                    }
+                };
+                let article = match news_flash.get_article(&article_id) {
+                    Ok(res) => res,
+                    Err(error) => {
+                        Util::send(&sender, Action::Error("Failed to tag article. Article not found.".to_owned(), error));
+                        return;
+                    }
+                };
+
+                if let Some(tag) = tags.iter().find(|t| t.tag_id == tag_id).cloned() {
+                    info!("tag article '{}' with '{}'", article_id, tag.tag_id);
+                    if let Err(error) = Runtime::new()
+                        .expect(RUNTIME_ERROR)
+                        .block_on(news_flash.tag_article(&article, &tag, &Self::build_client(&settings)))
+                    {
+                        Util::send(&sender, Action::Error("Failed to tag article.".to_owned(), error));
+                    }
+                } else {
+                    let message = format!("Failed to tag article: tag with id '{}' not found.", tag_id);
+                    Util::send(&sender, Action::ErrorSimpleMessage(message));
+                    error!("tag not found: {}", tag_id);
+                }
+            }
+        };
+
+        self.threadpool.spawn_ok(thread_future);
+    }
+
+    fn untag_article(&self, article_id: ArticleID, tag_id: TagID) {
+        let news_flash = self.news_flash.clone();
+        let settings = self.settings.clone();
+        let sender = self.sender.clone();
+        let thread_future = async move {
+            if let Some(news_flash) = news_flash.read().as_ref() {
+                let tags = match news_flash.get_tags() {
+                    Ok(res) => res,
+                    Err(error) => {
+                        Util::send(&sender, Action::Error("Failed to untag article.".to_owned(), error));
+                        return;
+                    }
+                };
+                let article = match news_flash.get_article(&article_id) {
+                    Ok(res) => res,
+                    Err(error) => {
+                        Util::send(&sender, Action::Error("Failed to untag article. Article not found.".to_owned(), error));
+                        return;
+                    }
+                };
+
+                if let Some(tag) = tags.iter().find(|t| t.tag_id == tag_id).cloned() {
+                    info!("untag article '{}' with '{}'", article_id, tag.tag_id);
+                    if let Err(error) = Runtime::new()
+                        .expect(RUNTIME_ERROR)
+                        .block_on(news_flash.untag_article(&article, &tag, &Self::build_client(&settings)))
+                    {
+                        Util::send(&sender, Action::Error("Failed to untag article.".to_owned(), error));
+                    }
+                } else {
+                    let message = format!("Failed to tag article: untag with id '{}' not found.", tag_id);
                     Util::send(&sender, Action::ErrorSimpleMessage(message));
                     error!("tag not found: {}", tag_id);
                 }
