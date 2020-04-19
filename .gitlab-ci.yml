@@ -14,7 +14,7 @@ flatpak:
         FLATPAK_MODULE: "newsflash"
         CONFIGURE_ARGS: "-Dprofile=development"
         RUNTIME_REPO: "https://sdk.gnome.org/gnome-nightly.flatpakrepo"
-        APP_ID: "com.gitlab.newsflashDevel"
+        APP_ID: "com.gitlab.newsflash.Devel"
 
     script:
         # Prepare the manifest

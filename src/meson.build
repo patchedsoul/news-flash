@@ -104,7 +104,7 @@ cargo_release = custom_target('cargo-build',
                         input: [
                                 newsflash_sources,
                                ],
-                        output: ['newsflash'],
+                        output: ['com.gitlab.newsflash'],
                         install: true,
                         install_dir: newsflash_bindir,
                         console: true,
