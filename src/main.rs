@@ -18,10 +18,10 @@ mod reset_page;
 mod responsive;
 mod settings;
 mod sidebar;
+mod tag_popover;
 mod undo_bar;
 mod util;
 mod welcome_screen;
-mod tag_popover;
 
 use crate::app::App;
 use crate::config::APP_ID;

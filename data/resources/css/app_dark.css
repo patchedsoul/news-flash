@@ -84,7 +84,8 @@
 /*     lists      */
 /******************/
 
-.list-separated row {
+.list-separated row,
+.tag-pop-list row:not(:last-child) {
 	border-bottom-width: 1px;
 	border-bottom-style: solid;
 	border-bottom-color: rgba(128, 128, 128, 0.3);

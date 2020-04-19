@@ -1,13 +1,17 @@
-
-use crate::util::{BuilderHelper, constants, GtkUtil};
+use crate::util::{constants, BuilderHelper, GtkUtil};
 use glib::clone;
-use gtk::{Box, ContainerExt, EventBox, Image, ImageExt, Label, LabelExt, ListBoxRow, ListBoxRowExt, StyleContextExt, WidgetExt};
+use gdk::{EventMask, NotifyType};
+use gtk::{
+    Box, ContainerExt, EventBox, Image, ImageExt, Label, LabelExt, ListBoxRow, ListBoxRowExt, StyleContextExt,
+    WidgetExt, Inhibit, prelude::WidgetExtManual,
+};
 use news_flash::models::{Tag, TagID};
 
 #[derive(Clone, Debug)]
 pub struct TagRow {
     pub id: TagID,
     pub widget: ListBoxRow,
+    pub eventbox: EventBox,
 }
 
 impl TagRow {
@@ -19,6 +23,21 @@ impl TagRow {
         let remove_event = builder.get::<EventBox>("remove_event");
 
         remove_event.set_no_show_all(!assigned);
+        remove_event.set_events(EventMask::BUTTON_PRESS_MASK);
+        remove_event.set_events(EventMask::ENTER_NOTIFY_MASK);
+        remove_event.set_events(EventMask::LEAVE_NOTIFY_MASK);
+        remove_event.connect_enter_notify_event(|widget, event| {
+            if event.get_detail() != NotifyType::Inferior {
+                widget.set_opacity(1.0);
+            }
+            Inhibit(false)
+        });
+        remove_event.connect_leave_notify_event(|widget, event| {
+            if event.get_detail() != NotifyType::Inferior {
+                widget.set_opacity(0.6);
+            }
+            Inhibit(false)
+        });
 
         tag_color_circle.connect_realize(
             clone!(@weak tag_color_circle, @strong tag.color as color => move |_widget| {
@@ -37,20 +56,20 @@ impl TagRow {
 
         let tag_row = TagRow {
             id: tag.tag_id.clone(),
-            widget: Self::create_row(&tag_box),
+            widget: Self::create_row(&tag_box, assigned),
+            eventbox: remove_event,
         };
         title_label.set_label(&tag.label);
 
         tag_row
     }
 
-    fn create_row(widget: &Box) -> ListBoxRow {
+    fn create_row(widget: &Box, assigned: bool) -> ListBoxRow {
         let row = ListBoxRow::new();
-        row.set_activatable(true);
+        row.set_activatable(!assigned);
         row.set_can_focus(false);
         row.add(widget);
-        let context = row.get_style_context();
-        context.remove_class("activatable");
+        row.get_style_context().remove_class("activatable");
 
         row
     }

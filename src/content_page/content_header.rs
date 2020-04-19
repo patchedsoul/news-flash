@@ -11,7 +11,7 @@ use gtk::{
     Stack, StackExt, ToggleButton, ToggleButtonExt, WidgetExt,
 };
 use libhandy::{SearchBar, SearchBarExt};
-use news_flash::models::{FatArticle, PluginCapabilities, Marked, Read};
+use news_flash::models::{ArticleID, FatArticle, Marked, PluginCapabilities, Read};
 use news_flash::NewsFlash;
 use parking_lot::RwLock;
 use std::sync::Arc;
@@ -32,6 +32,7 @@ pub struct ContentHeader {
     unread_button: ToggleButton,
     marked_button: ToggleButton,
     tag_button: MenuButton,
+    tag_popover: RwLock<Option<TagPopover>>,
     more_actions_button: MenuButton,
     more_actions_stack: Stack,
     mode_switch_stack: Stack,
@@ -85,6 +86,8 @@ impl ContentHeader {
         let linked_button_timeout: Arc<RwLock<Option<u32>>> = Arc::new(RwLock::new(None));
         let header_selection = Arc::new(RwLock::new(HeaderSelection::All));
 
+        let tag_popover: RwLock<Option<TagPopover>> = RwLock::new(None);
+
         Self::setup_linked_button(
             &sender,
             &all_button,
@@ -137,6 +140,7 @@ impl ContentHeader {
             unread_button,
             marked_button,
             tag_button,
+            tag_popover,
             more_actions_button,
             more_actions_stack,
             mode_switch_stack,
@@ -545,10 +549,18 @@ impl ContentHeader {
             self.tag_button.set_sensitive(tag_support && sensitive);
 
             if let Some(article) = article {
-                let popover = TagPopover::new(&article.article_id, news_flash);
-                self.tag_button.set_popover(Some(&popover.widget));
+                self.upadate_tags(&article.article_id, news_flash);
             }
         }
+    }
+
+    pub fn upadate_tags(&self, article_id: &ArticleID, news_flash: &Arc<RwLock<Option<NewsFlash>>>) {
+        if let Some(tag_popover) = self.tag_popover.read().as_ref() {
+            tag_popover.disconnect();
+        }
+        let popover = TagPopover::new(&article_id, news_flash);
+        self.tag_button.set_popover(Some(&popover.widget));
+        self.tag_popover.write().replace(popover);
     }
 
     pub fn start_more_actions_spinner(&self) {

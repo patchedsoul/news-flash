@@ -1,11 +1,11 @@
-use super::error::{UtilError, UtilErrorKind};
 use super::constants;
-use crate::Resources;
+use super::error::{UtilError, UtilErrorKind};
 use crate::color::ColorRGBA;
+use crate::Resources;
 use cairo::{Context, FillRule, ImageSurface, Surface};
 use failure::ResultExt;
-use gdk_pixbuf::Pixbuf;
 use gdk::{prelude::GdkContextExt, Window, WindowExt};
+use gdk_pixbuf::Pixbuf;
 use gio::{Cancellable, MemoryInputStream, Resource};
 use glib::{
     object::{Cast, IsA, Object, ObjectExt},
@@ -174,7 +174,7 @@ impl GtkUtil {
     pub fn generate_color_cirlce(window: &Window, color: &str, scale: i32) -> Option<cairo::Surface> {
         let size = 16;
         let half_size = f64::from(size / 2);
-        
+
         if let Some(surface) = window.create_similar_image_surface(0, size * scale, size * scale, scale) {
             let cairo_ctx = Context::new(&surface);
             cairo_ctx.set_fill_rule(FillRule::EvenOdd);
@@ -215,7 +215,7 @@ impl GtkUtil {
                 rgba_outer.alpha_normalized(),
             );
             cairo_ctx.fill_preserve();
-            return Some(surface)
+            return Some(surface);
         }
         None
     }

@@ -502,8 +502,8 @@ impl MainWindow {
     }
 
     pub fn show_article(&self, article_id: ArticleID, news_flash: &Arc<RwLock<Option<NewsFlash>>>) {
-        let mut fat_article : Option<FatArticle> = None;
-        let mut feed_vec : Option<Vec<Feed>> = None;
+        let mut fat_article: Option<FatArticle> = None;
+        let mut feed_vec: Option<Vec<Feed>> = None;
 
         if let Some(news_flash) = news_flash.read().as_ref() {
             match news_flash.get_fat_article(&article_id) {
@@ -536,7 +536,7 @@ impl MainWindow {
                 };
                 self.content_header.show_article(Some(&article), news_flash);
                 self.content_page.article_view.show_article(article, feed.label.clone());
-        
+
                 self.responsive_layout.state.write().major_leaflet_selected = true;
                 self.responsive_layout.process_state_change();
             }
@@ -755,8 +755,11 @@ impl MainWindow {
         }
 
         if let Some(updated_visible_article) = updated_visible_article {
-            self.content_header.show_article(Some(&updated_visible_article), news_flash);
-            self.content_page.article_view.update_visible_article(Some(updated_visible_article.unread), None);
+            self.content_header
+                .show_article(Some(&updated_visible_article), news_flash);
+            self.content_page
+                .article_view
+                .update_visible_article(Some(updated_visible_article.unread), None);
         }
     }
 

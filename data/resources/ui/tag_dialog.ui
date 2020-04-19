@@ -13,6 +13,7 @@
         <property name="margin_top">2</property>
         <property name="margin_bottom">2</property>
         <property name="transition_type">slide-left</property>
+        <property name="interpolate_size">True</property>
         <child>
           <object class="GtkBox" id="assigned_tags">
             <property name="visible">True</property>
@@ -52,7 +53,7 @@
                     <child>
                       <object class="GtkLabel" id="article_not_tagged_label">
                         <property name="width_request">150</property>
-                        <property name="height_request">30</property>
+                        <property name="height_request">20</property>
                         <property name="visible">True</property>
                         <property name="can_focus">False</property>
                         <property name="margin_left">5</property>
@@ -82,13 +83,13 @@
                         <property name="can_focus">False</property>
                         <property name="selection_mode">none</property>
                         <style>
-                          <class name="list-separated"/>
+                          <class name="tag-pop-list"/>
                         </style>
                       </object>
                     </child>
                   </object>
                   <packing>
-                    <property name="name">page0</property>
+                    <property name="name">list</property>
                     <property name="title" translatable="yes">page0</property>
                     <property name="position">1</property>
                   </packing>
@@ -133,41 +134,9 @@
             <property name="orientation">vertical</property>
             <property name="spacing">5</property>
             <child>
-              <object class="GtkStack">
+              <object class="GtkStack" id="possible_tags_list_stack">
                 <property name="visible">True</property>
                 <property name="can_focus">False</property>
-                <child>
-                  <object class="GtkScrolledWindow">
-                    <property name="height_request">100</property>
-                    <property name="visible">True</property>
-                    <property name="can_focus">True</property>
-                    <property name="margin_top">5</property>
-                    <property name="margin_bottom">5</property>
-                    <property name="hscrollbar_policy">never</property>
-                    <property name="shadow_type">in</property>
-                    <child>
-                      <object class="GtkViewport">
-                        <property name="visible">True</property>
-                        <property name="can_focus">False</property>
-                        <property name="shadow_type">none</property>
-                        <child>
-                          <object class="GtkListBox" id="possible_tags_list">
-                            <property name="visible">True</property>
-                            <property name="can_focus">False</property>
-                            <property name="selection_mode">none</property>
-                            <style>
-                              <class name="list-separated"/>
-                            </style>
-                          </object>
-                        </child>
-                      </object>
-                    </child>
-                  </object>
-                  <packing>
-                    <property name="name">page0</property>
-                    <property name="title" translatable="yes">page0</property>
-                  </packing>
-                </child>
                 <child>
                   <object class="GtkViewport">
                     <property name="visible">True</property>
@@ -183,8 +152,30 @@
                     </child>
                   </object>
                   <packing>
-                    <property name="name">page1</property>
+                    <property name="name">empty</property>
                     <property name="title" translatable="yes">page1</property>
+                  </packing>
+                </child>
+                <child>
+                  <object class="GtkViewport">
+                    <property name="visible">True</property>
+                    <property name="can_focus">False</property>
+                    <property name="margin_top">5</property>
+                    <property name="margin_bottom">5</property>
+                    <child>
+                      <object class="GtkListBox" id="possible_tags_list">
+                        <property name="visible">True</property>
+                        <property name="can_focus">True</property>
+                        <property name="selection_mode">none</property>
+                        <style>
+                          <class name="tag-pop-list"/>
+                        </style>
+                      </object>
+                    </child>
+                  </object>
+                  <packing>
+                    <property name="name">list</property>
+                    <property name="title" translatable="yes">page0</property>
                     <property name="position">1</property>
                   </packing>
                 </child>

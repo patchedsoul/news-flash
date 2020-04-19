@@ -22,7 +22,7 @@ use news_flash::models::{
 use news_flash::{NewsFlash, NewsFlashError};
 use parking_lot::RwLock;
 use reqwest::{Client, ClientBuilder, Proxy};
-use tokio::runtime::{Runtime};
+use tokio::runtime::Runtime;
 
 use crate::about_dialog::NewsFlashAbout;
 use crate::add_dialog::{AddCategory, AddPopover};
@@ -155,7 +155,6 @@ impl App {
             .pool_size(16)
             .create()
             .expect("Failed to init thread pool");
-        
 
         let news_flash = Arc::new(RwLock::new(None));
         let settings = Arc::new(RwLock::new(Settings::open().expect("Failed to access settings file")));

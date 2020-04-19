@@ -1,10 +1,10 @@
 mod builder_helper;
+pub mod constants;
 mod date_util;
 mod error;
 mod file_util;
 mod gtk_util;
 mod stopwatch;
-pub mod constants;
 
 pub use builder_helper::BuilderHelper;
 pub use date_util::DateUtil;
