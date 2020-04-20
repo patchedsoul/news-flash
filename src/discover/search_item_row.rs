@@ -9,7 +9,7 @@ use futures::FutureExt;
 use gdk::EventType;
 use glib::{clone, object::Cast, Sender};
 use gtk::{
-    ButtonExt, ContainerExt, EventBox, Image, ImageExt, Inhibit, Label, LabelExt, ListBoxRow, ListBoxRowExt,
+    ContainerExt, EventBox, Image, ImageExt, Inhibit, Label, LabelExt, ListBoxRow, ListBoxRowExt,
     StyleContextExt, Widget, WidgetExt,
 };
 use log::error;
@@ -81,23 +81,16 @@ impl SearchItemRow {
                         }
                     };
 
-                    let dialog = AddPopover::new_for_feed_url(&eventbox.clone().upcast::<Widget>(), categories, &threadpool, &settings, &search_item_feed_url);
-                    dialog.feed_add_button.connect_clicked(clone!(
-                        @strong dialog, @strong sender as sender => move |_button| {
-                        let feed_url = match dialog.get_feed_url() {
-                            Some(url) => url,
-                            None => {
-                                error!("{}: No valid url", error_message);
-                                Util::send(&sender, Action::ErrorSimpleMessage(error_message.clone()));
-                                return;
-                            }
-                        };
-                        let feed_title = dialog.get_feed_title();
-                        let feed_category = dialog.get_category();
+                    let features = Arc::new(RwLock::new(Some(news_flash.features().expect("Failed to query newsflash features."))));
 
-                        Util::send(&sender, Action::AddFeed((feed_url, feed_title, feed_category)));
-                        dialog.close();
-                    }));
+                    let _dialog = AddPopover::new_for_feed_url(
+                        &sender,
+                        &eventbox.clone().upcast::<Widget>(),
+                        categories,
+                        &threadpool,
+                        &settings,
+                        &features,
+                        &search_item_feed_url);
                 }
             }
             Inhibit(false)

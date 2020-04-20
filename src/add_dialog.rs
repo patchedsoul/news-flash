@@ -1,4 +1,4 @@
-use crate::app::App;
+use crate::app::{Action, App};
 use crate::color::ColorRGBA;
 use crate::i18n::i18n;
 use crate::settings::Settings;
@@ -6,7 +6,7 @@ use crate::util::{BuilderHelper, GtkUtil, Util, CHANNEL_ERROR, RUNTIME_ERROR};
 use futures::channel::oneshot;
 use futures::executor::ThreadPool;
 use futures::future::FutureExt;
-use glib::{clone, object::Cast, types::Type};
+use glib::{clone, object::Cast, types::Type, Sender};
 use gtk::{
     prelude::GtkListStoreExtManual, BinExt, Box, BoxExt, Button, ButtonExt, ColorButton, ColorChooserExt, ComboBox,
     ComboBoxExt, ContainerExt, EditableSignals, Entry, EntryExt, GtkListStoreExt, IconSize, Image, ImageExt, Label,
@@ -14,7 +14,7 @@ use gtk::{
     Stack, StackExt, StyleContextExt, Widget, WidgetExt,
 };
 use log::error;
-use news_flash::models::{Category, CategoryID, FavIcon, Feed, FeedID, Url};
+use news_flash::models::{Category, CategoryID, FavIcon, Feed, FeedID, Url, PluginCapabilities};
 use news_flash::{FeedParserError, ParsedUrl};
 use pango::EllipsizeMode;
 use parking_lot::RwLock;
@@ -55,13 +55,15 @@ pub struct AddPopover {
 
 impl AddPopover {
     pub fn new_for_feed_url(
+        sender: &Sender<Action>,
         parent: &Widget,
         categories: Vec<Category>,
         threadpool: &ThreadPool,
         settings: &Arc<RwLock<Settings>>,
+        features: &Arc<RwLock<Option<PluginCapabilities>>>,
         feed_url: &Url,
     ) -> Self {
-        let dialog = Self::new(parent, categories, threadpool.clone(), settings);
+        let dialog = Self::new(sender, parent, categories, threadpool.clone(), settings, features);
         dialog.main_stack.set_visible_child_name("spinner");
 
         Self::parse_feed_url(
@@ -85,10 +87,12 @@ impl AddPopover {
     }
 
     pub fn new(
+        sender: &Sender<Action>,
         parent: &Widget,
         categories: Vec<Category>,
         threadpool: ThreadPool,
         settings: &Arc<RwLock<Settings>>,
+        features: &Arc<RwLock<Option<PluginCapabilities>>>,
     ) -> Self {
         let builder = BuilderHelper::new("add_dialog");
         let popover = builder.get::<Popover>("add_pop");
@@ -113,6 +117,9 @@ impl AddPopover {
         let color_button = builder.get::<ColorButton>("color_button");
         let feed_url: Arc<RwLock<Option<Url>>> = Arc::new(RwLock::new(None));
         let feed_category = Arc::new(RwLock::new(None));
+        let feed_row = builder.get::<ListBoxRow>("feed_row");
+        let category_row = builder.get::<ListBoxRow>("category_row");
+        let tag_row = builder.get::<ListBoxRow>("tag_row");
 
         // setup list of categories to add feed to
         if !categories.is_empty() {
@@ -192,6 +199,12 @@ impl AddPopover {
                 tag_add_button.clicked();
             }
         }));
+
+        if let Some(features) = features.read().as_ref() {
+            feed_row.set_sensitive(features.contains(PluginCapabilities::ADD_REMOVE_FEEDS));
+            category_row.set_sensitive(features.contains(PluginCapabilities::MODIFY_CATEGORIES));
+            tag_row.set_sensitive(features.contains(PluginCapabilities::SUPPORT_TAGS));
+        }
 
         // parse url and switch to feed selection or final page
         parse_button.connect_clicked(clone!(
@@ -307,6 +320,54 @@ impl AddPopover {
             } else if index == 2 {
                 // Tag
                 main_stack.set_visible_child_name("tag_page");
+            }
+        }));
+
+        feed_add_button.connect_clicked(clone!(
+            @weak popover,
+            @weak feed_title_entry,
+            @weak feed_url,
+            @weak feed_category,
+            @strong sender => move |_button|
+        {
+            let feed_url = match feed_url.read().clone() {
+                Some(url) => url,
+                None => {
+                    error!("Failed to add feed: No valid url");
+                    Util::send(&sender, Action::ErrorSimpleMessage("Failed to add feed".into()));
+                    return;
+                }
+            };
+            let feed_title = feed_title_entry.get_text().map(|title| title.as_str().to_owned());
+            let feed_category = feed_category.read().clone();
+
+            Util::send(&sender, Action::AddFeed((feed_url, feed_title, feed_category)));
+            popover.popdown()
+        }));
+        category_add_button.connect_clicked(clone!(
+            @weak popover,
+            @weak category_entry,
+            @strong sender => move |_button|
+        {
+            let category_title = category_entry.get_text().map(|text| text.as_str().to_owned());
+            if let Some(category_title) = category_title {
+                Util::send(&sender, Action::AddCategory(category_title));
+                popover.popdown()
+            }
+        }));
+        tag_add_button.connect_clicked(clone!(
+            @weak popover,
+            @weak tag_entry,
+            @weak color_button,
+            @strong sender => move |_button|
+        {
+            let tag_title = tag_entry.get_text().map(|text| text.as_str().to_owned());
+            let rgba = color_button.get_rgba();
+            let rgba = ColorRGBA::from_normalized(rgba.red, rgba.green, rgba.blue, rgba.alpha);
+            let color = rgba.to_string_no_alpha();
+            if let Some(tag_title) = tag_title {
+                Util::send(&sender, Action::AddTag(color, tag_title));
+                popover.popdown()
             }
         }));
 
@@ -670,35 +731,5 @@ impl AddPopover {
 
         threadpool.spawn_ok(thread_future);
         Util::glib_spawn_future(glib_future);
-    }
-
-    pub fn close(&self) {
-        self.popover.popdown()
-    }
-
-    pub fn get_feed_url(&self) -> Option<Url> {
-        self.feed_url.read().clone()
-    }
-
-    pub fn get_feed_title(&self) -> Option<String> {
-        self.feed_title_entry.get_text().map(|title| title.as_str().to_owned())
-    }
-
-    pub fn get_category(&self) -> Option<AddCategory> {
-        self.feed_category.read().clone()
-    }
-
-    pub fn get_category_title(&self) -> Option<String> {
-        self.category_entry.get_text().map(|text| text.as_str().to_owned())
-    }
-
-    pub fn get_tag_title(&self) -> Option<String> {
-        self.tag_entry.get_text().map(|text| text.as_str().to_owned())
-    }
-
-    pub fn get_tag_color(&self) -> String {
-        let rgba = self.color_button.get_rgba();
-        let rgba = ColorRGBA::from_normalized(rgba.red, rgba.green, rgba.blue, rgba.alpha);
-        rgba.to_string_no_alpha()
     }
 }

@@ -24,7 +24,7 @@ use gtk::{
     Stack, StackExt, StackTransitionType, StyleContext, StyleContextExt, WidgetExt,
 };
 use log::{error, warn};
-use news_flash::models::{ArticleID, FatArticle, Feed, PasswordLogin as PasswordLoginData, PluginID};
+use news_flash::models::{ArticleID, FatArticle, Feed, PasswordLogin as PasswordLoginData, PluginID, PluginCapabilities};
 use news_flash::{NewsFlash, NewsFlashError};
 use parking_lot::RwLock;
 use std::sync::Arc;
@@ -53,6 +53,7 @@ impl MainWindow {
         settings: &Arc<RwLock<Settings>>,
         sender: Sender<Action>,
         shutdown_in_progress: Arc<RwLock<bool>>,
+        features: &Arc<RwLock<Option<PluginCapabilities>>>
     ) -> Self {
         GtkUtil::register_symbolic_icons();
         let css_provider = Arc::new(RwLock::new(CssProvider::new()));
@@ -118,6 +119,7 @@ impl MainWindow {
             &settings,
             &content_header,
             sender.clone(),
+            features,
         ));
         let reset_page = ResetPage::new(&builder, sender.clone());
 
@@ -351,7 +353,7 @@ impl MainWindow {
         StyleContext::add_provider_for_screen(&screen, &*provider.read(), 600);
     }
 
-    pub fn init(&self, news_flash: &Arc<RwLock<Option<NewsFlash>>>, thread_pool: ThreadPool) {
+    pub fn init(&self, news_flash: &Arc<RwLock<Option<NewsFlash>>>, thread_pool: ThreadPool, features: &Arc<RwLock<Option<PluginCapabilities>>>) {
         self.stack.set_visible_child_name(CONTENT_PAGE);
         self.header_stack.set_visible_child_name(CONTENT_PAGE);
 
@@ -368,7 +370,7 @@ impl MainWindow {
 
                 // try to fill content page with data
                 self.content_page
-                    .update_sidebar(&news_flash, &self.undo_bar, thread_pool.clone());
+                    .update_sidebar(&news_flash, &self.undo_bar, thread_pool.clone(), features);
                 self.content_page
                     .update_article_list(&news_flash, &self.undo_bar, thread_pool);
                 return;
@@ -479,9 +481,9 @@ impl MainWindow {
         self.reset_page.error(error);
     }
 
-    pub fn update_sidebar(&self, news_flash: &Arc<RwLock<Option<NewsFlash>>>, thread_pool: ThreadPool) {
+    pub fn update_sidebar(&self, news_flash: &Arc<RwLock<Option<NewsFlash>>>, thread_pool: ThreadPool, features: &Arc<RwLock<Option<PluginCapabilities>>>) {
         self.content_page
-            .update_sidebar(news_flash, &self.undo_bar, thread_pool);
+            .update_sidebar(news_flash, &self.undo_bar, thread_pool, features);
     }
 
     pub fn update_article_list(&self, news_flash: &Arc<RwLock<Option<NewsFlash>>>, thread_pool: ThreadPool) {
@@ -761,6 +763,10 @@ impl MainWindow {
                 .article_view
                 .update_visible_article(Some(updated_visible_article.unread), None);
         }
+    }
+
+    pub fn update_features(&self, features: &Arc<RwLock<Option<PluginCapabilities>>>) {
+        self.content_page.sidebar.read().footer.update_features(features);
     }
 
     pub fn execute_pending_undoable_action(&self) {

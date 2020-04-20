@@ -36,7 +36,11 @@ pub struct TagPopover {
 }
 
 impl TagPopover {
-    pub fn new(article_id: &ArticleID, news_flash: &Arc<RwLock<Option<NewsFlash>>>, sender: &Sender<Action>) -> Self {
+    pub fn new(
+        article_id: &ArticleID,
+        news_flash: &Arc<RwLock<Option<NewsFlash>>>,
+        sender: &Sender<Action>
+    ) -> Self {
         let builder = BuilderHelper::new("tag_dialog");
         let popover = builder.get::<Popover>("popover");
         let assigned_tags_list_stack = builder.get::<Stack>("assigned_tags_list_stack");

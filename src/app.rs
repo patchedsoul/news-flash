@@ -17,7 +17,7 @@ use gtk::{
 use lazy_static::lazy_static;
 use log::{error, info, warn};
 use news_flash::models::{
-    ArticleID, Category, CategoryID, FatArticle, FavIcon, Feed, FeedID, LoginData, PasswordLogin, PluginID, TagID, Url,
+    ArticleID, Category, CategoryID, FatArticle, FavIcon, Feed, FeedID, LoginData, PasswordLogin, PluginID, TagID, Url, PluginCapabilities,
 };
 use news_flash::{NewsFlash, NewsFlashError};
 use parking_lot::RwLock;
@@ -130,6 +130,7 @@ pub struct App {
     threadpool: ThreadPool,
     icon_threadpool: ThreadPool,
     shutdown_in_progress: Arc<RwLock<bool>>,
+    features: Arc<RwLock<Option<PluginCapabilities>>>,
 }
 
 impl App {
@@ -161,8 +162,9 @@ impl App {
             .expect("Failed to init thread pool");
 
         let news_flash = Arc::new(RwLock::new(None));
+        let features = Arc::new(RwLock::new(None));
         let settings = Arc::new(RwLock::new(Settings::open().expect("Failed to access settings file")));
-        let window = Arc::new(MainWindow::new(&settings, sender.clone(), shutdown_in_progress.clone()));
+        let window = Arc::new(MainWindow::new(&settings, sender.clone(), shutdown_in_progress.clone(), &features));
 
         let app = Rc::new(Self {
             application,
@@ -175,19 +177,24 @@ impl App {
             threadpool,
             icon_threadpool,
             shutdown_in_progress,
+            features,
         });
 
         app.setup_signals();
 
         if let Ok(news_flash_lib) = NewsFlash::try_load(&DATA_DIR, &CONFIG_DIR) {
             info!("Successful load from config");
+            if let Ok(features) = news_flash_lib.features() {
+                app.features.write().replace(features);
+                app.window.update_features(&app.features);
+            }
             app.news_flash.write().replace(news_flash_lib);
             Util::send(&app.sender, Action::ScheduleSync);
         } else {
             warn!("No account configured");
         }
 
-        app.window.init(&app.news_flash, app.threadpool.clone());
+        app.window.init(&app.news_flash, app.threadpool.clone(), &app.features);
         app
     }
 
@@ -237,7 +244,7 @@ impl App {
             Action::MarkArticle(update) => self.mark_article(update),
             Action::ToggleArticleRead => self.toggle_article_read(),
             Action::ToggleArticleMarked => self.toggle_article_marked(),
-            Action::UpdateSidebar => self.window.update_sidebar(&self.news_flash, self.threadpool.clone()),
+            Action::UpdateSidebar => self.window.update_sidebar(&self.news_flash, self.threadpool.clone(), &self.features),
             Action::UpdateArticleList => self
                 .window
                 .update_article_list(&self.news_flash, self.threadpool.clone()),
@@ -330,7 +337,7 @@ impl App {
             }
         };
 
-        let (sender, receiver) = oneshot::channel::<Result<(), NewsFlashError>>();
+        let (sender, receiver) = oneshot::channel::<Result<PluginCapabilities, NewsFlashError>>();
 
         let news_flash = self.news_flash.clone();
         let global_sender = self.sender.clone();
@@ -340,38 +347,51 @@ impl App {
             let result = Runtime::new()
                 .expect(RUNTIME_ERROR)
                 .block_on(news_flash_lib.login(data_clone, &Self::build_client(&settings)));
-            match &result {
+            match result {
                 Ok(()) => {
+                    // query features
+                    let features = news_flash_lib.features();
                     // create main obj
                     news_flash.write().replace(news_flash_lib);
                     // show content page
                     Util::send(&global_sender, Action::ShowContentPage(Some(id)));
                     // schedule initial sync
                     Util::send(&global_sender, Action::InitSync);
+
+                    sender.send(features).expect(CHANNEL_ERROR);
                 }
                 Err(error) => {
                     error!("Login failed! Plguin: {}, Error: {}", id, error);
+                    sender.send(Err(error)).expect(CHANNEL_ERROR);
                 }
             }
-            sender.send(result).expect(CHANNEL_ERROR);
         };
 
         let glib_future = receiver.map(clone!(
+            @weak self.features as app_features,
+            @weak self.window as window,
             @weak self.window.oauth_login_page as oauth_login_page,
             @weak self.window.password_login_page as password_login_page => move |res|
         {
-            if let Ok(Err(error)) = res {
-                match data {
-                    LoginData::OAuth(_) => {
-                        oauth_login_page.show_error(error);
+            match res {
+                Ok(Err(error)) => {
+                    match data {
+                        LoginData::OAuth(_) => {
+                            oauth_login_page.show_error(error);
+                        }
+                        LoginData::Password(_) => {
+                            password_login_page.show_error(error);
+                        }
+                        LoginData::None(_) => {
+                            // NOTHING
+                        }
                     }
-                    LoginData::Password(_) => {
-                        password_login_page.show_error(error);
-                    }
-                    LoginData::None(_) => {
-                        // NOTHING
-                    }
+                },
+                Ok(Ok(features)) => {
+                    app_features.write().replace(features);
+                    window.update_features(&app_features);
                 }
+                _ => {}
             }
         }));
 
@@ -775,7 +795,7 @@ impl App {
     fn add_feed_dialog(&self) {
         if let Some(news_flash) = self.news_flash.read().as_ref() {
             let error_message = "Failed to add feed".to_owned();
-            let add_button = self.window.content_page.sidebar.read().footer.read().get_add_button();
+            let add_button = self.window.content_page.sidebar.read().footer.add_button.clone();
 
             let categories = match news_flash.get_categories() {
                 Ok(categories) => categories,
@@ -785,49 +805,15 @@ impl App {
                     return;
                 }
             };
-
-            let dialog = AddPopover::new(
+            
+            let _dialog = AddPopover::new(
+                &self.sender,
                 &add_button.upcast::<Widget>(),
                 categories,
                 self.threadpool.clone(),
                 &self.settings,
+                &self.features,
             );
-            dialog.feed_add_button.connect_clicked(clone!(
-                @strong dialog, @strong self.sender as sender => move |_button|
-            {
-                let feed_url = match dialog.get_feed_url() {
-                    Some(url) => url,
-                    None => {
-                        error!("{}: No valid url", error_message);
-                        Util::send(&sender, Action::ErrorSimpleMessage(error_message.clone()));
-                        return;
-                    }
-                };
-                let feed_title = dialog.get_feed_title();
-                let feed_category = dialog.get_category();
-
-                Util::send(&sender, Action::AddFeed((feed_url, feed_title, feed_category)));
-                dialog.close();
-            }));
-            dialog.category_add_button.connect_clicked(clone!(
-                @strong dialog, @strong self.sender as sender => move |_button|
-            {
-                let category_title = dialog.get_category_title();
-                if let Some(category_title) = category_title {
-                    Util::send(&sender, Action::AddCategory(category_title));
-                    dialog.close();
-                }
-            }));
-            dialog.tag_add_button.connect_clicked(clone!(
-                @strong dialog, @strong self.sender as sender => move |_button|
-            {
-                let tag_title = dialog.get_tag_title();
-                let color = dialog.get_tag_color();
-                if let Some(tag_title) = tag_title {
-                    Util::send(&sender, Action::AddTag(color, tag_title));
-                    dialog.close();
-                }
-            }));
         }
     }
 
@@ -1624,15 +1610,14 @@ impl App {
             .sidebar
             .read()
             .footer
-            .read()
-            .set_offline(offline);
+            .update();
         self.window
             .content_page
             .sidebar
             .read()
             .feed_list
             .read()
-            .set_offline(offline);
+            .update_offline();
     }
 
     pub fn build_client(settings: &Arc<RwLock<Settings>>) -> Client {

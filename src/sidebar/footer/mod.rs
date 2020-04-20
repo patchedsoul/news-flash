@@ -1,20 +1,30 @@
 use crate::app::Action;
 use crate::main_window_state::MainWindowState;
 use crate::util::{BuilderHelper, Util};
+use super::models::SidebarSelection;
 use glib::{clone, Sender};
 use gtk::{Button, ButtonExt, WidgetExt};
 use parking_lot::RwLock;
 use std::sync::Arc;
+use news_flash::models::PluginCapabilities;
 
-#[derive(Clone, Debug)]
+#[derive(Debug)]
 pub struct SidebarFooter {
-    add_button: Button,
+    pub add_button: Button,
     remove_button: Button,
     state: Arc<RwLock<MainWindowState>>,
+    support_mutation: RwLock<bool>,
+    sidebar_selection: Arc<RwLock<SidebarSelection>>,
 }
 
 impl SidebarFooter {
-    pub fn new(builder: &BuilderHelper, state: &Arc<RwLock<MainWindowState>>, sender: &Sender<Action>) -> Self {
+    pub fn new(
+        builder: &BuilderHelper,
+        state: &Arc<RwLock<MainWindowState>>,
+        sender: &Sender<Action>,
+        features: &Arc<RwLock<Option<PluginCapabilities>>>,
+        sidebar_selection: &Arc<RwLock<SidebarSelection>>,
+    ) -> Self {
         let add_button = builder.get::<Button>("add_button");
         let remove_button = builder.get::<Button>("remove_button");
 
@@ -26,25 +36,32 @@ impl SidebarFooter {
             Util::send(&sender, Action::AddDialog);
         }));
 
+        let mut support_mutation = false;
+        if let Some(features) = features.read().as_ref() {
+            support_mutation = features.contains(PluginCapabilities::ADD_REMOVE_FEEDS);
+        }
+
         SidebarFooter {
             add_button,
             remove_button,
             state: state.clone(),
+            support_mutation: RwLock::new(support_mutation),
+            sidebar_selection: sidebar_selection.clone(),
         }
     }
 
-    pub fn set_remove_button_sensitive(&self, sensitive: bool) {
-        if !self.state.read().get_offline() {
-            self.remove_button.set_sensitive(sensitive);
+    pub fn update(&self) {
+        self.add_button.set_sensitive(!self.state.read().get_offline() && *self.support_mutation.read());
+        self.remove_button.set_sensitive(
+            !self.state.read().get_offline() &&
+            *self.support_mutation.read() &&
+            *self.sidebar_selection.read() != SidebarSelection::All);
+    }
+
+    pub fn update_features(&self, features: &Arc<RwLock<Option<PluginCapabilities>>>) {
+        if let Some(features) = features.read().as_ref() {
+            *self.support_mutation.write() = features.contains(PluginCapabilities::ADD_REMOVE_FEEDS);
+            self.update();
         }
-    }
-
-    pub fn get_add_button(&self) -> Button {
-        self.add_button.clone()
-    }
-
-    pub fn set_offline(&self, offline: bool) {
-        self.add_button.set_sensitive(!offline);
-        self.remove_button.set_sensitive(!offline);
     }
 }

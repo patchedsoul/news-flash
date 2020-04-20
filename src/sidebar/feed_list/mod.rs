@@ -519,9 +519,9 @@ impl FeedList {
         SidebarIterateItem::NothingSelected
     }
 
-    pub fn set_offline(&self, offline: bool) {
+    pub fn update_offline(&self) {
         for (_key, value) in self.feeds.read().iter() {
-            if offline {
+            if self.state.read().get_offline() {
                 value.read().disable_dnd();
             } else {
                 value.read().enable_dnd();

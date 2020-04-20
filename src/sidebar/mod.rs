@@ -21,7 +21,7 @@ use gtk::{
 };
 pub use models::SidebarIterateItem;
 use models::SidebarSelection;
-use news_flash::models::{PluginID, PluginIcon};
+use news_flash::models::{PluginID, PluginIcon, PluginCapabilities};
 use news_flash::NewsFlash;
 use parking_lot::RwLock;
 use std::sync::Arc;
@@ -50,11 +50,11 @@ pub struct SideBar {
     expanded_categories: Arc<RwLock<bool>>,
     expanded_tags: Arc<RwLock<bool>>,
     delayed_all_selection: Arc<RwLock<Option<u32>>>,
-    pub footer: Arc<RwLock<SidebarFooter>>,
+    pub footer: Arc<SidebarFooter>,
 }
 
 impl SideBar {
-    pub fn new(state: &Arc<RwLock<MainWindowState>>, sender: Sender<Action>) -> Self {
+    pub fn new(state: &Arc<RwLock<MainWindowState>>, sender: Sender<Action>, features: &Arc<RwLock<Option<PluginCapabilities>>>) -> Self {
         let builder = BuilderHelper::new("sidebar");
 
         let sidebar = builder.get::<Box>("toplevel");
@@ -74,25 +74,26 @@ impl SideBar {
         let tag_list_box = builder.get::<Box>("tags_list_box");
         let sidebar_scroll = builder.get::<ScrolledWindow>("sidebar_scroll");
 
+        let selection_handle = Arc::new(RwLock::new(SidebarSelection::All));
+        let delayed_all_selection = Arc::new(RwLock::new(None));
+
         let feed_list = FeedList::new(&sidebar_scroll, state, sender.clone());
         let tag_list = TagList::new();
-        let footer = SidebarFooter::new(&builder, state, &sender);
+        let footer = Arc::new(SidebarFooter::new(&builder, state, &sender, features, &selection_handle));
 
         let feed_list_handle = Arc::new(RwLock::new(feed_list));
         let tag_list_handle = Arc::new(RwLock::new(tag_list));
-        let footer_handle = Arc::new(RwLock::new(footer));
-        let selection_handle = Arc::new(RwLock::new(SidebarSelection::All));
-        let delayed_all_selection = Arc::new(RwLock::new(None));
 
         feed_list_box.pack_start(&feed_list_handle.read().widget(), false, true, 0);
         tag_list_box.pack_start(&tag_list_handle.read().widget(), false, true, 0);
 
         feed_list_handle.read().widget().connect_row_activated(
-            clone!(@strong sender, @weak selection_handle => move |_list, _row| {
+            clone!(@strong sender, @weak footer, @weak selection_handle => move |_list, _row| {
                 Util::send(
                     &sender,
                     Action::SidebarSelection((*selection_handle.read()).clone()),
                 );
+                footer.update();
             }),
         );
 
@@ -101,15 +102,14 @@ impl SideBar {
             @weak tag_list_handle,
             @strong feed_list_handle as self_handle,
             @strong selection_handle,
-            @weak delayed_all_selection,
-            @weak footer_handle => move |_list, row| {
+            @weak delayed_all_selection => move |_list, row|
+        {
             // do nothing if selection was cleared
             if row.is_none() {
                 return;
             }
             // deselect 'all' & tag_list
             Self::deselect_all_button(&all_event_box, &delayed_all_selection);
-            footer_handle.read().set_remove_button_sensitive(true);
             tag_list_handle.read().deselect();
 
             if let Some((item, title)) = self_handle.read().get_selection() {
@@ -119,11 +119,12 @@ impl SideBar {
         }));
 
         tag_list_handle.read().widget().connect_row_activated(
-            clone!(@weak selection_handle, @strong sender => move |_list, _row| {
+            clone!(@weak selection_handle, @weak footer, @strong sender => move |_list, _row| {
                 Util::send(
                     &sender,
                     Action::SidebarSelection((*selection_handle.read()).clone()),
                 );
+                footer.update();
             }),
         );
 
@@ -132,15 +133,13 @@ impl SideBar {
             @weak feed_list_handle,
             @strong tag_list_handle,
             @weak selection_handle,
-            @weak delayed_all_selection,
-            @weak footer_handle => move |_list, row| {
+            @weak delayed_all_selection => move |_list, row| {
             // do nothing if selection was cleared
             if row.is_none() {
                 return;
             }
             // deselect 'all' & tag_list
             Self::deselect_all_button(&all_event_box, &delayed_all_selection);
-            footer_handle.read().set_remove_button_sensitive(true);
             feed_list_handle.read().deselect();
 
             if let Some(selected_id) = tag_list_handle.read().get_selection() {
@@ -167,7 +166,7 @@ impl SideBar {
             feed_list_handle.clone(),
             tag_list_handle.clone(),
             selection_handle.clone(),
-            footer_handle.clone(),
+            footer.clone(),
             &delayed_all_selection,
         );
 
@@ -192,7 +191,7 @@ impl SideBar {
             expanded_categories,
             expanded_tags,
             delayed_all_selection,
-            footer: footer_handle,
+            footer,
         }
     }
 
@@ -325,7 +324,7 @@ impl SideBar {
         feed_list_handle: Arc<RwLock<FeedList>>,
         tag_list_handle: Arc<RwLock<TagList>>,
         selection_handle: Arc<RwLock<SidebarSelection>>,
-        footer_handle: Arc<RwLock<SidebarFooter>>,
+        footer: Arc<SidebarFooter>,
         delayed_selection: &Arc<RwLock<Option<u32>>>,
     ) {
         let context = event_box.get_style_context();
@@ -346,6 +345,7 @@ impl SideBar {
 
         event_box.connect_button_press_event(clone!(
             @strong sender,
+            @weak footer,
             @weak delayed_selection => @default-panic, move |widget, event| {
             if event.get_button() != 1 {
                 return Inhibit(false);
@@ -359,7 +359,7 @@ impl SideBar {
             tag_list_handle.read().deselect();
 
             Self::select_all_button(widget, &sender, &selection_handle, &delayed_selection);
-            footer_handle.read().set_remove_button_sensitive(false);
+            footer.update();
             Inhibit(false)
         }));
     }

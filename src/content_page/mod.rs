@@ -42,6 +42,7 @@ impl ContentPage {
         settings: &Arc<RwLock<Settings>>,
         content_header: &Arc<ContentHeader>,
         sender: Sender<Action>,
+        features: &Arc<RwLock<Option<PluginCapabilities>>>
     ) -> Self {
         let feed_list_box = builder.get::<Box>("feedlist_box");
         let article_list_box = builder.get::<Box>("articlelist_box");
@@ -51,7 +52,7 @@ impl ContentPage {
         let minor_leaflet = builder.get::<Leaflet>("minor_leaflet");
         minor_leaflet.set_hexpand(false);
 
-        let sidebar = Arc::new(RwLock::new(SideBar::new(state, sender.clone())));
+        let sidebar = Arc::new(RwLock::new(SideBar::new(state, sender.clone(), features)));
         let article_list = Arc::new(RwLock::new(ArticleList::new(
             settings,
             content_header,
@@ -322,6 +323,7 @@ impl ContentPage {
         news_flash: &Arc<RwLock<Option<NewsFlash>>>,
         undo_bar: &UndoBar,
         threadpool: ThreadPool,
+        features: &Arc<RwLock<Option<PluginCapabilities>>>
     ) {
         let (sender, receiver) =
             oneshot::channel::<Result<(i64, FeedListTree, Option<TagListModel>), ContentPageErrorKind>>();
@@ -329,6 +331,7 @@ impl ContentPage {
         let news_flash = news_flash.clone();
         let state = self.state.clone();
         let current_undo_action = undo_bar.get_current_action();
+        let features = features.clone();
         let thread_future = async move {
             if let Some(news_flash) = news_flash.read().as_ref() {
                 let mut tree = FeedListTree::new();
@@ -449,16 +452,10 @@ impl ContentPage {
                 }
 
                 // tag list
-                let plugin_features = match news_flash.features() {
-                    Ok(features) => features,
-                    Err(_error) => {
-                        sender
-                            .send(Err(ContentPageErrorKind::NewsFlashFeatures))
-                            .expect(CHANNEL_ERROR);
-                        return;
-                    }
-                };
-                let support_tags = plugin_features.contains(PluginCapabilities::SUPPORT_TAGS);
+                let mut support_tags = false;
+                if let Some(features) = features.read().as_ref() {
+                    support_tags = features.contains(PluginCapabilities::SUPPORT_TAGS);
+                }
 
                 if support_tags {
                     let mut list = TagListModel::new();
