@@ -182,7 +182,7 @@ impl PasswordLogin {
                         @weak self.http_pass_entry as http_pass_entry,
                         @strong pw_gui_desc,
                         @strong info.id as plugin_id,
-                        @strong self.sender as sender => move |_button|
+                        @strong self.sender as sender => @default-panic, move |_button|
                     {
                         let url: Option<String> = if pw_gui_desc.url {
                             match url_entry.get_text() {
@@ -362,7 +362,7 @@ impl PasswordLogin {
             @weak self.pass_entry as pass_entry,
             @weak self.http_user_entry as http_user_entry,
             @weak self.http_pass_entry as http_pass_entry,
-            @strong gui_desc => move |_entry|
+            @strong gui_desc => @default-panic, move |_entry|
         {
             if gui_desc.url && GtkUtil::is_entry_emty(&url_entry) {
                 button.set_sensitive(false);

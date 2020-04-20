@@ -23,7 +23,7 @@ impl TagRow {
         let tag_color_circle = builder.get::<Image>("tag_color");
 
         tag_color_circle.connect_realize(
-            clone!(@weak tag_color_circle, @strong model.color as color => move |_widget| {
+            clone!(@weak tag_color_circle, @strong model.color as color => @default-panic, move |_widget| {
                 if let Some(window) = tag_color_circle.get_window() {
                     let scale = GtkUtil::get_scale(&tag_color_circle);
                     if let Some(surface) = GtkUtil::generate_color_cirlce(&window, color.as_deref(), scale) {

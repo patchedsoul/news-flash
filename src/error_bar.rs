@@ -50,7 +50,7 @@ impl ErrorBar {
             @weak self.detail_button as detail_button,
             @weak self.login_button as login_button,
             @weak self.offline_button as offline_button,
-            @weak self.offline_signal as offline_signal => move |info_bar, response_type|
+            @weak self.offline_signal as offline_signal => @default-panic, move |info_bar, response_type|
         {
             if response_type == ResponseType::Close {
                 Self::close(
@@ -110,7 +110,7 @@ impl ErrorBar {
         if show_login_button {
             *self.relogin_signal.write() = Some(
                 self.login_button
-                    .connect_clicked(clone!(@strong self.sender as sender => move |_button| {
+                    .connect_clicked(clone!(@strong self.sender as sender => @default-panic, move |_button| {
                         log::info!("retry login");
                         Util::send(&sender, Action::RetryLogin);
                     }))
@@ -127,7 +127,7 @@ impl ErrorBar {
                         @weak self.detail_button as detail_button,
                         @weak self.login_button as login_button,
                         @weak self.offline_button as offline_button,
-                        @weak self.offline_signal as offline_signal => move |_button|
+                        @weak self.offline_signal as offline_signal => @default-panic, move |_button|
                     {
                         log::info!("switch into offline mode");
                         Self::close(

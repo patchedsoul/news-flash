@@ -139,7 +139,7 @@ impl MainWindow {
             gtk_settings.set_property_gtk_application_prefer_dark_theme(settings.read().get_prefer_dark_theme());
 
             gtk_settings.connect_property_gtk_application_prefer_dark_theme_notify(
-                clone!(@strong sender, @weak css_provider => move |_settings| {
+                clone!(@strong sender, @weak css_provider => @default-panic, move |_settings| {
                     Self::load_css(&css_provider);
                     Util::send(&sender, Action::RedrawArticle);
                 }),
@@ -467,6 +467,10 @@ impl MainWindow {
 
             Util::send(&self.sender, Action::UpdateSidebar);
 
+            if let Ok(true) = news_flash.is_database_empty() {
+                Util::send(&self.sender, Action::ShowDiscoverDialog);
+            }
+
             if let Some(plugin_id) = plugin_id {
                 if self.content_page.set_service(&plugin_id, user_name).is_err() {
                     Util::send(
@@ -624,7 +628,7 @@ impl MainWindow {
 
                 let glib_future = receiver.map(clone!(
                     @strong self.sender as sender,
-                    @weak self.content_header as content_header => move |res|
+                    @weak self.content_header as content_header => @default-panic, move |res|
                 {
                     content_header.finish_mark_all_read();
                     res.map(|result| match result {
@@ -661,7 +665,7 @@ impl MainWindow {
 
                 let glib_future = receiver.map(clone!(
                     @strong self.sender as sender,
-                    @weak self.content_header as content_header => move |res|
+                    @weak self.content_header as content_header => @default-panic, move |res|
                 {
                     content_header.finish_mark_all_read();
                     res.map(|result| match result {
@@ -700,7 +704,7 @@ impl MainWindow {
 
                 let glib_future = receiver.map(clone!(
                     @strong self.sender as sender,
-                    @weak self.content_header as content_header => move |res|
+                    @weak self.content_header as content_header => @default-panic, move |res|
                 {
                     content_header.finish_mark_all_read();
                     res.map(|result| match result {
@@ -739,7 +743,7 @@ impl MainWindow {
 
                 let glib_future = receiver.map(clone!(
                     @strong self.sender as sender,
-                    @weak self.content_header as content_header => move |res|
+                    @weak self.content_header as content_header => @default-panic, move |res|
                 {
                     content_header.finish_mark_all_read();
                     res.map(|result| match result {

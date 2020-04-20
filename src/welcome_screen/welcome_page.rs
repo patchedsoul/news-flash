@@ -46,7 +46,7 @@ impl WelcomePage {
 
     fn connect_signals(&self, sender: Sender<Action>) {
         self.list.connect_row_activated(
-            clone!(@strong sender, @strong self.services as services => move |_list, row| {
+            clone!(@strong sender, @strong self.services as services => @default-panic, move |_list, row| {
                 if let Some((id, login_desc)) = services.read().get(&row.get_index()) {
                     match login_desc {
                         LoginGUI::OAuth(_) => {

@@ -39,7 +39,7 @@ impl UndoBar {
         self.button.connect_clicked(clone!(
             @weak self.widget as info_bar,
             @weak self.current_action as current_action,
-            @strong self.sender as sender => move |_button|
+            @strong self.sender as sender => @default-panic, move |_button|
         {
             if let Some(current_action) = current_action.read().as_ref() {
                 GtkUtil::remove_source(Some(current_action.get_timeout()));
@@ -54,7 +54,7 @@ impl UndoBar {
 
         self.widget.connect_response(clone!(
             @weak self.current_action as current_action,
-            @strong self.sender as sender => move |info_bar, response|
+            @strong self.sender as sender => @default-panic, move |info_bar, response|
         {
             if response == ResponseType::Close {
                 if let Some(current_action) = current_action.read().as_ref() {

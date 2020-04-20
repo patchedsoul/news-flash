@@ -28,11 +28,11 @@ impl SidebarFooter {
         let add_button = builder.get::<Button>("add_button");
         let remove_button = builder.get::<Button>("remove_button");
 
-        remove_button.connect_clicked(clone!(@strong sender => move |_button| {
+        remove_button.connect_clicked(clone!(@strong sender => @default-panic, move |_button| {
             Util::send(&sender, Action::DeleteSidebarSelection);
         }));
 
-        add_button.connect_clicked(clone!(@strong sender => move |_button| {
+        add_button.connect_clicked(clone!(@strong sender => @default-panic, move |_button| {
             Util::send(&sender, Action::AddDialog);
         }));
 

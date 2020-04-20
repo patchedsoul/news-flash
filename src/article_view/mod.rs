@@ -94,7 +94,7 @@ impl ArticleView {
         let visible_article: Arc<RwLock<Option<FatArticle>>> = Arc::new(RwLock::new(None));
         let visible_feed_name: Arc<RwLock<Option<String>>> = Arc::new(RwLock::new(None));
         let view_html_button = builder.get::<Button>("view_html_button");
-        view_html_button.connect_clicked(clone!(@strong visible_article => move |_button| {
+        view_html_button.connect_clicked(clone!(@strong visible_article => @default-panic, move |_button| {
             if let Some(article) = visible_article.read().as_ref() {
                 if let Some(html) = &article.html {
                     if let Ok(path) = FileUtil::write_temp_file("crashed_article.html", html) {
@@ -435,7 +435,7 @@ impl ArticleView {
                 .connect_mouse_target_changed(clone!(
                     @weak self.url_overlay_label as url_overlay_label,
                     @weak self.pointer_pos as pointer_pos,
-                    @weak self.stack as stack => move |_closure_webivew, hit_test, _modifiers|
+                    @weak self.stack as stack => @default-panic, move |_closure_webivew, hit_test, _modifiers|
                 {
                     if hit_test.context_is_link() {
                         if let Some(uri) = hit_test.get_link_uri() {
@@ -555,7 +555,7 @@ impl ArticleView {
 
                 load_signal.write().replace(
                     webview
-                        .connect_property_estimated_load_progress_notify(clone!(@weak progress_handle => move |closure_webivew| {
+                        .connect_property_estimated_load_progress_notify(clone!(@weak progress_handle => @default-panic, move |closure_webivew| {
                             let progress = closure_webivew.get_estimated_load_progress();
                             if progress >= 1.0 {
                                 progress_handle.read().reveal(false);
@@ -940,7 +940,7 @@ impl ArticleView {
         view.run_javascript(
             java_script,
             cancellable,
-            clone!(@weak wait_loop, @weak value => move |res| {
+            clone!(@weak wait_loop, @weak value => @default-panic, move |res| {
                 match res {
                     Ok(result) => {
                         let context = result.get_global_context().expect("Failed to get webkit js context.");

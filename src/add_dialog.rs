@@ -132,7 +132,7 @@ impl AddPopover {
         }
 
         // make parse button sensitive if entry contains text and vice versa
-        url_entry.connect_changed(clone!(@weak parse_button => move |entry| {
+        url_entry.connect_changed(clone!(@weak parse_button => @default-panic, move |entry| {
             if let Some(text) = entry.get_text() {
                 if text.as_str().is_empty() {
                     parse_button.set_sensitive(false);
@@ -148,14 +148,14 @@ impl AddPopover {
         }));
 
         // hit enter in entry to parse url
-        url_entry.connect_activate(clone!(@weak parse_button => move |_entry| {
+        url_entry.connect_activate(clone!(@weak parse_button => @default-panic, move |_entry| {
             if parse_button.get_sensitive() {
                 parse_button.clicked();
             }
         }));
 
         // make parse button sensitive if entry contains text and vice versa
-        category_entry.connect_changed(clone!(@weak category_add_button => move |entry| {
+        category_entry.connect_changed(clone!(@weak category_add_button => @default-panic, move |entry| {
             if let Some(text) = entry.get_text() {
                 if text.as_str().is_empty() {
                     category_add_button.set_sensitive(false);
@@ -171,14 +171,14 @@ impl AddPopover {
         }));
 
         // hit enter in entry to add category
-        category_entry.connect_activate(clone!(@weak category_add_button => move |_entry| {
+        category_entry.connect_activate(clone!(@weak category_add_button => @default-panic, move |_entry| {
             if category_add_button.get_sensitive() {
                 category_add_button.clicked();
             }
         }));
 
         // make parse button sensitive if entry contains text and vice versa
-        tag_entry.connect_changed(clone!(@weak tag_add_button => move |entry| {
+        tag_entry.connect_changed(clone!(@weak tag_add_button => @default-panic, move |entry| {
             if let Some(text) = entry.get_text() {
                 if text.as_str().is_empty() {
                     tag_add_button.set_sensitive(false);
@@ -194,7 +194,7 @@ impl AddPopover {
         }));
 
         // hit enter in entry to add category
-        tag_entry.connect_activate(clone!(@weak tag_add_button => move |_entry| {
+        tag_entry.connect_activate(clone!(@weak tag_add_button => @default-panic, move |_entry| {
             if tag_add_button.get_sensitive() {
                 tag_add_button.clicked();
             }
@@ -214,11 +214,11 @@ impl AddPopover {
             @weak favicon_image,
             @weak select_button,
             @weak select_button_stack,
-            @weak feed_url,
             @weak parse_button_stack,
             @weak feed_add_button_stack,
             @weak url_entry,
-            @strong settings => move |button|
+            @strong feed_url,
+            @strong settings => @default-panic, move |button|
         {
             if let Some(url_text) = url_entry.get_text() {
                 let mut url_text = url_text.as_str().to_owned();
@@ -262,7 +262,7 @@ impl AddPopover {
             @weak feed_add_button,
             @weak feed_title_entry,
             @weak category_combo,
-            @weak feed_category => move |entry|
+            @strong feed_category => @default-panic, move |entry|
         {
             let sensitive = Self::calc_add_button_sensitive(&feed_title_entry, &entry);
             feed_add_button.set_sensitive(sensitive);
@@ -303,7 +303,7 @@ impl AddPopover {
         }));
 
         feed_title_entry.connect_changed(
-            clone!(@weak feed_add_button, @weak feed_category_entry => move |entry| {
+            clone!(@weak feed_add_button, @strong feed_category_entry => @default-panic, move |entry| {
                 let sensitive = Self::calc_add_button_sensitive(&entry, &feed_category_entry);
                 feed_add_button.set_sensitive(sensitive);
             }),
@@ -326,9 +326,9 @@ impl AddPopover {
         feed_add_button.connect_clicked(clone!(
             @weak popover,
             @weak feed_title_entry,
-            @weak feed_url,
-            @weak feed_category,
-            @strong sender => move |_button|
+            @strong feed_category,
+            @strong feed_url,
+            @strong sender => @default-panic, move |_button|
         {
             let feed_url = match feed_url.read().clone() {
                 Some(url) => url,
@@ -347,7 +347,7 @@ impl AddPopover {
         category_add_button.connect_clicked(clone!(
             @weak popover,
             @weak category_entry,
-            @strong sender => move |_button|
+            @strong sender => @default-panic, move |_button|
         {
             let category_title = category_entry.get_text().map(|text| text.as_str().to_owned());
             if let Some(category_title) = category_title {
@@ -359,7 +359,7 @@ impl AddPopover {
             @weak popover,
             @weak tag_entry,
             @weak color_button,
-            @strong sender => move |_button|
+            @strong sender => @default-panic, move |_button|
         {
             let tag_title = tag_entry.get_text().map(|text| text.as_str().to_owned());
             let rgba = color_button.get_rgba();
@@ -438,7 +438,7 @@ impl AddPopover {
             @weak favicon_image,
             @weak add_button_stack,
             @strong threadpool,
-            @strong settings => move |res|
+            @strong settings => @default-panic, move |res|
         {
             if let Some(favicon) = res.expect(CHANNEL_ERROR) {
                 if let Some(data) = &favicon.data {
@@ -497,7 +497,7 @@ impl AddPopover {
         threadpool: ThreadPool,
         settings: &Arc<RwLock<Settings>>,
     ) {
-        list.connect_row_selected(clone!(@weak select_button => move |_list, row| {
+        list.connect_row_selected(clone!(@weak select_button => @default-panic, move |_list, row| {
             select_button.set_sensitive(row.is_some());
         }));
 
@@ -509,7 +509,7 @@ impl AddPopover {
             @strong feed_url,
             @strong settings,
             @weak select_button_stack,
-            @weak add_button_stack => move |button|
+            @weak add_button_stack => @default-panic, move |button|
         {
             if let Some(row) = list.get_selected_row() {
                 if let Some(name) = row.get_widget_name() {
@@ -541,7 +541,7 @@ impl AddPopover {
                         @strong settings,
                         @weak favicon,
                         @weak title_entry,
-                        @weak stack as main_stack => move |res|
+                        @weak stack as main_stack => @default-panic, move |res|
                     {
                         if let Some(ParsedUrl::SingleFeed(feed)) = res.expect(CHANNEL_ERROR) {
                             Self::fill_feed_page(
@@ -589,7 +589,7 @@ impl AddPopover {
 
             let row = ListBoxRow::new();
 
-            row.connect_activate(clone!(@weak select_button => move |_row| {
+            row.connect_activate(clone!(@weak select_button => @default-panic, move |_row| {
                 select_button.activate();
             }));
 
@@ -673,13 +673,13 @@ impl AddPopover {
             @weak select_button,
             @weak select_button_stack,
             @weak favicon_image,
-            @weak feed_url,
             @weak parse_button_stack,
             @weak add_button_stack,
             @weak parse_button,
             @weak url_entry,
+            @strong feed_url,
             @strong settings,
-            @strong url => move |res|
+            @strong url => @default-panic, move |res|
         {
             // parse url
             match res.expect(CHANNEL_ERROR) {

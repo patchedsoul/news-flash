@@ -52,7 +52,7 @@ impl TagPopover {
 
         let add_button_signal = Some(
             add_button
-                .connect_clicked(clone!(@weak main_stack => move |_button| {
+                .connect_clicked(clone!(@weak main_stack => @default-panic, move |_button| {
                     main_stack.set_visible_child_full("possible_tags", StackTransitionType::SlideLeft);
                 }))
                 .to_glib(),
@@ -60,7 +60,7 @@ impl TagPopover {
 
         let back_button_signal = Some(
             back_button
-                .connect_clicked(clone!(@weak main_stack => move |_button| {
+                .connect_clicked(clone!(@weak main_stack => @default-panic, move |_button| {
                     main_stack.set_visible_child_full("assigned_tags", StackTransitionType::SlideRight);
                 }))
                 .to_glib(),
@@ -68,7 +68,7 @@ impl TagPopover {
 
         let popover_close_signal = Some(
             popover
-                .connect_closed(clone!(@weak main_stack => move |_button| {
+                .connect_closed(clone!(@weak main_stack => @default-panic, move |_button| {
                     main_stack.set_visible_child_full("assigned_tags", StackTransitionType::None);
                 }))
                 .to_glib(),

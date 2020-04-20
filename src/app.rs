@@ -208,7 +208,7 @@ impl App {
         self.application.connect_startup(|_app| {});
 
         self.application
-            .connect_activate(clone!(@weak self.window.widget as window => move |app| {
+            .connect_activate(clone!(@weak self.window.widget as window => @default-panic, move |app| {
                 app.add_window(&window);
                 window.show_all();
                 window.present();
@@ -382,7 +382,7 @@ impl App {
             @weak self.features as app_features,
             @weak self.window as window,
             @weak self.window.oauth_login_page as oauth_login_page,
-            @weak self.window.password_login_page as password_login_page => move |res|
+            @weak self.window.password_login_page as password_login_page => @default-panic, move |res|
         {
             match res {
                 Ok(Err(error)) => {
@@ -446,7 +446,7 @@ impl App {
             @weak self.window as main_window,
             @weak self.news_flash as news_flash,
             @weak self.features as features,
-            @strong self.sender as sender => move |res| match res
+            @strong self.sender as sender => @default-panic, move |res| match res
         {
             Ok(Ok(())) => {
                 news_flash.write().take();
@@ -471,7 +471,7 @@ impl App {
             self.sync_source_id.write().replace(
                 gtk::timeout_add_seconds(
                     sync_interval,
-                    clone!(@strong self.sender as sender => move || {
+                    clone!(@strong self.sender as sender => @default-panic, move || {
                         Util::send(&sender, Action::Sync);
                         Continue(true)
                     }),
@@ -501,7 +501,7 @@ impl App {
         let glib_future = receiver.map(clone!(
             @strong self.news_flash as news_flash,
             @weak self.window.content_header as content_header,
-            @strong self.sender as sender => move |res|
+            @strong self.sender as sender => @default-panic, move |res|
         {
             if let Some(news_flash) = news_flash.read().as_ref() {
                 let unread_count = match news_flash.unread_count_all() {
@@ -550,7 +550,7 @@ impl App {
         let glib_future = receiver.map(clone!(
             @strong self.news_flash as news_flash,
             @weak self.window.content_header as content_header,
-            @strong self.sender as sender => move |res|
+            @strong self.sender as sender => @default-panic, move |res|
         {
             if let Some(news_flash) = news_flash.read().as_ref() {
                 let unread_count = match news_flash.unread_count_all() {
@@ -642,7 +642,7 @@ impl App {
             @strong self.news_flash as news_flash,
             @strong self.features as features,
             @weak self.window.content_page as content_page,
-            @weak self.window.content_header as content_header => move |res|
+            @weak self.window.content_header as content_header => @default-panic, move |res|
         {
             match res {
                 Ok(Ok(())) => {}
@@ -711,7 +711,7 @@ impl App {
             @strong self.news_flash as news_flash,
             @strong self.features as features,
             @weak self.window.content_header as content_header,
-            @weak self.window.content_page as content_page => move |res|
+            @weak self.window.content_page as content_page => @default-panic, move |res|
         {
             match res {
                 Ok(Ok(())) => {}
@@ -971,7 +971,7 @@ impl App {
             dialog.rename_button.connect_clicked(clone!(
                 @weak dialog.rename_entry as rename_entry,
                 @weak dialog.dialog as rename_dialog,
-                @strong self.sender as sender => move |_button|
+                @strong self.sender as sender => @default-panic, move |_button|
             {
                 let new_label = match rename_entry.get_text().map(|label| label.to_owned()) {
                     Some(label) => label,
@@ -1042,7 +1042,7 @@ impl App {
             dialog.rename_button.connect_clicked(clone!(
                 @weak dialog.dialog as rename_dialog,
                 @weak dialog.rename_entry as rename_entry,
-                @strong self.sender as sender => move |_button|
+                @strong self.sender as sender => @default-panic, move |_button|
             {
                 let new_label = match rename_entry.get_text().map(|label| label.to_owned()) {
                     Some(label) => label,
@@ -1417,7 +1417,7 @@ impl App {
                 };
 
                 let glib_future = receiver.map(
-                    clone!(@weak self.window.content_header as content_header => move |_res| {
+                    clone!(@weak self.window.content_header as content_header => @default-panic, move |_res| {
                         content_header.stop_more_actions_spinner();
                     }),
                 );
@@ -1449,7 +1449,7 @@ impl App {
 
             let glib_future = receiver.map(clone!(
                 @strong self.sender as sender,
-                @strong article.article_id as article_id => move |res| match res
+                @strong article.article_id as article_id => @default-panic, move |res| match res
             {
                 Ok(Ok(article)) => {
                     Util::send(&sender, Action::FinishGrabArticleContent(Some(article)));

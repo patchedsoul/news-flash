@@ -53,7 +53,7 @@ impl SingleArticleList {
         if let Some(vadjustment) = scroll.get_vadjustment() {
             vadjustment.connect_value_changed(clone!(
                 @weak scroll_cooldown,
-                @strong sender => move |vadj|
+                @strong sender => @default-panic, move |vadj|
             {
                 let is_on_cooldown = *scroll_cooldown.read();
                 if !is_on_cooldown {

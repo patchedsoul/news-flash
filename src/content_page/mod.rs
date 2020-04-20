@@ -174,7 +174,7 @@ impl ContentPage {
 
         let glib_future = receiver.map(clone!(
             @weak self.state as window_state,
-            @weak self.article_list as article_list => move |res|
+            @weak self.article_list as article_list => @default-panic, move |res|
         {
             if let Ok(res) = res {
                 if let Ok(article_list_model) = res {
@@ -248,7 +248,7 @@ impl ContentPage {
             }
         };
 
-        let glib_future = receiver.map(clone!(@weak self.article_list as article_list => move |res| {
+        let glib_future = receiver.map(clone!(@weak self.article_list as article_list => @default-panic, move |res| {
             if let Ok(res) = res {
                 if let Ok(article_list_model) = res {
                     article_list.write().add_more_articles(article_list_model);
@@ -506,7 +506,7 @@ impl ContentPage {
 
         let glib_future = receiver.map(clone!(
             @weak self.sidebar as sidebar,
-            @strong features => move |res| {
+            @strong features => @default-panic, move |res| {
             if let Ok(res) = res {
                 if let Ok((total_count, feed_list_model, tag_list_model)) = res {
                     sidebar.write().update_feedlist(feed_list_model, &features);

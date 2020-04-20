@@ -86,11 +86,11 @@ impl KeybindingEditor {
             Inhibit(false)
         }));
 
-        set_button.connect_clicked(clone!(@weak dialog, @weak keybinding_public => move |_button| {
+        set_button.connect_clicked(clone!(@weak dialog, @weak keybinding_public => @default-panic, move |_button| {
             *keybinding_public.write() = (*keybinding_internal.read()).clone();
             dialog.emit_close();
         }));
-        cancel_button.connect_clicked(clone!(@weak dialog, @weak keybinding_public => move |_button| {
+        cancel_button.connect_clicked(clone!(@weak dialog, @weak keybinding_public => @default-panic, move |_button| {
             *keybinding_public.write() = KeybindState::Canceled;
             dialog.emit_close();
         }));

@@ -121,7 +121,7 @@ impl FeedRow {
                 revealer
                     .connect_drag_data_get(clone!(
                         @strong parent_id,
-                        @strong id as feed_id => move |_widget, _ctx, selection_data, _info, _time|
+                        @strong id as feed_id => @default-panic, move |_widget, _ctx, selection_data, _info, _time|
                     {
                         if let Ok(feed_id_json) = serde_json::to_string(&feed_id.clone()) {
                             if let Ok(category_id_json) = serde_json::to_string(&parent_id.clone()) {
@@ -139,7 +139,7 @@ impl FeedRow {
 
             vec.push((
                 revealer
-                    .connect_drag_begin(clone!(@weak row => move |_widget, drag_context| {
+                    .connect_drag_begin(clone!(@weak row => @default-panic, move |_widget, drag_context| {
                         let alloc = row.get_allocation();
                         let surface = ImageSurface::create(Format::ARgb32, alloc.width, alloc.height)
                             .expect("Failed to create Cairo ImageSurface.");
@@ -178,7 +178,7 @@ impl FeedRow {
                 let model = Menu::new();
 
                 let rename_feed_dialog_action = SimpleAction::new(&format!("rename-feed-{}-dialog", feed_id), None);
-                rename_feed_dialog_action.connect_activate(clone!(@weak row, @strong feed_id, @strong sender => move |_action, _parameter| {
+                rename_feed_dialog_action.connect_activate(clone!(@weak row, @strong feed_id, @strong sender => @default-panic, move |_action, _parameter| {
                     Util::send(&sender, Action::RenameFeedDialog(feed_id.clone()));
 
                     if let Ok(main_window) = GtkUtil::get_main_window(&row) {
@@ -196,7 +196,7 @@ impl FeedRow {
                     @weak row,
                     @strong label,
                     @strong feed_id,
-                    @strong sender => move |_action, _parameter|
+                    @strong sender => @default-panic, move |_action, _parameter|
                 {
                     let remove_action = UndoActionModel::DeleteFeed((feed_id.clone(), label.clone()));
                     Util::send(&sender, Action::UndoableAction(remove_action));
@@ -217,7 +217,7 @@ impl FeedRow {
                 popover.set_position(PositionType::Bottom);
                 popover.bind_model(Some(&model), Some("win"));
                 popover.show();
-                popover.connect_closed(clone!(@weak row => move |_popover| {
+                popover.connect_closed(clone!(@weak row => @default-panic, move |_popover| {
                     row.unset_state_flags(StateFlags::PRELIGHT);
                 }));
                 row.set_state_flags(StateFlags::PRELIGHT, false);
@@ -249,7 +249,7 @@ impl FeedRow {
         }
 
         let scale = GtkUtil::get_scale(&self.widget);
-        let glib_future = receiver.map(clone!(@weak self.favicon as favicon => move |res| match res {
+        let glib_future = receiver.map(clone!(@weak self.favicon as favicon => @default-panic, move |res| match res {
             Ok(Some(icon)) => {
                 if let Some(data) = &icon.data {
                     if let Ok(surface) = GtkUtil::create_surface_from_bytes(data, 16, 16, scale) {

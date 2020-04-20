@@ -232,7 +232,7 @@ impl CategoryRow {
                 popover.set_position(PositionType::Bottom);
                 popover.bind_model(Some(&model), Some("win"));
                 popover.show();
-                popover.connect_closed(clone!(@weak row => move |_popover| {
+                popover.connect_closed(clone!(@weak row => @default-panic, move |_popover| {
                     row.unset_state_flags(StateFlags::PRELIGHT);
                 }));
                 row.set_state_flags(StateFlags::PRELIGHT, false);

@@ -225,7 +225,7 @@ impl ArticleList {
                 @weak self.global_state as global_state,
                 @weak self.current_list as current_list,
                 @weak self.list_1 as list_1,
-                @weak self.list_2 as list_2 => move |_list, row|
+                @weak self.list_2 as list_2 => @default-panic, move |_list, row|
             {
                 let selected_index = row.get_index();
                 let selected_article = list_model.write().calculate_selection(selected_index).cloned();

@@ -70,7 +70,7 @@ impl ThemeChooser {
         );
 
         let theme_list = builder.get::<ListBox>("theme_list");
-        theme_list.connect_row_activated(clone!(@strong sender, @weak settings, @weak pop => move |_list, row| {
+        theme_list.connect_row_activated(clone!(@strong sender, @weak settings, @weak pop => @default-panic, move |_list, row| {
             if let Some(row_name) = row.get_widget_name() {
                 let result = if "default" == row_name {
                     settings.write().set_article_view_theme(ArticleTheme::Default)

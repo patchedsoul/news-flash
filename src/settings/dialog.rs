@@ -164,7 +164,7 @@ impl SettingsDialog {
             @weak self.settings as settings,
             @weak self.sync_pop as sync_pop,
             @weak self.sync_label as sync_label,
-            @strong sender => move |_list, row| {
+            @strong sender => @default-panic, move |_list, row| {
             sync_pop.popdown();
             let sync_interval = match row.get_index() {
                 0 => SyncInterval::Never,
@@ -205,7 +205,7 @@ impl SettingsDialog {
 
         if let Some(listbox) = self.sync_row.get_parent() {
             if let Ok(listbox) = listbox.downcast::<ListBox>() {
-                listbox.connect_row_activated(clone!(@weak self.sync_pop as sync_pop => move |_list, row| {
+                listbox.connect_row_activated(clone!(@weak self.sync_pop as sync_pop => @default-panic, move |_list, row| {
                     if let Some(name) = row.get_widget_name() {
                         if name == "sync_row" {
                             sync_pop.popup();
@@ -219,7 +219,7 @@ impl SettingsDialog {
             @weak self.article_order_pop as article_order_pop,
             @weak self.article_order_label as article_order_label,
             @weak self.settings as settings,
-            @strong sender => move |_list, row| {
+            @strong sender => @default-panic, move |_list, row| {
             article_order_pop.popdown();
             let new_order = match row.get_index() {
                 0 => ArticleOrder::NewestFirst,
@@ -256,7 +256,7 @@ impl SettingsDialog {
         if let Some(listbox) = self.article_order_row.get_parent() {
             if let Ok(listbox) = listbox.downcast::<ListBox>() {
                 listbox.connect_row_activated(
-                    clone!(@weak self.article_order_pop as article_order_pop => move |_list, row| {
+                    clone!(@weak self.article_order_pop as article_order_pop => @default-panic, move |_list, row| {
                         if let Some(name) = row.get_widget_name() {
                             if name == "article_order_row" {
                                 article_order_pop.popup();
@@ -286,7 +286,7 @@ impl SettingsDialog {
             theme_chooser.widget().connect_closed(clone!(
                 @weak settings,
                 @weak article_theme_label,
-                @strong sender => move |_pop|
+                @strong sender => @default-panic, move |_pop|
             {
                 article_theme_label.set_label(settings.read().get_article_view_theme().name());
                 Util::send(&sender, Action::RedrawArticle);
@@ -302,14 +302,14 @@ impl SettingsDialog {
                     @weak self.article_theme_label as article_theme_label,
                     @weak self.article_theme_event as article_theme_event,
                     @weak self.settings as settings,
-                    @strong sender => move |_list, row|
+                    @strong sender => @default-panic, move |_list, row|
                 {
                     if let Some(name) = row.get_widget_name() {
                         if name == "article_theme_row" {
                             let theme_chooser = ThemeChooser::new(&article_theme_event, &sender, &settings);
                             theme_chooser.widget().connect_closed(clone!(
                                 @strong sender,
-                                @weak settings => move |_pop|
+                                @weak settings => @default-panic, move |_pop|
                             {
                                 article_theme_label.set_label(settings.read().get_article_view_theme().name());
                                 Util::send(&sender, Action::RedrawArticle);
@@ -337,7 +337,7 @@ impl SettingsDialog {
         }));
 
         self.font_button.connect_font_set(
-            clone!(@weak self.settings as settings, @strong sender => move |button| {
+            clone!(@weak self.settings as settings, @strong sender => @default-panic, move |button| {
                 let font = match button.get_font() {
                     Some(font) => Some(font.to_string()),
                     None => None,
@@ -455,7 +455,7 @@ impl SettingsDialog {
                     @weak self.widget as dialog,
                     @weak self.settings as settings,
                     @strong sender,
-                    @strong id => move |_list, row|
+                    @strong id => @default-panic, move |_list, row|
                 {
                     if let Some(name) = row.get_widget_name() {
                         if name.as_str() == row_name {
@@ -465,7 +465,7 @@ impl SettingsDialog {
                                 @weak label,
                                 @weak settings,
                                 @strong sender,
-                                @strong id => move |_dialog|
+                                @strong id => @default-panic, move |_dialog|
                             {
                                 let _settings = settings.clone();
                                 match &*editor.keybinding.read() {

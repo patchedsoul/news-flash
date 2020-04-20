@@ -77,14 +77,14 @@ impl ContentHeader {
 
         mark_all_read_button.connect_clicked(clone!(
             @weak mark_all_read_stack,
-            @strong sender => move |button|
+            @strong sender => @default-panic, move |button|
         {
             button.set_sensitive(false);
             mark_all_read_stack.set_visible_child_name("spinner");
             Util::send(&sender, Action::SetSidebarRead);
         }));
 
-        offline_button.connect_clicked(clone!(@strong sender => move |_button| {
+        offline_button.connect_clicked(clone!(@strong sender => @default-panic, move |_button| {
             Util::send(&sender, Action::SetOfflineMode(false));
         }));
 
@@ -229,7 +229,7 @@ impl ContentHeader {
             @weak other_button_2,
             @strong header_selection,
             @strong linked_button_timeout,
-            @strong sender => move |button|
+            @strong sender => @default-panic, move |button|
         {
             if !button.get_active() {
                 // ignore deactivating toggle-button
@@ -288,13 +288,13 @@ impl ContentHeader {
     }
 
     fn setup_update_button(button: &Button, sender: &Sender<Action>) {
-        button.connect_clicked(clone!(@strong sender => move |_button| {
+        button.connect_clicked(clone!(@strong sender => @default-panic, move |_button| {
             Util::send(&sender, Action::Sync);
         }));
     }
 
     fn setup_search_button(search_button: &ToggleButton, search_bar: &SearchBar) {
-        search_button.connect_toggled(clone!(@weak search_bar => move |button| {
+        search_button.connect_toggled(clone!(@weak search_bar => @default-panic, move |button| {
             if button.get_active() {
                 search_bar.set_search_mode(true);
             } else {
@@ -305,7 +305,7 @@ impl ContentHeader {
 
     fn setup_search_bar(search_bar: &SearchBar, search_button: &ToggleButton, search_entry: &SearchEntry) {
         search_bar.connect_entry(search_entry);
-        search_bar.connect_property_search_mode_enabled_notify(clone!(@weak search_button => move |search_bar| {
+        search_bar.connect_property_search_mode_enabled_notify(clone!(@weak search_button => @default-panic, move |search_bar| {
             if !search_bar.get_search_mode() {
                 search_button.set_active(false);
             }
@@ -313,7 +313,7 @@ impl ContentHeader {
     }
 
     fn setup_search_entry(search_entry: &SearchEntry, sender: &Sender<Action>) {
-        search_entry.connect_search_changed(clone!(@strong sender => move |search_entry| {
+        search_entry.connect_search_changed(clone!(@strong sender => @default-panic, move |search_entry| {
             if let Some(text) = search_entry.get_text() {
                 Util::send(&sender, Action::SearchTerm(text.as_str().to_owned()));
             }
@@ -322,47 +322,47 @@ impl ContentHeader {
 
     fn setup_menu_button(button: &MenuButton, sender: &Sender<Action>) {
         let show_shortcut_window_action = SimpleAction::new("shortcut-window", None);
-        show_shortcut_window_action.connect_activate(clone!(@strong sender => move |_action, _parameter| {
+        show_shortcut_window_action.connect_activate(clone!(@strong sender => @default-panic, move |_action, _parameter| {
             Util::send(&sender, Action::ShowShortcutWindow);
         }));
 
         let show_about_window_action = SimpleAction::new("about-window", None);
-        show_about_window_action.connect_activate(clone!(@strong sender => move |_action, _parameter| {
+        show_about_window_action.connect_activate(clone!(@strong sender => @default-panic, move |_action, _parameter| {
             Util::send(&sender, Action::ShowAboutWindow);
         }));
 
         let settings_window_action = SimpleAction::new("settings", None);
-        settings_window_action.connect_activate(clone!(@strong sender => move |_action, _parameter| {
+        settings_window_action.connect_activate(clone!(@strong sender => @default-panic, move |_action, _parameter| {
             Util::send(&sender, Action::ShowSettingsWindow);
         }));
 
         let discover_dialog_action = SimpleAction::new("discover", None);
-        discover_dialog_action.connect_activate(clone!(@strong sender => move |_action, _parameter| {
+        discover_dialog_action.connect_activate(clone!(@strong sender => @default-panic, move |_action, _parameter| {
             Util::send(&sender, Action::ShowDiscoverDialog);
         }));
 
         let quit_action = SimpleAction::new("quit-application", None);
-        quit_action.connect_activate(clone!(@strong sender => move |_action, _parameter| {
+        quit_action.connect_activate(clone!(@strong sender => @default-panic, move |_action, _parameter| {
             Util::send(&sender, Action::QueueQuit);
         }));
 
         let import_opml_action = SimpleAction::new("import-opml", None);
-        import_opml_action.connect_activate(clone!(@strong sender => move |_action, _parameter| {
+        import_opml_action.connect_activate(clone!(@strong sender => @default-panic, move |_action, _parameter| {
             Util::send(&sender, Action::ImportOpml);
         }));
 
         let export_opml_action = SimpleAction::new("export-opml", None);
-        export_opml_action.connect_activate(clone!(@strong sender => move |_action, _parameter| {
+        export_opml_action.connect_activate(clone!(@strong sender => @default-panic, move |_action, _parameter| {
             Util::send(&sender, Action::ExportOpml);
         }));
 
         let relogin_action = SimpleAction::new("relogin", None);
-        relogin_action.connect_activate(clone!(@strong sender => move |_action, _parameter| {
+        relogin_action.connect_activate(clone!(@strong sender => @default-panic, move |_action, _parameter| {
             Util::send(&sender, Action::RetryLogin);
         }));
 
         let reset_account_action = SimpleAction::new("reset-account", None);
-        reset_account_action.connect_activate(clone!(@strong sender => move |_action, _parameter| {
+        reset_account_action.connect_activate(clone!(@strong sender => @default-panic, move |_action, _parameter| {
             Util::send(&sender, Action::ShowResetPage);
         }));
 
@@ -404,7 +404,7 @@ impl ContentHeader {
         let model = Menu::new();
 
         let headerbar_selection_all_action = SimpleAction::new("headerbar-selection-all", None);
-        headerbar_selection_all_action.connect_activate(clone!(@strong sender => move |_action, _parameter| {
+        headerbar_selection_all_action.connect_activate(clone!(@strong sender => @default-panic, move |_action, _parameter| {
             Util::send(&sender, Action::HeaderSelection(HeaderSelection::All));
         }));
         let all_item = MenuItem::new(Some(&i18n("All")), None);
@@ -412,7 +412,7 @@ impl ContentHeader {
         model.append_item(&all_item);
 
         let headerbar_selection_unread_action = SimpleAction::new("headerbar-selection-unread", None);
-        headerbar_selection_unread_action.connect_activate(clone!(@strong sender => move |_action, _parameter| {
+        headerbar_selection_unread_action.connect_activate(clone!(@strong sender => @default-panic, move |_action, _parameter| {
             Util::send(&sender, Action::HeaderSelection(HeaderSelection::Unread));
         }));
         let unread_item = MenuItem::new(Some(&i18n("Unread")), None);
@@ -420,7 +420,7 @@ impl ContentHeader {
         model.append_item(&unread_item);
 
         let headerbar_selection_marked_action = SimpleAction::new("headerbar-selection-marked", None);
-        headerbar_selection_marked_action.connect_activate(clone!(@strong sender => move |_action, _parameter| {
+        headerbar_selection_marked_action.connect_activate(clone!(@strong sender => @default-panic, move |_action, _parameter| {
             Util::send(&sender, Action::HeaderSelection(HeaderSelection::Marked));
         }));
         let marked_item = MenuItem::new(Some(&i18n("Starred")), None);
@@ -438,22 +438,22 @@ impl ContentHeader {
 
     fn setup_more_actions_button(button: &MenuButton, sender: &Sender<Action>) {
         let close_article_action = SimpleAction::new("close-article", None);
-        close_article_action.connect_activate(clone!(@strong sender => move |_action, _parameter| {
+        close_article_action.connect_activate(clone!(@strong sender => @default-panic, move |_action, _parameter| {
             Util::send(&sender, Action::CloseArticle);
         }));
 
         let export_article_action = SimpleAction::new("export-article", None);
-        export_article_action.connect_activate(clone!(@strong sender => move |_action, _parameter| {
+        export_article_action.connect_activate(clone!(@strong sender => @default-panic, move |_action, _parameter| {
             Util::send(&sender, Action::ExportArticle);
         }));
 
         let grab_article_content_action = SimpleAction::new("grab-article-content", None);
-        grab_article_content_action.connect_activate(clone!(@strong sender => move |_action, _parameter| {
+        grab_article_content_action.connect_activate(clone!(@strong sender => @default-panic, move |_action, _parameter| {
             Util::send(&sender, Action::StartGrabArticleContent);
         }));
 
         let open_article_action = SimpleAction::new("open-article-in-browser", None);
-        open_article_action.connect_activate(clone!(@strong sender => move |_action, _parameter| {
+        open_article_action.connect_activate(clone!(@strong sender => @default-panic, move |_action, _parameter| {
             Util::send(&sender, Action::OpenSelectedArticle);
         }));
 
@@ -517,7 +517,7 @@ impl ContentHeader {
             self.mark_article_button
                 .connect_toggled(clone!(
                     @weak self.mark_article_stack as toggle_stack,
-                    @strong self.sender as sender => move |toggle_button|
+                    @strong self.sender as sender => @default-panic, move |toggle_button|
                 {
                     if toggle_button.get_active() {
                         toggle_stack.set_visible_child_name("marked");
@@ -533,7 +533,7 @@ impl ContentHeader {
             self.mark_article_read_button
                 .connect_toggled(clone!(
                     @weak self.mark_article_read_stack as toggle_stack,
-                    @strong self.sender as sender => move |toggle_button|
+                    @strong self.sender as sender => @default-panic, move |toggle_button|
                 {
                     if toggle_button.get_active() {
                         toggle_stack.set_visible_child_name("unread");

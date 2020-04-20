@@ -116,7 +116,7 @@ impl WebLogin {
                 self.webview.load_uri(url.as_str());
                 let signal_id = self.webview.connect_load_changed(clone!(
                     @weak self.redirect_signal_id as redirect_signal_id,
-                    @strong self.sender as sender => move |webview, event|
+                    @strong self.sender as sender => @default-panic, move |webview, event|
                 {
                     match event {
                         LoadEvent::Started | LoadEvent::Redirected => {

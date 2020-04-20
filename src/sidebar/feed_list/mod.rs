@@ -200,7 +200,7 @@ impl FeedList {
             Inhibit(false)
         }));
         self.list.connect_drag_leave(clone!(
-            @weak self.hovered_category_expand as hovered_category_expand => move |widget, _drag_context, _time|
+            @weak self.hovered_category_expand as hovered_category_expand => @default-panic, move |widget, _drag_context, _time|
         {
             Self::clear_hovered_expand(&hovered_category_expand);
             let children = widget.get_children();
@@ -221,7 +221,7 @@ impl FeedList {
         self.list.connect_drag_data_received(clone!(
             @weak self.tree as tree,
             @weak self.hovered_category_expand as hovered_category_expand,
-            @strong self.sender as sender => move |widget, _ctx, _x, y, selection_data, _info, _time| {
+            @strong self.sender as sender => @default-panic, move |widget, _ctx, _x, y, selection_data, _info, _time| {
             Self::clear_hovered_expand(&hovered_category_expand);
             let children = widget.get_children();
             for widget in children {

@@ -98,7 +98,7 @@ impl SideBar {
         tag_list_box.pack_start(&tag_list_handle.read().widget(), false, true, 0);
 
         feed_list_handle.read().widget().connect_row_activated(
-            clone!(@strong sender, @weak footer, @weak selection_handle => move |_list, _row| {
+            clone!(@strong sender, @weak footer, @weak selection_handle => @default-panic, move |_list, _row| {
                 Util::send(
                     &sender,
                     Action::SidebarSelection((*selection_handle.read()).clone()),
@@ -112,7 +112,7 @@ impl SideBar {
             @weak tag_list_handle,
             @strong feed_list_handle as self_handle,
             @strong selection_handle,
-            @weak delayed_all_selection => move |_list, row|
+            @weak delayed_all_selection => @default-panic, move |_list, row|
         {
             // do nothing if selection was cleared
             if row.is_none() {
@@ -129,7 +129,7 @@ impl SideBar {
         }));
 
         tag_list_handle.read().widget().connect_row_activated(
-            clone!(@weak selection_handle, @weak footer, @strong sender => move |_list, _row| {
+            clone!(@weak selection_handle, @weak footer, @strong sender => @default-panic, move |_list, _row| {
                 Util::send(
                     &sender,
                     Action::SidebarSelection((*selection_handle.read()).clone()),
@@ -143,7 +143,7 @@ impl SideBar {
             @weak feed_list_handle,
             @strong tag_list_handle,
             @weak selection_handle,
-            @weak delayed_all_selection => move |_list, row| {
+            @weak delayed_all_selection => @default-panic, move |_list, row| {
             // do nothing if selection was cleared
             if row.is_none() {
                 return;
@@ -397,7 +397,7 @@ impl SideBar {
                 300,
                 clone!(
                     @strong sender, @weak delayed_selection as source_id => @default-panic, move || {
-                    gtk::idle_add(clone!(@strong sender => move || {
+                    gtk::idle_add(clone!(@strong sender => @default-panic, move || {
                         Util::send(&sender, Action::SidebarSelection(SidebarSelection::All));
                         Continue(false)
                     }));

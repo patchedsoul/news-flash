@@ -69,7 +69,7 @@ impl ResponsiveLayout {
         let minor_leaflet = layout.minor_leaflet.clone();
 
         layout.major_leaflet.connect_property_folded_notify(clone!(
-            @weak layout => move |_leaflet|
+            @weak layout => @default-panic, move |_leaflet|
         {
             if minor_leaflet.get_property_folded() {
                 layout.state.write().minor_leaflet_folded = true;
@@ -80,7 +80,7 @@ impl ResponsiveLayout {
         }));
 
         layout.minor_leaflet.connect_property_folded_notify(clone!(
-            @weak layout => move |_leaflet|
+            @weak layout => @default-panic, move |_leaflet|
         {
             if !major_leaflet.get_property_folded() {
                 return;
@@ -91,14 +91,14 @@ impl ResponsiveLayout {
 
         layout
             .left_button
-            .connect_clicked(clone!(@weak layout => move |_button| {
+            .connect_clicked(clone!(@weak layout => @default-panic, move |_button| {
                 layout.state.write().left_button_clicked = true;
                 Self::process_state_change(&layout);
             }));
 
         layout
             .right_button
-            .connect_clicked(clone!(@weak layout => move |_button| {
+            .connect_clicked(clone!(@weak layout => @default-panic, move |_button| {
                 layout.state.write().right_button_clicked = true;
                 Self::process_state_change(&layout);
             }));
