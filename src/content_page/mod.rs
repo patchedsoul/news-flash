@@ -83,7 +83,7 @@ impl ContentPage {
         self.article_list.write().update(list_model, &self.state);
 
         let feed_tree_model = FeedListTree::new();
-        self.sidebar.write().update_feedlist(feed_tree_model);
+        self.sidebar.write().update_feedlist(feed_tree_model, &Arc::new(RwLock::new(None)));
 
         let tag_list_model = TagListModel::new();
         self.sidebar.write().update_taglist(tag_list_model);
@@ -331,7 +331,7 @@ impl ContentPage {
         let news_flash = news_flash.clone();
         let state = self.state.clone();
         let current_undo_action = undo_bar.get_current_action();
-        let features = features.clone();
+        let app_features = features.clone();
         let thread_future = async move {
             if let Some(news_flash) = news_flash.read().as_ref() {
                 let mut tree = FeedListTree::new();
@@ -453,7 +453,7 @@ impl ContentPage {
 
                 // tag list
                 let mut support_tags = false;
-                if let Some(features) = features.read().as_ref() {
+                if let Some(features) = app_features.read().as_ref() {
                     support_tags = features.contains(PluginCapabilities::SUPPORT_TAGS);
                 }
 
@@ -502,10 +502,12 @@ impl ContentPage {
             }
         };
 
-        let glib_future = receiver.map(clone!(@weak self.sidebar as sidebar => move |res| {
+        let glib_future = receiver.map(clone!(
+            @weak self.sidebar as sidebar,
+            @strong features => move |res| {
             if let Ok(res) = res {
                 if let Ok((total_count, feed_list_model, tag_list_model)) = res {
-                    sidebar.write().update_feedlist(feed_list_model);
+                    sidebar.write().update_feedlist(feed_list_model, &features);
                     sidebar.write().update_all(total_count);
                     if let Some(tag_list_model) = tag_list_model {
                         if tag_list_model.is_empty() {

@@ -209,8 +209,8 @@ impl SideBar {
         self.sidebar.clone()
     }
 
-    pub fn update_feedlist(&mut self, tree: FeedListTree) {
-        self.feed_list.write().update(tree);
+    pub fn update_feedlist(&mut self, tree: FeedListTree, features: &Arc<RwLock<Option<PluginCapabilities>>>) {
+        self.feed_list.write().update(tree, features);
         self.sidebar.show_all();
     }
 

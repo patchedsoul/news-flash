@@ -16,7 +16,7 @@ use gtk::{
     ListBoxRowExt, Popover, PopoverExt, PositionType, Revealer, RevealerExt, StateFlags, StyleContextExt, Widget,
     WidgetExt,
 };
-use news_flash::models::CategoryID;
+use news_flash::models::{CategoryID, PluginCapabilities};
 use parking_lot::RwLock;
 use std::ops::Drop;
 use std::str;
@@ -39,6 +39,7 @@ impl CategoryRow {
     pub fn new(
         model: &FeedListCategoryModel,
         state: &Arc<RwLock<MainWindowState>>,
+        features: &Arc<RwLock<Option<PluginCapabilities>>>,
         visible: bool,
         sender: Sender<Action>,
     ) -> Arc<RwLock<CategoryRow>> {
@@ -64,14 +65,18 @@ impl CategoryRow {
             expanded: model.expanded,
             connected_signals: Vec::new(),
         };
-        category.connected_signals.push(Self::setup_row(
+        if let Some(signal_widget_pair) = Self::setup_row(
             &category.widget,
             &revealer,
             &model.id,
             state,
+            features,
             model.label.clone(),
             sender.clone(),
-        ));
+        ) {
+            category.connected_signals.push(signal_widget_pair);
+        }
+        
         category.update_title(&model.label);
         category.update_item_count(model.item_count);
         Self::rotate_arrow(&arrow_image, model.expanded);
@@ -145,9 +150,10 @@ impl CategoryRow {
         revealer: &Revealer,
         id: &CategoryID,
         state: &Arc<RwLock<MainWindowState>>,
+        features: &Arc<RwLock<Option<PluginCapabilities>>>,
         label: String,
         sender: Sender<Action>,
-    ) -> (u64, Widget) {
+    ) -> Option<(u64, Widget)> {
         row.set_activatable(true);
         row.set_can_focus(false);
         row.get_style_context().remove_class("activatable");
@@ -158,75 +164,85 @@ impl CategoryRow {
         row.add(&eventbox);
         eventbox.add(revealer);
 
-        (eventbox.connect_button_press_event(clone!(
-            @strong id as category_id,
-            @strong label,
-            @weak state,
-            @weak row => @default-panic, move |_eventbox, event| {
-            if event.get_button() != 3 {
-                return Inhibit(false);
-            }
+        let mut support_mutation = false;
+        if let Some(features) = features.read().as_ref() {
+            support_mutation = features.contains(PluginCapabilities::MODIFY_CATEGORIES);
+        }
 
-            match event.get_event_type() {
-                EventType::ButtonRelease | EventType::DoubleButtonPress | EventType::TripleButtonPress => {
-                    return Inhibit(false)
-                }
-                _ => {}
-            }
-
-            if state.read().get_offline() {
-                return Inhibit(false);
-            }
-
-            let rename_category_dialog_action = SimpleAction::new(&format!("rename-category-{}-dialog", category_id), None);
-            rename_category_dialog_action.connect_activate(clone!(@weak row, @strong sender, @strong category_id => @default-panic, move |_action, _parameter| {
-                Util::send(&sender, Action::RenameCategoryDialog(category_id.clone()));
-                if let Ok(main_window) = GtkUtil::get_main_window(&row) {
-                    main_window.remove_action(&format!("rename-category-{}-dialog", category_id));
-                }
-            }));
-
-            let delete_category_action = SimpleAction::new(&format!("enqueue-delete-{}-category", category_id), None);
-            delete_category_action.connect_activate(clone!(
-                @weak row,
+        if support_mutation {
+            Some((eventbox.connect_button_press_event(clone!(
+                @strong id as category_id,
                 @strong label,
-                @strong category_id,
-                @strong sender => @default-panic, move |_action, _parameter|
-            {
-                let remove_action = UndoActionModel::DeleteCategory((category_id.clone(), label.clone()));
-                Util::send(&sender, Action::UndoableAction(remove_action));
-
-                if let Ok(main_window) = GtkUtil::get_main_window(&row) {
-                    main_window.remove_action(&format!("enqueue-delete-{}-category", category_id));
+                @weak state,
+                @weak row => @default-panic, move |_eventbox, event| {
+                if event.get_button() != 3 {
+                    return Inhibit(false);
                 }
-            }));
-
-            if let Ok(main_window) = GtkUtil::get_main_window(&row) {
-                main_window.add_action(&delete_category_action);
-                main_window.add_action(&rename_category_dialog_action);
-            }
-
-            let model = Menu::new();
-
-            let rename_category_item = MenuItem::new(Some("Rename"), None);
-            rename_category_item.set_action_and_target_value(Some(&format!("rename-category-{}-dialog", category_id)), None);
-            model.append_item(&rename_category_item);
-
-            let delete_category_item = MenuItem::new(Some("Delete"), None);
-            delete_category_item.set_action_and_target_value(Some(&format!("enqueue-delete-{}-category", category_id)), None);
-            model.append_item(&delete_category_item);
-
-            let popover = Popover::new(Some(&row));
-            popover.set_position(PositionType::Bottom);
-            popover.bind_model(Some(&model), Some("win"));
-            popover.show();
-            popover.connect_closed(clone!(@weak row => move |_popover| {
-                row.unset_state_flags(StateFlags::PRELIGHT);
-            }));
-            row.set_state_flags(StateFlags::PRELIGHT, false);
-
-            Inhibit(true)
-        })).to_glib(), eventbox.clone().upcast::<Widget>())
+    
+                match event.get_event_type() {
+                    EventType::ButtonRelease | EventType::DoubleButtonPress | EventType::TripleButtonPress => {
+                        return Inhibit(false)
+                    }
+                    _ => {}
+                }
+    
+                if state.read().get_offline() {
+                    return Inhibit(false);
+                }
+    
+                let rename_category_dialog_action = SimpleAction::new(&format!("rename-category-{}-dialog", category_id), None);
+                rename_category_dialog_action.connect_activate(clone!(@weak row, @strong sender, @strong category_id => @default-panic, move |_action, _parameter| {
+                    Util::send(&sender, Action::RenameCategoryDialog(category_id.clone()));
+                    if let Ok(main_window) = GtkUtil::get_main_window(&row) {
+                        main_window.remove_action(&format!("rename-category-{}-dialog", category_id));
+                    }
+                }));
+    
+                let delete_category_action = SimpleAction::new(&format!("enqueue-delete-{}-category", category_id), None);
+                delete_category_action.connect_activate(clone!(
+                    @weak row,
+                    @strong label,
+                    @strong category_id,
+                    @strong sender => @default-panic, move |_action, _parameter|
+                {
+                    let remove_action = UndoActionModel::DeleteCategory((category_id.clone(), label.clone()));
+                    Util::send(&sender, Action::UndoableAction(remove_action));
+    
+                    if let Ok(main_window) = GtkUtil::get_main_window(&row) {
+                        main_window.remove_action(&format!("enqueue-delete-{}-category", category_id));
+                    }
+                }));
+    
+                if let Ok(main_window) = GtkUtil::get_main_window(&row) {
+                    main_window.add_action(&delete_category_action);
+                    main_window.add_action(&rename_category_dialog_action);
+                }
+    
+                let model = Menu::new();
+    
+                let rename_category_item = MenuItem::new(Some("Rename"), None);
+                rename_category_item.set_action_and_target_value(Some(&format!("rename-category-{}-dialog", category_id)), None);
+                model.append_item(&rename_category_item);
+    
+                let delete_category_item = MenuItem::new(Some("Delete"), None);
+                delete_category_item.set_action_and_target_value(Some(&format!("enqueue-delete-{}-category", category_id)), None);
+                model.append_item(&delete_category_item);
+    
+                let popover = Popover::new(Some(&row));
+                popover.set_position(PositionType::Bottom);
+                popover.bind_model(Some(&model), Some("win"));
+                popover.show();
+                popover.connect_closed(clone!(@weak row => move |_popover| {
+                    row.unset_state_flags(StateFlags::PRELIGHT);
+                }));
+                row.set_state_flags(StateFlags::PRELIGHT, false);
+    
+                Inhibit(true)
+            })).to_glib(), eventbox.clone().upcast::<Widget>()))
+        } else {
+            None
+        }
+        
     }
 
     pub fn widget(&self) -> ListBoxRow {

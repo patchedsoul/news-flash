@@ -23,7 +23,7 @@ use gtk::{
     ScrolledWindow, SelectionMode, StyleContextExt, TargetEntry, TargetFlags, WidgetExt,
 };
 use log::error;
-use news_flash::models::{CategoryID, FeedID};
+use news_flash::models::{CategoryID, FeedID, PluginCapabilities};
 use parking_lot::RwLock;
 use std::collections::HashMap;
 use std::sync::Arc;
@@ -286,7 +286,7 @@ impl FeedList {
         }));
     }
 
-    pub fn update(&mut self, new_tree: FeedListTree) {
+    pub fn update(&mut self, new_tree: FeedListTree, features: &Arc<RwLock<Option<PluginCapabilities>>>) {
         let mut old_tree = new_tree;
         std::mem::swap(&mut old_tree, &mut *self.tree.write());
 
@@ -309,10 +309,10 @@ impl FeedList {
                     self.categories.write().remove(&category_id);
                 }
                 FeedListChangeSet::AddFeed(model, pos, visible) => {
-                    self.add_feed(&model, pos, visible);
+                    self.add_feed(&model, pos, visible, features);
                 }
                 FeedListChangeSet::AddCategory(model, pos, visible) => {
-                    self.add_category(&model, pos, visible);
+                    self.add_category(&model, pos, visible, features);
                 }
                 FeedListChangeSet::FeedUpdateItemCount(id, count) => {
                     if let Some(feed_handle) = self.feeds.read().get(&id) {
@@ -338,8 +338,8 @@ impl FeedList {
         }
     }
 
-    fn add_category(&mut self, category: &FeedListCategoryModel, pos: i32, visible: bool) {
-        let category_widget = CategoryRow::new(category, &self.state, visible, self.sender.clone());
+    fn add_category(&mut self, category: &FeedListCategoryModel, pos: i32, visible: bool, features: &Arc<RwLock<Option<PluginCapabilities>>>) {
+        let category_widget = CategoryRow::new(category, &self.state, features, visible, self.sender.clone());
         self.list.insert(&category_widget.read().widget(), pos);
         self.categories
             .write()
@@ -408,8 +408,8 @@ impl FeedList {
         }
     }
 
-    fn add_feed(&mut self, feed: &FeedListFeedModel, pos: i32, visible: bool) {
-        let feed_widget = FeedRow::new(feed, &self.state, visible, self.sender.clone());
+    fn add_feed(&mut self, feed: &FeedListFeedModel, pos: i32, visible: bool, features: &Arc<RwLock<Option<PluginCapabilities>>>) {
+        let feed_widget = FeedRow::new(feed, &self.state, features, visible, self.sender.clone());
         self.list.insert(&feed_widget.read().widget(), pos);
         self.feeds.write().insert(feed.id.clone(), feed_widget);
     }
