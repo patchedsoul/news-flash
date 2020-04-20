@@ -83,7 +83,9 @@ impl ContentPage {
         self.article_list.write().update(list_model, &self.state);
 
         let feed_tree_model = FeedListTree::new();
-        self.sidebar.write().update_feedlist(feed_tree_model, &Arc::new(RwLock::new(None)));
+        self.sidebar
+            .write()
+            .update_feedlist(feed_tree_model, &Arc::new(RwLock::new(None)));
 
         let tag_list_model = TagListModel::new();
         self.sidebar.write().update_taglist(tag_list_model);

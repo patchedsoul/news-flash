@@ -338,7 +338,13 @@ impl FeedList {
         }
     }
 
-    fn add_category(&mut self, category: &FeedListCategoryModel, pos: i32, visible: bool, features: &Arc<RwLock<Option<PluginCapabilities>>>) {
+    fn add_category(
+        &mut self,
+        category: &FeedListCategoryModel,
+        pos: i32,
+        visible: bool,
+        features: &Arc<RwLock<Option<PluginCapabilities>>>,
+    ) {
         let category_widget = CategoryRow::new(category, &self.state, features, visible, self.sender.clone());
         self.list.insert(&category_widget.read().widget(), pos);
         self.categories
@@ -408,7 +414,13 @@ impl FeedList {
         }
     }
 
-    fn add_feed(&mut self, feed: &FeedListFeedModel, pos: i32, visible: bool, features: &Arc<RwLock<Option<PluginCapabilities>>>) {
+    fn add_feed(
+        &mut self,
+        feed: &FeedListFeedModel,
+        pos: i32,
+        visible: bool,
+        features: &Arc<RwLock<Option<PluginCapabilities>>>,
+    ) {
         let feed_widget = FeedRow::new(feed, &self.state, features, visible, self.sender.clone());
         self.list.insert(&feed_widget.read().widget(), pos);
         self.feeds.write().insert(feed.id.clone(), feed_widget);

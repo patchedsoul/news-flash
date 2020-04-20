@@ -49,7 +49,7 @@ impl ContentHeader {
         builder: &BuilderHelper,
         state: &Arc<RwLock<MainWindowState>>,
         sender: Sender<Action>,
-        features: &Arc<RwLock<Option<PluginCapabilities>>>
+        features: &Arc<RwLock<Option<PluginCapabilities>>>,
     ) -> Self {
         let all_button = builder.get::<ToggleButton>("all_button");
         let unread_button = builder.get::<ToggleButton>("unread_button");
@@ -497,7 +497,7 @@ impl ContentHeader {
         &self,
         article: Option<&FatArticle>,
         news_flash: &Arc<RwLock<Option<NewsFlash>>>,
-        features: &Arc<RwLock<Option<PluginCapabilities>>>
+        features: &Arc<RwLock<Option<PluginCapabilities>>>,
     ) {
         let sensitive = article.is_some();
 
@@ -559,20 +559,22 @@ impl ContentHeader {
         }
     }
 
-    fn upadate_tags(&self, article: &Option<&FatArticle>, news_flash: &Arc<RwLock<Option<NewsFlash>>>, tag_support: bool) {
+    fn upadate_tags(
+        &self,
+        article: &Option<&FatArticle>,
+        news_flash: &Arc<RwLock<Option<NewsFlash>>>,
+        tag_support: bool,
+    ) {
         if let Some(article) = article {
             if let Some(tag_popover) = self.tag_popover.read().as_ref() {
                 tag_popover.disconnect();
             }
             let popover = TagPopover::new(&article.article_id, news_flash, &self.sender);
-            self.tag_button.set_popover(if tag_support {
-                Some(&popover.widget)
-            } else {
-                None
-            });
+            self.tag_button
+                .set_popover(if tag_support { Some(&popover.widget) } else { None });
             self.tag_popover.write().replace(popover);
         } else {
-            let popover : Option<&Widget> = None;
+            let popover: Option<&Widget> = None;
             self.tag_button.set_popover(popover);
         }
     }

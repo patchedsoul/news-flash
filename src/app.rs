@@ -269,7 +269,9 @@ impl App {
             Action::RedrawArticle => self.window.content_page.article_view.redraw_article(),
             Action::CloseArticle => {
                 self.window.content_page.article_view.close_article();
-                self.window.content_header.show_article(None, &self.news_flash, &self.features);
+                self.window
+                    .content_header
+                    .show_article(None, &self.news_flash, &self.features);
             }
             Action::SearchTerm(search_term) => self.window.set_search_term(search_term),
             Action::SetSidebarRead => {
@@ -1475,7 +1477,8 @@ impl App {
         self.window.content_header.stop_more_actions_spinner();
 
         if let Some(article) = article {
-            self.window.show_article(article.article_id, &self.news_flash, &self.features);
+            self.window
+                .show_article(article.article_id, &self.news_flash, &self.features);
         }
     }
 

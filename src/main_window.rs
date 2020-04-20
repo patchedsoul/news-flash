@@ -519,7 +519,7 @@ impl MainWindow {
         &self,
         article_id: ArticleID,
         news_flash: &Arc<RwLock<Option<NewsFlash>>>,
-        features: &Arc<RwLock<Option<PluginCapabilities>>>
+        features: &Arc<RwLock<Option<PluginCapabilities>>>,
     ) {
         let mut fat_article: Option<FatArticle> = None;
         let mut feed_vec: Option<Vec<Feed>> = None;
@@ -762,7 +762,11 @@ impl MainWindow {
         }
     }
 
-    pub fn update_article_header(&self, news_flash: &Arc<RwLock<Option<NewsFlash>>>, features: &Arc<RwLock<Option<PluginCapabilities>>>) {
+    pub fn update_article_header(
+        &self,
+        news_flash: &Arc<RwLock<Option<NewsFlash>>>,
+        features: &Arc<RwLock<Option<PluginCapabilities>>>,
+    ) {
         let visible_article = self.content_page.article_view.get_visible_article();
         let mut updated_visible_article: Option<FatArticle> = None;
         if let Some(visible_article) = visible_article {
