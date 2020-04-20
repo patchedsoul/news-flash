@@ -305,11 +305,13 @@ impl ContentHeader {
 
     fn setup_search_bar(search_bar: &SearchBar, search_button: &ToggleButton, search_entry: &SearchEntry) {
         search_bar.connect_entry(search_entry);
-        search_bar.connect_property_search_mode_enabled_notify(clone!(@weak search_button => @default-panic, move |search_bar| {
-            if !search_bar.get_search_mode() {
-                search_button.set_active(false);
-            }
-        }));
+        search_bar.connect_property_search_mode_enabled_notify(
+            clone!(@weak search_button => @default-panic, move |search_bar| {
+                if !search_bar.get_search_mode() {
+                    search_button.set_active(false);
+                }
+            }),
+        );
     }
 
     fn setup_search_entry(search_entry: &SearchEntry, sender: &Sender<Action>) {
@@ -322,14 +324,18 @@ impl ContentHeader {
 
     fn setup_menu_button(button: &MenuButton, sender: &Sender<Action>) {
         let show_shortcut_window_action = SimpleAction::new("shortcut-window", None);
-        show_shortcut_window_action.connect_activate(clone!(@strong sender => @default-panic, move |_action, _parameter| {
-            Util::send(&sender, Action::ShowShortcutWindow);
-        }));
+        show_shortcut_window_action.connect_activate(
+            clone!(@strong sender => @default-panic, move |_action, _parameter| {
+                Util::send(&sender, Action::ShowShortcutWindow);
+            }),
+        );
 
         let show_about_window_action = SimpleAction::new("about-window", None);
-        show_about_window_action.connect_activate(clone!(@strong sender => @default-panic, move |_action, _parameter| {
-            Util::send(&sender, Action::ShowAboutWindow);
-        }));
+        show_about_window_action.connect_activate(
+            clone!(@strong sender => @default-panic, move |_action, _parameter| {
+                Util::send(&sender, Action::ShowAboutWindow);
+            }),
+        );
 
         let settings_window_action = SimpleAction::new("settings", None);
         settings_window_action.connect_activate(clone!(@strong sender => @default-panic, move |_action, _parameter| {
@@ -404,25 +410,31 @@ impl ContentHeader {
         let model = Menu::new();
 
         let headerbar_selection_all_action = SimpleAction::new("headerbar-selection-all", None);
-        headerbar_selection_all_action.connect_activate(clone!(@strong sender => @default-panic, move |_action, _parameter| {
-            Util::send(&sender, Action::HeaderSelection(HeaderSelection::All));
-        }));
+        headerbar_selection_all_action.connect_activate(
+            clone!(@strong sender => @default-panic, move |_action, _parameter| {
+                Util::send(&sender, Action::HeaderSelection(HeaderSelection::All));
+            }),
+        );
         let all_item = MenuItem::new(Some(&i18n("All")), None);
         all_item.set_action_and_target_value(Some("win.headerbar-selection-all"), None);
         model.append_item(&all_item);
 
         let headerbar_selection_unread_action = SimpleAction::new("headerbar-selection-unread", None);
-        headerbar_selection_unread_action.connect_activate(clone!(@strong sender => @default-panic, move |_action, _parameter| {
-            Util::send(&sender, Action::HeaderSelection(HeaderSelection::Unread));
-        }));
+        headerbar_selection_unread_action.connect_activate(
+            clone!(@strong sender => @default-panic, move |_action, _parameter| {
+                Util::send(&sender, Action::HeaderSelection(HeaderSelection::Unread));
+            }),
+        );
         let unread_item = MenuItem::new(Some(&i18n("Unread")), None);
         unread_item.set_action_and_target_value(Some("win.headerbar-selection-unread"), None);
         model.append_item(&unread_item);
 
         let headerbar_selection_marked_action = SimpleAction::new("headerbar-selection-marked", None);
-        headerbar_selection_marked_action.connect_activate(clone!(@strong sender => @default-panic, move |_action, _parameter| {
-            Util::send(&sender, Action::HeaderSelection(HeaderSelection::Marked));
-        }));
+        headerbar_selection_marked_action.connect_activate(
+            clone!(@strong sender => @default-panic, move |_action, _parameter| {
+                Util::send(&sender, Action::HeaderSelection(HeaderSelection::Marked));
+            }),
+        );
         let marked_item = MenuItem::new(Some(&i18n("Starred")), None);
         marked_item.set_action_and_target_value(Some("win.headerbar-selection-marked"), None);
         model.append_item(&marked_item);
@@ -448,9 +460,11 @@ impl ContentHeader {
         }));
 
         let grab_article_content_action = SimpleAction::new("grab-article-content", None);
-        grab_article_content_action.connect_activate(clone!(@strong sender => @default-panic, move |_action, _parameter| {
-            Util::send(&sender, Action::StartGrabArticleContent);
-        }));
+        grab_article_content_action.connect_activate(
+            clone!(@strong sender => @default-panic, move |_action, _parameter| {
+                Util::send(&sender, Action::StartGrabArticleContent);
+            }),
+        );
 
         let open_article_action = SimpleAction::new("open-article-in-browser", None);
         open_article_action.connect_activate(clone!(@strong sender => @default-panic, move |_action, _parameter| {

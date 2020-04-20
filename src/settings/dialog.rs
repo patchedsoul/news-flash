@@ -205,13 +205,15 @@ impl SettingsDialog {
 
         if let Some(listbox) = self.sync_row.get_parent() {
             if let Ok(listbox) = listbox.downcast::<ListBox>() {
-                listbox.connect_row_activated(clone!(@weak self.sync_pop as sync_pop => @default-panic, move |_list, row| {
-                    if let Some(name) = row.get_widget_name() {
-                        if name == "sync_row" {
-                            sync_pop.popup();
+                listbox.connect_row_activated(
+                    clone!(@weak self.sync_pop as sync_pop => @default-panic, move |_list, row| {
+                        if let Some(name) = row.get_widget_name() {
+                            if name == "sync_row" {
+                                sync_pop.popup();
+                            }
                         }
-                    }
-                }));
+                    }),
+                );
             }
         }
 

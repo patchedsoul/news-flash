@@ -248,13 +248,15 @@ impl ContentPage {
             }
         };
 
-        let glib_future = receiver.map(clone!(@weak self.article_list as article_list => @default-panic, move |res| {
-            if let Ok(res) = res {
-                if let Ok(article_list_model) = res {
-                    article_list.write().add_more_articles(article_list_model);
+        let glib_future = receiver.map(
+            clone!(@weak self.article_list as article_list => @default-panic, move |res| {
+                if let Ok(res) = res {
+                    if let Ok(article_list_model) = res {
+                        article_list.write().add_more_articles(article_list_model);
+                    }
                 }
-            }
-        }));
+            }),
+        );
 
         threadpool.spawn_ok(thread_future);
         Util::glib_spawn_future(glib_future);

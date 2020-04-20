@@ -86,14 +86,18 @@ impl KeybindingEditor {
             Inhibit(false)
         }));
 
-        set_button.connect_clicked(clone!(@weak dialog, @weak keybinding_public => @default-panic, move |_button| {
-            *keybinding_public.write() = (*keybinding_internal.read()).clone();
-            dialog.emit_close();
-        }));
-        cancel_button.connect_clicked(clone!(@weak dialog, @weak keybinding_public => @default-panic, move |_button| {
-            *keybinding_public.write() = KeybindState::Canceled;
-            dialog.emit_close();
-        }));
+        set_button.connect_clicked(
+            clone!(@weak dialog, @weak keybinding_public => @default-panic, move |_button| {
+                *keybinding_public.write() = (*keybinding_internal.read()).clone();
+                dialog.emit_close();
+            }),
+        );
+        cancel_button.connect_clicked(
+            clone!(@weak dialog, @weak keybinding_public => @default-panic, move |_button| {
+                *keybinding_public.write() = KeybindState::Canceled;
+                dialog.emit_close();
+            }),
+        );
 
         let label = builder.get::<Label>("instuction_label");
         label.set_label(setting_name);

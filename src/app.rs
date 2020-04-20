@@ -207,12 +207,13 @@ impl App {
     fn setup_signals(&self) {
         self.application.connect_startup(|_app| {});
 
-        self.application
-            .connect_activate(clone!(@weak self.window.widget as window => @default-panic, move |app| {
+        self.application.connect_activate(
+            clone!(@weak self.window.widget as window => @default-panic, move |app| {
                 app.add_window(&window);
                 window.show_all();
                 window.present();
-            }));
+            }),
+        );
     }
 
     pub fn run(&self, app: Rc<Self>) {

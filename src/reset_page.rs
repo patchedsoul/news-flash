@@ -23,11 +23,13 @@ impl ResetPage {
         let info_bar = builder.get::<InfoBar>("reset_info_bar");
         let error_details_button = builder.get::<Button>("details_button");
 
-        reset_button.connect_clicked(clone!(@weak reset_stack, @strong sender => @default-panic, move |button| {
-            reset_stack.set_visible_child_name("reset_spinner");
-            button.set_sensitive(false);
-            Util::send(&sender, Action::ResetAccount);
-        }));
+        reset_button.connect_clicked(
+            clone!(@weak reset_stack, @strong sender => @default-panic, move |button| {
+                reset_stack.set_visible_child_name("reset_spinner");
+                button.set_sensitive(false);
+                Util::send(&sender, Action::ResetAccount);
+            }),
+        );
 
         cancel_button.connect_clicked(clone!(@strong sender => @default-panic, move |_button| {
             Util::send(&sender, Action::ShowContentPage(None));

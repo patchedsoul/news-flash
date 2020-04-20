@@ -249,19 +249,21 @@ impl FeedRow {
         }
 
         let scale = GtkUtil::get_scale(&self.widget);
-        let glib_future = receiver.map(clone!(@weak self.favicon as favicon => @default-panic, move |res| match res {
-            Ok(Some(icon)) => {
-                if let Some(data) = &icon.data {
-                    if let Ok(surface) = GtkUtil::create_surface_from_bytes(data, 16, 16, scale) {
-                        favicon.set_from_surface(Some(&surface));
+        let glib_future = receiver.map(
+            clone!(@weak self.favicon as favicon => @default-panic, move |res| match res {
+                Ok(Some(icon)) => {
+                    if let Some(data) = &icon.data {
+                        if let Ok(surface) = GtkUtil::create_surface_from_bytes(data, 16, 16, scale) {
+                            favicon.set_from_surface(Some(&surface));
+                        }
                     }
                 }
-            }
-            Ok(None) => {
-                warn!("Favicon does not contain image data.");
-            }
-            Err(_) => warn!("Receiving favicon failed."),
-        }));
+                Ok(None) => {
+                    warn!("Favicon does not contain image data.");
+                }
+                Err(_) => warn!("Receiving favicon failed."),
+            }),
+        );
 
         Util::glib_spawn_future(glib_future);
     }
