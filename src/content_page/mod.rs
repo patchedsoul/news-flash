@@ -42,7 +42,7 @@ impl ContentPage {
         settings: &Arc<RwLock<Settings>>,
         content_header: &Arc<ContentHeader>,
         sender: Sender<Action>,
-        features: &Arc<RwLock<Option<PluginCapabilities>>>
+        features: &Arc<RwLock<Option<PluginCapabilities>>>,
     ) -> Self {
         let feed_list_box = builder.get::<Box>("feedlist_box");
         let article_list_box = builder.get::<Box>("articlelist_box");
@@ -323,7 +323,7 @@ impl ContentPage {
         news_flash: &Arc<RwLock<Option<NewsFlash>>>,
         undo_bar: &UndoBar,
         threadpool: ThreadPool,
-        features: &Arc<RwLock<Option<PluginCapabilities>>>
+        features: &Arc<RwLock<Option<PluginCapabilities>>>,
     ) {
         let (sender, receiver) =
             oneshot::channel::<Result<(i64, FeedListTree, Option<TagListModel>), ContentPageErrorKind>>();

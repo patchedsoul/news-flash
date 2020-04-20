@@ -24,7 +24,9 @@ use gtk::{
     Stack, StackExt, StackTransitionType, StyleContext, StyleContextExt, WidgetExt,
 };
 use log::{error, warn};
-use news_flash::models::{ArticleID, FatArticle, Feed, PasswordLogin as PasswordLoginData, PluginID, PluginCapabilities};
+use news_flash::models::{
+    ArticleID, FatArticle, Feed, PasswordLogin as PasswordLoginData, PluginCapabilities, PluginID,
+};
 use news_flash::{NewsFlash, NewsFlashError};
 use parking_lot::RwLock;
 use std::sync::Arc;
@@ -53,7 +55,7 @@ impl MainWindow {
         settings: &Arc<RwLock<Settings>>,
         sender: Sender<Action>,
         shutdown_in_progress: Arc<RwLock<bool>>,
-        features: &Arc<RwLock<Option<PluginCapabilities>>>
+        features: &Arc<RwLock<Option<PluginCapabilities>>>,
     ) -> Self {
         GtkUtil::register_symbolic_icons();
         let css_provider = Arc::new(RwLock::new(CssProvider::new()));
@@ -353,7 +355,12 @@ impl MainWindow {
         StyleContext::add_provider_for_screen(&screen, &*provider.read(), 600);
     }
 
-    pub fn init(&self, news_flash: &Arc<RwLock<Option<NewsFlash>>>, thread_pool: ThreadPool, features: &Arc<RwLock<Option<PluginCapabilities>>>) {
+    pub fn init(
+        &self,
+        news_flash: &Arc<RwLock<Option<NewsFlash>>>,
+        thread_pool: ThreadPool,
+        features: &Arc<RwLock<Option<PluginCapabilities>>>,
+    ) {
         self.stack.set_visible_child_name(CONTENT_PAGE);
         self.header_stack.set_visible_child_name(CONTENT_PAGE);
 
@@ -481,7 +488,12 @@ impl MainWindow {
         self.reset_page.error(error);
     }
 
-    pub fn update_sidebar(&self, news_flash: &Arc<RwLock<Option<NewsFlash>>>, thread_pool: ThreadPool, features: &Arc<RwLock<Option<PluginCapabilities>>>) {
+    pub fn update_sidebar(
+        &self,
+        news_flash: &Arc<RwLock<Option<NewsFlash>>>,
+        thread_pool: ThreadPool,
+        features: &Arc<RwLock<Option<PluginCapabilities>>>,
+    ) {
         self.content_page
             .update_sidebar(news_flash, &self.undo_bar, thread_pool, features);
     }

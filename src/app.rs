@@ -17,7 +17,8 @@ use gtk::{
 use lazy_static::lazy_static;
 use log::{error, info, warn};
 use news_flash::models::{
-    ArticleID, Category, CategoryID, FatArticle, FavIcon, Feed, FeedID, LoginData, PasswordLogin, PluginID, TagID, Url, PluginCapabilities,
+    ArticleID, Category, CategoryID, FatArticle, FavIcon, Feed, FeedID, LoginData, PasswordLogin, PluginCapabilities,
+    PluginID, TagID, Url,
 };
 use news_flash::{NewsFlash, NewsFlashError};
 use parking_lot::RwLock;
@@ -164,7 +165,12 @@ impl App {
         let news_flash = Arc::new(RwLock::new(None));
         let features = Arc::new(RwLock::new(None));
         let settings = Arc::new(RwLock::new(Settings::open().expect("Failed to access settings file")));
-        let window = Arc::new(MainWindow::new(&settings, sender.clone(), shutdown_in_progress.clone(), &features));
+        let window = Arc::new(MainWindow::new(
+            &settings,
+            sender.clone(),
+            shutdown_in_progress.clone(),
+            &features,
+        ));
 
         let app = Rc::new(Self {
             application,
@@ -244,7 +250,10 @@ impl App {
             Action::MarkArticle(update) => self.mark_article(update),
             Action::ToggleArticleRead => self.toggle_article_read(),
             Action::ToggleArticleMarked => self.toggle_article_marked(),
-            Action::UpdateSidebar => self.window.update_sidebar(&self.news_flash, self.threadpool.clone(), &self.features),
+            Action::UpdateSidebar => {
+                self.window
+                    .update_sidebar(&self.news_flash, self.threadpool.clone(), &self.features)
+            }
             Action::UpdateArticleList => self
                 .window
                 .update_article_list(&self.news_flash, self.threadpool.clone()),
@@ -805,7 +814,7 @@ impl App {
                     return;
                 }
             };
-            
+
             let _dialog = AddPopover::new(
                 &self.sender,
                 &add_button.upcast::<Widget>(),
@@ -1605,12 +1614,7 @@ impl App {
     fn set_offline(&self, offline: bool) {
         self.window.state.write().set_offline(offline);
         self.window.content_header.set_offline(offline);
-        self.window
-            .content_page
-            .sidebar
-            .read()
-            .footer
-            .update();
+        self.window.content_page.sidebar.read().footer.update();
         self.window
             .content_page
             .sidebar

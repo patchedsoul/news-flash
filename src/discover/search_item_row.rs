@@ -9,8 +9,8 @@ use futures::FutureExt;
 use gdk::EventType;
 use glib::{clone, object::Cast, Sender};
 use gtk::{
-    ContainerExt, EventBox, Image, ImageExt, Inhibit, Label, LabelExt, ListBoxRow, ListBoxRowExt,
-    StyleContextExt, Widget, WidgetExt,
+    ContainerExt, EventBox, Image, ImageExt, Inhibit, Label, LabelExt, ListBoxRow, ListBoxRowExt, StyleContextExt,
+    Widget, WidgetExt,
 };
 use log::error;
 use news_flash::models::Url;

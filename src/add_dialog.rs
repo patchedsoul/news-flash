@@ -14,7 +14,7 @@ use gtk::{
     Stack, StackExt, StyleContextExt, Widget, WidgetExt,
 };
 use log::error;
-use news_flash::models::{Category, CategoryID, FavIcon, Feed, FeedID, Url, PluginCapabilities};
+use news_flash::models::{Category, CategoryID, FavIcon, Feed, FeedID, PluginCapabilities, Url};
 use news_flash::{FeedParserError, ParsedUrl};
 use pango::EllipsizeMode;
 use parking_lot::RwLock;

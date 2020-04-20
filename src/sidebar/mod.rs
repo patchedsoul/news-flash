@@ -21,7 +21,7 @@ use gtk::{
 };
 pub use models::SidebarIterateItem;
 use models::SidebarSelection;
-use news_flash::models::{PluginID, PluginIcon, PluginCapabilities};
+use news_flash::models::{PluginCapabilities, PluginID, PluginIcon};
 use news_flash::NewsFlash;
 use parking_lot::RwLock;
 use std::sync::Arc;
@@ -54,7 +54,11 @@ pub struct SideBar {
 }
 
 impl SideBar {
-    pub fn new(state: &Arc<RwLock<MainWindowState>>, sender: Sender<Action>, features: &Arc<RwLock<Option<PluginCapabilities>>>) -> Self {
+    pub fn new(
+        state: &Arc<RwLock<MainWindowState>>,
+        sender: Sender<Action>,
+        features: &Arc<RwLock<Option<PluginCapabilities>>>,
+    ) -> Self {
         let builder = BuilderHelper::new("sidebar");
 
         let sidebar = builder.get::<Box>("toplevel");
@@ -79,7 +83,13 @@ impl SideBar {
 
         let feed_list = FeedList::new(&sidebar_scroll, state, sender.clone());
         let tag_list = TagList::new();
-        let footer = Arc::new(SidebarFooter::new(&builder, state, &sender, features, &selection_handle));
+        let footer = Arc::new(SidebarFooter::new(
+            &builder,
+            state,
+            &sender,
+            features,
+            &selection_handle,
+        ));
 
         let feed_list_handle = Arc::new(RwLock::new(feed_list));
         let tag_list_handle = Arc::new(RwLock::new(tag_list));

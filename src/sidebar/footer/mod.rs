@@ -1,12 +1,12 @@
+use super::models::SidebarSelection;
 use crate::app::Action;
 use crate::main_window_state::MainWindowState;
 use crate::util::{BuilderHelper, Util};
-use super::models::SidebarSelection;
 use glib::{clone, Sender};
 use gtk::{Button, ButtonExt, WidgetExt};
+use news_flash::models::PluginCapabilities;
 use parking_lot::RwLock;
 use std::sync::Arc;
-use news_flash::models::PluginCapabilities;
 
 #[derive(Debug)]
 pub struct SidebarFooter {
@@ -51,11 +51,13 @@ impl SidebarFooter {
     }
 
     pub fn update(&self) {
-        self.add_button.set_sensitive(!self.state.read().get_offline() && *self.support_mutation.read());
+        self.add_button
+            .set_sensitive(!self.state.read().get_offline() && *self.support_mutation.read());
         self.remove_button.set_sensitive(
-            !self.state.read().get_offline() &&
-            *self.support_mutation.read() &&
-            *self.sidebar_selection.read() != SidebarSelection::All);
+            !self.state.read().get_offline()
+                && *self.support_mutation.read()
+                && *self.sidebar_selection.read() != SidebarSelection::All,
+        );
     }
 
     pub fn update_features(&self, features: &Arc<RwLock<Option<PluginCapabilities>>>) {
