@@ -264,12 +264,12 @@ impl App {
             Action::SidebarSelectNext => self.window.content_page.article_list.read().select_next_article(),
             Action::SidebarSelectPrev => self.window.content_page.article_list.read().select_prev_article(),
             Action::HeaderSelection(selection) => self.window.set_headerbar_selection(selection),
-            Action::UpdateArticleHeader => self.window.update_article_header(&self.news_flash),
-            Action::ShowArticle(article_id) => self.window.show_article(article_id, &self.news_flash),
+            Action::UpdateArticleHeader => self.window.update_article_header(&self.news_flash, &self.features),
+            Action::ShowArticle(article_id) => self.window.show_article(article_id, &self.news_flash, &self.features),
             Action::RedrawArticle => self.window.content_page.article_view.redraw_article(),
             Action::CloseArticle => {
                 self.window.content_page.article_view.close_article();
-                self.window.content_header.show_article(None, &self.news_flash);
+                self.window.content_header.show_article(None, &self.news_flash, &self.features);
             }
             Action::SearchTerm(search_term) => self.window.set_search_term(search_term),
             Action::SetSidebarRead => {
@@ -443,12 +443,13 @@ impl App {
         let glib_future = receiver.map(clone!(
             @weak self.window as main_window,
             @weak self.news_flash as news_flash,
+            @weak self.features as features,
             @strong self.sender as sender => move |res| match res
         {
             Ok(Ok(())) => {
                 news_flash.write().take();
                 main_window.content_page.clear();
-                main_window.content_header.show_article(None, &Arc::new(RwLock::new(None)));
+                main_window.content_header.show_article(None, &Arc::new(RwLock::new(None)), &features);
                 Util::send(&sender, Action::ShowWelcomePage);
             }
             Ok(Err(error)) => {
@@ -637,6 +638,7 @@ impl App {
         let glib_future = receiver.map(clone!(
             @strong self.sender as global_sender,
             @strong self.news_flash as news_flash,
+            @strong self.features as features,
             @weak self.window.content_page as content_page,
             @weak self.window.content_header as content_header => move |res|
         {
@@ -662,7 +664,7 @@ impl App {
                 if visible_article.article_id == update.article_id {
                     let mut visible_article = visible_article.clone();
                     visible_article.unread = update.read;
-                    content_header.show_article(Some(&visible_article), &news_flash);
+                    content_header.show_article(Some(&visible_article), &news_flash, &features);
                     content_page
                         .article_view
                         .update_visible_article(Some(visible_article.unread), None);
@@ -705,6 +707,7 @@ impl App {
         let glib_future = receiver.map(clone!(
             @strong self.sender as global_sender,
             @strong self.news_flash as news_flash,
+            @strong self.features as features,
             @weak self.window.content_header as content_header,
             @weak self.window.content_page as content_page => move |res|
         {
@@ -730,7 +733,7 @@ impl App {
                 if visible_article.article_id == update.article_id {
                     let mut visible_article = visible_article.clone();
                     visible_article.marked = update.marked;
-                    content_header.show_article(Some(&visible_article), &news_flash);
+                    content_header.show_article(Some(&visible_article), &news_flash, &features);
                     content_page
                         .article_view
                         .update_visible_article(None, Some(visible_article.marked));
@@ -1472,7 +1475,7 @@ impl App {
         self.window.content_header.stop_more_actions_spinner();
 
         if let Some(article) = article {
-            self.window.show_article(article.article_id, &self.news_flash);
+            self.window.show_article(article.article_id, &self.news_flash, &self.features);
         }
     }
 

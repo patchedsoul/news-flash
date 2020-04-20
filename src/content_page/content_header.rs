@@ -8,10 +8,10 @@ use gio::{ActionMapExt, Menu, MenuItem, SimpleAction};
 use glib::{clone, object::Cast, source::Continue, translate::ToGlib, Sender};
 use gtk::{
     Button, ButtonExt, EntryExt, Inhibit, MenuButton, MenuButtonExt, Popover, PopoverExt, SearchEntry, SearchEntryExt,
-    Stack, StackExt, ToggleButton, ToggleButtonExt, WidgetExt,
+    Stack, StackExt, ToggleButton, ToggleButtonExt, Widget, WidgetExt,
 };
 use libhandy::{SearchBar, SearchBarExt};
-use news_flash::models::{ArticleID, FatArticle, Marked, PluginCapabilities, Read};
+use news_flash::models::{FatArticle, Marked, PluginCapabilities, Read};
 use news_flash::NewsFlash;
 use parking_lot::RwLock;
 use std::sync::Arc;
@@ -45,7 +45,12 @@ pub struct ContentHeader {
 }
 
 impl ContentHeader {
-    pub fn new(builder: &BuilderHelper, state: &Arc<RwLock<MainWindowState>>, sender: Sender<Action>) -> Self {
+    pub fn new(
+        builder: &BuilderHelper,
+        state: &Arc<RwLock<MainWindowState>>,
+        sender: Sender<Action>,
+        features: &Arc<RwLock<Option<PluginCapabilities>>>
+    ) -> Self {
         let all_button = builder.get::<ToggleButton>("all_button");
         let unread_button = builder.get::<ToggleButton>("unread_button");
         let marked_button = builder.get::<ToggleButton>("marked_button");
@@ -152,7 +157,7 @@ impl ContentHeader {
             mark_article_read_event: RwLock::new(None),
         };
 
-        header.show_article(None, &Arc::new(RwLock::new(None)));
+        header.show_article(None, &Arc::new(RwLock::new(None)), features);
         header
     }
 
@@ -488,7 +493,12 @@ impl ContentHeader {
         }
     }
 
-    pub fn show_article(&self, article: Option<&FatArticle>, news_flash: &Arc<RwLock<Option<NewsFlash>>>) {
+    pub fn show_article(
+        &self,
+        article: Option<&FatArticle>,
+        news_flash: &Arc<RwLock<Option<NewsFlash>>>,
+        features: &Arc<RwLock<Option<PluginCapabilities>>>
+    ) {
         let sensitive = article.is_some();
 
         let (unread_icon, unread_active) = Self::unread_button_state(article);
@@ -539,28 +549,32 @@ impl ContentHeader {
 
         if !self.state.read().get_offline() {
             let mut tag_support = false;
-            if let Some(news_flash) = news_flash.read().as_ref() {
-                let plugin_features = news_flash.features().expect("Failed to get plugin features!");
-                tag_support = plugin_features.contains(PluginCapabilities::SUPPORT_TAGS);
+            if let Some(features) = features.read().as_ref() {
+                tag_support = features.contains(PluginCapabilities::SUPPORT_TAGS);
             }
 
             self.mark_article_button.set_sensitive(sensitive);
             self.mark_article_read_button.set_sensitive(sensitive);
-            self.tag_button.set_sensitive(tag_support && sensitive);
-
-            if let Some(article) = article {
-                self.upadate_tags(&article.article_id, news_flash);
-            }
+            self.upadate_tags(&article, news_flash, tag_support);
         }
     }
 
-    pub fn upadate_tags(&self, article_id: &ArticleID, news_flash: &Arc<RwLock<Option<NewsFlash>>>) {
-        if let Some(tag_popover) = self.tag_popover.read().as_ref() {
-            tag_popover.disconnect();
+    fn upadate_tags(&self, article: &Option<&FatArticle>, news_flash: &Arc<RwLock<Option<NewsFlash>>>, tag_support: bool) {
+        if let Some(article) = article {
+            if let Some(tag_popover) = self.tag_popover.read().as_ref() {
+                tag_popover.disconnect();
+            }
+            let popover = TagPopover::new(&article.article_id, news_flash, &self.sender);
+            self.tag_button.set_popover(if tag_support {
+                Some(&popover.widget)
+            } else {
+                None
+            });
+            self.tag_popover.write().replace(popover);
+        } else {
+            let popover : Option<&Widget> = None;
+            self.tag_button.set_popover(popover);
         }
-        let popover = TagPopover::new(&article_id, news_flash, &self.sender);
-        self.tag_button.set_popover(Some(&popover.widget));
-        self.tag_popover.write().replace(popover);
     }
 
     pub fn start_more_actions_spinner(&self) {

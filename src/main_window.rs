@@ -79,7 +79,7 @@ impl MainWindow {
 
         let _login_header = LoginHeaderbar::new(&builder, sender.clone());
         let _welcome_header = WelcomeHeaderbar::new(&builder);
-        let content_header = Arc::new(ContentHeader::new(&builder, &state, sender.clone()));
+        let content_header = Arc::new(ContentHeader::new(&builder, &state, sender.clone(), features));
 
         window.set_icon_name(Some(APP_ID));
         window.set_title(APP_NAME);
@@ -515,7 +515,12 @@ impl MainWindow {
         Util::send(&self.sender, Action::UpdateArticleList);
     }
 
-    pub fn show_article(&self, article_id: ArticleID, news_flash: &Arc<RwLock<Option<NewsFlash>>>) {
+    pub fn show_article(
+        &self,
+        article_id: ArticleID,
+        news_flash: &Arc<RwLock<Option<NewsFlash>>>,
+        features: &Arc<RwLock<Option<PluginCapabilities>>>
+    ) {
         let mut fat_article: Option<FatArticle> = None;
         let mut feed_vec: Option<Vec<Feed>> = None;
 
@@ -548,7 +553,7 @@ impl MainWindow {
                         return;
                     }
                 };
-                self.content_header.show_article(Some(&article), news_flash);
+                self.content_header.show_article(Some(&article), news_flash, features);
                 self.content_page.article_view.show_article(article, feed.label.clone());
 
                 self.responsive_layout.state.write().major_leaflet_selected = true;
@@ -757,7 +762,7 @@ impl MainWindow {
         }
     }
 
-    pub fn update_article_header(&self, news_flash: &Arc<RwLock<Option<NewsFlash>>>) {
+    pub fn update_article_header(&self, news_flash: &Arc<RwLock<Option<NewsFlash>>>, features: &Arc<RwLock<Option<PluginCapabilities>>>) {
         let visible_article = self.content_page.article_view.get_visible_article();
         let mut updated_visible_article: Option<FatArticle> = None;
         if let Some(visible_article) = visible_article {
@@ -770,7 +775,7 @@ impl MainWindow {
 
         if let Some(updated_visible_article) = updated_visible_article {
             self.content_header
-                .show_article(Some(&updated_visible_article), news_flash);
+                .show_article(Some(&updated_visible_article), news_flash, features);
             self.content_page
                 .article_view
                 .update_visible_article(Some(updated_visible_article.unread), None);
