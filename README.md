@@ -2,7 +2,7 @@
 
 The spiritual successor to [FeedReader](https://github.com/jangernert/FeedReader)
 
-![Screenshot](./data/screenshots/2019-12-19.png "WIP 2019-12-19")
+![Screenshot](./data/screenshots/2020-04-20.png "WIP 2020-04-20")
 
 ## Looking for service maintainers
 
