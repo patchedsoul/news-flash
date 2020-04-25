@@ -232,6 +232,7 @@ impl FeedList {
                 if let Some(ctx) = GtkUtil::get_dnd_style_context_widget(&widget) {
                     ctx.remove_class("drag-bottom");
                     ctx.remove_class("drag-top");
+                    ctx.remove_class("drag-category");
                 }
             }
 
