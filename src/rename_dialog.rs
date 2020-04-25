@@ -19,16 +19,16 @@ impl RenameDialog {
 
         match item {
             SidebarSelection::All => {}
-            SidebarSelection::Cateogry(_) => header.set_title(Some("Rename Category")),
-            SidebarSelection::Feed(_) => header.set_title(Some("Rename Feed")),
-            SidebarSelection::Tag(_) => header.set_title(Some("Rename Feed")),
+            SidebarSelection::Cateogry(_, _) => header.set_title(Some("Rename Category")),
+            SidebarSelection::Feed(_, _, _) => header.set_title(Some("Rename Feed")),
+            SidebarSelection::Tag(_, _) => header.set_title(Some("Rename Feed")),
         }
 
         rename_entry.set_text(match item {
             SidebarSelection::All => "",
-            SidebarSelection::Cateogry((_, name)) => name,
-            SidebarSelection::Feed((_, name)) => name,
-            SidebarSelection::Tag((_, name)) => name,
+            SidebarSelection::Cateogry(_, name) => name,
+            SidebarSelection::Feed(_, _, name) => name,
+            SidebarSelection::Tag(_, name) => name,
         });
 
         dialog.set_transient_for(Some(parent));

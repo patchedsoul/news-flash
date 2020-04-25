@@ -22,7 +22,7 @@ use failure::ResultExt;
 use gio::{Cancellable, ProxyResolver, ProxyResolverExt};
 use glib::Sender;
 use news_flash::models::{Category, CategoryID, FeedID, FeedMapping};
-use serde::Serialize;
+use serde::{de::DeserializeOwned, Serialize};
 use std::collections::HashMap;
 use std::fs;
 use std::future::Future;
@@ -38,6 +38,13 @@ impl Util {
         let data = serde_json::to_string_pretty(object).context(UtilErrorKind::Serde)?;
         fs::write(path, &data).context(UtilErrorKind::WriteFile)?;
         Ok(data)
+    }
+
+    #[allow(dead_code)]
+    pub fn load_and_deserialize<T: DeserializeOwned>(path: &str) -> Result<T, UtilError> {
+        let json_data = fs::read_to_string(path).context(UtilErrorKind::OpenFile)?;
+        let object: T = serde_json::from_str(&json_data).context(UtilErrorKind::Serde)?;
+        Ok(object)
     }
 
     pub fn send(sender: &Sender<Action>, action: Action) {

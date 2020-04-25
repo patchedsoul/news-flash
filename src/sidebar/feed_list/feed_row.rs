@@ -31,6 +31,7 @@ use std::sync::Arc;
 #[derive(Clone, Debug)]
 pub struct FeedRow {
     pub id: FeedID,
+    pub parent_id: CategoryID,
     widget: ListBoxRow,
     item_count: Label,
     item_count_event: EventBox,
@@ -61,6 +62,7 @@ impl FeedRow {
 
         let mut feed = FeedRow {
             id: model.id.clone(),
+            parent_id: model.parent_id.clone(),
             widget: ListBoxRow::new(),
             item_count: item_count_label,
             title: title_label,
@@ -156,6 +158,7 @@ impl FeedRow {
 
             vec.push((row.connect_button_press_event(clone!(
                 @strong id as feed_id,
+                @strong parent_id,
                 @strong label,
                 @weak window_state,
                 @strong sender => @default-panic, move |row, event|
@@ -178,8 +181,13 @@ impl FeedRow {
                 let model = Menu::new();
 
                 let rename_feed_dialog_action = SimpleAction::new(&format!("rename-feed-{}-dialog", feed_id), None);
-                rename_feed_dialog_action.connect_activate(clone!(@weak row, @strong feed_id, @strong sender => @default-panic, move |_action, _parameter| {
-                    Util::send(&sender, Action::RenameFeedDialog(feed_id.clone()));
+                rename_feed_dialog_action.connect_activate(clone!(
+                    @weak row,
+                    @strong feed_id,
+                    @strong parent_id,
+                    @strong sender => @default-panic, move |_action, _parameter|
+                {
+                    Util::send(&sender, Action::RenameFeedDialog(feed_id.clone(), parent_id.clone()));
 
                     if let Ok(main_window) = GtkUtil::get_main_window(&row) {
                         main_window.remove_action(&format!("rename-feed-{}-dialog", feed_id));
@@ -242,7 +250,7 @@ impl FeedRow {
         }
     }
 
-    pub fn update_favicon(&self, feed: &Option<Feed>, global_sender: &Sender<Action>) {
+    fn update_favicon(&self, feed: &Option<Feed>, global_sender: &Sender<Action>) {
         let (sender, receiver) = oneshot::channel::<Option<FavIcon>>();
         if let Some(feed) = feed {
             Util::send(global_sender, Action::LoadFavIcon((feed.clone(), sender)));

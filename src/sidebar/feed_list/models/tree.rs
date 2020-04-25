@@ -123,7 +123,7 @@ impl FeedListTree {
     pub fn collapse_expand_category(
         &mut self,
         category_id: &CategoryID,
-    ) -> Option<(Vec<FeedID>, Vec<CategoryID>, bool)> {
+    ) -> Option<(Vec<(FeedID, CategoryID)>, Vec<CategoryID>, bool)> {
         if let Some(category) = self.find_category(category_id) {
             let expanded = category.expand_collapse();
             let (feed_ids, category_ids) = Self::category_child_ids(&category);
@@ -132,12 +132,12 @@ impl FeedListTree {
         None
     }
 
-    fn category_child_ids(category: &FeedListCategoryModel) -> (Vec<FeedID>, Vec<CategoryID>) {
-        let mut feed_ids: Vec<FeedID> = Vec::new();
+    fn category_child_ids(category: &FeedListCategoryModel) -> (Vec<(FeedID, CategoryID)>, Vec<CategoryID>) {
+        let mut feed_ids: Vec<(FeedID, CategoryID)> = Vec::new();
         let mut category_ids: Vec<CategoryID> = Vec::new();
         for item in &category.children {
             match item {
-                FeedListItem::Feed(feed) => feed_ids.push(feed.id.clone()),
+                FeedListItem::Feed(feed) => feed_ids.push((feed.id.clone(), feed.parent_id.clone())),
                 FeedListItem::Category(category) => {
                     category_ids.push(category.id.clone());
                     if category.expanded {
@@ -179,7 +179,10 @@ impl FeedListTree {
             if let Some(old_item) = old_item {
                 if new_item.is_none() {
                     match old_item {
-                        FeedListItem::Feed(old_feed) => diff.push(FeedListChangeSet::RemoveFeed(old_feed.id.clone())),
+                        FeedListItem::Feed(old_feed) => diff.push(FeedListChangeSet::RemoveFeed(
+                            old_feed.id.clone(),
+                            old_feed.parent_id.clone(),
+                        )),
                         FeedListItem::Category(old_category) => {
                             diff.push(FeedListChangeSet::RemoveCategory(old_category.id.clone()));
                             if !old_category.children.is_empty() {
@@ -309,7 +312,10 @@ impl FeedListTree {
 
                     // items differ -> remove old item and move on
                     match old_item {
-                        FeedListItem::Feed(old_feed) => diff.push(FeedListChangeSet::RemoveFeed(old_feed.id.clone())),
+                        FeedListItem::Feed(old_feed) => diff.push(FeedListChangeSet::RemoveFeed(
+                            old_feed.id.clone(),
+                            old_feed.parent_id.clone(),
+                        )),
                         FeedListItem::Category(old_category) => {
                             diff.push(FeedListChangeSet::RemoveCategory(old_category.id.clone()));
                             if !old_category.children.is_empty() {
@@ -383,7 +389,10 @@ impl FeedListTree {
             match item {
                 FeedListItem::Feed(feed) => {
                     if *index == selected_index {
-                        return Some((FeedListItemID::Feed(feed.id.clone()), feed.label.clone()));
+                        return Some((
+                            FeedListItemID::Feed(feed.id.clone(), feed.parent_id.clone()),
+                            feed.label.clone(),
+                        ));
                     }
                 }
                 FeedListItem::Category(category) => {
@@ -424,7 +433,7 @@ impl FeedListTree {
                             continue;
                         }
                     } else {
-                        return SidebarIterateItem::SelectFeedListFeed(feed.id.clone());
+                        return SidebarIterateItem::SelectFeedListFeed(feed.id.clone(), feed.parent_id.clone());
                     }
                 }
                 FeedListItem::Category(category) => {
@@ -443,8 +452,8 @@ impl FeedListTree {
                         SidebarIterateItem::SelectFeedListCategory(category) => {
                             return SidebarIterateItem::SelectFeedListCategory(category)
                         }
-                        SidebarIterateItem::SelectFeedListFeed(feed) => {
-                            return SidebarIterateItem::SelectFeedListFeed(feed)
+                        SidebarIterateItem::SelectFeedListFeed(feed, parent_id) => {
+                            return SidebarIterateItem::SelectFeedListFeed(feed, parent_id)
                         }
                         _ => {}
                     }
@@ -477,7 +486,7 @@ impl FeedListTree {
                             continue;
                         }
                     } else {
-                        return SidebarIterateItem::SelectFeedListFeed(feed.id.clone());
+                        return SidebarIterateItem::SelectFeedListFeed(feed.id.clone(), feed.parent_id.clone());
                     }
                 }
                 FeedListItem::Category(category) => {
@@ -486,8 +495,8 @@ impl FeedListTree {
                             SidebarIterateItem::SelectFeedListCategory(category) => {
                                 return SidebarIterateItem::SelectFeedListCategory(category)
                             }
-                            SidebarIterateItem::SelectFeedListFeed(feed) => {
-                                return SidebarIterateItem::SelectFeedListFeed(feed)
+                            SidebarIterateItem::SelectFeedListFeed(feed, parent_id) => {
+                                return SidebarIterateItem::SelectFeedListFeed(feed, parent_id)
                             }
                             _ => {}
                         }
@@ -684,7 +693,10 @@ mod tests {
         );
         assert_eq!(
             diff.get(4),
-            Some(&FeedListChangeSet::RemoveFeed(feed_1.feed_id.clone()))
+            Some(&FeedListChangeSet::RemoveFeed(
+                feed_1.feed_id.clone(),
+                mapping_1.category_id.clone()
+            ))
         );
         assert_eq!(
             diff.get(5),

@@ -279,16 +279,16 @@ impl ContentPage {
             HeaderSelection::Marked => Some(Marked::Marked),
         };
         let feed = match &window_state.read().get_sidebar_selection() {
-            SidebarSelection::All | SidebarSelection::Cateogry(_) | SidebarSelection::Tag(_) => None,
-            SidebarSelection::Feed((id, _title)) => Some(id.clone()),
+            SidebarSelection::All | SidebarSelection::Cateogry(_, _) | SidebarSelection::Tag(_, _) => None,
+            SidebarSelection::Feed(id, _parent_id, _title) => Some(id.clone()),
         };
         let category = match &window_state.read().get_sidebar_selection() {
-            SidebarSelection::All | SidebarSelection::Feed(_) | SidebarSelection::Tag(_) => None,
-            SidebarSelection::Cateogry((id, _title)) => Some(id.clone()),
+            SidebarSelection::All | SidebarSelection::Feed(_, _, _) | SidebarSelection::Tag(_, _) => None,
+            SidebarSelection::Cateogry(id, _title) => Some(id.clone()),
         };
         let tag = match &window_state.read().get_sidebar_selection() {
-            SidebarSelection::All | SidebarSelection::Feed(_) | SidebarSelection::Cateogry(_) => None,
-            SidebarSelection::Tag((id, _title)) => Some(id.clone()),
+            SidebarSelection::All | SidebarSelection::Feed(_, _, _) | SidebarSelection::Cateogry(_, _) => None,
+            SidebarSelection::Tag(id, _title) => Some(id.clone()),
         };
         let search_term = window_state.read().get_search_term().clone();
         let (feed_blacklist, category_blacklist) = match current_undo_action {

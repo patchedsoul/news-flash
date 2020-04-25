@@ -124,6 +124,7 @@ impl ResponsiveLayout {
 
         if self.state.read().minor_leaflet_folded {
             // article list (dis)appeared
+            log::info!("minor leaflet folded");
             if !self.minor_leaflet.get_property_folded() {
                 self.left_button.set_visible(false);
                 self.search_button.set_visible(true);
@@ -154,6 +155,7 @@ impl ResponsiveLayout {
 
         if self.state.read().right_button_clicked {
             // right back
+            //self.minor_leaflet.set_visible_child(&self.article_list_box);
             self.major_leaflet.set_visible_child(&self.minor_leaflet);
             self.header_leaflet.set_visible_child(&self.left_header);
             self.right_button.set_visible(false);

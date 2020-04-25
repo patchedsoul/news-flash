@@ -1,0 +1,60 @@
+{
+  "top_level_id": "NewsFlash.Toplevel",
+  "top_level": [
+    {
+      "Category": {
+        "id": "Category 2",
+        "parent_id": "NewsFlash.Toplevel",
+        "label": "Category 2",
+        "sort_index": 2147483647,
+        "children": [
+          {
+            "Feed": {
+              "id": "8aed7f5d4466ac2c2de684823e36f0b4",
+              "parent_id": "Category 2",
+              "label": "Latest Movie Trailers",
+              "sort_index": 2147483647,
+              "level": 1,
+              "item_count": 0
+            }
+          },
+          {
+            "Feed": {
+              "id": "https://www.heise.de/rss/heise-atom.xml",
+              "parent_id": "Category 2",
+              "label": "heise online News",
+              "sort_index": 2147483647,
+              "level": 1,
+              "item_count": 0
+            }
+          },
+          {
+            "Feed": {
+              "id": "https://www.golem.de/",
+              "parent_id": "Category 2",
+              "label": "Golem.de",
+              "sort_index": 2147483647,
+              "level": 1,
+              "item_count": 0
+            }
+          }
+        ],
+        "level": 0,
+        "expanded": true,
+        "item_count": 0
+      }
+    },
+    {
+      "Category": {
+        "id": "Category 1",
+        "parent_id": "NewsFlash.Toplevel",
+        "label": "Category 1",
+        "sort_index": 2147483647,
+        "children": [],
+        "level": 0,
+        "expanded": true,
+        "item_count": 0
+      }
+    }
+  ]
+}

@@ -9,7 +9,7 @@ pub enum SidebarIterateItem {
     TagListSelectFirstItem,
     TagListSelectLastItem,
     SelectFeedListCategory(CategoryID),
-    SelectFeedListFeed(FeedID),
+    SelectFeedListFeed(FeedID, CategoryID),
     SelectTagList(TagID),
     NothingSelected,
 }

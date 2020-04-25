@@ -406,15 +406,15 @@ impl MainWindow {
     pub fn show_undo_bar(&self, action: UndoActionModel) {
         let select_all_button = match self.content_page.sidebar.read().get_selection() {
             SidebarSelection::All => false,
-            SidebarSelection::Cateogry((selected_id, _label)) => match &action {
+            SidebarSelection::Cateogry(selected_id, _label) => match &action {
                 UndoActionModel::DeleteCategory((delete_id, _label)) => &selected_id == delete_id,
                 _ => false,
             },
-            SidebarSelection::Feed((selected_id, _label)) => match &action {
+            SidebarSelection::Feed(selected_id, _parent_id, _label) => match &action {
                 UndoActionModel::DeleteFeed((delete_id, _label)) => &selected_id == delete_id,
                 _ => false,
             },
-            SidebarSelection::Tag((selected_id, _label)) => match &action {
+            SidebarSelection::Tag(selected_id, _label) => match &action {
                 UndoActionModel::DeleteTag((delete_id, _label)) => &selected_id == delete_id,
                 _ => false,
             },
@@ -648,7 +648,7 @@ impl MainWindow {
                 threadpool.spawn_ok(thread_future);
                 Util::glib_spawn_future(glib_future);
             }
-            SidebarSelection::Cateogry((category_id, _title)) => {
+            SidebarSelection::Cateogry(category_id, _title) => {
                 let (sender, receiver) = oneshot::channel::<Result<(), NewsFlashError>>();
 
                 let news_flash = news_flash.clone();
@@ -685,7 +685,7 @@ impl MainWindow {
                 threadpool.spawn_ok(thread_future);
                 Util::glib_spawn_future(glib_future);
             }
-            SidebarSelection::Feed((feed_id, _title)) => {
+            SidebarSelection::Feed(feed_id, _parent_id, _title) => {
                 let (sender, receiver) = oneshot::channel::<Result<(), NewsFlashError>>();
 
                 let news_flash = news_flash.clone();
@@ -724,7 +724,7 @@ impl MainWindow {
                 threadpool.spawn_ok(thread_future);
                 Util::glib_spawn_future(glib_future);
             }
-            SidebarSelection::Tag((tag_id, _title)) => {
+            SidebarSelection::Tag(tag_id, _title) => {
                 let (sender, receiver) = oneshot::channel::<Result<(), NewsFlashError>>();
 
                 let news_flash = news_flash.clone();

@@ -98,7 +98,7 @@ pub enum Action {
     AddFeed((Url, Option<String>, Option<AddCategory>)),
     AddCategory(String),
     AddTag(String, String),
-    RenameFeedDialog(FeedID),
+    RenameFeedDialog(FeedID, CategoryID),
     RenameFeed((Feed, String)),
     RenameCategoryDialog(CategoryID),
     RenameCategory((Category, String)),
@@ -283,7 +283,7 @@ impl App {
             Action::AddFeed((url, title, category)) => self.add_feed(url, title, category),
             Action::AddCategory(title) => self.add_category(title),
             Action::AddTag(color, title) => self.add_tag(color, title),
-            Action::RenameFeedDialog(feed_id) => self.rename_feed_dialog(feed_id),
+            Action::RenameFeedDialog(feed_id, category_id) => self.rename_feed_dialog(feed_id, category_id),
             Action::RenameFeed((feed, new_title)) => self.rename_feed(feed, new_title),
             Action::RenameCategoryDialog(category_id) => self.rename_category_dialog(category_id),
             Action::RenameCategory((category, new_title)) => self.rename_category(category, new_title),
@@ -944,7 +944,7 @@ impl App {
         self.threadpool.spawn_ok(thread_future);
     }
 
-    fn rename_feed_dialog(&self, feed_id: FeedID) {
+    fn rename_feed_dialog(&self, feed_id: FeedID, parent_id: CategoryID) {
         if let Some(news_flash) = self.news_flash.read().as_ref() {
             let (feeds, _mappings) = match news_flash.get_feeds() {
                 Ok(result) => result,
@@ -966,7 +966,7 @@ impl App {
 
             let dialog = RenameDialog::new(
                 &self.window.widget,
-                &SidebarSelection::Feed((feed_id, feed.label.clone())),
+                &SidebarSelection::Feed(feed_id, parent_id, feed.label.clone()),
             );
 
             dialog.rename_button.connect_clicked(clone!(
@@ -1037,7 +1037,7 @@ impl App {
 
             let dialog = RenameDialog::new(
                 &self.window.widget,
-                &SidebarSelection::Cateogry((category_id, category.label.clone())),
+                &SidebarSelection::Cateogry(category_id, category.label.clone()),
             );
 
             dialog.rename_button.connect_clicked(clone!(
@@ -1091,11 +1091,11 @@ impl App {
                 warn!("Trying to delete item while 'All Articles' is selected");
                 None
             }
-            SidebarSelection::Feed((feed_id, label)) => Some(UndoActionModel::DeleteFeed((feed_id, label))),
-            SidebarSelection::Cateogry((category_id, label)) => {
+            SidebarSelection::Feed(feed_id, _parent_id, label) => Some(UndoActionModel::DeleteFeed((feed_id, label))),
+            SidebarSelection::Cateogry(category_id, label) => {
                 Some(UndoActionModel::DeleteCategory((category_id, label)))
             }
-            SidebarSelection::Tag((tag_id, label)) => Some(UndoActionModel::DeleteTag((tag_id, label))),
+            SidebarSelection::Tag(tag_id, label) => Some(UndoActionModel::DeleteTag((tag_id, label))),
         };
         if let Some(undo_action) = undo_action {
             Util::send(&self.sender, Action::UndoableAction(undo_action));

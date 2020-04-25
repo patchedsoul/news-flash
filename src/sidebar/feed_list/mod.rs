@@ -19,8 +19,8 @@ use crate::util::{BuilderHelper, GtkUtil, Util};
 use gdk::{DragAction, EventType};
 use glib::{clone, source::Continue, translate::ToGlib, Sender};
 use gtk::{
-    self, prelude::WidgetExtManual, ContainerExt, DestDefaults, Inhibit, ListBox, ListBoxExt, ListBoxRowExt,
-    ScrolledWindow, SelectionMode, StyleContextExt, TargetEntry, TargetFlags, WidgetExt,
+    self, prelude::WidgetExtManual, ContainerExt, DestDefaults, Inhibit, ListBox, ListBoxExt, ListBoxRow,
+    ListBoxRowExt, ScrolledWindow, SelectionMode, StyleContextExt, TargetEntry, TargetFlags, WidgetExt,
 };
 use log::error;
 use news_flash::models::{CategoryID, FeedID, PluginCapabilities};
@@ -34,7 +34,7 @@ pub struct FeedList {
     scroll: ScrolledWindow,
     sender: Sender<Action>,
     categories: Arc<RwLock<HashMap<CategoryID, Arc<RwLock<CategoryRow>>>>>,
-    feeds: Arc<RwLock<HashMap<FeedID, Arc<RwLock<FeedRow>>>>>,
+    feeds: Arc<RwLock<HashMap<FeedID, Vec<Arc<RwLock<FeedRow>>>>>>,
     tree: Arc<RwLock<FeedListTree>>,
     delayed_selection: Arc<RwLock<Option<u32>>>,
     hovered_category_expand: Arc<RwLock<Option<(u32, CategoryID)>>>,
@@ -181,11 +181,15 @@ impl FeedList {
                             return Inhibit(false);
                         }
                     }
-                } else if let SidebarIterateItem::SelectFeedListFeed(id) = &next_item {
-                    if let Some(feed_row) = feeds.read().get(&id) {
-                        if let Some(ctx) = GtkUtil::get_dnd_style_context_listboxrow(&feed_row.read().widget()) {
-                            ctx.add_class("drag-top");
-                            return Inhibit(false);
+                } else if let SidebarIterateItem::SelectFeedListFeed(id, parent_id) = &next_item {
+                    if let Some(feed_rows) = feeds.read().get(&id) {
+                        for feed_row in feed_rows {
+                            if &feed_row.read().parent_id == parent_id {
+                                if let Some(ctx) = GtkUtil::get_dnd_style_context_listboxrow(&feed_row.read().widget()) {
+                                    ctx.add_class("drag-top");
+                                    return Inhibit(false);
+                                }
+                            }
                         }
                     }
                 }
@@ -236,17 +240,14 @@ impl FeedList {
                 let index = row.get_index();
 
                 let index = if y < alloc.y + (alloc.height / 2) {
-                    if index > 0 {
-                        index - 1
-                    } else {
-                        index
-                    }
+                    index
                 } else if index + 1 >= 0 {
                     index + 1
                 } else {
                     index
                 };
 
+                Util::serialize_and_save(&*tree.read(), "dnd_tree.json").expect("debug info dump");
                 if let Ok((parent_category, sort_index)) = tree.read().calculate_dnd(index).map_err(|_| {
                     error!("Failed to calculate Drag&Drop action");
                 }) {
@@ -269,6 +270,7 @@ impl FeedList {
                                 parent_category.clone(),
                                 sort_index,
                             );
+                            log::debug!("{:?}", dnd_data);
                             Util::send(&sender, Action::DragAndDrop(dnd_data));
                         }
 
@@ -286,21 +288,37 @@ impl FeedList {
         }));
     }
 
-    pub fn update(&mut self, new_tree: FeedListTree, features: &Arc<RwLock<Option<PluginCapabilities>>>) {
+    pub fn update(
+        &mut self,
+        new_tree: FeedListTree,
+        features: &Arc<RwLock<Option<PluginCapabilities>>>)
+    {
         let mut old_tree = new_tree;
         std::mem::swap(&mut old_tree, &mut *self.tree.write());
 
-        Util::serialize_and_save(&old_tree, "old_tree.json").expect("debug printing");
-        Util::serialize_and_save(&*self.tree.read(), "new_tree.json").expect("debug printing");
+        Util::serialize_and_save(&old_tree, "old_tree.json").expect("debug info dump");
+        Util::serialize_and_save(&*self.tree.read(), "new_tree.json").expect("debug info dump");
 
         let tree_diff = old_tree.generate_diff(&mut self.tree.write());
         for diff in tree_diff {
             match diff {
-                FeedListChangeSet::RemoveFeed(feed_id) => {
-                    if let Some(feed_handle) = self.feeds.read().get(&feed_id) {
-                        self.list.remove(&feed_handle.read().widget());
+                FeedListChangeSet::RemoveFeed(feed_id, parent_id) => {
+                    let mut is_empty_now = false;
+                    if let Some(feed_rows) = self.feeds.write().get_mut(&feed_id) {
+                        for (i, feed_row) in feed_rows.iter().enumerate() {
+                            if feed_row.read().parent_id == parent_id {
+                                self.list.remove(&feed_row.read().widget());
+                                feed_rows.remove(i);
+                                break;
+                            }
+                        }
+                        if feed_rows.is_empty() {
+                            is_empty_now = true;
+                        }
                     }
-                    self.feeds.write().remove(&feed_id);
+                    if is_empty_now {
+                        self.feeds.write().remove(&feed_id);
+                    }
                 }
                 FeedListChangeSet::RemoveCategory(category_id) => {
                     if let Some(category_handle) = self.categories.read().get(&category_id) {
@@ -315,8 +333,10 @@ impl FeedList {
                     self.add_category(&model, pos, visible, features);
                 }
                 FeedListChangeSet::FeedUpdateItemCount(id, count) => {
-                    if let Some(feed_handle) = self.feeds.read().get(&id) {
-                        feed_handle.read().update_item_count(count);
+                    if let Some(feed_rows) = self.feeds.read().get(&id) {
+                        for feed_row in feed_rows {
+                            feed_row.read().update_item_count(count);
+                        }
                     }
                 }
                 FeedListChangeSet::CategoryUpdateItemCount(id, count) => {
@@ -325,8 +345,10 @@ impl FeedList {
                     }
                 }
                 FeedListChangeSet::FeedUpdateLabel(id, label) => {
-                    if let Some(feed_handle) = self.feeds.read().get(&id) {
-                        feed_handle.read().update_title(&label);
+                    if let Some(feed_rows) = self.feeds.read().get(&id) {
+                        for feed_row in feed_rows {
+                            feed_row.read().update_title(&label);
+                        }
                     }
                 }
                 FeedListChangeSet::CategoryUpdateLabel(id, label) => {
@@ -390,15 +412,19 @@ impl FeedList {
         category_id: &CategoryID,
         tree: &Arc<RwLock<FeedListTree>>,
         categories: &Arc<RwLock<HashMap<CategoryID, Arc<RwLock<CategoryRow>>>>>,
-        feeds: &Arc<RwLock<HashMap<FeedID, Arc<RwLock<FeedRow>>>>>,
+        feeds: &Arc<RwLock<HashMap<FeedID, Vec<Arc<RwLock<FeedRow>>>>>>,
     ) {
         if let Some((feed_ids, category_ids, expaneded)) = tree.write().collapse_expand_category(category_id) {
-            for feed_id in feed_ids {
-                if let Some(feed_handle) = feeds.read().get(&feed_id) {
-                    if expaneded {
-                        feed_handle.write().expand();
-                    } else {
-                        feed_handle.write().collapse();
+            for (feed_id, parent_id) in feed_ids {
+                if let Some(feed_rows) = feeds.read().get(&feed_id) {
+                    for feed_row in feed_rows {
+                        if feed_row.read().parent_id == parent_id {
+                            if expaneded {
+                                feed_row.write().expand();
+                            } else {
+                                feed_row.write().collapse();
+                            }
+                        }
                     }
                 }
             }
@@ -423,7 +449,13 @@ impl FeedList {
     ) {
         let feed_widget = FeedRow::new(feed, &self.state, features, visible, self.sender.clone());
         self.list.insert(&feed_widget.read().widget(), pos);
-        self.feeds.write().insert(feed.id.clone(), feed_widget);
+        if self.feeds.read().contains_key(&feed.id) {
+            if let Some(feed_rows) = self.feeds.write().get_mut(&feed.id) {
+                feed_rows.push(feed_widget);
+            }
+        } else {
+            self.feeds.write().insert(feed.id.clone(), vec![feed_widget]);
+        }
     }
 
     pub fn deselect(&self) {
@@ -440,7 +472,7 @@ impl FeedList {
 
     pub fn get_first_item(&self) -> Option<FeedListItemID> {
         self.tree.read().top_level.first().map(|item| match item {
-            FeedListItem::Feed(item) => FeedListItemID::Feed(item.id.clone()),
+            FeedListItem::Feed(item) => FeedListItemID::Feed(item.id.clone(), item.parent_id.clone()),
             FeedListItem::Category(item) => FeedListItemID::Category(item.id.clone()),
         })
     }
@@ -454,7 +486,7 @@ impl FeedList {
 
         if let Some(last) = last_item {
             match last {
-                FeedListItem::Feed(item) => return Some(FeedListItemID::Feed(item.id.clone())),
+                FeedListItem::Feed(item) => return Some(FeedListItemID::Feed(item.id.clone(), item.parent_id.clone())),
                 FeedListItem::Category(item) => {
                     if item.expanded {
                         if item.children.is_empty() {
@@ -479,8 +511,21 @@ impl FeedList {
                 Some(category_row) => category_row.read().widget(),
                 None => return Err(FeedListErrorKind::CategoryNotFound.into()),
             },
-            FeedListItemID::Feed(feed) => match self.feeds.read().get(&feed) {
-                Some(feed_row) => feed_row.read().widget(),
+            FeedListItemID::Feed(feed, parent_id) => match self.feeds.read().get(&feed) {
+                Some(feed_rows) => {
+                    let mut widget: Option<ListBoxRow> = None;
+                    for feed_row in feed_rows {
+                        if feed_row.read().parent_id == parent_id {
+                            widget = Some(feed_row.read().widget());
+                            break;
+                        }
+                    }
+                    if let Some(widget) = widget {
+                        widget
+                    } else {
+                        return Err(FeedListErrorKind::FeedNotFound.into());
+                    }
+                }
                 None => return Err(FeedListErrorKind::FeedNotFound.into()),
             },
         };
@@ -533,10 +578,12 @@ impl FeedList {
 
     pub fn update_offline(&self) {
         for (_key, value) in self.feeds.read().iter() {
-            if self.state.read().get_offline() {
-                value.read().disable_dnd();
-            } else {
-                value.read().enable_dnd();
+            for feed_row in value {
+                if self.state.read().get_offline() {
+                    feed_row.read().disable_dnd();
+                } else {
+                    feed_row.read().enable_dnd();
+                }
             }
         }
     }

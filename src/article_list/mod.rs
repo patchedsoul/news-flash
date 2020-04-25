@@ -298,7 +298,7 @@ impl ArticleList {
                     None => i18n("No starred articles"),
                 },
             },
-            SidebarSelection::Cateogry((_id, title)) => match new_state.read().get_header_selection() {
+            SidebarSelection::Cateogry(_id, title) => match new_state.read().get_header_selection() {
                 HeaderSelection::All => match new_state.read().get_search_term() {
                     Some(search) => i18n_f("No articles that fit \"{}\" in category \"{}\"", &[&search, &title]),
                     None => i18n_f("No articles in category \"{}\"", &[&title]),
@@ -318,7 +318,7 @@ impl ArticleList {
                     None => i18n_f("No starred articles in category \"{}\"", &[&title]),
                 },
             },
-            SidebarSelection::Feed((_id, title)) => match new_state.read().get_header_selection() {
+            SidebarSelection::Feed(_id, _parent_id, title) => match new_state.read().get_header_selection() {
                 HeaderSelection::All => match new_state.read().get_search_term() {
                     Some(search) => i18n_f("No articles that fit \"{}\" in feed \"{}\"", &[&search, &title]),
                     None => i18n_f("No articles in feed \"{}\"", &[&title]),
@@ -332,7 +332,7 @@ impl ArticleList {
                     None => i18n_f("No starred articles in feed \"{}\"", &[&title]),
                 },
             },
-            SidebarSelection::Tag((_id, title)) => match new_state.read().get_header_selection() {
+            SidebarSelection::Tag(_id, title) => match new_state.read().get_header_selection() {
                 HeaderSelection::All => match new_state.read().get_search_term() {
                     Some(search) => i18n_f("No articles that fit \"{}\" in tag \"{}\"", &[&search, &title]),
                     None => i18n_f("No articles in tag \"{}\"", &[&title]),

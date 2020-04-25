@@ -152,8 +152,8 @@ impl SideBar {
             Self::deselect_all_button(&all_event_box, &delayed_all_selection);
             feed_list_handle.read().deselect();
 
-            if let Some(selected_id) = tag_list_handle.read().get_selection() {
-                let selection = SidebarSelection::Tag(selected_id);
+            if let Some((selected_id, title)) = tag_list_handle.read().get_selection() {
+                let selection = SidebarSelection::Tag(selected_id, title);
                 *selection_handle.write() = selection.clone();
             }
         }));
@@ -420,8 +420,10 @@ impl SideBar {
     pub fn select_next_item(&self) -> Result<(), SidebarError> {
         let select_next = match *self.selection.read() {
             SidebarSelection::All => SidebarIterateItem::FeedListSelectFirstItem,
-            SidebarSelection::Cateogry(_) | SidebarSelection::Feed(_) => self.feed_list.read().select_next_item(),
-            SidebarSelection::Tag(_) => self.tag_list.read().get_next_item(),
+            SidebarSelection::Cateogry(_, _) | SidebarSelection::Feed(_, _, _) => {
+                self.feed_list.read().select_next_item()
+            }
+            SidebarSelection::Tag(_, _) => self.tag_list.read().get_next_item(),
         };
         self.select_item(select_next)
     }
@@ -429,8 +431,10 @@ impl SideBar {
     pub fn select_prev_item(&self) -> Result<(), SidebarError> {
         let select_next = match *self.selection.read() {
             SidebarSelection::All => SidebarIterateItem::TagListSelectLastItem,
-            SidebarSelection::Cateogry(_) | SidebarSelection::Feed(_) => self.feed_list.read().select_prev_item(),
-            SidebarSelection::Tag(_) => self.tag_list.read().get_prev_item(),
+            SidebarSelection::Cateogry(_, _) | SidebarSelection::Feed(_, _, _) => {
+                self.feed_list.read().select_prev_item()
+            }
+            SidebarSelection::Tag(_, _) => self.tag_list.read().get_prev_item(),
         };
         self.select_item(select_next)
     }
@@ -447,10 +451,10 @@ impl SideBar {
                     &self.delayed_all_selection,
                 );
             }
-            SidebarIterateItem::SelectFeedListFeed(id) => {
+            SidebarIterateItem::SelectFeedListFeed(id, parent_id) => {
                 self.feed_list
                     .read()
-                    .set_selection(FeedListItemID::Feed(id))
+                    .set_selection(FeedListItemID::Feed(id, parent_id))
                     .context(SidebarErrorKind::Selection)?;
             }
             SidebarIterateItem::SelectFeedListCategory(id) => {

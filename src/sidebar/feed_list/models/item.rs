@@ -7,7 +7,7 @@ use std::cmp::Ordering;
 #[derive(Clone, Debug)]
 pub enum FeedListItemID {
     Category(CategoryID),
-    Feed(FeedID),
+    Feed(FeedID, CategoryID),
 }
 
 #[derive(Eq, Clone, Debug, Serialize, Deserialize)]

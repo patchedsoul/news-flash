@@ -6,7 +6,7 @@ use std::fmt;
 
 #[derive(Debug, Serialize, Deserialize)]
 pub enum FeedListChangeSet {
-    RemoveFeed(FeedID),
+    RemoveFeed(FeedID, CategoryID), // parent
     RemoveCategory(CategoryID),
     AddFeed(FeedListFeedModel, i32, bool),         // pos, visible
     AddCategory(FeedListCategoryModel, i32, bool), // pos, visible
@@ -19,7 +19,7 @@ pub enum FeedListChangeSet {
 impl fmt::Display for FeedListChangeSet {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         match self {
-            FeedListChangeSet::RemoveFeed(id) => write!(f, "RemoveFeed id='{}'", id),
+            FeedListChangeSet::RemoveFeed(id, parent) => write!(f, "RemoveFeed id='{} from parent id={}'", id, parent),
             FeedListChangeSet::RemoveCategory(id) => write!(f, "RemoveCategory id='{}'", id),
             FeedListChangeSet::AddFeed(model, pos, visible) => {
                 write!(f, "AddFeed id='{}' pos='{}' visible='{}'", model.id, pos, visible)
@@ -44,8 +44,8 @@ impl fmt::Display for FeedListChangeSet {
 impl PartialEq for FeedListChangeSet {
     fn eq(&self, other: &FeedListChangeSet) -> bool {
         match self {
-            FeedListChangeSet::RemoveFeed(id) => match other {
-                FeedListChangeSet::RemoveFeed(other_id) => id == other_id,
+            FeedListChangeSet::RemoveFeed(id, parent) => match other {
+                FeedListChangeSet::RemoveFeed(other_id, other_parent) => id == other_id && parent == other_parent,
                 _ => false,
             },
             FeedListChangeSet::RemoveCategory(id) => match other {
