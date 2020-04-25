@@ -288,11 +288,7 @@ impl FeedList {
         }));
     }
 
-    pub fn update(
-        &mut self,
-        new_tree: FeedListTree,
-        features: &Arc<RwLock<Option<PluginCapabilities>>>)
-    {
+    pub fn update(&mut self, new_tree: FeedListTree, features: &Arc<RwLock<Option<PluginCapabilities>>>) {
         let mut old_tree = new_tree;
         std::mem::swap(&mut old_tree, &mut *self.tree.write());
 
