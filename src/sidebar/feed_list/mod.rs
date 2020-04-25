@@ -23,7 +23,7 @@ use gtk::{
     ListBoxRowExt, ScrolledWindow, SelectionMode, StyleContextExt, TargetEntry, TargetFlags, WidgetExt,
 };
 use log::error;
-use news_flash::models::{CategoryID, FeedID, PluginCapabilities};
+use news_flash::models::{CategoryID, FeedID, PluginCapabilities, NEWSFLASH_TOPLEVEL};
 use parking_lot::RwLock;
 use std::collections::HashMap;
 use std::sync::Arc;
@@ -239,8 +239,10 @@ impl FeedList {
             if let Some(row) = widget.get_row_at_y(y) {
                 let alloc = row.get_allocation();
                 let index = row.get_index();
+                let is_category = GtkUtil::listboxrow_is_category(&row);
+                let height_threshold = if is_category { 4 } else { 2 };
 
-                let index = if y < alloc.y + (alloc.height / 2) {
+                let index = if y < alloc.y + (alloc.height / height_threshold) {
                     index
                 } else if index + 1 >= 0 {
                     index + 1
@@ -254,25 +256,29 @@ impl FeedList {
                 }) {
                     if let Some(dnd_data_string) = selection_data.get_text() {
                         if dnd_data_string.contains("FeedID") {
-                            let dnd_data_string = dnd_data_string.as_str().to_owned().split_off(6);
-                            let dnd_data_string: Vec<&str> = dnd_data_string.split(";").collect();
-                            let feed_string =
-                                dnd_data_string.get(0).expect("Didn't receive feed ID with DnD data.");
-                            let feed: FeedID =
-                                serde_json::from_str(feed_string).expect("Failed to deserialize FeedID.");
-                            let category_string = dnd_data_string
-                                .get(1)
-                                .expect("Didn't receive category ID with DnD data.");
-                            let current_category: CategoryID =
-                                serde_json::from_str(category_string).expect("Failed to deserialize FeedID.");
-                            let dnd_data = FeedListDndAction::MoveFeed(
-                                feed,
-                                current_category,
-                                parent_category.clone(),
-                                sort_index,
-                            );
-                            log::debug!("{:?}", dnd_data);
-                            Util::send(&sender, Action::DragAndDrop(dnd_data));
+                            if parent_category == NEWSFLASH_TOPLEVEL.clone() {
+                                log::warn!("Feed drag to TOPLEVEL not allowed");
+                            } else {
+                                let dnd_data_string = dnd_data_string.as_str().to_owned().split_off(6);
+                                let dnd_data_string: Vec<&str> = dnd_data_string.split(";").collect();
+                                let feed_string =
+                                    dnd_data_string.get(0).expect("Didn't receive feed ID with DnD data.");
+                                let feed: FeedID =
+                                    serde_json::from_str(feed_string).expect("Failed to deserialize FeedID.");
+                                let category_string = dnd_data_string
+                                    .get(1)
+                                    .expect("Didn't receive category ID with DnD data.");
+                                let current_category: CategoryID =
+                                    serde_json::from_str(category_string).expect("Failed to deserialize FeedID.");
+                                let dnd_data = FeedListDndAction::MoveFeed(
+                                    feed,
+                                    current_category,
+                                    parent_category.clone(),
+                                    sort_index,
+                                );
+                                log::debug!("{:?}", dnd_data);
+                                Util::send(&sender, Action::DragAndDrop(dnd_data));
+                            }
                         }
 
                         if dnd_data_string.contains("CategoryID") {
