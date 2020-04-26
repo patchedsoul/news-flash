@@ -225,7 +225,7 @@ impl FeedList {
         self.list.connect_drag_data_received(clone!(
             @weak self.tree as tree,
             @weak self.hovered_category_expand as hovered_category_expand,
-            @strong self.sender as sender => @default-panic, move |widget, _ctx, _x, y, selection_data, _info, _time| {
+            @strong self.sender as sender => @default-panic, move |widget, ctx, _x, y, selection_data, _info, time| {
             Self::clear_hovered_expand(&hovered_category_expand);
             let children = widget.get_children();
             for widget in children {
@@ -258,27 +258,31 @@ impl FeedList {
                         if dnd_data_string.contains("FeedID") {
                             if parent_category == NEWSFLASH_TOPLEVEL.clone() {
                                 log::warn!("Feed drag to TOPLEVEL not allowed");
-                            } else {
-                                let dnd_data_string = dnd_data_string.as_str().to_owned().split_off(6);
-                                let dnd_data_string: Vec<&str> = dnd_data_string.split(";").collect();
-                                let feed_string =
-                                    dnd_data_string.get(0).expect("Didn't receive feed ID with DnD data.");
-                                let feed: FeedID =
-                                    serde_json::from_str(feed_string).expect("Failed to deserialize FeedID.");
-                                let category_string = dnd_data_string
-                                    .get(1)
-                                    .expect("Didn't receive category ID with DnD data.");
-                                let current_category: CategoryID =
-                                    serde_json::from_str(category_string).expect("Failed to deserialize FeedID.");
-                                let dnd_data = FeedListDndAction::MoveFeed(
-                                    feed,
-                                    current_category,
-                                    parent_category.clone(),
-                                    sort_index,
-                                );
-                                log::debug!("{:?}", dnd_data);
-                                Util::send(&sender, Action::DragAndDrop(dnd_data));
+                                return;
                             }
+
+                            let dnd_data_string = dnd_data_string.as_str().to_owned().split_off(6);
+                            let dnd_data_string: Vec<&str> = dnd_data_string.split(";").collect();
+                            let feed_string =
+                                dnd_data_string.get(0).expect("Didn't receive feed ID with DnD data.");
+                            let feed: FeedID =
+                                serde_json::from_str(feed_string).expect("Failed to deserialize FeedID.");
+                            let category_string = dnd_data_string
+                                .get(1)
+                                .expect("Didn't receive category ID with DnD data.");
+                            let current_category: CategoryID =
+                                serde_json::from_str(category_string).expect("Failed to deserialize FeedID.");
+                            let dnd_data = FeedListDndAction::MoveFeed(
+                                feed,
+                                current_category,
+                                parent_category.clone(),
+                                sort_index,
+                            );
+                            log::debug!("{:?}", dnd_data);
+                            Util::send(&sender, Action::DragAndDrop(dnd_data));
+                            ctx.drag_drop_done(true);
+                            ctx.drop_finish(true, time);
+                            return;
                         }
 
                         if dnd_data_string.contains("CategoryID") {
@@ -288,9 +292,15 @@ impl FeedList {
                             let dnd_data =
                                 FeedListDndAction::MoveCategory(category, parent_category.clone(), sort_index);
                             Util::send(&sender, Action::DragAndDrop(dnd_data));
+                            ctx.drag_drop_done(true);
+                            ctx.drop_finish(true, time);
+                            return;
                         }
                     }
                 }
+
+                ctx.drag_drop_done(false);
+                ctx.drop_finish(false, time);
             }
         }));
     }
