@@ -26,7 +26,8 @@ cargo_script = find_program('build-aux/cargo.sh')
 
 
 if get_option('profile') == 'development'
-  profile = '.Devel'
+  profile = 'Devel'
+  app_id_suffix = '.Devel'
   name_suffix = ' (Development)'
   vcs_tag = run_command('git', 'rev-parse', '--short', 'HEAD').stdout().strip()
   if vcs_tag == ''
@@ -36,11 +37,12 @@ if get_option('profile') == 'development'
   endif
 else
   profile = ''
+  app_id_suffix = ''
   name_suffix = ''
   version_suffix = ''
 endif
 
-application_id = 'com.gitlab.newsflash@0@'.format(profile)
+application_id = 'com.gitlab.newsflash@0@'.format(app_id_suffix)
 
 newsflash_version = meson.project_version()
 version_array = newsflash_version.split('.')

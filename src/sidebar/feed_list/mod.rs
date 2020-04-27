@@ -278,7 +278,6 @@ impl FeedList {
                                 parent_category.clone(),
                                 sort_index,
                             );
-                            log::debug!("{:?}", dnd_data);
                             Util::send(&sender, Action::DragAndDrop(dnd_data));
                             ctx.drag_drop_done(true);
                             ctx.drop_finish(true, time);

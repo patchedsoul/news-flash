@@ -3,9 +3,9 @@ use glib::object::IsA;
 use gtk::{AboutDialog, AboutDialogExt, GtkWindowExt, License, Window};
 
 pub const APP_NAME: &str = "NewsFlash";
-pub const COPYRIGHT: &str = "Copyright © 2017-2019 Jan Lukas Gernert";
+pub const COPYRIGHT: &str = "Copyright © 2017-2020 Jan Lukas Gernert";
 pub const DESCRIPTION: &str = "Desktop Client for various RSS Services";
-pub const AUTHORS: &[&str] = &["Jan Lukas Gernert", "Brendan Long"];
+pub const AUTHORS: &[&str] = &["Jan Lukas Gernert", "Brendan Long", "Bilal Elmoussaoui", "Felix Bühler"];
 
 #[derive(Clone, Debug)]
 pub struct NewsFlashAbout {

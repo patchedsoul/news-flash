@@ -44,7 +44,7 @@ fn main() {
     let encoder = PatternEncoder::new("{d(%H:%M:%S)} - {h({({l}):5.5})} - {m:<35.} (({M}:{L}))\n");
     let stdout = ConsoleAppender::builder().encoder(Box::new(encoder)).build();
     let appender = Appender::builder().build("stdout", Box::new(stdout));
-    let root = Root::builder().appender("stdout").build(LevelFilter::Debug);
+    let root = Root::builder().appender("stdout").build(LevelFilter::Info);
     let config = Config::builder()
         .appender(appender)
         .build(root)
