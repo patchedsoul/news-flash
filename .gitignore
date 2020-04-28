@@ -3,6 +3,7 @@ Cargo.lock
 .idea/
 target/
 _build/
+build/
 *.ui~
 config.rs
 .flatpak-builder
