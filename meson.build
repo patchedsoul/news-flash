@@ -1,6 +1,6 @@
 project(
   'newsflash', 'rust',
-  version: '1.0.0-beta',
+  version: '1.0.0',
   license: 'GPLv3',
 )
 
@@ -41,6 +41,9 @@ else
   name_suffix = ''
   version_suffix = ''
 endif
+
+# FIXME: override version suffix for beta
+version_suffix = '-beta1'
 
 application_id = 'com.gitlab.newsflash@0@'.format(app_id_suffix)
 
