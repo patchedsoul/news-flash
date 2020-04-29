@@ -32,7 +32,7 @@ pub struct ArticleList {
     list_1: Arc<RwLock<SingleArticleList>>,
     list_2: Arc<RwLock<SingleArticleList>>,
     list_model: Arc<RwLock<ArticleListModel>>,
-    list_select_signal: Option<u64>,
+    list_activate_signal: Option<u64>,
     local_state: MainWindowState,
     global_state: Arc<RwLock<MainWindowState>>,
     current_list: Arc<RwLock<CurrentList>>,
@@ -70,7 +70,7 @@ impl ArticleList {
             list_1: Arc::new(RwLock::new(list_1)),
             list_2: Arc::new(RwLock::new(list_2)),
             list_model: Arc::new(RwLock::new(model)),
-            list_select_signal: None,
+            list_activate_signal: None,
             local_state,
             global_state: global_state.clone(),
             current_list: Arc::new(RwLock::new(CurrentList::List1)),
@@ -116,9 +116,9 @@ impl ArticleList {
             self.stack.set_visible_child_name("empty");
             if let Some(current_list) = self.get_current_list() {
                 current_list.write().clear();
-                GtkUtil::disconnect_signal(self.list_select_signal, &current_list.read().list());
+                GtkUtil::disconnect_signal(self.list_activate_signal, &current_list.read().list());
             }
-            self.list_select_signal = None;
+            self.list_activate_signal = None;
             *self.current_list.write() = CurrentList::Empty;
             self.local_state = new_state.read().clone();
             return;
@@ -132,6 +132,15 @@ impl ArticleList {
         }
 
         {
+            // don't remove selected article during update
+            // the `require_new_list` check above already ensures the old and new state are the same
+            // so we add the selected model to the new_list so it wont be removed during the update
+            if let Some(selected_article_model) = self.get_selected_article_model() {
+                if !new_list.contains(&selected_article_model.id) {
+                    new_list.add_model(selected_article_model);
+                }
+            }
+
             let old_list = self.list_model.clone();
             let mut old_list = old_list.write();
             let list_diff = old_list.generate_diff(&mut new_list);
@@ -216,8 +225,8 @@ impl ArticleList {
             CurrentList::List2 => (&self.list_2, &self.list_1),
             CurrentList::Empty => return,
         };
-        GtkUtil::disconnect_signal(self.list_select_signal, &old_list.read().list());
-        let select_signal_id = new_list
+        GtkUtil::disconnect_signal(self.list_activate_signal, &old_list.read().list());
+        let activate_signal_id = new_list
             .read()
             .list()
             .connect_row_activated(clone!(
@@ -248,7 +257,7 @@ impl ArticleList {
                 }
             }))
             .to_glib();
-        self.list_select_signal = Some(select_signal_id);
+        self.list_activate_signal = Some(activate_signal_id);
     }
 
     fn require_new_list(&self, new_state: &RwLock<MainWindowState>) -> bool {

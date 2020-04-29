@@ -47,7 +47,6 @@ pub struct AddPopover {
     favicon_image: Image,
     parse_button_stack: Stack,
     parse_button: Button,
-    feed_add_button_stack: Stack,
     url_entry: Entry,
     feed_url: Arc<RwLock<Option<Url>>>,
     feed_category: Arc<RwLock<Option<AddCategory>>>,
@@ -78,7 +77,6 @@ impl AddPopover {
             &dialog.favicon_image,
             &dialog.feed_url,
             &dialog.parse_button_stack,
-            &dialog.feed_add_button_stack,
             &dialog.parse_button,
             &dialog.url_entry,
         );
@@ -108,7 +106,6 @@ impl AddPopover {
         let category_combo = builder.get::<ComboBox>("category_combo");
         let feed_category_entry = builder.get::<Entry>("feed_category_entry");
         let feed_add_button = builder.get::<Button>("add_button");
-        let feed_add_button_stack = builder.get::<Stack>("add_button_stack");
         let select_list_box = builder.get::<ListBox>("select_list_box");
         let category_entry = builder.get::<Entry>("category_entry");
         let category_add_button = builder.get::<Button>("add_category_button");
@@ -215,7 +212,6 @@ impl AddPopover {
             @weak select_button,
             @weak select_button_stack,
             @weak parse_button_stack,
-            @weak feed_add_button_stack,
             @weak url_entry,
             @strong feed_url,
             @strong settings => @default-panic, move |button|
@@ -242,7 +238,6 @@ impl AddPopover {
                         &favicon_image,
                         &feed_url,
                         &parse_button_stack,
-                        &feed_add_button_stack,
                         button,
                         &url_entry);
                 } else {
@@ -392,7 +387,6 @@ impl AddPopover {
             favicon_image,
             parse_button_stack,
             parse_button,
-            feed_add_button_stack,
             url_entry,
             feed_url,
             feed_category,
@@ -401,7 +395,6 @@ impl AddPopover {
 
     fn fill_feed_page(
         feed: Feed,
-        add_button_stack: &Stack,
         title_entry: &Entry,
         favicon_image: &Image,
         feed_url: &Arc<RwLock<Option<Url>>>,
@@ -414,8 +407,6 @@ impl AddPopover {
         } else {
             feed_url.write().take();
         }
-
-        add_button_stack.set_visible_child_name("spinner");
 
         let (sender, receiver) = oneshot::channel::<Option<FavIcon>>();
 
@@ -436,7 +427,6 @@ impl AddPopover {
 
         let glib_future = receiver.map(clone!(
             @weak favicon_image,
-            @weak add_button_stack,
             @strong threadpool,
             @strong settings => @default-panic, move |res|
         {
@@ -444,7 +434,6 @@ impl AddPopover {
                 if let Some(data) = &favicon.data {
                     if let Ok(surface) = GtkUtil::create_surface_from_bytes(data, 64, 64, scale) {
                         favicon_image.set_from_surface(Some(&surface));
-                        add_button_stack.set_visible_child_name("text");
                     }
                 }
             } else if let Some(icon_url) = feed.icon_url {
@@ -470,13 +459,10 @@ impl AddPopover {
                             favicon_image.set_from_surface(Some(&surface));
                         }
                     }
-                    add_button_stack.set_visible_child_name("text");
                 });
 
                 threadpool.spawn_ok(thread_future);
                 Util::glib_spawn_future(glib_future);
-            } else {
-                add_button_stack.set_visible_child_name("text");
             }
         }));
 
@@ -492,7 +478,6 @@ impl AddPopover {
         stack: &Stack,
         title_entry: &Entry,
         favicon: &Image,
-        add_button_stack: &Stack,
         feed_url: &Arc<RwLock<Option<Url>>>,
         threadpool: ThreadPool,
         settings: &Arc<RwLock<Settings>>,
@@ -508,8 +493,7 @@ impl AddPopover {
             @weak favicon,
             @strong feed_url,
             @strong settings,
-            @weak select_button_stack,
-            @weak add_button_stack => @default-panic, move |button|
+            @weak select_button_stack => @default-panic, move |button|
         {
             if let Some(row) = list.get_selected_row() {
                 if let Some(name) = row.get_widget_name() {
@@ -534,7 +518,6 @@ impl AddPopover {
 
                     let glib_future = receiver.map(clone!(
                         @strong threadpool,
-                        @weak add_button_stack,
                         @weak button as select_button,
                         @weak select_button_stack,
                         @strong feed_url,
@@ -546,7 +529,6 @@ impl AddPopover {
                         if let Some(ParsedUrl::SingleFeed(feed)) = res.expect(CHANNEL_ERROR) {
                             Self::fill_feed_page(
                                 feed,
-                                &add_button_stack,
                                 &title_entry,
                                 &favicon,
                                 &feed_url,
@@ -642,7 +624,6 @@ impl AddPopover {
         favicon_image: &Image,
         feed_url: &Arc<RwLock<Option<Url>>>,
         parse_button_stack: &Stack,
-        add_button_stack: &Stack,
         parse_button: &Button,
         url_entry: &Entry,
     ) {
@@ -674,7 +655,6 @@ impl AddPopover {
             @weak select_button_stack,
             @weak favicon_image,
             @weak parse_button_stack,
-            @weak add_button_stack,
             @weak parse_button,
             @weak url_entry,
             @strong feed_url,
@@ -695,7 +675,6 @@ impl AddPopover {
                             &main_stack,
                             &feed_title_entry,
                             &favicon_image,
-                            &add_button_stack,
                             &feed_url,
                             parse_button_threadpool,
                             &settings,
@@ -706,7 +685,6 @@ impl AddPopover {
                         main_stack.set_visible_child_name("feed_page");
                         Self::fill_feed_page(
                             feed,
-                            &add_button_stack,
                             &feed_title_entry,
                             &favicon_image,
                             &feed_url,
