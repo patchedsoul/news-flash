@@ -14,7 +14,7 @@ use crate::sidebar::feed_list::{
         FeedListTree,
     },
 };
-use crate::sidebar::SidebarIterateItem;
+use crate::sidebar::{SidebarIterateItem, SidebarSelection};
 use crate::util::{BuilderHelper, GtkUtil, Util};
 use gdk::{DragAction, EventType};
 use glib::{clone, source::Continue, translate::ToGlib, Sender};
@@ -53,6 +53,7 @@ impl FeedList {
                 50,
                 clone!(@weak list => @default-panic, move || {
                     list.set_selection_mode(SelectionMode::Single);
+                    // FIXME: disconnect self
                     Continue(false)
                 }),
             );
@@ -75,6 +76,40 @@ impl FeedList {
 
     pub fn widget(&self) -> ListBox {
         self.list.clone()
+    }
+
+    pub fn on_window_hidden(&self) {
+        self.list.set_selection_mode(SelectionMode::None);
+    }
+
+    pub fn on_window_show(&self) {
+        gtk::timeout_add(
+            50,
+            clone!(
+                @weak self.list as list,
+                @weak self.state as state,
+                @weak self.feeds as feeds,
+                @weak self.categories as categories => @default-panic, move ||
+            {
+                list.set_selection_mode(SelectionMode::Single);
+                if let SidebarSelection::Feed(id, parent, _label) = state.read().get_sidebar_selection() {
+                    if let Some(feed_rows) = feeds.read().get(&id) {
+                        for feed_row in feed_rows {
+                            if &feed_row.read().parent_id == parent {
+                                list.select_row(Some(&feed_row.read().widget()));
+                                break;
+                            }
+                        }
+                    }
+                }
+                else if let SidebarSelection::Category(id, _label) = state.read().get_sidebar_selection() {
+                    if let Some(category_row) = categories.read().get(&id) {
+                        list.select_row(Some(&category_row.read().widget()));
+                    }
+                }
+                Continue(false)
+            }),
+        );
     }
 
     fn clear_hovered_expand(hovered_category_expand: &Arc<RwLock<Option<(u32, CategoryID)>>>) {

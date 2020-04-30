@@ -3,7 +3,8 @@ pub mod models;
 mod tag_row;
 
 use self::error::{TagListError, TagListErrorKind};
-use crate::sidebar::SidebarIterateItem;
+use crate::main_window_state::MainWindowState;
+use crate::sidebar::{SidebarIterateItem, SidebarSelection};
 use crate::util::{BuilderHelper, GtkUtil};
 use glib::{clone, source::Continue, translate::ToGlib};
 use gtk::{ContainerExt, ListBox, ListBoxExt, ListBoxRowExt, SelectionMode, WidgetExt};
@@ -17,13 +18,14 @@ use tag_row::TagRow;
 #[derive(Clone, Debug)]
 pub struct TagList {
     list: ListBox,
-    tags: HashMap<TagID, Arc<RwLock<TagRow>>>,
+    tags: Arc<RwLock<HashMap<TagID, Arc<RwLock<TagRow>>>>>,
     list_model: Arc<RwLock<TagListModel>>,
+    state: Arc<RwLock<MainWindowState>>,
     delayed_selection: Arc<RwLock<Option<u32>>>,
 }
 
 impl TagList {
-    pub fn new() -> Self {
+    pub fn new(state: &Arc<RwLock<MainWindowState>>) -> Self {
         let builder = BuilderHelper::new("sidebar_list");
         let list_box = builder.get::<ListBox>("sidebar_list");
 
@@ -41,14 +43,38 @@ impl TagList {
 
         TagList {
             list: list_box,
-            tags: HashMap::new(),
+            tags: Arc::new(RwLock::new(HashMap::new())),
             list_model: Arc::new(RwLock::new(TagListModel::new())),
+            state: state.clone(),
             delayed_selection: Arc::new(RwLock::new(None)),
         }
     }
 
     pub fn widget(&self) -> gtk::ListBox {
         self.list.clone()
+    }
+
+    pub fn on_window_hidden(&self) {
+        self.list.set_selection_mode(SelectionMode::None);
+    }
+
+    pub fn on_window_show(&self) {
+        gtk::timeout_add(
+            50,
+            clone!(
+                @weak self.list as list,
+                @weak self.state as state,
+                @weak self.tags as tags => @default-panic, move ||
+            {
+                list.set_selection_mode(SelectionMode::Single);
+                if let SidebarSelection::Tag(id, _label) = state.read().get_sidebar_selection() {
+                    if let Some(tag_rows) = tags.read().get(&id) {
+                        list.select_row(Some(&tag_rows.read().widget()));
+                    }
+                }
+                Continue(false)
+            }),
+        );
     }
 
     pub fn update(&mut self, new_list: TagListModel) {
@@ -59,16 +85,16 @@ impl TagList {
         for diff in list_diff {
             match diff {
                 TagListChangeSet::Remove(id) => {
-                    if let Some(tag_handle) = self.tags.get(&id) {
+                    if let Some(tag_handle) = self.tags.read().get(&id) {
                         self.list.remove(&tag_handle.read().widget());
                     }
-                    self.tags.remove(&id);
+                    self.tags.write().remove(&id);
                 }
                 TagListChangeSet::Add(model, pos) => {
                     self.add_tag(&model, pos);
                 }
                 TagListChangeSet::UpdateLabel(id, label) => {
-                    if let Some(tag_handle) = self.tags.get(&id) {
+                    if let Some(tag_handle) = self.tags.read().get(&id) {
                         tag_handle.read().update_title(&label);
                     }
                 }
@@ -79,7 +105,7 @@ impl TagList {
     fn add_tag(&mut self, tag: &TagListTagModel, pos: i32) {
         let tag_widget = TagRow::new(tag);
         self.list.insert(&tag_widget.read().widget(), pos);
-        self.tags.insert(tag.id.clone(), tag_widget);
+        self.tags.write().insert(tag.id.clone(), tag_widget);
     }
 
     pub fn deselect(&self) {
@@ -123,7 +149,7 @@ impl TagList {
     pub fn set_selection(&self, selection: TagID) -> Result<(), TagListError> {
         self.cancel_selection();
 
-        if let Some(tag_row) = self.tags.get(&selection) {
+        if let Some(tag_row) = self.tags.read().get(&selection) {
             let row = tag_row.read().widget();
             gtk::idle_add(clone!(
                 @weak self.delayed_selection as delayed_selection,

@@ -82,7 +82,7 @@ impl SideBar {
         let delayed_all_selection = Arc::new(RwLock::new(None));
 
         let feed_list = FeedList::new(&sidebar_scroll, state, sender.clone());
-        let tag_list = TagList::new();
+        let tag_list = TagList::new(state);
         let footer = Arc::new(SidebarFooter::new(
             &builder,
             state,
@@ -420,7 +420,7 @@ impl SideBar {
     pub fn select_next_item(&self) -> Result<(), SidebarError> {
         let select_next = match *self.selection.read() {
             SidebarSelection::All => SidebarIterateItem::FeedListSelectFirstItem,
-            SidebarSelection::Cateogry(_, _) | SidebarSelection::Feed(_, _, _) => {
+            SidebarSelection::Category(_, _) | SidebarSelection::Feed(_, _, _) => {
                 self.feed_list.read().select_next_item()
             }
             SidebarSelection::Tag(_, _) => self.tag_list.read().get_next_item(),
@@ -431,7 +431,7 @@ impl SideBar {
     pub fn select_prev_item(&self) -> Result<(), SidebarError> {
         let select_next = match *self.selection.read() {
             SidebarSelection::All => SidebarIterateItem::TagListSelectLastItem,
-            SidebarSelection::Cateogry(_, _) | SidebarSelection::Feed(_, _, _) => {
+            SidebarSelection::Category(_, _) | SidebarSelection::Feed(_, _, _) => {
                 self.feed_list.read().select_prev_item()
             }
             SidebarSelection::Tag(_, _) => self.tag_list.read().get_prev_item(),
