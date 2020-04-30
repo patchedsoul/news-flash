@@ -5,7 +5,7 @@ use serde::{Deserialize, Serialize};
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub enum SidebarSelection {
     All,
-    Cateogry(CategoryID, String),
+    Category(CategoryID, String),
     Feed(FeedID, CategoryID, String),
     Tag(TagID, String),
 }
@@ -14,7 +14,7 @@ impl SidebarSelection {
     pub fn from_feed_list_selection(selection: FeedListItemID, title: String) -> Self {
         match selection {
             FeedListItemID::Feed(id, parent) => SidebarSelection::Feed(id, parent, title),
-            FeedListItemID::Category(id) => SidebarSelection::Cateogry(id, title),
+            FeedListItemID::Category(id) => SidebarSelection::Category(id, title),
         }
     }
 }
@@ -26,8 +26,8 @@ impl PartialEq for SidebarSelection {
                 SidebarSelection::All => true,
                 _ => false,
             },
-            SidebarSelection::Cateogry(self_id, _title) => match other {
-                SidebarSelection::Cateogry(other_id, _title) => self_id == other_id,
+            SidebarSelection::Category(self_id, _title) => match other {
+                SidebarSelection::Category(other_id, _title) => self_id == other_id,
                 _ => false,
             },
             SidebarSelection::Feed(self_id, parent_id, _title) => match other {

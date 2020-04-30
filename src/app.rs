@@ -208,10 +208,17 @@ impl App {
         self.application.connect_startup(|_app| {});
 
         self.application.connect_activate(
-            clone!(@weak self.window.widget as window => @default-panic, move |app| {
+            clone!(
+                @weak self.window.widget as window,
+                @weak self.window.content_page as content_page => @default-panic, move |app|
+            {
                 app.add_window(&window);
                 window.show_all();
                 window.present();
+
+                // Workaround SINGLE selection mode of listbox
+                content_page.sidebar.read().feed_list.read().on_window_show();
+                content_page.sidebar.read().tag_list.read().on_window_show();
             }),
         );
     }
@@ -1037,7 +1044,7 @@ impl App {
 
             let dialog = RenameDialog::new(
                 &self.window.widget,
-                &SidebarSelection::Cateogry(category_id, category.label.clone()),
+                &SidebarSelection::Category(category_id, category.label.clone()),
             );
 
             dialog.rename_button.connect_clicked(clone!(
@@ -1092,7 +1099,7 @@ impl App {
                 None
             }
             SidebarSelection::Feed(feed_id, _parent_id, label) => Some(UndoActionModel::DeleteFeed((feed_id, label))),
-            SidebarSelection::Cateogry(category_id, label) => {
+            SidebarSelection::Category(category_id, label) => {
                 Some(UndoActionModel::DeleteCategory((category_id, label)))
             }
             SidebarSelection::Tag(tag_id, label) => Some(UndoActionModel::DeleteTag((tag_id, label))),

@@ -87,30 +87,6 @@ impl MainWindow {
             window.get_style_context().add_class("devel");
         }
 
-        window.connect_delete_event(clone!(
-            @strong sender,
-            @weak stack,
-            @weak settings => @default-panic, move |win, _|
-        {
-            if *shutdown_in_progress.read() {
-                win.hide_on_delete();
-                return Inhibit(true);
-            }
-            if settings.read().get_keep_running_in_background() {
-                if let Some(visible_child) = stack.get_visible_child_name() {
-                    if visible_child == CONTENT_PAGE {
-                        win.hide_on_delete();
-                    } else {
-                        Util::send(&sender, Action::QueueQuit);
-                    }
-                }
-            } else {
-                Util::send(&sender, Action::QueueQuit);
-            }
-
-            Inhibit(true)
-        }));
-
         // setup pages
         let _welcome = WelcomePage::new(&builder, sender.clone());
         let password_login_page = Arc::new(PasswordLogin::new(&builder, sender.clone()));
@@ -124,6 +100,35 @@ impl MainWindow {
             features,
         ));
         let reset_page = ResetPage::new(&builder, sender.clone());
+
+        window.connect_delete_event(clone!(
+            @strong sender,
+            @weak stack,
+            @weak content_page,
+            @weak settings => @default-panic, move |win, _|
+        {
+            if *shutdown_in_progress.read() {
+                win.hide_on_delete();
+                return Inhibit(true);
+            }
+            if settings.read().get_keep_running_in_background() {
+                if let Some(visible_child) = stack.get_visible_child_name() {
+                    if visible_child == CONTENT_PAGE {
+                        win.hide_on_delete();
+
+                        // Workaround SINGLE selection mode of listbox
+                        content_page.sidebar.read().feed_list.read().on_window_hidden();
+                        content_page.sidebar.read().tag_list.read().on_window_hidden();
+                    } else {
+                        Util::send(&sender, Action::QueueQuit);
+                    }
+                }
+            } else {
+                Util::send(&sender, Action::QueueQuit);
+            }
+
+            Inhibit(true)
+        }));
 
         Self::setup_shortcuts(
             &window,
@@ -406,7 +411,7 @@ impl MainWindow {
     pub fn show_undo_bar(&self, action: UndoActionModel) {
         let select_all_button = match self.content_page.sidebar.read().get_selection() {
             SidebarSelection::All => false,
-            SidebarSelection::Cateogry(selected_id, _label) => match &action {
+            SidebarSelection::Category(selected_id, _label) => match &action {
                 UndoActionModel::DeleteCategory((delete_id, _label)) => &selected_id == delete_id,
                 _ => false,
             },
@@ -648,7 +653,7 @@ impl MainWindow {
                 threadpool.spawn_ok(thread_future);
                 Util::glib_spawn_future(glib_future);
             }
-            SidebarSelection::Cateogry(category_id, _title) => {
+            SidebarSelection::Category(category_id, _title) => {
                 let (sender, receiver) = oneshot::channel::<Result<(), NewsFlashError>>();
 
                 let news_flash = news_flash.clone();

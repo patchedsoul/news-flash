@@ -567,25 +567,25 @@ mod tests {
     ) {
         let category_1 = Category {
             category_id: CategoryID::new("category_1"),
-            label: "Cateogry 1".to_owned(),
+            label: "Category 1".to_owned(),
             parent_id: NEWSFLASH_TOPLEVEL.clone(),
             sort_index: Some(0),
         };
         let category_2 = Category {
             category_id: CategoryID::new("category_2"),
-            label: "Cateogry 2".to_owned(),
+            label: "Category 2".to_owned(),
             parent_id: NEWSFLASH_TOPLEVEL.clone(),
             sort_index: Some(1),
         };
         let category_3 = Category {
             category_id: CategoryID::new("category_3"),
-            label: "Cateogry 3".to_owned(),
+            label: "Category 3".to_owned(),
             parent_id: NEWSFLASH_TOPLEVEL.clone(),
             sort_index: Some(2),
         };
         let category_4 = Category {
             category_id: CategoryID::new("category_4"),
-            label: "Cateogry 4".to_owned(),
+            label: "Category 4".to_owned(),
             parent_id: CategoryID::new("category_2"),
             sort_index: Some(0),
         };

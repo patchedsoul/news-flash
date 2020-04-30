@@ -307,7 +307,7 @@ impl ArticleList {
                     None => i18n("No starred articles"),
                 },
             },
-            SidebarSelection::Cateogry(_id, title) => match new_state.read().get_header_selection() {
+            SidebarSelection::Category(_id, title) => match new_state.read().get_header_selection() {
                 HeaderSelection::All => match new_state.read().get_search_term() {
                     Some(search) => i18n_f("No articles that fit \"{}\" in category \"{}\"", &[&search, &title]),
                     None => i18n_f("No articles in category \"{}\"", &[&title]),
