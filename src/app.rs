@@ -942,6 +942,7 @@ impl App {
                         });
                 Runtime::new().expect(RUNTIME_ERROR).block_on(add_tag_future);
                 Util::send(&global_sender, Action::UpdateSidebar);
+                Util::send(&global_sender, Action::UpdateArticleHeader);
             } else {
                 let message = "Failed to lock NewsFlash.".to_owned();
                 error!("{}", message);
