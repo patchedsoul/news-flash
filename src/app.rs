@@ -207,20 +207,18 @@ impl App {
     fn setup_signals(&self) {
         self.application.connect_startup(|_app| {});
 
-        self.application.connect_activate(
-            clone!(
-                @weak self.window.widget as window,
-                @weak self.window.content_page as content_page => @default-panic, move |app|
-            {
-                app.add_window(&window);
-                window.show_all();
-                window.present();
+        self.application.connect_activate(clone!(
+            @weak self.window.widget as window,
+            @weak self.window.content_page as content_page => @default-panic, move |app|
+        {
+            app.add_window(&window);
+            window.show_all();
+            window.present();
 
-                // Workaround SINGLE selection mode of listbox
-                content_page.sidebar.read().feed_list.read().on_window_show();
-                content_page.sidebar.read().tag_list.read().on_window_show();
-            }),
-        );
+            // Workaround SINGLE selection mode of listbox
+            content_page.sidebar.read().feed_list.read().on_window_show();
+            content_page.sidebar.read().tag_list.read().on_window_show();
+        }));
     }
 
     pub fn run(&self, app: Rc<Self>) {
