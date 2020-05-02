@@ -4,6 +4,11 @@ The spiritual successor to [FeedReader](https://github.com/jangernert/FeedReader
 
 ![Screenshot](./data/screenshots/2020-04-20.png "WIP 2020-04-20")
 
+## Beta1 Flatpak
+
+Currently available [here](https://gitlab.com/news-flash/news_flash_gtk/-/jobs/535363840/artifacts/raw/com.gitlab.newsflash.Devel.flatpak). Flathub is planned,
+but currently blocked by not supporting API secrets.
+
 ## Looking for service maintainers
 
 I'm looking for people that are actively using a specific service backend of NewsFlash and are willing to maintain it.
