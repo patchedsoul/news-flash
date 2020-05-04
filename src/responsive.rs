@@ -4,6 +4,7 @@ use gtk::{Box, Button, ButtonExt, HeaderBar, MenuButton, ToggleButton, WidgetExt
 use libhandy::{Leaflet, LeafletExt};
 use parking_lot::RwLock;
 use std::sync::Arc;
+use log::debug;
 
 #[derive(Clone, Debug)]
 pub struct ResponsiveLayout {
@@ -72,9 +73,11 @@ impl ResponsiveLayout {
             @weak layout => @default-panic, move |_leaflet|
         {
             if minor_leaflet.get_property_folded() {
+                debug!("Widget: Minor Leaflet folded");
                 layout.state.write().minor_leaflet_folded = true;
                 Self::process_state_change(&layout);
             }
+            debug!("Widget: Major Leaflet folded");
             layout.state.write().major_leaflet_folded = true;
             Self::process_state_change(&layout);
         }));

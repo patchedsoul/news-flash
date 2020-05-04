@@ -212,7 +212,7 @@ impl App {
             @weak self.window.content_page as content_page => @default-panic, move |app|
         {
             app.add_window(&window);
-            window.show_all();
+            window.show();
             window.present();
 
             // Workaround SINGLE selection mode of listbox
