@@ -25,8 +25,8 @@ use libhandy::Leaflet;
 use news_flash::models::{Article, ArticleFilter, Marked, PluginCapabilities, PluginID, Read, NEWSFLASH_TOPLEVEL};
 use news_flash::NewsFlash;
 use parking_lot::RwLock;
-use std::sync::Arc;
 use std::collections::HashSet;
+use std::sync::Arc;
 
 pub struct ContentPage {
     pub sidebar: Arc<RwLock<SideBar>>,
@@ -311,15 +311,17 @@ impl ContentPage {
             for undo_action in undo_actions {
                 match undo_action {
                     UndoActionModel::DeleteFeed(feed_id, _label) => feed_blacklist.push(feed_id.clone()),
-                    UndoActionModel::DeleteCategory(category_id, _label) => category_blacklist.push(category_id.clone()),
-                    UndoActionModel::DeleteTag(_tag_id, _label) => {},
+                    UndoActionModel::DeleteCategory(category_id, _label) => {
+                        category_blacklist.push(category_id.clone())
+                    }
+                    UndoActionModel::DeleteTag(_tag_id, _label) => {}
                 }
             }
 
             let feed_blacklist = if feed_blacklist.is_empty() {
                 None
             } else {
-                Some(feed_blacklist)  
+                Some(feed_blacklist)
             };
             let category_blacklist = if category_blacklist.is_empty() {
                 None
@@ -449,7 +451,9 @@ impl ContentPage {
 
                 // feedlist: Feeds
                 for mapping in &mappings {
-                    if pending_delte_feeds.contains(&mapping.feed_id) || pending_delete_categories.contains(&mapping.category_id) {
+                    if pending_delte_feeds.contains(&mapping.feed_id)
+                        || pending_delete_categories.contains(&mapping.category_id)
+                    {
                         continue;
                     }
 

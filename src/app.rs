@@ -1099,9 +1099,7 @@ impl App {
                 None
             }
             SidebarSelection::Feed(feed_id, _parent_id, label) => Some(UndoActionModel::DeleteFeed(feed_id, label)),
-            SidebarSelection::Category(category_id, label) => {
-                Some(UndoActionModel::DeleteCategory(category_id, label))
-            }
+            SidebarSelection::Category(category_id, label) => Some(UndoActionModel::DeleteCategory(category_id, label)),
             SidebarSelection::Tag(tag_id, label) => Some(UndoActionModel::DeleteTag(tag_id, label)),
         };
         if let Some(undo_action) = undo_action {
@@ -1120,7 +1118,9 @@ impl App {
                     Ok(res) => res,
                     Err(error) => {
                         Util::send(&sender, Action::Error("Failed to delete feed.".to_owned(), error));
-                        processing_actions.write().remove(&UndoActionModel::DeleteFeed(feed_id.clone(), "".into()));
+                        processing_actions
+                            .write()
+                            .remove(&UndoActionModel::DeleteFeed(feed_id.clone(), "".into()));
                         return;
                     }
                 };
@@ -1139,7 +1139,9 @@ impl App {
                     error!("feed not found: {}", feed_id);
                 }
             }
-            processing_actions.write().remove(&UndoActionModel::DeleteFeed(feed_id.clone(), "".into()));
+            processing_actions
+                .write()
+                .remove(&UndoActionModel::DeleteFeed(feed_id.clone(), "".into()));
         };
 
         self.threadpool.spawn_ok(thread_future);
@@ -1156,7 +1158,9 @@ impl App {
                     Ok(res) => res,
                     Err(error) => {
                         Util::send(&sender, Action::Error("Failed to delete category.".to_owned(), error));
-                        processing_actions.write().remove(&UndoActionModel::DeleteCategory(category_id.clone(), "".into()));
+                        processing_actions
+                            .write()
+                            .remove(&UndoActionModel::DeleteCategory(category_id.clone(), "".into()));
                         return;
                     }
                 };
@@ -1178,7 +1182,9 @@ impl App {
                     error!("category not found: {}", category_id);
                 }
             }
-            processing_actions.write().remove(&UndoActionModel::DeleteCategory(category_id.clone(), "".into()));
+            processing_actions
+                .write()
+                .remove(&UndoActionModel::DeleteCategory(category_id.clone(), "".into()));
         };
 
         self.threadpool.spawn_ok(thread_future);
@@ -1195,7 +1201,9 @@ impl App {
                     Ok(res) => res,
                     Err(error) => {
                         Util::send(&sender, Action::Error("Failed to delete tag.".to_owned(), error));
-                        processing_actions.write().remove(&UndoActionModel::DeleteTag(tag_id.clone(), "".into()));
+                        processing_actions
+                            .write()
+                            .remove(&UndoActionModel::DeleteTag(tag_id.clone(), "".into()));
                         return;
                     }
                 };
@@ -1214,7 +1222,9 @@ impl App {
                     error!("tag not found: {}", tag_id);
                 }
             }
-            processing_actions.write().remove(&UndoActionModel::DeleteTag(tag_id.clone(), "".into()));
+            processing_actions
+                .write()
+                .remove(&UndoActionModel::DeleteTag(tag_id.clone(), "".into()));
         };
 
         self.threadpool.spawn_ok(thread_future);

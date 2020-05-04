@@ -8,8 +8,8 @@ use gtk::{Button, ButtonExt, InfoBar, InfoBarExt, Label, LabelExt, ResponseType,
 use log::debug;
 pub use models::{UndoAction, UndoActionModel};
 use parking_lot::RwLock;
-use std::sync::Arc;
 use std::collections::HashSet;
+use std::sync::Arc;
 
 static ACTION_DELAY: u32 = 10000;
 
@@ -74,7 +74,11 @@ impl UndoBar {
         self.widget.show();
     }
 
-    fn execute_action(action: &UndoActionModel, sender: &Sender<Action>, processing_actions: &Arc<RwLock<HashSet<UndoActionModel>>>) {
+    fn execute_action(
+        action: &UndoActionModel,
+        sender: &Sender<Action>,
+        processing_actions: &Arc<RwLock<HashSet<UndoActionModel>>>,
+    ) {
         let sender = sender.clone();
         processing_actions.write().insert(action.clone());
         match action {
