@@ -29,9 +29,9 @@ use std::str;
 use std::sync::Arc;
 use url::{Host, Origin};
 use webkit2gtk::{
-    ContextMenuAction, ContextMenuExt, ContextMenuItemExt, HitTestResultExt, LoadEvent, NavigationPolicyDecision,
-    NavigationPolicyDecisionExt, PolicyDecisionType, Settings as WebkitSettings, SettingsExt, URIRequestExt,
-    WebContext, WebView, WebViewExt,
+    ContextMenuAction, ContextMenuExt, ContextMenuItemExt, HitTestResultExt, NavigationPolicyDecision,
+    NavigationPolicyDecisionExt, PolicyDecisionExt, PolicyDecisionType, Settings as WebkitSettings, SettingsExt,
+    URIRequestExt, WebContext, WebView, WebViewExt,
 };
 
 const MIDDLE_MOUSE_BUTTON: u32 = 2;
@@ -364,36 +364,6 @@ impl ArticleView {
         //----------------------------------
         // open link in external browser
         //----------------------------------
-        self.load_changed_signal.write().replace(
-            webview
-                .connect_load_changed(|closure_webivew, event| {
-                    match event {
-                        LoadEvent::Started => {
-                            if let Some(uri) = closure_webivew.get_uri() {
-                                if "about:blank" != uri {
-                                    if let Some(default_screen) = gdk::Screen::get_default() {
-                                        if gtk::show_uri(
-                                            Some(&default_screen),
-                                            &uri,
-                                            glib::get_current_time().tv_sec as u32,
-                                        )
-                                        .is_err()
-                                        {
-                                            // log smth
-                                        }
-                                    }
-                                }
-                            }
-                        }
-                        LoadEvent::Redirected => {}
-                        LoadEvent::Committed => {}
-                        LoadEvent::Finished => {}
-                        _ => {}
-                    }
-                })
-                .to_glib(),
-        );
-
         self.decide_policy_signal.write().replace(
             webview
                 .connect_decide_policy(|_closure_webivew, decision, decision_type| {
@@ -421,6 +391,32 @@ impl ArticleView {
                                 }
                             }
                         }
+                        decision.ignore();
+                        return true;
+                    } else if decision_type == PolicyDecisionType::NavigationAction {
+                        if let Ok(navigation_decision) = decision.clone().downcast::<NavigationPolicyDecision>() {
+                            if let Some(action) = navigation_decision.get_navigation_action() {
+                                if let Some(request) = action.get_request() {
+                                    if let Some(uri) = request.get_uri() {
+                                        if action.is_user_gesture() {
+                                            decision.ignore();
+                                            if let Some(default_screen) = gdk::Screen::get_default() {
+                                                if gtk::show_uri(
+                                                    Some(&default_screen),
+                                                    &uri,
+                                                    glib::get_current_time().tv_sec as u32,
+                                                )
+                                                .is_err()
+                                                {
+                                                    return true;
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                        return true;
                     }
                     false
                 })
