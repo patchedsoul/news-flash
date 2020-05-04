@@ -1482,7 +1482,7 @@ impl App {
                     Util::send(&sender, Action::FinishGrabArticleContent(Some(article)));
                 }
                 Ok(Err(error)) => {
-                    let message = format!("Failed to scrap article content: '{}'", article_id);
+                    let message = format!("Failed to scrape article content: '{}'", article_id);
                     error!("{}", message);
                     Util::send(&sender, Action::Error(message, error));
                     Util::send(&sender, Action::FinishGrabArticleContent(None));
