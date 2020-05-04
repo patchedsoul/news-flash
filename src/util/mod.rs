@@ -23,7 +23,7 @@ use gio::{Cancellable, ProxyResolver, ProxyResolverExt};
 use glib::Sender;
 use news_flash::models::{Category, CategoryID, FeedID, FeedMapping};
 use serde::{de::DeserializeOwned, Serialize};
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
 use std::fs;
 use std::future::Future;
 
@@ -73,8 +73,8 @@ impl Util {
         categories: &[Category],
         feed_mappings: &[FeedMapping],
         item_count_map: &HashMap<FeedID, i64>,
-        pending_deleted_feed: &Option<FeedID>,
-        pending_deleted_category: &Option<CategoryID>,
+        pending_deleted_feeds: &HashSet<&FeedID>,
+        pending_deleted_categories: &HashSet<&CategoryID>,
     ) -> i64 {
         let mut count = 0;
 
@@ -82,10 +82,8 @@ impl Util {
             .iter()
             .filter_map(|m| {
                 if &m.category_id == category_id {
-                    if let Some(pending_deleted_feed) = pending_deleted_feed {
-                        if pending_deleted_feed == &m.feed_id {
-                            return None;
-                        }
+                    if pending_deleted_feeds.contains(&m.feed_id) {
+                        return None;
                     }
 
                     item_count_map.get(&m.feed_id)
@@ -99,10 +97,8 @@ impl Util {
             .iter()
             .filter_map(|c| {
                 if &c.parent_id == category_id {
-                    if let Some(pending_deleted_category) = pending_deleted_category {
-                        if pending_deleted_category == &c.category_id {
-                            return None;
-                        }
+                    if pending_deleted_categories.contains(&c.category_id) {
+                        return None;
                     }
 
                     Some(Self::calculate_item_count_for_category(
@@ -110,8 +106,8 @@ impl Util {
                         categories,
                         feed_mappings,
                         item_count_map,
-                        pending_deleted_feed,
-                        pending_deleted_category,
+                        pending_deleted_feeds,
+                        pending_deleted_categories,
                     ))
                 } else {
                     None

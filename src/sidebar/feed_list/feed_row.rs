@@ -206,7 +206,7 @@ impl FeedRow {
                     @strong feed_id,
                     @strong sender => @default-panic, move |_action, _parameter|
                 {
-                    let remove_action = UndoActionModel::DeleteFeed((feed_id.clone(), label.clone()));
+                    let remove_action = UndoActionModel::DeleteFeed(feed_id.clone(), label.clone());
                     Util::send(&sender, Action::UndoableAction(remove_action));
 
                     if let Ok(main_window) = GtkUtil::get_main_window(&row) {

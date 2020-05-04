@@ -26,6 +26,7 @@ use news_flash::models::{Article, ArticleFilter, Marked, PluginCapabilities, Plu
 use news_flash::NewsFlash;
 use parking_lot::RwLock;
 use std::sync::Arc;
+use std::collections::HashSet;
 
 pub struct ContentPage {
     pub sidebar: Arc<RwLock<SideBar>>,
@@ -121,6 +122,7 @@ impl ContentPage {
         let news_flash = news_flash.clone();
         let window_state = self.state.clone();
         let current_undo_action = undo_bar.get_current_action();
+        let processing_undo_actions = undo_bar.processing_actions();
         let settings = self.settings.clone();
         let thread_future = async move {
             if let Some(news_flash) = news_flash.read().as_ref() {
@@ -137,6 +139,7 @@ impl ContentPage {
                     &window_state,
                     &settings,
                     &current_undo_action,
+                    &processing_undo_actions,
                     limit,
                     None,
                 ) {
@@ -202,6 +205,7 @@ impl ContentPage {
             .get_relevant_article_count(window_state.read().get_header_selection());
 
         let current_undo_action = undo_bar.get_current_action();
+        let processing_undo_actions = undo_bar.processing_actions();
         let settings = self.settings.clone();
         let news_flash = news_flash_handle.clone();
         let window_state = window_state.clone();
@@ -214,6 +218,7 @@ impl ContentPage {
                     &window_state,
                     &settings,
                     &current_undo_action,
+                    &processing_undo_actions,
                     MainWindowState::page_size(),
                     Some(relevant_articles_loaded as i64),
                 ) {
@@ -267,6 +272,7 @@ impl ContentPage {
         window_state: &RwLock<MainWindowState>,
         settings: &Arc<RwLock<Settings>>,
         current_undo_action: &Option<UndoActionModel>,
+        processing_undo_actions: &Arc<RwLock<HashSet<UndoActionModel>>>,
         limit: i64,
         offset: Option<i64>,
     ) -> Result<Vec<Article>, ContentPageError> {
@@ -291,13 +297,37 @@ impl ContentPage {
             SidebarSelection::Tag(id, _title) => Some(id.clone()),
         };
         let search_term = window_state.read().get_search_term().clone();
-        let (feed_blacklist, category_blacklist) = match current_undo_action {
-            Some(action) => match action {
-                UndoActionModel::DeleteFeed((feed_id, _label)) => (Some(vec![feed_id.clone()]), None),
-                UndoActionModel::DeleteCategory((category_id, _label)) => (None, Some(vec![category_id.clone()])),
-                UndoActionModel::DeleteTag((_tag_id, _label)) => (None, None),
-            },
-            None => (None, None),
+        let (feed_blacklist, category_blacklist) = {
+            let mut undo_actions = Vec::new();
+            let mut feed_blacklist = Vec::new();
+            let mut category_blacklist = Vec::new();
+            if let Some(current_undo_action) = current_undo_action {
+                undo_actions.push(current_undo_action);
+            }
+            let processing_undo_actions = &*processing_undo_actions.read();
+            for processing_undo_action in processing_undo_actions {
+                undo_actions.push(&processing_undo_action);
+            }
+            for undo_action in undo_actions {
+                match undo_action {
+                    UndoActionModel::DeleteFeed(feed_id, _label) => feed_blacklist.push(feed_id.clone()),
+                    UndoActionModel::DeleteCategory(category_id, _label) => category_blacklist.push(category_id.clone()),
+                    UndoActionModel::DeleteTag(_tag_id, _label) => {},
+                }
+            }
+
+            let feed_blacklist = if feed_blacklist.is_empty() {
+                None
+            } else {
+                Some(feed_blacklist)  
+            };
+            let category_blacklist = if category_blacklist.is_empty() {
+                None
+            } else {
+                Some(category_blacklist)
+            };
+
+            (feed_blacklist, category_blacklist)
         };
 
         let articles = news_flash
@@ -335,6 +365,7 @@ impl ContentPage {
         let news_flash = news_flash.clone();
         let state = self.state.clone();
         let current_undo_action = undo_bar.get_current_action();
+        let processing_undo_actions = undo_bar.processing_actions();
         let app_features = features.clone();
         let thread_future = async move {
             if let Some(news_flash) = news_flash.read().as_ref() {
@@ -374,33 +405,29 @@ impl ContentPage {
                     },
                 };
 
-                let pending_delete_category = current_undo_action
-                    .clone()
-                    .map(|a| {
-                        if let UndoActionModel::DeleteCategory((id, _label)) = a {
-                            Some(id)
-                        } else {
-                            None
-                        }
-                    })
-                    .flatten();
-                let pending_delete_feed = current_undo_action
-                    .clone()
-                    .map(|a| {
-                        if let UndoActionModel::DeleteFeed((id, _label)) = a {
-                            Some(id)
-                        } else {
-                            None
-                        }
-                    })
-                    .flatten();
+                let mut pending_delte_feeds = HashSet::new();
+                let mut pending_delete_categories = HashSet::new();
+                let mut pending_delete_tags = HashSet::new();
+                if let Some(current_undo_action) = &current_undo_action {
+                    match current_undo_action {
+                        UndoActionModel::DeleteFeed(id, _label) => pending_delte_feeds.insert(id),
+                        UndoActionModel::DeleteCategory(id, _label) => pending_delete_categories.insert(id),
+                        UndoActionModel::DeleteTag(id, _label) => pending_delete_tags.insert(id),
+                    };
+                }
+                let processing_undo_actions = &*processing_undo_actions.read();
+                for processing_undo_action in processing_undo_actions {
+                    match processing_undo_action {
+                        UndoActionModel::DeleteFeed(id, _label) => pending_delte_feeds.insert(id),
+                        UndoActionModel::DeleteCategory(id, _label) => pending_delete_categories.insert(id),
+                        UndoActionModel::DeleteTag(id, _label) => pending_delete_tags.insert(id),
+                    };
+                }
 
                 // feedlist: Categories
                 for category in &categories {
-                    if let Some(pending_delete_category) = &pending_delete_category {
-                        if pending_delete_category == &category.category_id {
-                            continue;
-                        }
+                    if pending_delete_categories.contains(&category.category_id) {
+                        continue;
                     }
 
                     let category_item_count = Util::calculate_item_count_for_category(
@@ -408,8 +435,8 @@ impl ContentPage {
                         &categories,
                         &mappings,
                         &feed_count_map,
-                        &pending_delete_feed,
-                        &pending_delete_category,
+                        &pending_delte_feeds,
+                        &pending_delete_categories,
                     );
 
                     if tree.add_category(category, category_item_count).is_err() {
@@ -422,20 +449,8 @@ impl ContentPage {
 
                 // feedlist: Feeds
                 for mapping in &mappings {
-                    if let Some(undo_action) = &current_undo_action {
-                        match undo_action {
-                            UndoActionModel::DeleteFeed((id, _label)) => {
-                                if id == &mapping.feed_id {
-                                    continue;
-                                }
-                            }
-                            UndoActionModel::DeleteCategory((id, _label)) => {
-                                if id == &mapping.category_id {
-                                    continue;
-                                }
-                            }
-                            _ => {}
-                        }
+                    if pending_delte_feeds.contains(&mapping.feed_id) || pending_delete_categories.contains(&mapping.category_id) {
+                        continue;
                     }
 
                     let feed = match feeds.iter().find(|feed| feed.feed_id == mapping.feed_id) {
@@ -473,10 +488,8 @@ impl ContentPage {
 
                     if !tags.is_empty() {
                         for tag in tags {
-                            if let Some(UndoActionModel::DeleteTag((id, _label))) = current_undo_action.clone() {
-                                if id == tag.tag_id {
-                                    continue;
-                                }
+                            if pending_delete_tags.contains(&tag.tag_id) {
+                                continue;
                             }
                             if list.add(&tag).is_err() {
                                 sender
@@ -496,8 +509,8 @@ impl ContentPage {
                     &categories,
                     &mappings,
                     &feed_count_map,
-                    &pending_delete_feed,
-                    &pending_delete_category,
+                    &pending_delte_feeds,
+                    &pending_delete_categories,
                 );
 
                 sender

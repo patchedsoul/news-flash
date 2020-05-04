@@ -37,7 +37,7 @@ const CONTENT_PAGE: &str = "content";
 pub struct MainWindow {
     pub widget: ApplicationWindow,
     error_bar: ErrorBar,
-    undo_bar: UndoBar,
+    pub undo_bar: UndoBar,
     pub oauth_login_page: Arc<WebLogin>,
     pub password_login_page: Arc<PasswordLogin>,
     pub content_page: Arc<ContentPage>,
@@ -412,15 +412,15 @@ impl MainWindow {
         let select_all_button = match self.content_page.sidebar.read().get_selection() {
             SidebarSelection::All => false,
             SidebarSelection::Category(selected_id, _label) => match &action {
-                UndoActionModel::DeleteCategory((delete_id, _label)) => &selected_id == delete_id,
+                UndoActionModel::DeleteCategory(delete_id, _label) => &selected_id == delete_id,
                 _ => false,
             },
             SidebarSelection::Feed(selected_id, _parent_id, _label) => match &action {
-                UndoActionModel::DeleteFeed((delete_id, _label)) => &selected_id == delete_id,
+                UndoActionModel::DeleteFeed(delete_id, _label) => &selected_id == delete_id,
                 _ => false,
             },
             SidebarSelection::Tag(selected_id, _label) => match &action {
-                UndoActionModel::DeleteTag((delete_id, _label)) => &selected_id == delete_id,
+                UndoActionModel::DeleteTag(delete_id, _label) => &selected_id == delete_id,
                 _ => false,
             },
         };

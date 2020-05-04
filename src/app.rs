@@ -201,6 +201,7 @@ impl App {
         }
 
         app.window.init(&app.news_flash, app.threadpool.clone(), &app.features);
+        app.window.widget.show_all();
         app
     }
 
@@ -1097,11 +1098,11 @@ impl App {
                 warn!("Trying to delete item while 'All Articles' is selected");
                 None
             }
-            SidebarSelection::Feed(feed_id, _parent_id, label) => Some(UndoActionModel::DeleteFeed((feed_id, label))),
+            SidebarSelection::Feed(feed_id, _parent_id, label) => Some(UndoActionModel::DeleteFeed(feed_id, label)),
             SidebarSelection::Category(category_id, label) => {
-                Some(UndoActionModel::DeleteCategory((category_id, label)))
+                Some(UndoActionModel::DeleteCategory(category_id, label))
             }
-            SidebarSelection::Tag(tag_id, label) => Some(UndoActionModel::DeleteTag((tag_id, label))),
+            SidebarSelection::Tag(tag_id, label) => Some(UndoActionModel::DeleteTag(tag_id, label)),
         };
         if let Some(undo_action) = undo_action {
             Util::send(&self.sender, Action::UndoableAction(undo_action));
@@ -1112,12 +1113,14 @@ impl App {
         let news_flash = self.news_flash.clone();
         let settings = self.settings.clone();
         let sender = self.sender.clone();
+        let processing_actions = self.window.undo_bar.processing_actions();
         let thread_future = async move {
             if let Some(news_flash) = news_flash.read().as_ref() {
                 let (feeds, _mappings) = match news_flash.get_feeds() {
                     Ok(res) => res,
                     Err(error) => {
                         Util::send(&sender, Action::Error("Failed to delete feed.".to_owned(), error));
+                        processing_actions.write().remove(&UndoActionModel::DeleteFeed(feed_id.clone(), "".into()));
                         return;
                     }
                 };
@@ -1136,6 +1139,7 @@ impl App {
                     error!("feed not found: {}", feed_id);
                 }
             }
+            processing_actions.write().remove(&UndoActionModel::DeleteFeed(feed_id.clone(), "".into()));
         };
 
         self.threadpool.spawn_ok(thread_future);
@@ -1145,12 +1149,14 @@ impl App {
         let news_flash = self.news_flash.clone();
         let settings = self.settings.clone();
         let sender = self.sender.clone();
+        let processing_actions = self.window.undo_bar.processing_actions();
         let thread_future = async move {
             if let Some(news_flash) = news_flash.read().as_ref() {
                 let categories = match news_flash.get_categories() {
                     Ok(res) => res,
                     Err(error) => {
                         Util::send(&sender, Action::Error("Failed to delete category.".to_owned(), error));
+                        processing_actions.write().remove(&UndoActionModel::DeleteCategory(category_id.clone(), "".into()));
                         return;
                     }
                 };
@@ -1172,6 +1178,7 @@ impl App {
                     error!("category not found: {}", category_id);
                 }
             }
+            processing_actions.write().remove(&UndoActionModel::DeleteCategory(category_id.clone(), "".into()));
         };
 
         self.threadpool.spawn_ok(thread_future);
@@ -1181,12 +1188,14 @@ impl App {
         let news_flash = self.news_flash.clone();
         let settings = self.settings.clone();
         let sender = self.sender.clone();
+        let processing_actions = self.window.undo_bar.processing_actions();
         let thread_future = async move {
             if let Some(news_flash) = news_flash.read().as_ref() {
                 let tags = match news_flash.get_tags() {
                     Ok(res) => res,
                     Err(error) => {
                         Util::send(&sender, Action::Error("Failed to delete tag.".to_owned(), error));
+                        processing_actions.write().remove(&UndoActionModel::DeleteTag(tag_id.clone(), "".into()));
                         return;
                     }
                 };
@@ -1205,6 +1214,7 @@ impl App {
                     error!("tag not found: {}", tag_id);
                 }
             }
+            processing_actions.write().remove(&UndoActionModel::DeleteTag(tag_id.clone(), "".into()));
         };
 
         self.threadpool.spawn_ok(thread_future);

@@ -9,6 +9,7 @@ use log::debug;
 pub use models::{UndoAction, UndoActionModel};
 use parking_lot::RwLock;
 use std::sync::Arc;
+use std::collections::HashSet;
 
 static ACTION_DELAY: u32 = 10000;
 
@@ -18,6 +19,7 @@ pub struct UndoBar {
     label: Label,
     button: Button,
     current_action: Arc<RwLock<Option<UndoAction>>>,
+    processing_actions: Arc<RwLock<HashSet<UndoActionModel>>>,
     sender: Sender<Action>,
 }
 
@@ -28,6 +30,7 @@ impl UndoBar {
             label: builder.get::<Label>("undo_label"),
             button: builder.get::<Button>("undo_button"),
             current_action: Arc::new(RwLock::new(None)),
+            processing_actions: Arc::new(RwLock::new(HashSet::new())),
             sender,
         };
         undo_bar.init();
@@ -54,11 +57,12 @@ impl UndoBar {
 
         self.widget.connect_response(clone!(
             @weak self.current_action as current_action,
+            @weak self.processing_actions as processing_actions,
             @strong self.sender as sender => @default-panic, move |info_bar, response|
         {
             if response == ResponseType::Close {
                 if let Some(current_action) = current_action.read().as_ref() {
-                    Self::execute_action(&current_action.get_model(), &sender);
+                    Self::execute_action(&current_action.get_model(), &sender, &processing_actions);
                     GtkUtil::remove_source(Some(current_action.get_timeout()));
                 }
 
@@ -70,16 +74,17 @@ impl UndoBar {
         self.widget.show();
     }
 
-    fn execute_action(action: &UndoActionModel, sender: &Sender<Action>) {
+    fn execute_action(action: &UndoActionModel, sender: &Sender<Action>, processing_actions: &Arc<RwLock<HashSet<UndoActionModel>>>) {
         let sender = sender.clone();
+        processing_actions.write().insert(action.clone());
         match action {
-            UndoActionModel::DeleteFeed((feed_id, _label)) => {
+            UndoActionModel::DeleteFeed(feed_id, _label) => {
                 Util::send(&sender, Action::DeleteFeed(feed_id.clone()));
             }
-            UndoActionModel::DeleteCategory((category_id, _label)) => {
+            UndoActionModel::DeleteCategory(category_id, _label) => {
                 Util::send(&sender, Action::DeleteCategory(category_id.clone()));
             }
-            UndoActionModel::DeleteTag((tag_id, _label)) => {
+            UndoActionModel::DeleteTag(tag_id, _label) => {
                 Util::send(&sender, Action::DeleteTag(tag_id.clone()));
             }
         }
@@ -89,15 +94,15 @@ impl UndoBar {
         if let Some(current_action) = self.current_action.read().as_ref() {
             debug!("remove current action: {}", current_action.get_model());
             GtkUtil::remove_source(Some(current_action.get_timeout()));
-            Self::execute_action(current_action.get_model(), &self.sender);
+            Self::execute_action(current_action.get_model(), &self.sender, &self.processing_actions);
         }
 
         match &action {
-            UndoActionModel::DeleteCategory((_id, label)) => {
+            UndoActionModel::DeleteCategory(_id, label) => {
                 self.label.set_label(&i18n_f("Deleted Category '{}'", &[label]))
             }
-            UndoActionModel::DeleteFeed((_id, label)) => self.label.set_label(&i18n_f("Deleted Feed '{}'", &[label])),
-            UndoActionModel::DeleteTag((_id, label)) => self.label.set_label(&i18n_f("Deleted Tag '{}'", &[label])),
+            UndoActionModel::DeleteFeed(_id, label) => self.label.set_label(&i18n_f("Deleted Feed '{}'", &[label])),
+            UndoActionModel::DeleteTag(_id, label) => self.label.set_label(&i18n_f("Deleted Tag '{}'", &[label])),
         }
 
         self.widget.set_revealed(true);
@@ -108,9 +113,10 @@ impl UndoBar {
                 @strong action,
                 @weak self.widget as widget,
                 @weak self.current_action as current_action,
+                @weak self.processing_actions as processing_actions,
                 @strong self.sender as sender => @default-panic, move ||
             {
-                Self::execute_action(&action, &sender);
+                Self::execute_action(&action, &sender, &processing_actions);
                 widget.set_revealed(false);
                 current_action.write().take();
                 Continue(false)
@@ -135,7 +141,11 @@ impl UndoBar {
 
     pub fn execute_pending_action(&self) {
         if let Some(current_action) = self.get_current_action() {
-            Self::execute_action(&current_action, &self.sender);
+            Self::execute_action(&current_action, &self.sender, &self.processing_actions);
         }
+    }
+
+    pub fn processing_actions(&self) -> Arc<RwLock<HashSet<UndoActionModel>>> {
+        self.processing_actions.clone()
     }
 }
