@@ -2,9 +2,9 @@ use crate::util::BuilderHelper;
 use glib::clone;
 use gtk::{Box, Button, ButtonExt, HeaderBar, MenuButton, ToggleButton, WidgetExt};
 use libhandy::{Leaflet, LeafletExt};
+use log::debug;
 use parking_lot::RwLock;
 use std::sync::Arc;
-use log::debug;
 
 #[derive(Clone, Debug)]
 pub struct ResponsiveLayout {
