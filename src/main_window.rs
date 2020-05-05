@@ -228,11 +228,11 @@ impl MainWindow {
             }
 
             if Self::check_shortcut("next_article", &settings, event) {
-                Util::send(&sender, Action::SidebarSelectNext);
+                Util::send(&sender, Action::SelectNextArticle);
             }
 
             if Self::check_shortcut("previous_article", &settings, event) {
-                Util::send(&sender, Action::SidebarSelectPrev);
+                Util::send(&sender, Action::SelectPrevArticle);
             }
 
             if Self::check_shortcut("toggle_category_expanded", &settings, event) {

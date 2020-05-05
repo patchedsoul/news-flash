@@ -495,9 +495,8 @@ impl ArticleView {
                             KP_SUBTRACT => closure_webivew.set_zoom_level(zoom - 0.25),
                             _ => {}
                         }
-                        return Inhibit(true);
                     }
-                    Inhibit(false)
+                    Inhibit(true)
                 })
                 .to_glib(),
         );
