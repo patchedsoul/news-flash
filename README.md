@@ -21,3 +21,14 @@ Services & Maintainers:
 - feedly: still looking
 - local RSS: Günther Wagner ([@gunibert](https://gitlab.com/gunibert))
 - fever: Felix Bühler ([@Stunkymonkey](https://gitlab.com/Stunkymonkey))
+
+## Compile
+
+Make sure the devel libraries of gtk, webkit2gtk, libhandy, sqlite3, and openssl are installed.
+Additionally meson and rust are required.
+
+```
+meson --prefix=/usr build
+ninja -C build
+sudo ninja -C build install
+```
