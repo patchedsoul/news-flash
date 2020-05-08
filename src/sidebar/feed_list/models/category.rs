@@ -1,6 +1,6 @@
 use super::item::FeedListItem;
 use log::warn;
-use news_flash::models::{Category, CategoryType, CategoryID};
+use news_flash::models::{Category, CategoryID, CategoryType};
 use serde::{Deserialize, Serialize};
 use std;
 use std::cmp::Ordering;

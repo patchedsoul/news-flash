@@ -551,7 +551,7 @@ mod tests {
     use crate::sidebar::feed_list::models::{
         FeedListCategoryModel, FeedListChangeSet, FeedListFeedModel, FeedListTree,
     };
-    use news_flash::models::{Category, CategoryType, CategoryID, Feed, FeedID, FeedMapping, NEWSFLASH_TOPLEVEL};
+    use news_flash::models::{Category, CategoryID, CategoryType, Feed, FeedID, FeedMapping, NEWSFLASH_TOPLEVEL};
 
     fn building_blocks() -> (
         Category,

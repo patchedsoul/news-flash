@@ -16,7 +16,7 @@ use gtk::{
     ListBoxRowExt, Popover, PopoverExt, PositionType, Revealer, RevealerExt, StateFlags, StyleContextExt, Widget,
     WidgetExt,
 };
-use news_flash::models::{CategoryType, CategoryID, PluginCapabilities};
+use news_flash::models::{CategoryID, CategoryType, PluginCapabilities};
 use parking_lot::RwLock;
 use std::ops::Drop;
 use std::str;
