@@ -16,7 +16,7 @@ use gtk::{
     ListBoxRowExt, Popover, PopoverExt, PositionType, Revealer, RevealerExt, StateFlags, StyleContextExt, Widget,
     WidgetExt,
 };
-use news_flash::models::{CategoryID, PluginCapabilities};
+use news_flash::models::{CategoryType, CategoryID, PluginCapabilities};
 use parking_lot::RwLock;
 use std::ops::Drop;
 use std::str;
@@ -69,6 +69,7 @@ impl CategoryRow {
             &category.widget,
             &revealer,
             &model.id,
+            model.category_type,
             state,
             features,
             model.label.clone(),
@@ -149,6 +150,7 @@ impl CategoryRow {
         row: &ListBoxRow,
         revealer: &Revealer,
         id: &CategoryID,
+        category_type: CategoryType,
         state: &Arc<RwLock<MainWindowState>>,
         features: &Arc<RwLock<Option<PluginCapabilities>>>,
         label: String,
@@ -169,7 +171,7 @@ impl CategoryRow {
             support_mutation = features.contains(PluginCapabilities::MODIFY_CATEGORIES);
         }
 
-        if support_mutation {
+        if support_mutation && category_type != CategoryType::Generated {
             Some((eventbox.connect_button_press_event(clone!(
                 @strong id as category_id,
                 @strong label,

@@ -1,6 +1,6 @@
 use super::item::FeedListItem;
 use log::warn;
-use news_flash::models::{Category, CategoryID};
+use news_flash::models::{Category, CategoryType, CategoryID};
 use serde::{Deserialize, Serialize};
 use std;
 use std::cmp::Ordering;
@@ -17,6 +17,7 @@ pub struct FeedListCategoryModel {
     pub level: i32,
     pub expanded: bool,
     pub item_count: i64,
+    pub category_type: CategoryType,
 }
 
 impl FeedListCategoryModel {
@@ -33,6 +34,7 @@ impl FeedListCategoryModel {
             level,
             expanded: false,
             item_count,
+            category_type: category.category_type,
         }
     }
 
