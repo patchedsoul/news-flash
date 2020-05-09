@@ -96,19 +96,13 @@ impl ArticleView {
         let visible_article: Arc<RwLock<Option<FatArticle>>> = Arc::new(RwLock::new(None));
         let visible_feed_name: Arc<RwLock<Option<String>>> = Arc::new(RwLock::new(None));
         let view_html_button = builder.get::<Button>("view_html_button");
-        view_html_button.connect_clicked(clone!(@strong visible_article => @default-panic, move |_button| {
+        view_html_button.connect_clicked(clone!(@strong visible_article, @strong sender => @default-panic, move |_button| {
             if let Some(article) = visible_article.read().as_ref() {
                 if let Some(html) = &article.html {
                     if let Ok(path) = FileUtil::write_temp_file("crashed_article.html", html) {
-                        if let Some(default_screen) = gdk::Screen::get_default() {
-                            if let Some(path) = path.to_str() {
-                                let uri = format!("file://{}", path);
-                                if gtk::show_uri(Some(&default_screen), &uri, glib::get_current_time().tv_sec as u32)
-                                    .is_err()
-                                {
-                                    // log smth
-                                }
-                            }
+                        if let Some(path) = path.to_str() {
+                            let uri = format!("file://{}", path);
+                            Util::send(&sender, Action::OpenUrlInDefaultBrowser(uri));
                         }
                     }
                 }
