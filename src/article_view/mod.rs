@@ -11,12 +11,13 @@ use self::url_overlay::UrlOverlay;
 use crate::settings::Settings;
 use crate::util::{BuilderHelper, DateUtil, FileUtil, GtkUtil, Util, GTK_RESOURCE_FILE_ERROR};
 use crate::Resources;
+use crate::app::Action;
 use gdk::{
     enums::key::KP_Add as KP_ADD, enums::key::KP_Subtract as KP_SUBTRACT, enums::key::KP_0, Cursor, CursorType,
     Display, EventMask, ModifierType, ScrollDirection,
 };
 use gio::{Cancellable, Settings as GSettings, SettingsExt as GSettingsExt};
-use glib::{clone, object::Cast, source::Continue, translate::ToGlib, MainLoop};
+use glib::{clone, object::Cast, source::Continue, translate::ToGlib, MainLoop, Sender};
 use gtk::{
     prelude::WidgetExtManual, Button, ButtonExt, Inhibit, Overlay, OverlayExt, SettingsExt as GtkSettingsExt, Stack,
     StackExt, TickCallbackId, WidgetExt,
@@ -49,6 +50,7 @@ struct ScrollAnimationProperties {
 #[derive(Clone)]
 pub struct ArticleView {
     settings: Arc<RwLock<Settings>>,
+    sender: Sender<Action>,
     stack: Stack,
     top_overlay: Overlay,
     view_html_button: Button,
@@ -80,7 +82,7 @@ pub struct ArticleView {
 }
 
 impl ArticleView {
-    pub fn new(settings: &Arc<RwLock<Settings>>) -> Self {
+    pub fn new(settings: &Arc<RwLock<Settings>>, sender: &Sender<Action>) -> Self {
         let builder = BuilderHelper::new("article_view");
 
         let url_overlay = builder.get::<Overlay>("url_overlay");
@@ -130,6 +132,7 @@ impl ArticleView {
 
         let article_view = ArticleView {
             settings,
+            sender: sender.clone(),
             stack,
             top_overlay: progress_overlay,
             view_html_button,
@@ -364,9 +367,10 @@ impl ArticleView {
         //----------------------------------
         // open link in external browser
         //----------------------------------
+        let policy_sender = self.sender.clone();
         self.decide_policy_signal.write().replace(
             webview
-                .connect_decide_policy(|_closure_webivew, decision, decision_type| {
+                .connect_decide_policy(move |_closure_webivew, decision, decision_type| {
                     if decision_type == PolicyDecisionType::NewWindowAction {
                         if let Ok(navigation_decision) = decision.clone().downcast::<NavigationPolicyDecision>() {
                             if let Some(frame_name) = navigation_decision.get_frame_name() {
@@ -374,17 +378,7 @@ impl ArticleView {
                                     if let Some(action) = navigation_decision.get_navigation_action() {
                                         if let Some(uri_req) = action.get_request() {
                                             if let Some(uri) = uri_req.get_uri() {
-                                                if let Some(default_screen) = gdk::Screen::get_default() {
-                                                    if gtk::show_uri(
-                                                        Some(&default_screen),
-                                                        &uri,
-                                                        glib::get_current_time().tv_sec as u32,
-                                                    )
-                                                    .is_err()
-                                                    {
-                                                        return true;
-                                                    }
-                                                }
+                                                Util::send(&policy_sender, Action::OpenUrlInDefaultBrowser(uri.as_str().into()));
                                             }
                                         }
                                     }
@@ -400,23 +394,12 @@ impl ArticleView {
                                     if let Some(uri) = request.get_uri() {
                                         if action.is_user_gesture() {
                                             decision.ignore();
-                                            if let Some(default_screen) = gdk::Screen::get_default() {
-                                                if gtk::show_uri(
-                                                    Some(&default_screen),
-                                                    &uri,
-                                                    glib::get_current_time().tv_sec as u32,
-                                                )
-                                                .is_err()
-                                                {
-                                                    return true;
-                                                }
-                                            }
+                                            Util::send(&policy_sender, Action::OpenUrlInDefaultBrowser(uri.as_str().into()));
                                         }
                                     }
                                 }
                             }
                         }
-                        return true;
                     }
                     false
                 })

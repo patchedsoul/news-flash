@@ -60,7 +60,7 @@ impl ContentPage {
             state,
             sender.clone(),
         )));
-        let article_view = ArticleView::new(settings);
+        let article_view = ArticleView::new(settings, &sender);
 
         feed_list_box.pack_start(&sidebar.read().widget(), false, true, 0);
         article_list_box.pack_start(&article_list.read().widget(), false, true, 0);

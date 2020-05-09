@@ -119,6 +119,7 @@ pub enum Action {
     SetOfflineMode(bool),
     IgnoreTLSErrors,
     OpenSelectedArticle,
+    OpenUrlInDefaultBrowser(String),
 }
 pub struct App {
     application: gtk::Application,
@@ -310,6 +311,7 @@ impl App {
             Action::SetOfflineMode(offline) => self.set_offline(offline),
             Action::IgnoreTLSErrors => self.ignore_tls_errors(),
             Action::OpenSelectedArticle => self.open_selected_article_in_browser(),
+            Action::OpenUrlInDefaultBrowser(url) => self.open_url_in_default_browser(url),
         }
         glib::Continue(true)
     }
@@ -1718,6 +1720,21 @@ impl App {
             }
         } else {
             warn!("Open selected article in browser: No article Selected.")
+        }
+    }
+
+    fn open_url_in_default_browser(&self, url:  String) {
+        if let Some(default_screen) = gdk::Screen::get_default() {
+            let result = gtk::show_uri(
+                Some(&default_screen),
+                &url,
+                glib::get_current_time().tv_sec as u32,
+            );
+            if let Err(error) = result {
+                Util::send(&self.sender, Action::ErrorSimpleMessage(format!("Failed to open ULR: {}", error)));
+            }
+        } else {
+            Util::send(&self.sender, Action::ErrorSimpleMessage("Failed to get default screen to open URL on".into()));
         }
     }
 }
