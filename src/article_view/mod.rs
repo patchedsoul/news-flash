@@ -8,10 +8,10 @@ pub use self::models::ArticleTheme;
 use self::models::InternalState;
 use self::progress_overlay::ProgressOverlay;
 use self::url_overlay::UrlOverlay;
+use crate::app::Action;
 use crate::settings::Settings;
 use crate::util::{BuilderHelper, DateUtil, FileUtil, GtkUtil, Util, GTK_RESOURCE_FILE_ERROR};
 use crate::Resources;
-use crate::app::Action;
 use gdk::{
     enums::key::KP_Add as KP_ADD, enums::key::KP_Subtract as KP_SUBTRACT, enums::key::KP_0, Cursor, CursorType,
     Display, EventMask, ModifierType, ScrollDirection,
@@ -378,7 +378,10 @@ impl ArticleView {
                                     if let Some(action) = navigation_decision.get_navigation_action() {
                                         if let Some(uri_req) = action.get_request() {
                                             if let Some(uri) = uri_req.get_uri() {
-                                                Util::send(&policy_sender, Action::OpenUrlInDefaultBrowser(uri.as_str().into()));
+                                                Util::send(
+                                                    &policy_sender,
+                                                    Action::OpenUrlInDefaultBrowser(uri.as_str().into()),
+                                                );
                                             }
                                         }
                                     }
@@ -394,7 +397,10 @@ impl ArticleView {
                                     if let Some(uri) = request.get_uri() {
                                         if action.is_user_gesture() {
                                             decision.ignore();
-                                            Util::send(&policy_sender, Action::OpenUrlInDefaultBrowser(uri.as_str().into()));
+                                            Util::send(
+                                                &policy_sender,
+                                                Action::OpenUrlInDefaultBrowser(uri.as_str().into()),
+                                            );
                                         }
                                     }
                                 }

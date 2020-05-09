@@ -1723,18 +1723,20 @@ impl App {
         }
     }
 
-    fn open_url_in_default_browser(&self, url:  String) {
+    fn open_url_in_default_browser(&self, url: String) {
         if let Some(default_screen) = gdk::Screen::get_default() {
-            let result = gtk::show_uri(
-                Some(&default_screen),
-                &url,
-                glib::get_current_time().tv_sec as u32,
-            );
+            let result = gtk::show_uri(Some(&default_screen), &url, glib::get_current_time().tv_sec as u32);
             if let Err(error) = result {
-                Util::send(&self.sender, Action::ErrorSimpleMessage(format!("Failed to open ULR: {}", error)));
+                Util::send(
+                    &self.sender,
+                    Action::ErrorSimpleMessage(format!("Failed to open ULR: {}", error)),
+                );
             }
         } else {
-            Util::send(&self.sender, Action::ErrorSimpleMessage("Failed to get default screen to open URL on".into()));
+            Util::send(
+                &self.sender,
+                Action::ErrorSimpleMessage("Failed to get default screen to open URL on".into()),
+            );
         }
     }
 }
