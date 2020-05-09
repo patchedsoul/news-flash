@@ -1709,12 +1709,7 @@ impl App {
         let article_model = self.window.content_page.article_view.get_visible_article();
         if let Some(article_model) = article_model {
             if let Some(url) = article_model.url {
-                if gtk::show_uri_on_window(Some(&self.window.widget), url.get().as_str(), 0).is_err() {
-                    Util::send(
-                        &self.sender,
-                        Action::ErrorSimpleMessage("Failed to open URL in browser.".to_owned()),
-                    );
-                }
+                Util::send(&self.sender, Action::OpenUrlInDefaultBrowser(url.get().to_string()));
             } else {
                 warn!("Open selected article in browser: No url available.")
             }
