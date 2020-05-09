@@ -34,6 +34,7 @@ pub enum ArticleTheme {
     Spring,
     Midnight,
     Parchment,
+    Gruvbox,
 }
 
 impl ArticleTheme {
@@ -49,6 +50,7 @@ impl ArticleTheme {
             ArticleTheme::Spring => "theme spring",
             ArticleTheme::Midnight => "theme midnight",
             ArticleTheme::Parchment => "theme parchment",
+            ArticleTheme::Gruvbox => "theme gruvbox",
         }
     }
 
@@ -58,6 +60,7 @@ impl ArticleTheme {
             ArticleTheme::Spring => "Spring",
             ArticleTheme::Midnight => "Midnight",
             ArticleTheme::Parchment => "Parchment",
+            ArticleTheme::Gruvbox => "Gruvbox",
         }
     }
 }

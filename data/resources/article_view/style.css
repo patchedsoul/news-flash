@@ -591,3 +591,58 @@ body.theme.parchment div.nfcontent p {
     color: rgba(0, 0, 0, 0.8);
 }
 
+
+/* GRUVBOX THEME */
+
+body.theme.gruvbox {
+    color: #fbf1c7;
+    background: #282828;
+}
+
+body.theme.gruvbox body,
+body.theme.gruvbox p {
+    color: #fbf1c7;
+}
+
+body.theme.gruvbox pre,
+body.theme.gruvbox pre code,
+body.theme.gruvbox code {
+    background-color: #1d2021;
+    color: #fbf1c7;
+    font-family: 'FuraCode Nerd Font', 'Fira Code', 'Fira Mono', monospace, Consolas, Menlo, Monaco, Lucida Console, Liberation Mono, DejaVu Sans Mono, Bitstream Vera Sans Mono, Courier New, serif;
+}
+
+body.theme.gruvbox table,
+body.theme.gruvbox th,
+body.theme.gruvbox td {
+    border: 1px solid #928374;
+}
+
+body.theme.gruvbox header.post h1 {
+    color: #fbf1c7;
+    line-height: 1.2;
+}
+
+body.theme.gruvbox header.post h1 a {
+    color: #928374;
+}
+
+body.theme.gruvbox header.post span.source {
+    color: #689d6a;
+}
+
+body.theme.gruvbox div.frcontent p,
+body.theme.gruvbox header.post span.author {
+    color: #fbf1c7;
+}
+
+body.theme.gruvbox div.frcontent a {
+    color: #689d6a;
+}
+
+body.theme.gruvbox div.frcontent h1,
+body.theme.gruvbox div.frcontent h2,
+body.theme.gruvbox div.frcontent h3,
+body.theme.gruvbox div.frcontent h4 {
+    color: #928374;
+}
