@@ -68,6 +68,14 @@ impl ThemeChooser {
             "parchment",
             &i18n("Parchment"),
         );
+        Self::prepare_theme_selection(
+            &builder,
+            settings,
+            &mut demo_article,
+            ArticleTheme::Gruvbox,
+            "gruvbox",
+            &i18n("Gruvbox"),
+        );
 
         let theme_list = builder.get::<ListBox>("theme_list");
         theme_list.connect_row_activated(
@@ -81,6 +89,8 @@ impl ThemeChooser {
                         settings.write().set_article_view_theme(ArticleTheme::Midnight)
                     } else if "parchment" == row_name {
                         settings.write().set_article_view_theme(ArticleTheme::Parchment)
+                    } else if "gruvbox" == row_name {
+                        settings.write().set_article_view_theme(ArticleTheme::Gruvbox)
                     } else {
                         Ok(())
                     };
