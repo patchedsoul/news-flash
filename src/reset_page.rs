@@ -74,5 +74,7 @@ impl ResetPage {
                 })
                 .to_glib(),
         );
+
+        self.info_bar.set_revealed(true);
     }
 }
