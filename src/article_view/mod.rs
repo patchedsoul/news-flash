@@ -504,7 +504,8 @@ impl ArticleView {
                             ContextMenuAction::CopyLinkToClipboard
                             | ContextMenuAction::Copy
                             | ContextMenuAction::CopyImageToClipboard
-                            | ContextMenuAction::CopyImageUrlToClipboard => {}
+                            | ContextMenuAction::CopyImageUrlToClipboard
+                            | ContextMenuAction::DownloadImageToDisk => {}
                             _ => ctx_menu.remove(&item),
                         }
                     }
