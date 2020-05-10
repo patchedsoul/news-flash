@@ -34,6 +34,7 @@ pub struct ContentPage {
     pub article_view: ArticleView,
     settings: Arc<RwLock<Settings>>,
     state: Arc<RwLock<MainWindowState>>,
+    sender: Sender<Action>,
 }
 
 impl ContentPage {
@@ -74,6 +75,7 @@ impl ContentPage {
             article_view,
             settings,
             state: state.clone(),
+            sender: sender.clone(),
         }
     }
 
@@ -525,23 +527,30 @@ impl ContentPage {
 
         let glib_future = receiver.map(clone!(
             @weak self.sidebar as sidebar,
+            @strong self.sender as sender,
             @strong features => @default-panic, move |res| {
-            if let Ok(res) = res {
-                if let Ok((total_count, feed_list_model, tag_list_model)) = res {
-                    sidebar.write().update_feedlist(feed_list_model, &features);
-                    sidebar.write().update_all(total_count);
-                    if let Some(tag_list_model) = tag_list_model {
-                        if tag_list_model.is_empty() {
-                            sidebar.read().hide_taglist();
-                        } else {
-                            sidebar.write().update_taglist(tag_list_model);
-                            sidebar.read().show_taglist();
+                match res {
+                    Ok(res) => {
+                        match res {
+                            Ok((total_count, feed_list_model, tag_list_model)) => {
+                                sidebar.write().update_feedlist(feed_list_model, &features);
+                                sidebar.write().update_all(total_count);
+                                if let Some(tag_list_model) = tag_list_model {
+                                    if tag_list_model.is_empty() {
+                                        sidebar.read().hide_taglist();
+                                    } else {
+                                        sidebar.write().update_taglist(tag_list_model);
+                                        sidebar.read().show_taglist();
+                                    }
+                                } else {
+                                    sidebar.read().hide_taglist();
+                                }
+                            },
+                            Err(error) => Util::send(&sender, Action::ErrorSimpleMessage(format!("Failed to update sidebar: '{}'", error)))
                         }
-                    } else {
-                        sidebar.read().hide_taglist();
-                    }
+                    },
+                    Err(error) => Util::send(&sender, Action::ErrorSimpleMessage(format!("Failed to update sidebar: '{}'", error))),
                 }
-            }
         }));
 
         threadpool.spawn_ok(thread_future);
