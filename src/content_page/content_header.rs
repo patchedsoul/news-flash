@@ -164,11 +164,13 @@ impl ContentHeader {
     pub fn start_sync(&self) {
         self.update_button.set_sensitive(false);
         self.update_stack.set_visible_child_name("spinner");
+        self.update_stack.show_all();
     }
 
     pub fn finish_sync(&self) {
         self.update_button.set_sensitive(true);
         self.update_stack.set_visible_child_name("icon");
+        self.update_stack.show_all();
     }
 
     pub fn is_search_focused(&self) -> bool {
