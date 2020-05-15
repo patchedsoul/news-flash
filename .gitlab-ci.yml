@@ -24,6 +24,10 @@ flatpak:
           sed -i "s/@FEEDLY_CLIENT_SECRET@/${FEEDLY_CLIENT_SECRET}/g" ${MANIFEST_PATH}
         - >
           sed -i "s/@PASSWORD_CRYPT_KEY@/${PASSWORD_CRYPT_KEY}/g" ${MANIFEST_PATH}
+        - >
+          sed -i "s/@MERCURY_PARSER_USER@/${MERCURY_PARSER_USER}/g" ${MANIFEST_PATH}
+        - >
+          sed -i "s/@MERCURY_PARSER_KEY@/${MERCURY_PARSER_KEY}/g" ${MANIFEST_PATH}
         
         - flatpak-builder --stop-at=${FLATPAK_MODULE} app ${MANIFEST_PATH}
         # Build the flatpak repo

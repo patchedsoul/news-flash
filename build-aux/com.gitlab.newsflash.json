@@ -30,7 +30,9 @@
             "RUST_BACKTRACE" : "1",
             "FEEDLY_CLIENT_ID" : "@FEEDLY_CLIENT_ID@",
             "FEEDLY_CLIENT_SECRET" : "@FEEDLY_CLIENT_SECRET@",
-            "PASSWORD_CRYPT_KEY" : "@PASSWORD_CRYPT_KEY@"
+            "PASSWORD_CRYPT_KEY" : "@PASSWORD_CRYPT_KEY@",
+            "MERCURY_PARSER_USER" : "@MERCURY_PARSER_USER@",
+            "MERCURY_PARSER_KEY" : "@MERCURY_PARSER_KEY@"
         }
     },
     "modules" : [
