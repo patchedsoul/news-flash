@@ -22,7 +22,7 @@ use futures_util::future::FutureExt;
 use glib::{clone, Sender};
 use gtk::{Box, BoxExt, WidgetExt};
 use libhandy::Leaflet;
-use news_flash::models::{Article, ArticleFilter, Marked, PluginCapabilities, PluginID, Read, NEWSFLASH_TOPLEVEL};
+use news_flash::models::{Article, ArticleFilter, Marked, PluginCapabilities, PluginID, Read, NEWSFLASH_TOPLEVEL, Category, CategoryType};
 use news_flash::NewsFlash;
 use parking_lot::RwLock;
 use std::collections::HashSet;
@@ -376,14 +376,14 @@ impl ContentPage {
                 let mut tree = FeedListTree::new();
                 let mut tag_list_model: Option<TagListModel> = None;
 
-                let categories = match news_flash.get_categories() {
+                let mut categories = match news_flash.get_categories() {
                     Ok(categories) => categories,
                     Err(_error) => {
                         sender.send(Err(ContentPageErrorKind::DataBase)).expect(CHANNEL_ERROR);
                         return;
                     }
                 };
-                let (feeds, mappings) = match news_flash.get_feeds() {
+                let (feeds, mut mappings) = match news_flash.get_feeds() {
                     Ok(res) => res,
                     Err(_error) => {
                         sender.send(Err(ContentPageErrorKind::DataBase)).expect(CHANNEL_ERROR);
@@ -427,6 +427,21 @@ impl ContentPage {
                         UndoActionModel::DeleteTag(id, _label) => pending_delete_tags.insert(id),
                     };
                 }
+
+                // If there are feeds without a category:
+                // - create new 'generated' category "Uncategorized"
+                // - create mappings for all feeds without category to be children of the newly generated category
+                let mut uncategorized_mappings = Util::create_mappings_for_uncategorized_feeds(&feeds, &mappings);
+                if !uncategorized_mappings.is_empty() {
+                    categories.push(Category {
+                        category_id: crate::util::NEWSFLASH_UNCATEGORIZED.clone(),
+                        label: "Uncategorized".into(),
+                        sort_index: None,
+                        parent_id: NEWSFLASH_TOPLEVEL.clone(),
+                        category_type: CategoryType::Generated,
+                    });
+                }
+                mappings.append(&mut uncategorized_mappings);
 
                 // feedlist: Categories
                 for category in &categories {

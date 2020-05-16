@@ -19,9 +19,10 @@ use self::error::{UtilError, UtilErrorKind};
 use crate::app::Action;
 use crate::settings::{ProxyModel, ProxyProtocoll};
 use failure::ResultExt;
+use lazy_static::lazy_static;
 use gio::{Cancellable, ProxyResolver, ProxyResolverExt};
 use glib::Sender;
-use news_flash::models::{Category, CategoryID, FeedID, FeedMapping};
+use news_flash::models::{Category, CategoryID, Feed, FeedID, FeedMapping};
 use serde::{de::DeserializeOwned, Serialize};
 use std::collections::{HashMap, HashSet};
 use std::fs;
@@ -29,6 +30,10 @@ use std::future::Future;
 
 pub const CHANNEL_ERROR: &str = "Error sending message via glib channel";
 pub const RUNTIME_ERROR: &str = "Error creating tokio runtime";
+
+lazy_static! {
+    pub static ref NEWSFLASH_UNCATEGORIZED: CategoryID = CategoryID::new("NEWSFLASH_UNCATEGORIZED");
+}
 
 pub struct Util;
 
@@ -116,6 +121,20 @@ impl Util {
             .sum::<i64>();
 
         count
+    }
+
+    pub fn create_mappings_for_uncategorized_feeds(feeds: &Vec<Feed>, mappings: &Vec<FeedMapping>) -> Vec<FeedMapping> {
+        let mut uncategorized_mappings = Vec::new();
+        for feed in feeds {
+            if !mappings.iter().any(|m| m.feed_id == feed.feed_id) {
+                uncategorized_mappings.push(FeedMapping {
+                    feed_id: feed.feed_id.clone(),
+                    category_id: NEWSFLASH_UNCATEGORIZED.clone(),
+                });
+            }
+        }
+
+        uncategorized_mappings
     }
 
     pub fn discover_gnome_proxy() -> Vec<ProxyModel> {
