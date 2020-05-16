@@ -22,7 +22,9 @@ use futures_util::future::FutureExt;
 use glib::{clone, Sender};
 use gtk::{Box, BoxExt, WidgetExt};
 use libhandy::Leaflet;
-use news_flash::models::{Article, ArticleFilter, Marked, PluginCapabilities, PluginID, Read, NEWSFLASH_TOPLEVEL, Category, CategoryType};
+use news_flash::models::{
+    Article, ArticleFilter, Category, CategoryType, Marked, PluginCapabilities, PluginID, Read, NEWSFLASH_TOPLEVEL,
+};
 use news_flash::NewsFlash;
 use parking_lot::RwLock;
 use std::collections::HashSet;
