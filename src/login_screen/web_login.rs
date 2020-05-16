@@ -79,6 +79,7 @@ impl WebLogin {
             _ => self.info_bar_label.set_text(&i18n("Unknown error.")),
         }
 
+        self.error_details_button.show();
         self.error_details_signal.write().replace(
             self.error_details_button
                 .connect_clicked(move |button| {
