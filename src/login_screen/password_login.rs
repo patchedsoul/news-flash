@@ -361,7 +361,6 @@ impl PasswordLogin {
             @weak self.user_entry as user_entry,
             @weak self.pass_entry as pass_entry,
             @weak self.http_user_entry as http_user_entry,
-            @weak self.http_pass_entry as http_pass_entry,
             @strong gui_desc => @default-panic, move |_entry|
         {
             if gui_desc.url && GtkUtil::is_entry_emty(&url_entry) {
@@ -376,11 +375,9 @@ impl PasswordLogin {
                 button.set_sensitive(false);
                 return;
             }
-            if gui_desc.http_auth {
-                if GtkUtil::is_entry_emty(&http_user_entry) {
-                    button.set_sensitive(false);
-                    return;
-                }
+            if gui_desc.http_auth && GtkUtil::is_entry_emty(&http_user_entry) {
+                button.set_sensitive(false);
+                return;
             }
 
             button.set_sensitive(true);
