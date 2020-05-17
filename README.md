@@ -24,8 +24,9 @@ Services & Maintainers:
 - feedbin: still looking
 
 ## Compile
+!!! This is not a supported way of installing the application for normal use. Please use flatpak for that purpose !!!
 
-Make sure the devel libraries of gtk, webkit2gtk, libhandy, sqlite3, and openssl are installed.
+Make sure the devel libraries of gtk, webkit2gtk, libhandy, sqlite3, gettext and openssl are installed.
 Additionally meson and [rust](https://rustup.rs/) are required.
 
 ```
