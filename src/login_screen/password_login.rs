@@ -381,10 +381,6 @@ impl PasswordLogin {
                     button.set_sensitive(false);
                     return;
                 }
-                if GtkUtil::is_entry_emty(&http_pass_entry) {
-                    button.set_sensitive(false);
-                    return;
-                }
             }
 
             button.set_sensitive(true);
