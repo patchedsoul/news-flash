@@ -15,7 +15,7 @@ use crate::sidebar::feed_list::{
     },
 };
 use crate::sidebar::{SidebarIterateItem, SidebarSelection};
-use crate::util::{BuilderHelper, GtkUtil, Util};
+use crate::util::{BuilderHelper, GtkUtil, Util, NEWSFLASH_UNCATEGORIZED};
 use gdk::{DragAction, EventType};
 use glib::{clone, source::Continue, translate::ToGlib, Sender};
 use gtk::{
@@ -291,7 +291,7 @@ impl FeedList {
                 }) {
                     if let Some(dnd_data_string) = selection_data.get_text() {
                         if dnd_data_string.contains("FeedID") {
-                            if parent_category == NEWSFLASH_TOPLEVEL.clone() {
+                            if parent_category == NEWSFLASH_TOPLEVEL.clone() || parent_category == NEWSFLASH_UNCATEGORIZED.clone() {
                                 log::warn!("Feed drag to TOPLEVEL not allowed");
                                 return;
                             }
