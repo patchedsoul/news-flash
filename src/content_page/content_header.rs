@@ -125,7 +125,7 @@ impl ContentHeader {
         Self::setup_search_bar(&search_bar, &search_button, &search_entry);
         Self::setup_search_entry(&search_entry, &sender);
 
-        Self::setup_menu_button(&menu_button, &sender);
+        Self::setup_menu_button(&menu_button, &sender, features);
         Self::setup_mode_button(&mode_button, &sender);
         Self::setup_more_actions_button(&more_actions_button, &sender);
 
@@ -324,7 +324,7 @@ impl ContentHeader {
         }));
     }
 
-    fn setup_menu_button(button: &MenuButton, sender: &Sender<Action>) {
+    fn setup_menu_button(button: &MenuButton, sender: &Sender<Action>, features: &Arc<RwLock<Option<PluginCapabilities>>>) {
         let show_shortcut_window_action = SimpleAction::new("shortcut-window", None);
         show_shortcut_window_action.connect_activate(
             clone!(@strong sender => @default-panic, move |_action, _parameter| {
@@ -384,6 +384,10 @@ impl ContentHeader {
             main_window.add_action(&export_opml_action);
             main_window.add_action(&relogin_action);
             main_window.add_action(&reset_account_action);
+        }
+
+        if let Some(features) = features.read().as_ref() {
+            discover_dialog_action.set_enabled(features.contains(PluginCapabilities::ADD_REMOVE_FEEDS));
         }
 
         let about_model = Menu::new();

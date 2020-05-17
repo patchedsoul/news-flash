@@ -463,7 +463,12 @@ impl MainWindow {
         }
     }
 
-    pub fn show_content_page(&self, plugin_id: Option<PluginID>, news_flash: &RwLock<Option<NewsFlash>>) {
+    pub fn show_content_page(
+        &self,
+        plugin_id: Option<PluginID>,
+        news_flash: &RwLock<Option<NewsFlash>>,
+        features: &Arc<RwLock<Option<PluginCapabilities>>>
+    ) {
         if let Some(news_flash) = news_flash.read().as_ref() {
             let user_name: Option<String> = news_flash.user_name();
             self.stack.set_transition_type(StackTransitionType::SlideLeft);
@@ -472,9 +477,15 @@ impl MainWindow {
 
             Util::send(&self.sender, Action::UpdateSidebar);
 
-            if let Ok(true) = news_flash.is_database_empty() {
-                Util::send(&self.sender, Action::ShowDiscoverDialog);
+            // show discover dialog if database is empty and backend supports adding feeds
+            if let Some(features) = features.read().as_ref() {
+                if features.contains(PluginCapabilities::ADD_REMOVE_FEEDS) {
+                    if let Ok(true) = news_flash.is_database_empty() {
+                        Util::send(&self.sender, Action::ShowDiscoverDialog);
+                    }
+                }
             }
+            
 
             if let Some(plugin_id) = plugin_id {
                 if self.content_page.set_service(&plugin_id, user_name).is_err() {
