@@ -324,7 +324,11 @@ impl ContentHeader {
         }));
     }
 
-    fn setup_menu_button(button: &MenuButton, sender: &Sender<Action>, features: &Arc<RwLock<Option<PluginCapabilities>>>) {
+    fn setup_menu_button(
+        button: &MenuButton,
+        sender: &Sender<Action>,
+        features: &Arc<RwLock<Option<PluginCapabilities>>>,
+    ) {
         let show_shortcut_window_action = SimpleAction::new("shortcut-window", None);
         show_shortcut_window_action.connect_activate(
             clone!(@strong sender => @default-panic, move |_action, _parameter| {

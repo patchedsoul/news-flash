@@ -239,7 +239,10 @@ impl App {
             Action::UndoableAction(action) => self.window.show_undo_bar(action),
             Action::LoadFavIcon((feed, sender)) => self.load_favicon(feed, sender),
             Action::ShowWelcomePage => self.window.show_welcome_page(),
-            Action::ShowContentPage(plugin_id) => self.window.show_content_page(plugin_id, &self.news_flash, &self.features),
+            Action::ShowContentPage(plugin_id) => {
+                self.window
+                    .show_content_page(plugin_id, &self.news_flash, &self.features)
+            }
             Action::ShowPasswordLogin(plugin_id, data) => self.window.show_password_login_page(&plugin_id, data),
             Action::ShowOauthLogin(plugin_id) => self.window.show_oauth_login_page(&plugin_id),
             Action::ShowResetPage => self.window.show_reset_page(),

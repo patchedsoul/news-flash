@@ -467,7 +467,7 @@ impl MainWindow {
         &self,
         plugin_id: Option<PluginID>,
         news_flash: &RwLock<Option<NewsFlash>>,
-        features: &Arc<RwLock<Option<PluginCapabilities>>>
+        features: &Arc<RwLock<Option<PluginCapabilities>>>,
     ) {
         if let Some(news_flash) = news_flash.read().as_ref() {
             let user_name: Option<String> = news_flash.user_name();
@@ -485,7 +485,6 @@ impl MainWindow {
                     }
                 }
             }
-            
 
             if let Some(plugin_id) = plugin_id {
                 if self.content_page.set_service(&plugin_id, user_name).is_err() {
