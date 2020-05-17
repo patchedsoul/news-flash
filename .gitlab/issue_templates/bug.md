@@ -6,9 +6,10 @@ General Information:
  - NewsFlash Version:
  - NewsFlash Back-end:
 
-Observed behavior and how to reproduce:
+**Observed behavior and how to reproduce:**
 
 
-Expected behavior:
+
+**Expected behavior:**
 
 
