@@ -156,7 +156,6 @@ h4,
 h5,
 h6 {
     font-weight: 500;
-    text-align: left;
     line-height: 120%;
 }
 
@@ -221,7 +220,6 @@ p {
     margin-bottom: 1rem;
     color: #1d1f1c;
     line-height: 1.8em;
-    text-align: left;
 }
 
 pre,
