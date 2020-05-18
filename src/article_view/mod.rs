@@ -24,7 +24,7 @@ use gtk::{
     StackExt, TickCallbackId, WidgetExt,
 };
 use log::{error, warn};
-use news_flash::models::{Direction, FatArticle, Marked, Read};
+use news_flash::models::{FatArticle, Marked, Read};
 use pango::FontDescription;
 use parking_lot::RwLock;
 use std::str;
