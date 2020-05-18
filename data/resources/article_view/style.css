@@ -468,7 +468,6 @@ body.theme.dark div.nfcontent h5,
 body.theme.dark div.nfcontent h6,
 body.theme.dark div.nfcontent p {
     color: rgba(255, 255, 255, 0.7);
-    text-align: justify;
 }
 
 /* MIDNIGHT THEME */
@@ -529,7 +528,6 @@ body.theme.midnight div.nfcontent h5,
 body.theme.midnight div.nfcontent h6,
 body.theme.midnight div.nfcontent p {
     color: rgba(255, 255, 255, 0.6);
-    text-align: justify;
 }
 
 /* SPRING THEME*/
