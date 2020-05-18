@@ -788,13 +788,6 @@ impl ArticleView {
 
         let css_data = Resources::get("article_view/style.css").expect(GTK_RESOURCE_FILE_ERROR);
         let css_string = str::from_utf8(css_data.as_ref()).expect("Failed to load CSS from resources");
-        let direction_string = match &article.direction {
-            Some(direction) => match direction {
-                Direction::LeftToRight => "ltr",
-                Direction::RightToLeft => "rtl",
-            },
-            None => "auto",
-        };
 
         // A list of fonts we should try to use in order of preference
         // We will pass all of these to CSS in order
@@ -911,9 +904,6 @@ impl ArticleView {
 
         // $CSS
         template_string = template_string.replacen("$CSS", &css_string, 1);
-
-        // $DIRECTION
-        template_string = template_string.replacen("$DIRECTION", &direction_string, 1);
 
         template_string
     }
