@@ -777,7 +777,7 @@ impl ArticleView {
                 Direction::LeftToRight => "ltr",
                 Direction::RightToLeft => "rtl",
             },
-            None => "ltr",
+            None => "auto",
         };
 
         // A list of fonts we should try to use in order of preference
