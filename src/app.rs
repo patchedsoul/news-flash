@@ -1437,8 +1437,15 @@ impl App {
                                 return;
                             }
                         };
-                        let html =
-                            ArticleView::build_article_static("article", &article, &feed.label, &settings, None, None);
+                        let html = ArticleView::build_article_static(
+                            "article",
+                            &article,
+                            &feed.label,
+                            &settings,
+                            None,
+                            None,
+                            false,
+                        );
                         if FileUtil::write_text_file(&filename, &html).is_err() {
                             Util::send(
                                 &global_sender,
@@ -1465,7 +1472,13 @@ impl App {
         let (sender, receiver) = oneshot::channel::<Result<FatArticle, NewsFlashError>>();
 
         if let Some(article) = self.window.content_page.article_view.get_visible_article() {
-            self.window.content_header.start_more_actions_spinner();
+            // Article already scraped: just swap to scraped content
+            if article.scraped_content.is_some() {
+                Util::send(&self.sender, Action::FinishGrabArticleContent(Some(article)));
+                return;
+            }
+
+            self.window.content_header.start_scrap_content_spinner();
 
             let news_flash = self.news_flash.clone();
             let settings = self.settings.clone();
@@ -1506,11 +1519,20 @@ impl App {
     }
 
     fn finish_grab_article_content(&self, article: Option<FatArticle>) {
-        self.window.content_header.stop_more_actions_spinner();
+        self.window.content_header.stop_scrap_content_spinner();
 
-        if let Some(article) = article {
-            self.window
-                .show_article(article.article_id, &self.news_flash, &self.features);
+        let article_id = match article {
+            Some(article) => Some(article.article_id.clone()),
+            None => self
+                .window
+                .content_page
+                .article_view
+                .get_visible_article()
+                .map(|a| a.article_id.clone()),
+        };
+
+        if let Some(article_id) = article_id {
+            self.window.show_article(article_id, &self.news_flash, &self.features);
         }
     }
 

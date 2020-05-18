@@ -31,6 +31,9 @@ pub struct ContentHeader {
     all_button: ToggleButton,
     unread_button: ToggleButton,
     marked_button: ToggleButton,
+    scrap_content_button: ToggleButton,
+    scrap_content_stack: Stack,
+    scrap_content_event: RwLock<Option<u64>>,
     tag_button: MenuButton,
     tag_popover: RwLock<Option<TagPopover>>,
     more_actions_button: MenuButton,
@@ -74,6 +77,8 @@ impl ContentHeader {
         let mark_article_read_button = builder.get::<ToggleButton>("mark_article_read_button");
         let mark_article_stack = builder.get::<Stack>("mark_article_stack");
         let mark_article_read_stack = builder.get::<Stack>("mark_article_read_stack");
+        let scrap_content_button = builder.get::<ToggleButton>("scrap_content_button");
+        let scrap_content_stack = builder.get::<Stack>("scrap_article_stack");
 
         mark_all_read_button.connect_clicked(clone!(
             @weak mark_all_read_stack,
@@ -144,6 +149,9 @@ impl ContentHeader {
             all_button,
             unread_button,
             marked_button,
+            scrap_content_button,
+            scrap_content_stack,
+            scrap_content_event: RwLock::new(None),
             tag_button,
             tag_popover,
             more_actions_button,
@@ -469,13 +477,6 @@ impl ContentHeader {
             Util::send(&sender, Action::ExportArticle);
         }));
 
-        let grab_article_content_action = SimpleAction::new("grab-article-content", None);
-        grab_article_content_action.connect_activate(
-            clone!(@strong sender => @default-panic, move |_action, _parameter| {
-                Util::send(&sender, Action::StartGrabArticleContent);
-            }),
-        );
-
         let open_article_action = SimpleAction::new("open-article-in-browser", None);
         open_article_action.connect_activate(clone!(@strong sender => @default-panic, move |_action, _parameter| {
             Util::send(&sender, Action::OpenSelectedArticle);
@@ -485,11 +486,9 @@ impl ContentHeader {
             main_window.add_action(&close_article_action);
             main_window.add_action(&open_article_action);
             main_window.add_action(&export_article_action);
-            main_window.add_action(&grab_article_content_action);
         }
 
         let model = Menu::new();
-        model.append(Some(&i18n("Grab full content")), Some("win.grab-article-content"));
         model.append(Some(&i18n("Export Article")), Some("win.export-article"));
         model.append(Some(&i18n("Open in browser")), Some("win.open-article-in-browser"));
         model.append(Some(&i18n("Close Article")), Some("win.close-article"));
@@ -533,9 +532,17 @@ impl ContentHeader {
 
         GtkUtil::disconnect_signal(*self.mark_article_read_event.read(), &self.mark_article_read_button);
         GtkUtil::disconnect_signal(*self.mark_article_event.read(), &self.mark_article_button);
+        GtkUtil::disconnect_signal(*self.scrap_content_event.read(), &self.scrap_content_button);
 
         self.mark_article_button.set_active(marked_active);
         self.mark_article_read_button.set_active(unread_active);
+
+        let show_scraped_content = if let Some(fat_article) = article {
+            fat_article.scraped_content.is_some() && self.state.read().get_prefer_scraped_content()
+        } else {
+            false
+        };
+        self.scrap_content_button.set_active(show_scraped_content);
 
         self.mark_article_event.write().replace(
             self.mark_article_button
@@ -569,6 +576,23 @@ impl ContentHeader {
                 .to_glib(),
         );
 
+        self.scrap_content_event.write().replace(
+            self.scrap_content_button
+                .connect_clicked(clone!(
+                    @strong self.sender as sender,
+                    @strong self.state as state => @default-panic, move |button|
+                {
+                    if button.get_active() {
+                        state.write().set_prefer_scraped_content(true);
+                        Util::send(&sender, Action::StartGrabArticleContent);
+                    } else {
+                        state.write().set_prefer_scraped_content(false);
+                        Util::send(&sender, Action::RedrawArticle);
+                    }
+                }))
+                .to_glib(),
+        );
+
         self.more_actions_button.set_sensitive(sensitive);
 
         if !self.state.read().get_offline() {
@@ -579,6 +603,7 @@ impl ContentHeader {
 
             self.mark_article_button.set_sensitive(sensitive);
             self.mark_article_read_button.set_sensitive(sensitive);
+            self.scrap_content_button.set_sensitive(sensitive);
             self.upadate_tags(&article, news_flash, tag_support);
         }
     }
@@ -601,6 +626,16 @@ impl ContentHeader {
             let popover: Option<&Widget> = None;
             self.tag_button.set_popover(popover);
         }
+    }
+
+    pub fn start_scrap_content_spinner(&self) {
+        self.scrap_content_button.set_sensitive(false);
+        self.scrap_content_stack.set_visible_child_name("spinner");
+    }
+
+    pub fn stop_scrap_content_spinner(&self) {
+        self.scrap_content_button.set_sensitive(true);
+        self.scrap_content_stack.set_visible_child_name("image");
     }
 
     pub fn start_more_actions_spinner(&self) {

@@ -9,6 +9,7 @@ use self::models::InternalState;
 use self::progress_overlay::ProgressOverlay;
 use self::url_overlay::UrlOverlay;
 use crate::app::Action;
+use crate::main_window_state::MainWindowState;
 use crate::settings::Settings;
 use crate::util::{BuilderHelper, DateUtil, FileUtil, GtkUtil, Util, GTK_RESOURCE_FILE_ERROR};
 use crate::Resources;
@@ -56,6 +57,7 @@ pub struct ArticleView {
     view_html_button: Button,
     visible_article: Arc<RwLock<Option<FatArticle>>>,
     visible_feed_name: Arc<RwLock<Option<String>>>,
+    widnow_state: Arc<RwLock<MainWindowState>>,
     internal_state: Arc<RwLock<InternalState>>,
     load_changed_signal: Arc<RwLock<Option<u64>>>,
     decide_policy_signal: Arc<RwLock<Option<u64>>>,
@@ -82,7 +84,11 @@ pub struct ArticleView {
 }
 
 impl ArticleView {
-    pub fn new(settings: &Arc<RwLock<Settings>>, sender: &Sender<Action>) -> Self {
+    pub fn new(
+        settings: &Arc<RwLock<Settings>>,
+        sender: &Sender<Action>,
+        state: &Arc<RwLock<MainWindowState>>,
+    ) -> Self {
         let builder = BuilderHelper::new("article_view");
 
         let url_overlay = builder.get::<Overlay>("url_overlay");
@@ -135,6 +141,7 @@ impl ArticleView {
             visible_article,
             visible_feed_name,
             internal_state: Arc::new(RwLock::new(internal_state)),
+            widnow_state: state.clone(),
             load_changed_signal: Arc::new(RwLock::new(None)),
             decide_policy_signal: Arc::new(RwLock::new(None)),
             mouse_over_signal: Arc::new(RwLock::new(None)),
@@ -755,7 +762,15 @@ impl ArticleView {
     }
 
     fn build_article(&self, article: &FatArticle, feed_name: &str) -> String {
-        Self::build_article_static("article", article, feed_name, &self.settings, None, None)
+        Self::build_article_static(
+            "article",
+            article,
+            feed_name,
+            &self.settings,
+            None,
+            None,
+            self.widnow_state.read().get_prefer_scraped_content(),
+        )
     }
 
     pub fn build_article_static(
@@ -765,6 +780,7 @@ impl ArticleView {
         settings: &Arc<RwLock<Settings>>,
         theme_override: Option<ArticleTheme>,
         font_size_override: Option<i32>,
+        prefer_scraped_content: bool,
     ) -> String {
         let template_data = Resources::get(&format!("article_view/{}.html", file_name)).expect(GTK_RESOURCE_FILE_ERROR);
         let template_str = str::from_utf8(template_data.as_ref()).expect(GTK_RESOURCE_FILE_ERROR);
@@ -830,8 +846,16 @@ impl ArticleView {
         }
 
         // $HTML
-        if let Some(html) = &article.html {
-            template_string = template_string.replacen("$HTML", html, 1);
+        if prefer_scraped_content {
+            if let Some(html) = &article.scraped_content {
+                template_string = template_string.replacen("$HTML", html, 1);
+            } else if let Some(html) = &article.html {
+                template_string = template_string.replacen("$HTML", html, 1);
+            }
+        } else {
+            if let Some(html) = &article.html {
+                template_string = template_string.replacen("$HTML", html, 1);
+            }
         }
 
         // $UNSELECTABLE

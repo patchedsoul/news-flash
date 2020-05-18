@@ -8,6 +8,7 @@ pub struct MainWindowState {
     search_term: Option<String>,
     reset_article_list: bool,
     offline: bool,
+    prefer_scraped_content: bool,
 }
 
 const ARTICLE_LIST_PAGE_SIZE: i64 = 20;
@@ -20,6 +21,7 @@ impl MainWindowState {
             search_term: None,
             reset_article_list: false,
             offline: false,
+            prefer_scraped_content: false,
         }
     }
 
@@ -67,6 +69,14 @@ impl MainWindowState {
 
     pub fn get_offline(&self) -> bool {
         self.offline
+    }
+
+    pub fn set_prefer_scraped_content(&mut self, pref: bool) {
+        self.prefer_scraped_content = pref;
+    }
+
+    pub fn get_prefer_scraped_content(&self) -> bool {
+        self.prefer_scraped_content
     }
 }
 

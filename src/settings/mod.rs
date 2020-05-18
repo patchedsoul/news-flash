@@ -227,6 +227,16 @@ impl Settings {
         Ok(())
     }
 
+    pub fn get_keybind_article_view_scrap(&self) -> Option<String> {
+        self.keybindings.article_view.scrap_content.clone()
+    }
+
+    pub fn set_keybind_article_view_scrap(&mut self, key: Option<String>) -> Result<(), SettingsError> {
+        self.keybindings.article_view.scrap_content = key;
+        self.write()?;
+        Ok(())
+    }
+
     pub fn get_keybind_article_list_next(&self) -> Option<String> {
         self.keybindings.article_list.next.clone()
     }

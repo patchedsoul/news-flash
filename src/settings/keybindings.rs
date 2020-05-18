@@ -213,6 +213,7 @@ impl Keybindings {
             "only_starred" => settings.write().set_keybind_only_starred(keybinding),
             "scroll_up" => settings.write().set_keybind_article_view_up(keybinding),
             "scroll_down" => settings.write().set_keybind_article_view_down(keybinding),
+            "scrap_content" => settings.write().set_keybind_article_view_scrap(keybinding),
             _ => {
                 warn!("unexpected keybind id: {}", id);
                 Err(SettingsErrorKind::InvalidKeybind.into())
@@ -240,6 +241,7 @@ impl Keybindings {
             "only_starred" => Ok(settings.read().get_keybind_only_starred()),
             "scroll_up" => Ok(settings.read().get_keybind_article_view_up()),
             "scroll_down" => Ok(settings.read().get_keybind_article_view_down()),
+            "scrap_content" => Ok(settings.read().get_keybind_article_view_scrap()),
             _ => {
                 warn!("unexpected keybind id: {}", id);
                 Err(SettingsErrorKind::InvalidKeybind.into())
@@ -303,13 +305,17 @@ pub struct KeybindingsArticleView {
     #[serde(skip_serializing_if = "Option::is_none")]
     #[serde(default)]
     pub scroll_down: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    #[serde(default)]
+    pub scrap_content: Option<String>,
 }
 
 impl KeybindingsArticleView {
     pub fn default() -> Self {
         KeybindingsArticleView {
-            scroll_up: Some("I".to_owned()),
-            scroll_down: Some("U".to_owned()),
+            scroll_up: Some("I".into()),
+            scroll_down: Some("U".into()),
+            scrap_content: Some("C".into()),
         }
     }
 }
@@ -409,6 +415,7 @@ impl NewsFlashShortcutWindow {
         ui_xml = Self::setup_shortcut(&ui_xml, "$OPENBROWSER", settings.get_keybind_article_list_open());
         ui_xml = Self::setup_shortcut(&ui_xml, "$SCROLLUP", settings.get_keybind_article_view_up());
         ui_xml = Self::setup_shortcut(&ui_xml, "$SCROLLDOWN", settings.get_keybind_article_view_down());
+        ui_xml = Self::setup_shortcut(&ui_xml, "$SCRAPCONTENT", settings.get_keybind_article_view_scrap());
         ui_xml = Self::setup_shortcut(&ui_xml, "$NEXTFEED", settings.get_keybind_feed_list_next());
         ui_xml = Self::setup_shortcut(&ui_xml, "$PREVFEED", settings.get_keybind_feed_list_prev());
         ui_xml = Self::setup_shortcut(

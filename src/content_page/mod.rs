@@ -63,7 +63,7 @@ impl ContentPage {
             state,
             sender.clone(),
         )));
-        let article_view = ArticleView::new(settings, &sender);
+        let article_view = ArticleView::new(settings, &sender, state);
 
         feed_list_box.pack_start(&sidebar.read().widget(), false, true, 0);
         article_list_box.pack_start(&article_list.read().widget(), false, true, 0);
@@ -83,6 +83,7 @@ impl ContentPage {
 
     pub fn clear(&self) {
         self.article_view.close_article();
+        self.state.write().set_prefer_scraped_content(false);
 
         let list_model = ArticleListModel::new(&self.settings.read().get_article_list_order());
         self.article_list.write().update(list_model, &self.state);
