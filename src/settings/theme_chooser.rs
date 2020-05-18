@@ -34,6 +34,7 @@ impl ThemeChooser {
             url: None,
             summary: None,
             html: None,
+            scraped_content: None,
         };
 
         Self::prepare_theme_selection(
@@ -135,6 +136,7 @@ impl ThemeChooser {
             settings,
             Some(theme),
             Some(10240),
+            false,
         );
         view.load_html(&html, None);
     }

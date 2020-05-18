@@ -307,6 +307,10 @@ impl MainWindow {
                 );
             }
 
+            if Self::check_shortcut("scrap_content", &settings, event) {
+                Util::send(&sender, Action::StartGrabArticleContent);
+            }
+
             if Self::check_shortcut("sidebar_set_read", &settings, event) {
                 if !state.read().get_offline() {
                     Util::send(&sender, Action::SetSidebarRead);
@@ -542,6 +546,8 @@ impl MainWindow {
     ) {
         let mut fat_article: Option<FatArticle> = None;
         let mut feed_vec: Option<Vec<Feed>> = None;
+
+        self.state.write().set_prefer_scraped_content(true);
 
         if let Some(news_flash) = news_flash.read().as_ref() {
             match news_flash.get_fat_article(&article_id) {

@@ -441,6 +441,11 @@ impl SettingsDialog {
             self.settings.read().get_keybind_article_view_down(),
             sender,
         );
+        self.setup_keybinding_row(
+            "scrap_content",
+            self.settings.read().get_keybind_article_view_scrap(),
+            sender,
+        );
     }
 
     fn setup_keybinding_row(&self, id: &str, keybinding: Option<String>, sender: &Sender<Action>) {

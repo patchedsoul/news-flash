@@ -107,6 +107,12 @@
                 <property name="accelerator">$SCROLLDOWN</property>
               </object>
             </child>
+            <child>
+              <object class="GtkShortcutsShortcut">
+                <property name="title" translatable="yes">Scrap content</property>
+                <property name="accelerator">$SCRAPCONTENT</property>
+              </object>
+            </child>
           </object>
         </child>
         <child>
