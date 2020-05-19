@@ -145,7 +145,7 @@ impl PasswordLogin {
             // show/hide url & http-auth fields
             self.url_label.set_visible(pw_gui_desc.url);
             self.url_entry.set_visible(pw_gui_desc.url);
-            self.http_revealer.set_reveal_child(pw_gui_desc.http_auth);
+            self.http_revealer.set_reveal_child(false);
 
             // set focus to first entry
             if pw_gui_desc.url {
@@ -180,6 +180,7 @@ impl PasswordLogin {
                         @weak self.pass_entry as pass_entry,
                         @weak self.http_user_entry as http_user_entry,
                         @weak self.http_pass_entry as http_pass_entry,
+                        @weak self.http_revealer as http_revealer,
                         @strong pw_gui_desc,
                         @strong info.id as plugin_id,
                         @strong self.sender as sender => @default-panic, move |_button|
@@ -202,7 +203,7 @@ impl PasswordLogin {
                             .expect("Login button should be insensitive if password entry is empty.")
                             .as_str()
                             .to_owned();
-                        let http_user: Option<String> = if pw_gui_desc.http_auth {
+                        let http_user: Option<String> = if http_revealer.get_child_revealed() {
                             match http_user_entry.get_text() {
                                 Some(user) => Some(user.as_str().to_owned()),
                                 None => None,
@@ -210,7 +211,7 @@ impl PasswordLogin {
                         } else {
                             None
                         };
-                        let http_password: Option<String> = if pw_gui_desc.http_auth {
+                        let http_password: Option<String> = if http_revealer.get_child_revealed() {
                             match http_pass_entry.get_text() {
                                 Some(pass) => Some(pass.as_str().to_owned()),
                                 None => None,
@@ -297,14 +298,13 @@ impl PasswordLogin {
                         match api_err.kind() {
                             FeedApiErrorKind::HTTPAuth => {
                                 self.http_revealer.set_reveal_child(true);
+                                self.login_button.set_sensitive(false);
                                 self.info_bar_label.set_text(&i18n("HTTP Authentication required."));
-                                return;
                             }
                             FeedApiErrorKind::TLSCert => {
                                 self.info_bar_label
                                     .set_text(&i18n("No valid CA certificate available."));
                                 self.ignore_tls_button.set_visible(true);
-                                return;
                             }
                             FeedApiErrorKind::Login | FeedApiErrorKind::Api | _ => {
                                 self.info_bar_label.set_text(&i18n("Failed to log in"));
@@ -361,6 +361,7 @@ impl PasswordLogin {
             @weak self.user_entry as user_entry,
             @weak self.pass_entry as pass_entry,
             @weak self.http_user_entry as http_user_entry,
+            @weak self.http_revealer as http_revealer,
             @strong gui_desc => @default-panic, move |_entry|
         {
             if gui_desc.url && GtkUtil::is_entry_emty(&url_entry) {
@@ -375,7 +376,7 @@ impl PasswordLogin {
                 button.set_sensitive(false);
                 return;
             }
-            if gui_desc.http_auth && GtkUtil::is_entry_emty(&http_user_entry) {
+            if http_revealer.get_child_revealed() && GtkUtil::is_entry_emty(&http_user_entry) {
                 button.set_sensitive(false);
                 return;
             }
