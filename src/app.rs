@@ -1444,7 +1444,7 @@ impl App {
                             &settings,
                             None,
                             None,
-                            false,
+                            true,
                         );
                         if FileUtil::write_text_file(&filename, &html).is_err() {
                             Util::send(
