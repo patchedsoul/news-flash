@@ -22,6 +22,7 @@ use futures_util::future::FutureExt;
 use glib::{clone, Sender};
 use gtk::{Box, BoxExt, WidgetExt};
 use libhandy::Leaflet;
+use log::warn;
 use news_flash::models::{
     Article, ArticleFilter, Category, CategoryType, Marked, PluginCapabilities, PluginID, Read, NEWSFLASH_TOPLEVEL,
 };
@@ -168,7 +169,7 @@ impl ContentPage {
                         let feed = feeds
                             .iter()
                             .find(|&f| f.feed_id == article.feed_id)
-                            .ok_or_else(|| ContentPageErrorKind::FeedTitle)?;
+                            .ok_or_else(|| ContentPageErrorKind::MissingFeed(article.feed_id.clone()))?;
                         list_model
                             .add(article, &feed)
                             .context(ContentPageErrorKind::ArticleList)?;
@@ -246,7 +247,7 @@ impl ContentPage {
                         let feed = feeds
                             .iter()
                             .find(|&f| f.feed_id == article.feed_id)
-                            .ok_or_else(|| ContentPageErrorKind::FeedTitle)?;
+                            .ok_or_else(|| ContentPageErrorKind::MissingFeed(article.feed_id.clone()))?;
                         list_model
                             .add(article, &feed)
                             .context(ContentPageErrorKind::ArticleList)?;
@@ -374,6 +375,7 @@ impl ContentPage {
         let current_undo_action = undo_bar.get_current_action();
         let processing_undo_actions = undo_bar.processing_actions();
         let app_features = features.clone();
+        let global_sender = self.sender.clone();
         let thread_future = async move {
             if let Some(news_flash) = news_flash.read().as_ref() {
                 let mut tree = FeedListTree::new();
@@ -480,8 +482,18 @@ impl ContentPage {
                     let feed = match feeds.iter().find(|feed| feed.feed_id == mapping.feed_id) {
                         Some(res) => res,
                         None => {
-                            sender.send(Err(ContentPageErrorKind::FeedTitle)).expect(CHANNEL_ERROR);
-                            return;
+                            warn!(
+                                "Mapping for feed '{}' exists, but can't find the feed itself",
+                                mapping.feed_id
+                            );
+                            Util::send(
+                                &global_sender,
+                                Action::ErrorSimpleMessage(format!(
+                                    "Sidebar: missing feed with id: '{}'",
+                                    mapping.feed_id
+                                )),
+                            );
+                            continue;
                         }
                     };
 

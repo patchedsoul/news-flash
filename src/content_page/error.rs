@@ -1,4 +1,5 @@
 use failure::{Backtrace, Context, Error, Fail};
+use news_flash::models::FeedID;
 use std::fmt;
 
 #[derive(Debug)]
@@ -6,7 +7,7 @@ pub struct ContentPageError {
     inner: Context<ContentPageErrorKind>,
 }
 
-#[derive(Copy, Clone, Eq, PartialEq, Debug, Fail)]
+#[derive(Clone, Eq, PartialEq, Debug, Fail)]
 pub enum ContentPageErrorKind {
     #[fail(display = "Error computing article view stuff")]
     ArticleView,
@@ -14,8 +15,8 @@ pub enum ContentPageErrorKind {
     ArticleList,
     #[fail(display = "Failed to load data from the database")]
     DataBase,
-    #[fail(display = "Failed to get feed title for article")]
-    FeedTitle,
+    #[fail(display = "Failed to find feed for id")]
+    MissingFeed(FeedID),
     #[fail(display = "Failed to set sidebar service icon")]
     SidebarService,
     #[fail(display = "Error computing sidebar models")]
@@ -45,7 +46,7 @@ impl fmt::Display for ContentPageError {
 impl ContentPageError {
     #[allow(dead_code)]
     pub fn kind(&self) -> ContentPageErrorKind {
-        *self.inner.get_context()
+        self.inner.get_context().clone()
     }
 }
 
