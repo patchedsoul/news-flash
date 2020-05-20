@@ -360,12 +360,13 @@ impl App {
             }
         };
 
-        let (sender, receiver) = oneshot::channel::<Result<PluginCapabilities, NewsFlashError>>();
+        let (sender, receiver) = oneshot::channel::<Result<(), NewsFlashError>>();
 
         let news_flash = self.news_flash.clone();
         let global_sender = self.sender.clone();
         let settings = self.settings.clone();
         let data_clone = data.clone();
+        let app_features = self.features.clone();
         let thread_future = async move {
             let result = Runtime::new()
                 .expect(RUNTIME_ERROR)
@@ -374,6 +375,14 @@ impl App {
                 Ok(()) => {
                     // query features
                     let features = news_flash_lib.features();
+                    let features = match features {
+                        Ok(features) => features,
+                        Err(error) => {
+                            sender.send(Err(error)).expect(CHANNEL_ERROR);
+                            return;
+                        }
+                    };
+                    app_features.write().replace(features);
                     // create main obj
                     news_flash.write().replace(news_flash_lib);
                     // show content page
@@ -381,7 +390,7 @@ impl App {
                     // schedule initial sync
                     Util::send(&global_sender, Action::InitSync);
 
-                    sender.send(features).expect(CHANNEL_ERROR);
+                    sender.send(Ok(())).expect(CHANNEL_ERROR);
                 }
                 Err(error) => {
                     error!("Login failed! Plguin: {}, Error: {}", id, error);
@@ -391,8 +400,8 @@ impl App {
         };
 
         let glib_future = receiver.map(clone!(
-            @weak self.features as app_features,
             @weak self.window as window,
+            @weak self.features as app_features,
             @weak self.window.oauth_login_page as oauth_login_page,
             @weak self.window.password_login_page as password_login_page => @default-panic, move |res|
         {
@@ -410,8 +419,7 @@ impl App {
                         }
                     }
                 },
-                Ok(Ok(features)) => {
-                    app_features.write().replace(features);
+                Ok(Ok(())) => {
                     window.update_features(&app_features);
                 }
                 _ => {}
