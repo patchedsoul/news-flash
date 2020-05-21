@@ -24,7 +24,6 @@ h4,
 h5,
 h6,
 pre,
-ul,
 ol,
 li,
 dl,
@@ -42,6 +41,10 @@ figure {
     border: 0;
 }
 
+ul {
+    direction: unset;
+    margin: 0;
+}
 .unselectable {
     -webkit-user-select: none;
     -webkit-touch-callout: none;
@@ -318,6 +321,7 @@ header.post h1 {
     font-weight: 600;
     margin-top: 0.5rem;
     margin-bottom: 0.5rem;
+    line-height: normal
 }
 
 header.post a:link {
