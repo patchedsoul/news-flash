@@ -35,6 +35,7 @@ impl ThemeChooser {
             summary: None,
             html: None,
             scraped_content: None,
+            plain_text: None,
         };
 
         Self::prepare_theme_selection(
