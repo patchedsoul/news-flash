@@ -2,7 +2,7 @@
 
 The spiritual successor to [FeedReader](https://github.com/jangernert/FeedReader)
 
-![Screenshot](./data/screenshots/2020-04-20.png "WIP 2020-04-20")
+![Screenshot](./data/screenshots/Main.png "WIP 2020-04-20")
 
 ## Beta1 Flatpak
 
