@@ -1,6 +1,6 @@
 project(
   'newsflash', 'rust',
-  version: '0.0.0',
+  version: '1.0.0',
   license: 'GPLv3',
 )
 
@@ -33,7 +33,7 @@ if get_option('profile') == 'development'
   if vcs_tag == ''
     version_suffix = '-devel'
   else
-    version_suffix = '-@0@'.format (vcs_tag)
+    version_suffix = 'RC1-@0@'.format (vcs_tag)
   endif
 else
   profile = ''
