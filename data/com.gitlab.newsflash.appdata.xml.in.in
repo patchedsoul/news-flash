@@ -4,38 +4,83 @@
   <id>@appid@</id>
   <metadata_license>CC0</metadata_license>
   <project_license>GPL-3.0+</project_license>
-  <name>News Flash</name>
-  <summary>Faster than flash to deliver you the latest news from your subscribed feeds.</summary>
+  <name>NewsFlash</name>
+  <summary>A modern feed reader designed for the GNOME desktop</summary>
   <description>
 		<p>
-			News Flash is a program designed to complement an already existing web-based RSS reader account.
+			NewsFlash is a program designed to complement an already existing web-based RSS reader account.
 		</p>
 
 		<p>
 			It combines all the advantages of web based services like syncing across all your devices with everything you expect
-			from a modern desktop program: Desktop notifications, fast search and filtering, tagging, sharing to "read-it-later"
-			services like Pocket and Instapaper, handy keyboard shortcuts and a database that keeps all your old articles as long as you
-			like.
+			from a modern desktop program: Desktop notifications, fast search and filtering, tagging, handy keyboard shortcuts
+      and having access to all your articles as long as you like.
 		</p>
   </description>
   <screenshots>
-      <screenshot type="default">
-      </screenshot>
-
+    <screenshot type="default">
+      <image>https://gitlab.com/news-flash/news_flash_gtk/-/raw/master/data/screenshots/Main.png</image>
+    </screenshot>
+    <screenshot>
+      <image>https://gitlab.com/news-flash/news_flash_gtk/-/raw/master/data/screenshots/Dark.png</image>
+    </screenshot>
+    <screenshot>
+      <image>https://gitlab.com/news-flash/news_flash_gtk/-/raw/master/data/screenshots/Settings.png</image>
+    </screenshot>
+    <screenshot>
+      <image>https://gitlab.com/news-flash/news_flash_gtk/-/raw/master/data/screenshots/Adaptive1.png</image>
+    </screenshot>
+    <screenshot>
+      <image>https://gitlab.com/news-flash/news_flash_gtk/-/raw/master/data/screenshots/Adaptive2.png</image>
+    </screenshot>
+    <screenshot>
+      <image>https://gitlab.com/news-flash/news_flash_gtk/-/raw/master/data/screenshots/Adaptive3.png</image>
+    </screenshot>
   </screenshots>
-  <url type="homepage">https://gitlab.com/news-flash/</url>
+  <url type="homepage">https://gitlab.com/news-flash/news_flash_gtk</url>
   <url type="bugtracker">https://gitlab.com/news-flash/news_flash_gtk/issues</url>
-  <content_rating type="oars-1.0" />
   <releases>
-    <release version="0.0.0" />
+    <release version="1.0.0 RC">
+      <description>
+        <p>Features:</p>
+        <ul>
+          <li>Feedbin support</li>
+          <li>Mercury Parser hosted by Feedbin as fallback for the internal scraper</li>
+          <li>Support for uncategorized feeds and "generated/fake" categories</li>
+          <li>Save images to Downloads folder</li>
+          <li>Switch between scraped and original content</li>
+          <li>Search full text of scraped article</li>
+        </ul>
+
+        <p>Bugfixes:</p>
+				<ul>
+          <li>Fever: accepting both string and integer for 'last_refreshed_on_time'</li>
+          <li>Fever: crash when syncing uncategorized feeds</li>
+          <li>Fever: can't login with HTTP basic auth</li>
+          <li>Fever: slow bulk updating of articles</li>
+          <li>Local: feeds from the same website could overwrite each other</li>
+          <li>Local: Improve layout when only summary is present</li>
+          <li>Local: better handle misformed dates in ATOM feeds</li>
+          <li>First sync downloads too many articles</li>
+          <li>Can't apply tag to article after creating it</li>
+          <li>Better error handling for non-web logins</li>
+          <li>UI elements visible that shouldn't</li>
+          <li>Problems opening links from articles</li>
+          <li>Next article shortcut skipping articles</li>
+          <li>Debug files written to disk</li>
+          <li>Improved right-to-left language support</li>
+          <li>Prefer scraped content when exporting an article</li>
+        </ul>
+			</description>
+    </release>
+    <release version="1.0.0 Beta 1">
+      <description>
+				First public release
+			</description>
+    </release>
   </releases>
-  <kudos>
-      <kudo>ModernToolkit</kudo>
-      <kudo>HiDpiIcon</kudo>
-  </kudos>
   <translation type="gettext">newsflash</translation>
   <launchable type="desktop-id">@appid@.desktop</launchable>
 	<developer_name>Jan Lukas Gernert</developer_name>
-	<project_group>GNOME</project_group>
 </component>
 
