@@ -2,6 +2,12 @@
 
 The spiritual successor to [FeedReader](https://github.com/jangernert/FeedReader)
 
+A modern feed reader designed for the GNOME desktop. NewsFlash is a program designed to complement an already existing web-based RSS reader account.
+
+It combines all the advantages of web based services like syncing across all your devices with everything you expect
+from a modern desktop program: Desktop notifications, fast search and filtering, tagging, handy keyboard shortcuts
+and having access to all your articles as long as you like.
+
 ![Screenshot](./data/screenshots/Main.png "WIP 2020-04-20")
 
 ## Beta1 Flatpak
