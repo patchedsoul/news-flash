@@ -46,6 +46,7 @@
         <ul>
           <li>Feedbin support</li>
           <li>Mercury Parser hosted by Feedbin as fallback for the internal scraper</li>
+          <li>Readability as a fallback for the internal scraper</li>
           <li>Support for uncategorized feeds and "generated/fake" categories</li>
           <li>Save images to Downloads folder</li>
           <li>Switch between scraped and original content</li>
