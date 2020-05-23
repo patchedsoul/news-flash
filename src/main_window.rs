@@ -142,6 +142,7 @@ impl MainWindow {
 
         if let Some(gtk_settings) = GtkSettings::get_default() {
             gtk_settings.set_property_gtk_application_prefer_dark_theme(settings.read().get_prefer_dark_theme());
+            content_page.update_article_view_background();
 
             gtk_settings.connect_property_gtk_application_prefer_dark_theme_notify(clone!(
                 @weak content_page,
