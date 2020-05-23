@@ -143,12 +143,14 @@ impl MainWindow {
         if let Some(gtk_settings) = GtkSettings::get_default() {
             gtk_settings.set_property_gtk_application_prefer_dark_theme(settings.read().get_prefer_dark_theme());
 
-            gtk_settings.connect_property_gtk_application_prefer_dark_theme_notify(
-                clone!(@strong sender => @default-panic, move |_settings| {
-                    Self::load_css(&css_provider);
-                    Util::send(&sender, Action::RedrawArticle);
-                }),
-            );
+            gtk_settings.connect_property_gtk_application_prefer_dark_theme_notify(clone!(
+                @weak content_page,
+                @strong sender => @default-panic, move |_settings|
+            {
+                content_page.update_article_view_background();
+                Self::load_css(&css_provider);
+                Util::send(&sender, Action::RedrawArticle);
+            }));
         }
 
         MainWindow {

@@ -6,10 +6,11 @@ use crate::article_list::ReadUpdate;
 use crate::content_page::ContentHeader;
 use crate::main_window_state::MainWindowState;
 use crate::util::{BuilderHelper, GtkUtil, Util};
+use gdk::RGBA;
 use glib::{clone, object::Cast, source::Continue, translate::ToGlib, Sender};
 use gtk::{
     prelude::WidgetExtManual, AdjustmentExt, ContainerExt, ListBox, ListBoxExt, ListBoxRowExt, ScrolledWindow,
-    ScrolledWindowExt, SettingsExt, TickCallbackId, WidgetExt,
+    ScrolledWindowExt, SettingsExt, StateFlags, StyleContextExt, TickCallbackId, WidgetExt,
 };
 use news_flash::models::{
     article::{Marked, Read},
@@ -94,6 +95,16 @@ impl SingleArticleList {
 
     pub fn list(&self) -> gtk::ListBox {
         self.list.clone()
+    }
+
+    pub fn get_background_color(&self) -> RGBA {
+        let ctx = self.list.get_style_context();
+        ctx.save();
+        ctx.set_state(StateFlags::NORMAL);
+        #[allow(deprecated)]
+        let color = ctx.get_background_color(ctx.get_state());
+        ctx.restore();
+        color
     }
 
     pub fn add(

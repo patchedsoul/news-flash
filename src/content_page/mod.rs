@@ -112,6 +112,11 @@ impl ContentPage {
         Ok(())
     }
 
+    pub fn update_article_view_background(&self) {
+        let color = self.article_list.read().get_background_color();
+        self.article_view.update_background_color(&color);
+    }
+
     pub fn update_article_list(
         &self,
         news_flash: &Arc<RwLock<Option<NewsFlash>>>,

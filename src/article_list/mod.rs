@@ -10,6 +10,7 @@ use crate::main_window_state::MainWindowState;
 use crate::settings::Settings;
 use crate::sidebar::models::SidebarSelection;
 use crate::util::{BuilderHelper, GtkUtil, Util};
+use gdk::RGBA;
 use glib::{clone, source::Continue, translate::ToGlib, Sender};
 use gtk::{Label, LabelExt, ListBoxExt, ListBoxRowExt, ScrolledWindow, Stack, StackExt, StackTransitionType};
 use models::ArticleListChangeSet;
@@ -85,6 +86,10 @@ impl ArticleList {
 
     pub fn widget(&self) -> gtk::Stack {
         self.stack.clone()
+    }
+
+    pub fn get_background_color(&self) -> RGBA {
+        self.list_1.read().get_background_color()
     }
 
     pub fn get_relevant_article_count(&self, header_selection: &HeaderSelection) -> usize {

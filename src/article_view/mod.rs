@@ -15,7 +15,7 @@ use crate::util::{BuilderHelper, DateUtil, FileUtil, GtkUtil, Util, GTK_RESOURCE
 use crate::Resources;
 use gdk::{
     enums::key::KP_Add as KP_ADD, enums::key::KP_Subtract as KP_SUBTRACT, enums::key::KP_0, Cursor, CursorType,
-    Display, EventMask, ModifierType, ScrollDirection,
+    Display, EventMask, ModifierType, ScrollDirection, RGBA,
 };
 use gio::{Cancellable, Settings as GSettings, SettingsExt as GSettingsExt};
 use glib::{clone, object::Cast, source::Continue, translate::ToGlib, MainLoop, Sender};
@@ -126,8 +126,8 @@ impl ArticleView {
         let view_2 = Self::new_webview(&web_context);
         view_1.load_html("", None);
         view_2.load_html("", None);
-        stack.add_named(&view_1, InternalState::View1.to_str().unwrap());
-        stack.add_named(&view_2, InternalState::View2.to_str().unwrap());
+        stack.add_named(&view_1, InternalState::View1.to_str().expect("InternalState to str"));
+        stack.add_named(&view_2, InternalState::View2.to_str().expect("InternalState to str"));
 
         let internal_state = InternalState::Empty;
         let settings = settings.clone();
@@ -181,7 +181,7 @@ impl ArticleView {
     }
 
     pub fn show_article(&self, article: FatArticle, feed_name: String) {
-        let webview = self.switch_view().unwrap();
+        let webview = self.switch_view().expect("Failed to switch webview");
         let html = self.build_article(&article, &feed_name);
         webview.load_html(&html, Self::get_base_url(&article).as_deref());
         self.visible_article.write().replace(article);
@@ -193,7 +193,7 @@ impl ArticleView {
             if let Some(feed_name) = &*self.visible_feed_name.read() {
                 let html = self.build_article(&article, feed_name);
 
-                let webview = self.switch_view().unwrap();
+                let webview = self.switch_view().expect("Failed to switch webview");
                 webview.load_html(&html, Self::get_base_url(&article).as_deref());
                 return;
             }
@@ -243,13 +243,32 @@ impl ArticleView {
         self.stack.set_visible_child_name("empty");
     }
 
+    pub fn update_background_color(&self, color: &RGBA) {
+        if color.alpha == 1.0 {
+            let webview_1 = self
+                .stack
+                .get_child_by_name(InternalState::View1.to_str().expect("InternalState to str"))
+                .expect("Failed to get webview");
+            let webview_2 = self
+                .stack
+                .get_child_by_name(InternalState::View2.to_str().expect("InternalState to str"))
+                .expect("Failed to get webview");
+
+            let webview_1 = webview_1.downcast::<WebView>().expect("Failed to downcast to webview");
+            let webview_2 = webview_2.downcast::<WebView>().expect("Failed to downcast to webview");
+
+            webview_1.set_background_color(color);
+            webview_2.set_background_color(color);
+        }
+    }
+
     fn switch_view(&self) -> Result<WebView, ArticleViewError> {
         self.disconnect_old_view();
         let old_state = (*self.internal_state.read()).clone();
         *self.internal_state.write() = old_state.switch();
         if let Some(new_name) = self.internal_state.read().to_str() {
             if let Some(webview) = self.stack.get_child_by_name(new_name) {
-                let webview = webview.downcast::<WebView>().unwrap();
+                let webview = webview.downcast::<WebView>().expect("Failed to downcast to webview");
                 self.connect_webview(&webview);
                 self.stack.set_visible_child_name(new_name);
                 return Ok(webview);
