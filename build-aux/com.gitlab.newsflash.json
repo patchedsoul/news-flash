@@ -17,7 +17,8 @@
         "--socket=x11",
         "--socket=wayland",
         "--device=dri",
-        "--talk-name=org.freedesktop.Notifications"
+        "--talk-name=org.freedesktop.Notifications",
+        "--filesystem=xdg-download"
     ],
     "build-options" : {
         "append-path" : "/usr/lib/sdk/rust-stable/bin",
