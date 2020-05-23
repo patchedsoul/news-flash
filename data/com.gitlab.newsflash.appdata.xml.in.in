@@ -39,6 +39,15 @@
   </screenshots>
   <url type="homepage">https://gitlab.com/news-flash/news_flash_gtk</url>
   <url type="bugtracker">https://gitlab.com/news-flash/news_flash_gtk/issues</url>
+  <release version="1.0.0">
+      <description>
+				<p>Bugfixes:</p>
+				<ul>
+          <li>Set webview background color according to Gtk theme</li>
+          <li>Allow flatpak to access 'Downloads' to save images from the article view</li>
+        </ul>
+			</description>
+    </release>
   <releases>
     <release version="1.0.0 RC">
       <description>
