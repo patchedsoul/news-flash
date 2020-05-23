@@ -34,5 +34,5 @@ futures-util = "0.3"
 num_cpus = "1.13"
 regex = "1.3"
 feedly_api = "0.3"
-news-flash = { git = "http://gitlab.com/news-flash/news_flash_base.git", branch = "stable" }
+news-flash = { git = "http://gitlab.com/news-flash/news_flash_base.git", branch = "master" }
 
