@@ -15,6 +15,17 @@ and having access to all your articles as long as you like.
 Currently available [here](https://gitlab.com/news-flash/news_flash_gtk/-/jobs/535363840/artifacts/raw/com.gitlab.newsflash.Devel.flatpak). Flathub is planned,
 but currently blocked by not supporting API secrets.
 
+## Fedora
+
+Currently available in [COPR](https://copr.fedorainfracloud.org/coprs/atim/newsflash/):
+
+```
+sudo dnf copr enable atim/newsflash -y
+sudo dnf install newsflash
+```
+
+Note: due to missing API secrets it has limited features (e.g. feedly & content scraper).
+
 ## Looking for service maintainers
 
 I'm looking for people that are actively using a specific service backend of NewsFlash and are willing to maintain it.
