@@ -64,7 +64,8 @@
             "name" : "newsflash",
             "buildsystem" : "meson",
             "config-opts": [
-		        "-Dprofile=development"
+                "-Dprofile=development",
+                "-Dreadability=true"
             ],
             "sources" : [
                 {

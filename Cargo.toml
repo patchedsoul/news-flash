@@ -4,6 +4,9 @@ version = "0.0.0"
 authors = ["Jan Lukas Gernert <jangernert@gmail.com>"]
 edition = "2018"
 
+[features]
+readability = ["news-flash/readability"]
+
 [dependencies]
 log = "0.4"
 chrono = "0.4"

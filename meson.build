@@ -1,29 +1,23 @@
 project(
   'newsflash', 'rust',
-  version: '1.1.0',
+  version: '1.0.0',
   license: 'GPLv3',
 )
 
 i18n = import('i18n')
 gnome = import('gnome')
 
-
 dependency('glib-2.0', version: '>= 2.56')
 dependency('gio-2.0', version: '>= 2.56')
 dependency('gdk-pixbuf-2.0')
 dependency('gtk+-3.0', version: '>= 3.24.7')
-
 dependency('webkit2gtk-4.0', version: '>= 2.24.1')
-
-
 
 cargo = find_program('cargo', required: true)
 gresource = find_program('glib-compile-resources', required: true)
 gschemas = find_program('glib-compile-schemas', required: true)
 cargo_vendor = find_program('cargo-vendor', required: false)
 cargo_script = find_program('build-aux/cargo.sh')
-
-
 
 if get_option('profile') == 'development'
   profile = 'Devel'

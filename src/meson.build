@@ -99,6 +99,11 @@ newsflash_sources = files(
   'responsive.rs'
 )
 
+features = ''
+if get_option('readability')
+  features += 'readability'
+endif
+
 cargo_release = custom_target('cargo-build',
                         build_by_default: true,
                         input: [
@@ -112,5 +117,6 @@ cargo_release = custom_target('cargo-build',
                                   '@SOURCE_ROOT@',
                                   '@OUTPUT@',
                                   meson.build_root(),
-                                  profile
+                                  profile,
+                                  '--features "@0@"'.format(features)
                                  ])
