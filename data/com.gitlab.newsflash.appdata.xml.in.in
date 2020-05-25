@@ -46,6 +46,7 @@
           <li>Set webview background color according to Gtk theme</li>
           <li>Allow flatpak to access 'Downloads' to save images from the article view</li>
           <li>Remove article view content justification</li>
+          <li>React to dark theme preference set from outside</li>
         </ul>
 			</description>
     </release>

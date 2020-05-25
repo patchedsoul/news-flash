@@ -148,8 +148,9 @@ impl SettingsDialog {
             @strong sender => @default-panic, move |_switch, is_set| {
             if settings.write().set_prefer_dark_theme(is_set).is_ok() {
                 if let Some(settings) = GtkSettings::get_default() {
-                    settings.set_property_gtk_application_prefer_dark_theme(is_set);
-                    Util::send(&sender, Action::RedrawArticle);
+                    if settings.get_property_gtk_application_prefer_dark_theme() != is_set {
+                        settings.set_property_gtk_application_prefer_dark_theme(is_set);
+                    }
                 }
             } else {
                 Util::send(
@@ -159,6 +160,16 @@ impl SettingsDialog {
             }
             Inhibit(false)
         }));
+
+        if let Some(gtk_settings) = GtkSettings::get_default() {
+            gtk_settings.connect_property_gtk_application_prefer_dark_theme_notify(clone!(
+                @weak self.dark_theme_switch as dark_theme_switch  => @default-panic, move |gtk_settings|
+            {
+                if gtk_settings.get_property_gtk_application_prefer_dark_theme() != dark_theme_switch.get_state() {
+                    dark_theme_switch.set_state(gtk_settings.get_property_gtk_application_prefer_dark_theme());
+                }
+            }));
+        }
 
         self.sync_list.connect_row_activated(clone!(
             @weak self.settings as settings,
