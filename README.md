@@ -26,6 +26,14 @@ sudo dnf install newsflash
 
 Note: due to missing API secrets it has limited features (e.g. feedly & content scraper).
 
+## Arch Linux
+
+available via Arch User Repository (AUR):
+
+```bash
+yay -S newsflash
+```
+
 ## Looking for service maintainers
 
 I'm looking for people that are actively using a specific service backend of NewsFlash and are willing to maintain it.
