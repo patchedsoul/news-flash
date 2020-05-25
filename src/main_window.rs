@@ -146,8 +146,12 @@ impl MainWindow {
 
             gtk_settings.connect_property_gtk_application_prefer_dark_theme_notify(clone!(
                 @weak content_page,
-                @strong sender => @default-panic, move |_settings|
+                @strong settings,
+                @strong sender => @default-panic, move |gtk_settings|
             {
+                if settings.write().set_prefer_dark_theme(gtk_settings.get_property_gtk_application_prefer_dark_theme()).is_err() {
+                    Util::send(&sender, Action::ErrorSimpleMessage("Failed to set dark theme preference.".into()));
+                }
                 content_page.update_article_view_background();
                 Self::load_css(&css_provider);
                 Util::send(&sender, Action::RedrawArticle);
