@@ -6,6 +6,7 @@
   <project_license>GPL-3.0+</project_license>
   <name>NewsFlash</name>
   <summary>A modern feed reader designed for the GNOME desktop</summary>
+  <content_rating type="oars-1.0" />
   <description>
 		<p>
 			NewsFlash is a program designed to complement an already existing web-based RSS reader account.
@@ -39,7 +40,7 @@
   </screenshots>
   <url type="homepage">https://gitlab.com/news-flash/news_flash_gtk</url>
   <url type="bugtracker">https://gitlab.com/news-flash/news_flash_gtk/issues</url>
-  <release version="1.0.0">
+  <release version="1.0.0" timestamp="1590389867">
       <description>
 				<p>Bugfixes:</p>
 				<ul>
@@ -51,7 +52,7 @@
 			</description>
     </release>
   <releases>
-    <release version="1.0.0 RC">
+    <release version="1.0.0 RC" timestamp="1590130667">
       <description>
         <p>Features:</p>
         <ul>
@@ -85,7 +86,7 @@
         </ul>
 			</description>
     </release>
-    <release version="1.0.0 Beta 1">
+    <release version="1.0.0 Beta 1" timestamp="1588229867">
       <description>
 				First public release
 			</description>
