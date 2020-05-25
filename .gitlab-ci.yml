@@ -43,7 +43,7 @@ flatpak:
     artifacts:
         paths:
             - $BUNDLE
-            - meson-dist/
+            - _build/meson-dist/
         expire_in: 5 days
 
     cache:
@@ -51,9 +51,9 @@ flatpak:
         paths:
           - .flatpak-builder/downloads/
           - .flatpak-builder/git/
-          - target/
-          - target_test/
-          - cargo/
+          - _build/target/
+          - _build/target_test/
+          - _build/cargo/
 
 review:
     stage: review
