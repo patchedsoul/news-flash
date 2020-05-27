@@ -250,12 +250,12 @@ impl ArticleList {
                             article_id: selected_article.id.clone(),
                             read: Read::Read,
                         };
-                        list_model.write().set_read(&selected_article.id, Read::Read);
-                        match *current_list.read() {
-                            CurrentList::List1 => list_1.write().update_read(&selected_article.id, Read::Read),
-                            CurrentList::List2 => list_2.write().update_read(&selected_article.id, Read::Read),
+                        let list = match *current_list.read() {
+                            CurrentList::List1 => list_1,
+                            CurrentList::List2 => list_2,
                             CurrentList::Empty => return,
-                        }
+                        };
+                        Self::set_article_state_static(&selected_article.id, Some(Read::Read), None, &list, &list_model);
                         Util::send(&sender, Action::MarkArticleRead(update));
                     }
 
@@ -425,17 +425,25 @@ impl ArticleList {
         None
     }
 
-    pub fn fake_article_row_state(&self, article_id: &ArticleID, read: Option<Read>, marked: Option<Marked>) {
+    pub fn set_article_row_state(&self, article_id: &ArticleID, read: Option<Read>, marked: Option<Marked>) {
         if let Some(current_list) = self.get_current_list() {
-            current_list.read().fake_article_row_state(article_id, read, marked);
+            Self::set_article_state_static(article_id, read, marked, &current_list, &self.list_model);
         }
-        if let Some(article_model) = self.list_model.write().get(article_id).as_mut() {
-            if let Some(read) = read {
-                article_model.read = read;
-            }
-            if let Some(marked) = marked {
-                article_model.marked = marked;
-            }
+    }
+
+    fn set_article_state_static(
+        article_id: &ArticleID,
+        read: Option<Read>,
+        marked: Option<Marked>,
+        current_list: &Arc<RwLock<SingleArticleList>>,
+        model: &Arc<RwLock<ArticleListModel>>,
+    ) {
+        current_list.read().set_article_row_state(article_id, read, marked);
+        if let Some(read) = read {
+            model.write().set_read(article_id, read);
+        }
+        if let Some(marked) = marked {
+            model.write().set_marked(article_id, marked);
         }
     }
 }

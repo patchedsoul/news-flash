@@ -343,7 +343,7 @@ impl SingleArticleList {
         self.list.get_selected_row().map(|row| row.get_index())
     }
 
-    pub fn fake_article_row_state(&self, article_id: &ArticleID, read: Option<Read>, marked: Option<Marked>) {
+    pub fn set_article_row_state(&self, article_id: &ArticleID, read: Option<Read>, marked: Option<Marked>) {
         if let Some(article_row) = self.articles.get(article_id) {
             if let Some(read) = read {
                 article_row.write().update_unread(read);

@@ -184,10 +184,6 @@ impl ArticleListModel {
         self.models.iter().next()
     }
 
-    pub fn get(&mut self, article_id: &ArticleID) -> Option<&mut ArticleListArticleModel> {
-        self.models.iter_mut().find(|model| &model.id == article_id)
-    }
-
     pub fn calculate_selection(&mut self, selected_index: i32) -> Option<&ArticleListArticleModel> {
         self.sort();
         if let Some((_index, article)) = self

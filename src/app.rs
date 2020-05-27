@@ -774,7 +774,7 @@ impl App {
                 article_id: visible_article.article_id.clone(),
                 read: visible_article.unread.invert(),
             };
-            self.window.content_page.article_list.read().fake_article_row_state(
+            self.window.content_page.article_list.read().set_article_row_state(
                 &visible_article.article_id,
                 Some(visible_article.unread.invert()),
                 None,
@@ -791,7 +791,7 @@ impl App {
                 marked: visible_article.marked.invert(),
             };
 
-            self.window.content_page.article_list.read().fake_article_row_state(
+            self.window.content_page.article_list.read().set_article_row_state(
                 &visible_article.article_id,
                 None,
                 Some(visible_article.marked.invert()),
