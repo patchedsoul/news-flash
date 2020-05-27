@@ -394,14 +394,10 @@ impl SideBar {
         GtkUtil::remove_source(*delayed_selection.read());
         *delayed_selection.write() = Some(
             gtk::timeout_add(
-                300,
+                50,
                 clone!(
                     @strong sender, @weak delayed_selection as source_id => @default-panic, move || {
-                    gtk::idle_add(clone!(@strong sender => @default-panic, move || {
-                        Util::send(&sender, Action::SidebarSelection(SidebarSelection::All));
-                        Continue(false)
-                    }));
-
+                    Util::send(&sender, Action::SidebarSelection(SidebarSelection::All));
                     *source_id.write() = None;
                     Continue(false)
                 }),
