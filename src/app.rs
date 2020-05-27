@@ -768,15 +768,20 @@ impl App {
     }
 
     fn toggle_article_read(&self) {
-        let visible_article = self.window.content_page.article_view.get_visible_article();
-        if let Some(visible_article) = visible_article {
+        let selected_article = self
+            .window
+            .content_page
+            .article_list
+            .read()
+            .get_selected_article_model();
+        if let Some(selected_article) = selected_article {
             let update = ReadUpdate {
-                article_id: visible_article.article_id.clone(),
-                read: visible_article.unread.invert(),
+                article_id: selected_article.id.clone(),
+                read: selected_article.read.invert(),
             };
             self.window.content_page.article_list.read().set_article_row_state(
-                &visible_article.article_id,
-                Some(visible_article.unread.invert()),
+                &selected_article.id,
+                Some(selected_article.read.invert()),
                 None,
             );
             Util::send(&self.sender, Action::MarkArticleRead(update));
@@ -784,17 +789,22 @@ impl App {
     }
 
     fn toggle_article_marked(&self) {
-        let visible_article = self.window.content_page.article_view.get_visible_article();
-        if let Some(visible_article) = visible_article {
+        let selected_article = self
+            .window
+            .content_page
+            .article_list
+            .read()
+            .get_selected_article_model();
+        if let Some(selected_article) = selected_article {
             let update = MarkUpdate {
-                article_id: visible_article.article_id.clone(),
-                marked: visible_article.marked.invert(),
+                article_id: selected_article.id.clone(),
+                marked: selected_article.marked.invert(),
             };
 
             self.window.content_page.article_list.read().set_article_row_state(
-                &visible_article.article_id,
+                &selected_article.id,
                 None,
-                Some(visible_article.marked.invert()),
+                Some(selected_article.marked.invert()),
             );
             Util::send(&self.sender, Action::MarkArticle(update));
         }

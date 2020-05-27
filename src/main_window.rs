@@ -1,6 +1,5 @@
 use crate::about_dialog::APP_NAME;
 use crate::app::{Action, App};
-use crate::article_list::{MarkUpdate, ReadUpdate};
 use crate::config::{APP_ID, PROFILE};
 use crate::content_page::{ContentHeader, ContentPage, HeaderSelection};
 use crate::error_bar::ErrorBar;
@@ -248,31 +247,13 @@ impl MainWindow {
 
             if Self::check_shortcut("toggle_read", &settings, event) {
                 if !state.read().get_offline() {
-                    let article_model = content_page.article_list.read().get_selected_article_model();
-                    if let Some(article_model) = article_model {
-                        let update = ReadUpdate {
-                            article_id: article_model.id.clone(),
-                            read: article_model.read.invert(),
-                        };
-
-                        Util::send(&sender, Action::MarkArticleRead(update));
-                        Util::send(&sender, Action::UpdateArticleList);
-                    }
+                    Util::send(&sender, Action::ToggleArticleRead);
                 }
             }
 
             if Self::check_shortcut("toggle_marked", &settings, event) {
                 if !state.read().get_offline() {
-                    let article_model = content_page.article_list.read().get_selected_article_model();
-                    if let Some(article_model) = article_model {
-                        let update = MarkUpdate {
-                            article_id: article_model.id.clone(),
-                            marked: article_model.marked.invert(),
-                        };
-
-                        Util::send(&sender, Action::MarkArticle(update));
-                        Util::send(&sender, Action::UpdateArticleList);
-                    }
+                    Util::send(&sender, Action::ToggleArticleMarked);
                 }
             }
 
