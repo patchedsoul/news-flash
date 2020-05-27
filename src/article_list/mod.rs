@@ -142,7 +142,7 @@ impl ArticleList {
             // so we add the selected model to the new_list so it wont be removed during the update
             if let Some(selected_article_model) = self.get_selected_article_model() {
                 if !new_list.contains(&selected_article_model.id) {
-                    new_list.add_model(selected_article_model);
+                    let _result = new_list.add_model(selected_article_model);
                 }
             }
 
@@ -164,16 +164,17 @@ impl ArticleList {
         };
 
         for model in new_list.models() {
-            self.list_model.write().add_model(model.clone());
-            gtk::idle_add(clone!(
-                @weak self.global_state as global_state,
-                @weak self.list_model as list_model,
-                @strong list,
-                @strong model => @default-panic, move ||
-            {
-                list.write().add(&model, -1, &list_model, &global_state);
-                Continue(false)
-            }));
+            if !self.list_model.write().add_model(model.clone()).is_err() {
+                gtk::idle_add(clone!(
+                    @weak self.global_state as global_state,
+                    @weak self.list_model as list_model,
+                    @strong list,
+                    @strong model => @default-panic, move ||
+                {
+                    list.write().add(&model, -1, &list_model, &global_state);
+                    Continue(false)
+                }));
+            }
         }
     }
 
