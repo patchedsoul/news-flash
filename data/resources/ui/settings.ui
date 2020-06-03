@@ -575,7 +575,7 @@
             </child>
             <child>
               <object id="scrap_content_row" class="HdyActionRow">
-                <property name="title" translatable="yes">Scrap article content</property>
+                <property name="title" translatable="yes">Scrape article content</property>
                 <property name="name">scrap_content_row</property>
                 <property name="visible">True</property>
                 <child type="action">
