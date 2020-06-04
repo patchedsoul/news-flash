@@ -109,7 +109,7 @@
             </child>
             <child>
               <object class="GtkShortcutsShortcut">
-                <property name="title" translatable="yes">Scrap content</property>
+                <property name="title" translatable="yes">Scrape content</property>
                 <property name="accelerator">$SCRAPCONTENT</property>
               </object>
             </child>
