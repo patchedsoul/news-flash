@@ -32,7 +32,7 @@ pub struct CategoryRow {
     item_count_event: EventBox,
     title: Label,
     expanded: bool,
-    connected_signals: Vec<(u64, Widget)>,
+    connected_signals: Vec<(usize, Widget)>,
 }
 
 impl CategoryRow {
@@ -96,7 +96,7 @@ impl CategoryRow {
                     arrow_image.set_opacity(1.0);
                     Inhibit(false)
                 }))
-                .to_glib(),
+                .to_glib() as usize,
             arrow_event.clone().upcast::<Widget>(),
         ));
 
@@ -106,7 +106,7 @@ impl CategoryRow {
                     arrow_image.set_opacity(0.8);
                     Inhibit(false)
                 }))
-                .to_glib(),
+                .to_glib() as usize,
             arrow_event.clone().upcast::<Widget>(),
         ));
 
@@ -127,7 +127,7 @@ impl CategoryRow {
                         Inhibit(false)
                     }),
                 )
-                .to_glib(),
+                .to_glib() as usize,
             arrow_event.clone().upcast::<Widget>(),
         ));
 
@@ -155,7 +155,7 @@ impl CategoryRow {
         features: &Arc<RwLock<Option<PluginCapabilities>>>,
         label: String,
         sender: Sender<Action>,
-    ) -> Option<(u64, Widget)> {
+    ) -> Option<(usize, Widget)> {
         row.set_activatable(true);
         row.set_can_focus(false);
         row.get_style_context().remove_class("activatable");
@@ -240,7 +240,7 @@ impl CategoryRow {
                 row.set_state_flags(StateFlags::PRELIGHT, false);
 
                 Inhibit(true)
-            })).to_glib(), eventbox.clone().upcast::<Widget>()))
+            })).to_glib() as usize, eventbox.clone().upcast::<Widget>()))
         } else {
             None
         }

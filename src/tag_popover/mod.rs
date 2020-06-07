@@ -28,11 +28,11 @@ pub struct TagPopover {
     unassigned_tags_list_stack: Stack,
     assigned_tags: Arc<RwLock<Vec<Tag>>>,
     unassigned_tags: Arc<RwLock<Vec<Tag>>>,
-    add_button_signal: Option<u64>,
-    back_button_signal: Option<u64>,
-    popover_close_signal: Option<u64>,
-    assigned_click_signal: Option<u64>,
-    unassigned_click_signal: Option<u64>,
+    add_button_signal: Option<usize>,
+    back_button_signal: Option<usize>,
+    popover_close_signal: Option<usize>,
+    assigned_click_signal: Option<usize>,
+    unassigned_click_signal: Option<usize>,
 }
 
 impl TagPopover {
@@ -55,7 +55,7 @@ impl TagPopover {
                 .connect_clicked(clone!(@weak main_stack => @default-panic, move |_button| {
                     main_stack.set_visible_child_full("possible_tags", StackTransitionType::SlideLeft);
                 }))
-                .to_glib(),
+                .to_glib() as usize,
         );
 
         let back_button_signal = Some(
@@ -63,7 +63,7 @@ impl TagPopover {
                 .connect_clicked(clone!(@weak main_stack => @default-panic, move |_button| {
                     main_stack.set_visible_child_full("assigned_tags", StackTransitionType::SlideRight);
                 }))
-                .to_glib(),
+                .to_glib() as usize,
         );
 
         let popover_close_signal = Some(
@@ -71,7 +71,7 @@ impl TagPopover {
                 .connect_closed(clone!(@weak main_stack => @default-panic, move |_button| {
                     main_stack.set_visible_child_full("assigned_tags", StackTransitionType::None);
                 }))
-                .to_glib(),
+                .to_glib() as usize,
         );
 
         let assigned_click_signal = Some(
@@ -79,7 +79,7 @@ impl TagPopover {
                 .connect_row_activated(|_list, _row| {
                     info!("click");
                 })
-                .to_glib(),
+                .to_glib() as usize,
         );
 
         let unassigned_click_signal = Some(
@@ -130,7 +130,7 @@ impl TagPopover {
                     main_stack.set_visible_child_full("assigned_tags", StackTransitionType::SlideRight);
                     list.remove(row);
                 }))
-                .to_glib(),
+                .to_glib() as usize,
         );
 
         let popover = TagPopover {

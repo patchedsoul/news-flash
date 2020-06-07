@@ -24,7 +24,7 @@ pub struct ArticleRow {
     unread_stack: Stack,
     title_label: Label,
     row_hovered: Arc<RwLock<bool>>,
-    connected_signals: Vec<(u64, Widget)>,
+    connected_signals: Vec<(usize, Widget)>,
 }
 
 impl ArticleRow {
@@ -175,7 +175,7 @@ impl ArticleRow {
         title_label: &Label,
         article_id: &ArticleID,
         list_model: &Arc<RwLock<ArticleListModel>>,
-    ) -> Vec<(u64, Widget)> {
+    ) -> Vec<(usize, Widget)> {
         let mut vec = Vec::new();
         vec.push((
             eventbox
@@ -192,7 +192,7 @@ impl ArticleRow {
                     }
                     Inhibit(false)
                 }))
-                .to_glib(),
+                .to_glib() as usize,
             eventbox.clone().upcast::<Widget>(),
         ));
 
@@ -211,7 +211,7 @@ impl ArticleRow {
                     }
                     Inhibit(false)
                 }))
-                .to_glib(),
+                .to_glib() as usize,
             eventbox.clone().upcast::<Widget>(),
         ));
 
@@ -249,7 +249,7 @@ impl ArticleRow {
                     Util::send(&sender, Action::MarkArticleRead(update));
                     Inhibit(true)
                 }))
-                .to_glib(),
+                .to_glib() as usize,
             eventbox.clone().upcast::<Widget>(),
         ));
 
@@ -264,7 +264,7 @@ impl ArticleRow {
         marked_stack: &Stack,
         article_id: &ArticleID,
         list_model: &Arc<RwLock<ArticleListModel>>,
-    ) -> Vec<(u64, Widget)> {
+    ) -> Vec<(usize, Widget)> {
         let mut vec = Vec::new();
 
         vec.push((
@@ -282,7 +282,7 @@ impl ArticleRow {
                     }
                     Inhibit(false)
                 }))
-                .to_glib(),
+                .to_glib() as usize,
             eventbox.clone().upcast::<Widget>(),
         ));
 
@@ -301,7 +301,7 @@ impl ArticleRow {
                     }
                     Inhibit(false)
                 }))
-                .to_glib(),
+                .to_glib() as usize,
             eventbox.clone().upcast::<Widget>(),
         ));
 
@@ -337,7 +337,7 @@ impl ArticleRow {
                     Util::send(&sender, Action::MarkArticle(update));
                     Inhibit(true)
                 }))
-                .to_glib(),
+                .to_glib() as usize,
             eventbox.clone().upcast::<Widget>(),
         ));
 
@@ -352,7 +352,7 @@ impl ArticleRow {
         marked_stack: &Stack,
         title_label: &Label,
         row_hovered: &Arc<RwLock<bool>>,
-    ) -> Vec<(u64, Widget)> {
+    ) -> Vec<(usize, Widget)> {
         Self::update_title_label(&title_label, *read.read());
         Self::update_unread_stack(&unread_stack, *read.read(), *row_hovered.read());
         Self::update_marked_stack(&marked_stack, *marked.read());
@@ -382,7 +382,7 @@ impl ArticleRow {
                     }
                     Inhibit(true)
                 }))
-                .to_glib(),
+                .to_glib() as usize,
             eventbox.clone().upcast::<Widget>(),
         ));
 
@@ -409,7 +409,7 @@ impl ArticleRow {
                     }
                     Inhibit(true)
                 }))
-                .to_glib(),
+                .to_glib() as usize,
             eventbox.clone().upcast::<Widget>(),
         ));
 
