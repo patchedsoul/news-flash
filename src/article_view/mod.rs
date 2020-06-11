@@ -504,10 +504,11 @@ impl ArticleView {
                             KP_0 => closure_webivew.set_zoom_level(1.0),
                             KP_ADD => closure_webivew.set_zoom_level(zoom + 0.25),
                             KP_SUBTRACT => closure_webivew.set_zoom_level(zoom - 0.25),
-                            _ => {}
+                            _ => return Inhibit(false),
                         }
+                        return Inhibit(true);
                     }
-                    Inhibit(true)
+                    Inhibit(false)
                 })
                 .to_glib() as usize,
         );
