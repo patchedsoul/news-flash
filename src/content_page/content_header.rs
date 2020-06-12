@@ -33,7 +33,7 @@ pub struct ContentHeader {
     marked_button: ToggleButton,
     scrap_content_button: ToggleButton,
     scrap_content_stack: Stack,
-    scrap_content_event: RwLock<Option<u64>>,
+    scrap_content_event: RwLock<Option<usize>>,
     tag_button: MenuButton,
     tag_popover: RwLock<Option<TagPopover>>,
     more_actions_button: MenuButton,
@@ -43,8 +43,8 @@ pub struct ContentHeader {
     mark_article_read_button: ToggleButton,
     mark_article_stack: Stack,
     mark_article_read_stack: Stack,
-    mark_article_event: RwLock<Option<u64>>,
-    mark_article_read_event: RwLock<Option<u64>>,
+    mark_article_event: RwLock<Option<usize>>,
+    mark_article_read_event: RwLock<Option<usize>>,
 }
 
 impl ContentHeader {
@@ -557,7 +557,7 @@ impl ContentHeader {
                     }
                     Util::send(&sender, Action::ToggleArticleMarked);
                 }))
-                .to_glib(),
+                .to_glib() as usize,
         );
 
         self.mark_article_read_event.write().replace(
@@ -573,7 +573,7 @@ impl ContentHeader {
                     }
                     Util::send(&sender, Action::ToggleArticleRead);
                 }))
-                .to_glib(),
+                .to_glib() as usize,
         );
 
         self.scrap_content_event.write().replace(
@@ -590,7 +590,7 @@ impl ContentHeader {
                         Util::send(&sender, Action::RedrawArticle);
                     }
                 }))
-                .to_glib(),
+                .to_glib() as usize,
         );
 
         self.more_actions_button.set_sensitive(sensitive);

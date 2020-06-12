@@ -34,16 +34,16 @@ pub struct PasswordLogin {
     login_button: gtk::Button,
     ignore_tls_button: gtk::Button,
     error_details_button: gtk::Button,
-    info_bar_close_signal: RwLock<Option<u64>>,
-    info_bar_response_signal: RwLock<Option<u64>>,
-    url_entry_signal: RwLock<Option<u64>>,
-    user_entry_signal: RwLock<Option<u64>>,
-    pass_entry_signal: RwLock<Option<u64>>,
-    http_user_entry_signal: RwLock<Option<u64>>,
-    http_pass_entry_signal: RwLock<Option<u64>>,
-    login_button_signal: RwLock<Option<u64>>,
-    ignore_tls_signal: RwLock<Option<u64>>,
-    error_details_signal: RwLock<Option<u64>>,
+    info_bar_close_signal: RwLock<Option<usize>>,
+    info_bar_response_signal: RwLock<Option<usize>>,
+    url_entry_signal: RwLock<Option<usize>>,
+    user_entry_signal: RwLock<Option<usize>>,
+    pass_entry_signal: RwLock<Option<usize>>,
+    http_user_entry_signal: RwLock<Option<usize>>,
+    http_pass_entry_signal: RwLock<Option<usize>>,
+    login_button_signal: RwLock<Option<usize>>,
+    ignore_tls_signal: RwLock<Option<usize>>,
+    error_details_signal: RwLock<Option<usize>>,
 }
 
 impl PasswordLogin {
@@ -129,7 +129,7 @@ impl PasswordLogin {
                 .connect_close(|info_bar| {
                     PasswordLogin::hide_info_bar(info_bar);
                 })
-                .to_glib(),
+                .to_glib() as usize,
         );
         self.info_bar_response_signal.write().replace(
             self.info_bar
@@ -138,7 +138,7 @@ impl PasswordLogin {
                         PasswordLogin::hide_info_bar(info_bar);
                     }
                 })
-                .to_glib(),
+                .to_glib() as usize,
         );
 
         if let LoginGUI::Password(pw_gui_desc) = &info.login_gui {
@@ -157,19 +157,19 @@ impl PasswordLogin {
             // check if 'login' should be clickable
             self.url_entry_signal
                 .write()
-                .replace(self.setup_entry(&self.url_entry, &pw_gui_desc).to_glib());
+                .replace(self.setup_entry(&self.url_entry, &pw_gui_desc).to_glib() as usize);
             self.user_entry_signal
                 .write()
-                .replace(self.setup_entry(&self.user_entry, &pw_gui_desc).to_glib());
+                .replace(self.setup_entry(&self.user_entry, &pw_gui_desc).to_glib() as usize);
             self.pass_entry_signal
                 .write()
-                .replace(self.setup_entry(&self.pass_entry, &pw_gui_desc).to_glib());
+                .replace(self.setup_entry(&self.pass_entry, &pw_gui_desc).to_glib() as usize);
             self.http_user_entry_signal
                 .write()
-                .replace(self.setup_entry(&self.http_user_entry, &pw_gui_desc).to_glib());
+                .replace(self.setup_entry(&self.http_user_entry, &pw_gui_desc).to_glib() as usize);
             self.http_pass_entry_signal
                 .write()
-                .replace(self.setup_entry(&self.http_pass_entry, &pw_gui_desc).to_glib());
+                .replace(self.setup_entry(&self.http_pass_entry, &pw_gui_desc).to_glib() as usize);
 
             // harvest login data
             self.login_button_signal.write().replace(
@@ -231,7 +231,7 @@ impl PasswordLogin {
                         let login_data = LoginData::Password(login_data);
                         Util::send(&sender, Action::Login(login_data));
                     }))
-                    .to_glib(),
+                    .to_glib() as usize,
             );
 
             return Ok(());
@@ -324,7 +324,7 @@ impl PasswordLogin {
                         .expect("MainWindow is not a parent of password login error details button.");
                     let _dialog = ErrorDialog::new(&error, &parent);
                 })
-                .to_glib(),
+                .to_glib() as usize,
         );
         self.info_bar.set_visible(true);
         self.info_bar.set_revealed(true);

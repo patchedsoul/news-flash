@@ -39,7 +39,7 @@ pub struct FeedRow {
     revealer: Revealer,
     hide_timeout: Arc<RwLock<Option<u32>>>,
     favicon: Image,
-    connected_signals: Vec<(u64, Widget)>,
+    connected_signals: Vec<(usize, Widget)>,
 }
 
 impl FeedRow {
@@ -100,7 +100,7 @@ impl FeedRow {
         id: &FeedID,
         parent_id: &CategoryID,
         label: String,
-    ) -> Vec<(u64, Widget)> {
+    ) -> Vec<(usize, Widget)> {
         let mut vec = Vec::new();
 
         row.set_activatable(true);
@@ -135,7 +135,7 @@ impl FeedRow {
                             }
                         }
                     }))
-                    .to_glib(),
+                    .to_glib() as usize,
                 revealer.clone().upcast::<Widget>(),
             ));
 
@@ -152,7 +152,7 @@ impl FeedRow {
                         style_context.remove_class("drag-icon");
                         drag_context.drag_set_icon_surface(&surface);
                     }))
-                    .to_glib(),
+                    .to_glib() as usize,
                 revealer.clone().upcast::<Widget>(),
             ));
 
@@ -231,7 +231,7 @@ impl FeedRow {
                 row.set_state_flags(StateFlags::PRELIGHT, false);
 
                 Inhibit(true)
-            })).to_glib(), row.clone().upcast::<Widget>()));
+            })).to_glib() as usize, row.clone().upcast::<Widget>()));
         }
 
         vec

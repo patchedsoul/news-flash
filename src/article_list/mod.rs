@@ -33,7 +33,7 @@ pub struct ArticleList {
     list_1: Arc<RwLock<SingleArticleList>>,
     list_2: Arc<RwLock<SingleArticleList>>,
     list_model: Arc<RwLock<ArticleListModel>>,
-    list_activate_signal: Option<u64>,
+    list_activate_signal: Option<usize>,
     local_state: MainWindowState,
     global_state: Arc<RwLock<MainWindowState>>,
     current_list: Arc<RwLock<CurrentList>>,
@@ -263,7 +263,7 @@ impl ArticleList {
                 }
             }))
             .to_glib();
-        self.list_activate_signal = Some(activate_signal_id);
+        self.list_activate_signal = Some(activate_signal_id as usize);
     }
 
     fn require_new_list(&self, new_state: &RwLock<MainWindowState>) -> bool {

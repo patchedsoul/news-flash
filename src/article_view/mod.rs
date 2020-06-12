@@ -59,16 +59,16 @@ pub struct ArticleView {
     visible_feed_name: Arc<RwLock<Option<String>>>,
     widnow_state: Arc<RwLock<MainWindowState>>,
     internal_state: Arc<RwLock<InternalState>>,
-    load_changed_signal: Arc<RwLock<Option<u64>>>,
-    decide_policy_signal: Arc<RwLock<Option<u64>>>,
-    mouse_over_signal: Arc<RwLock<Option<u64>>>,
-    scroll_signal: Arc<RwLock<Option<u64>>>,
-    key_press_signal: Arc<RwLock<Option<u64>>>,
-    ctx_menu_signal: Arc<RwLock<Option<u64>>>,
-    load_signal: Arc<RwLock<Option<u64>>>,
-    click_signal: Arc<RwLock<Option<u64>>>,
-    click_release_signal: Arc<RwLock<Option<u64>>>,
-    drag_motion_notify_signal: Arc<RwLock<Option<u64>>>,
+    load_changed_signal: Arc<RwLock<Option<usize>>>,
+    decide_policy_signal: Arc<RwLock<Option<usize>>>,
+    mouse_over_signal: Arc<RwLock<Option<usize>>>,
+    scroll_signal: Arc<RwLock<Option<usize>>>,
+    key_press_signal: Arc<RwLock<Option<usize>>>,
+    ctx_menu_signal: Arc<RwLock<Option<usize>>>,
+    load_signal: Arc<RwLock<Option<usize>>>,
+    click_signal: Arc<RwLock<Option<usize>>>,
+    click_release_signal: Arc<RwLock<Option<usize>>>,
+    drag_motion_notify_signal: Arc<RwLock<Option<usize>>>,
     drag_released_motion_signal: Arc<RwLock<Option<u32>>>,
     drag_buffer_update_signal: Arc<RwLock<Option<u32>>>,
     progress_overlay_delay_signal: Arc<RwLock<Option<u32>>>,
@@ -303,15 +303,15 @@ impl ArticleView {
         progress_overlay_label: &Arc<RwLock<ProgressOverlay>>,
         old_state: &Arc<RwLock<InternalState>>,
         stack: &gtk::Stack,
-        load_changed_signal: &Arc<RwLock<Option<u64>>>,
-        decide_policy_signal: &Arc<RwLock<Option<u64>>>,
-        mouse_over_signal: &Arc<RwLock<Option<u64>>>,
-        scroll_signal: &Arc<RwLock<Option<u64>>>,
-        key_press_signal: &Arc<RwLock<Option<u64>>>,
-        ctx_menu_signal: &Arc<RwLock<Option<u64>>>,
-        load_signal: &Arc<RwLock<Option<u64>>>,
-        click_signal: &Arc<RwLock<Option<u64>>>,
-        click_release_signal: &Arc<RwLock<Option<u64>>>,
+        load_changed_signal: &Arc<RwLock<Option<usize>>>,
+        decide_policy_signal: &Arc<RwLock<Option<usize>>>,
+        mouse_over_signal: &Arc<RwLock<Option<usize>>>,
+        scroll_signal: &Arc<RwLock<Option<usize>>>,
+        key_press_signal: &Arc<RwLock<Option<usize>>>,
+        ctx_menu_signal: &Arc<RwLock<Option<usize>>>,
+        load_signal: &Arc<RwLock<Option<usize>>>,
+        click_signal: &Arc<RwLock<Option<usize>>>,
+        click_release_signal: &Arc<RwLock<Option<usize>>>,
         drag_released_motion_signal: &Arc<RwLock<Option<u32>>>,
         drag_buffer_update_signal: &Arc<RwLock<Option<u32>>>,
         progress_overlay_delay_signal: &Arc<RwLock<Option<u32>>>,
@@ -431,7 +431,7 @@ impl ArticleView {
                     }
                     false
                 })
-                .to_glib(),
+                .to_glib() as usize,
         );
 
         //----------------------------------
@@ -463,7 +463,7 @@ impl ArticleView {
                         url_overlay_label.read().reveal(false);
                     }
                 }))
-                .to_glib(),
+                .to_glib() as usize,
         );
 
         //----------------------------------
@@ -489,7 +489,7 @@ impl ArticleView {
                     }
                     Inhibit(false)
                 })
-                .to_glib(),
+                .to_glib() as usize,
         );
 
         //------------------------------------------------
@@ -504,12 +504,13 @@ impl ArticleView {
                             KP_0 => closure_webivew.set_zoom_level(1.0),
                             KP_ADD => closure_webivew.set_zoom_level(zoom + 0.25),
                             KP_SUBTRACT => closure_webivew.set_zoom_level(zoom - 0.25),
-                            _ => {}
+                            _ => return Inhibit(false),
                         }
+                        return Inhibit(true);
                     }
-                    Inhibit(true)
+                    Inhibit(false)
                 })
-                .to_glib(),
+                .to_glib() as usize,
         );
 
         //----------------------------------
@@ -542,7 +543,7 @@ impl ArticleView {
 
                     false
                 })
-                .to_glib(),
+                .to_glib() as usize,
         );
 
         //----------------------------------
@@ -571,7 +572,7 @@ impl ArticleView {
                             progress_handle.read().reveal(true);
                             progress_handle.read().set_percentage(progress);
                         }))
-                        .to_glib(),
+                        .to_glib() as usize,
                 );
                 Continue(false)
             }))
@@ -652,7 +653,7 @@ impl ArticleView {
                                                     Self::set_scroll_pos_static(view, scroll_pos + scroll);
                                                     Inhibit(false)
                                                 }))
-                                                .to_glib(),
+                                                .to_glib() as usize,
                                         );
                                     }
                                 }
@@ -662,7 +663,7 @@ impl ArticleView {
                     }
                     Inhibit(false)
                 }))
-                .to_glib(),
+                .to_glib() as usize,
         );
 
         self.click_release_signal.write().replace(
@@ -724,7 +725,7 @@ impl ArticleView {
                     }
                     Inhibit(false)
                 }))
-                .to_glib(),
+                .to_glib() as usize,
         );
 
         //----------------------------------

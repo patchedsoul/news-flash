@@ -12,7 +12,7 @@ pub struct ResetPage {
     reset_button: Button,
     info_bar: InfoBar,
     error_details_button: Button,
-    error_details_signal: RwLock<Option<u64>>,
+    error_details_signal: RwLock<Option<usize>>,
 }
 
 impl ResetPage {
@@ -72,7 +72,7 @@ impl ResetPage {
                         .expect("MainWindow is not a parent of password login error details button.");
                     let _dialog = ErrorDialog::new(&error, &parent);
                 })
-                .to_glib(),
+                .to_glib() as usize,
         );
 
         self.info_bar.set_revealed(true);

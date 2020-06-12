@@ -155,9 +155,12 @@ impl GtkUtil {
         None
     }
 
-    pub fn disconnect_signal<T: ObjectExt>(signal_id: Option<u64>, widget: &T) {
+    pub fn disconnect_signal<T: ObjectExt>(signal_id: Option<usize>, widget: &T) {
         if let Some(signal_id) = signal_id {
-            let signal_id = SignalHandlerId::from_glib(signal_id);
+            #[cfg(target_pointer_width = "64")]
+            let signal_id = SignalHandlerId::from_glib(signal_id as u64);
+            #[cfg(target_pointer_width = "32")]
+            let signal_id = SignalHandlerId::from_glib(signal_id as u32);
             widget.disconnect(signal_id);
         }
         //warn!("Signal ID to disconnect is NONE");

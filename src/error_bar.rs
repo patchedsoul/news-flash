@@ -15,9 +15,9 @@ pub struct ErrorBar {
     detail_button: Button,
     login_button: Button,
     offline_button: Button,
-    detail_signal: Arc<RwLock<Option<u64>>>,
-    relogin_signal: Arc<RwLock<Option<u64>>>,
-    offline_signal: Arc<RwLock<Option<u64>>>,
+    detail_signal: Arc<RwLock<Option<usize>>>,
+    relogin_signal: Arc<RwLock<Option<usize>>>,
+    offline_signal: Arc<RwLock<Option<usize>>>,
     sender: Sender<Action>,
 }
 
@@ -71,9 +71,9 @@ impl ErrorBar {
         detail_button: &Button,
         login_button: &Button,
         offline_button: &Button,
-        detail_signal: &Arc<RwLock<Option<u64>>>,
-        relogin_signal: &Arc<RwLock<Option<u64>>>,
-        offline_signal: &Arc<RwLock<Option<u64>>>,
+        detail_signal: &Arc<RwLock<Option<usize>>>,
+        relogin_signal: &Arc<RwLock<Option<usize>>>,
+        offline_signal: &Arc<RwLock<Option<usize>>>,
     ) {
         info_bar.set_revealed(false);
         GtkUtil::disconnect_signal(*detail_signal.read(), detail_button);
@@ -114,7 +114,7 @@ impl ErrorBar {
                         log::info!("retry login");
                         Util::send(&sender, Action::RetryLogin);
                     }))
-                    .to_glib(),
+                    .to_glib() as usize,
             );
 
             *self.offline_signal.write() = Some(
@@ -141,7 +141,7 @@ impl ErrorBar {
                         );
                         Util::send(&sender, Action::SetOfflineMode(true));
                     }))
-                    .to_glib(),
+                    .to_glib() as usize,
             );
         }
 
@@ -155,7 +155,7 @@ impl ErrorBar {
                         error!("Failed to spawn ErrorDialog. Parent window not found.");
                     }
                 })
-                .to_glib(),
+                .to_glib() as usize,
         );
     }
 }
