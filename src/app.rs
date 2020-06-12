@@ -1607,7 +1607,10 @@ impl App {
                             ));
 
                             if let Err(error) = result {
-                                Util::send(&global_sender, Action::Error("Failed to import OPML.".to_owned(), error));
+                                Util::send(
+                                    &global_sender,
+                                    Action::Error("Failed to import OPML.".to_owned(), error),
+                                );
                             } else {
                                 Util::send(&global_sender, Action::UpdateSidebar);
                             }
