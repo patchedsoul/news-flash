@@ -202,7 +202,6 @@ impl App {
         }
 
         app.window.init(&app.news_flash, app.threadpool.clone(), &app.features);
-        app.window.widget.show_all();
         app
     }
 
