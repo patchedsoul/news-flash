@@ -1554,6 +1554,8 @@ impl App {
     }
 
     fn import_opml(&self) {
+        let (sender, receiver) = oneshot::channel::<()>();
+
         let dialog = FileChooserDialog::with_buttons(
             Some(&i18n("Import OPML")),
             Some(&self.window.widget),
@@ -1574,11 +1576,27 @@ impl App {
         dialog.add_filter(&filter);
         dialog.set_filter(&filter);
 
+        let glib_future = receiver.map(clone!(
+            @strong self.sender as sender,
+            @weak self.window as window => @default-panic, move |res| match res
+        {
+            Ok(()) => {
+                window.content_header.finish_sync();
+            }
+            Err(error) => {
+                let message = format!("Sender error: {}", error);
+                error!("{}", message);
+                Util::send(&sender, Action::ErrorSimpleMessage(message));
+            }
+        }));
+
+        Util::glib_spawn_future(glib_future);
+
         if let ResponseType::Ok = dialog.run() {
             if let Some(filename) = dialog.get_filename() {
                 if let Ok(opml_content) = FileUtil::read_text_file(&filename) {
                     let news_flash = self.news_flash.clone();
-                    let sender = self.sender.clone();
+                    let global_sender = self.sender.clone();
                     let settings = self.settings.clone();
                     let thread_future = async move {
                         if let Some(news_flash) = news_flash.read().as_ref() {
@@ -1589,13 +1607,16 @@ impl App {
                             ));
 
                             if let Err(error) = result {
-                                Util::send(&sender, Action::Error("Failed to import OPML.".to_owned(), error));
+                                Util::send(&global_sender, Action::Error("Failed to import OPML.".to_owned(), error));
                             } else {
-                                Util::send(&sender, Action::UpdateSidebar);
+                                Util::send(&global_sender, Action::UpdateSidebar);
                             }
+
+                            sender.send(()).expect(CHANNEL_ERROR);
                         }
                     };
                     self.threadpool.spawn_ok(thread_future);
+                    self.window.content_header.start_sync();
                 } else {
                     Util::send(
                         &self.sender,
