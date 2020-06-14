@@ -7,6 +7,7 @@ use crate::content_page::HeaderSelection;
 pub use article::ArticleListArticleModel;
 pub use article_update_msg::{MarkUpdate, ReadUpdate};
 pub use change_set::ArticleListChangeSet;
+use chrono::{Duration, NaiveDate, Utc};
 use error::{ArticleListModelError, ArticleListModelErrorKind};
 use log::warn;
 use news_flash::models::{Article, ArticleID, ArticleOrder, Feed, Marked, Read};
@@ -17,6 +18,7 @@ pub struct ArticleListModel {
     models: Vec<ArticleListArticleModel>,
     ids: HashSet<ArticleID>,
     sort: ArticleOrder,
+    created: NaiveDate,
 }
 
 impl ArticleListModel {
@@ -25,6 +27,7 @@ impl ArticleListModel {
             models: Vec::new(),
             ids: HashSet::new(),
             sort: sort.clone(),
+            created: Utc::now().naive_utc().date(),
         }
     }
 
@@ -103,6 +106,8 @@ impl ArticleListModel {
         let new_items = &mut new_list.models;
         let new_articles = &mut new_list.ids;
 
+        let new_day = new_list.created > self.created;
+
         loop {
             let old_item = old_items.get(old_index);
             let new_item = new_items.get(new_index);
@@ -142,6 +147,13 @@ impl ArticleListModel {
                             diff.push(ArticleListChangeSet::UpdateMarked(
                                 new_model.id.clone(),
                                 new_model.marked,
+                            ));
+                        }
+                        // check if it is a new day and if the date was formated as 'today'/'yesterday'
+                        if new_day && self.created - old_model.date.date() <= Duration::days(1) {
+                            diff.push(ArticleListChangeSet::UpdateDateString(
+                                new_model.id.clone(),
+                                new_model.date.clone(),
                             ));
                         }
                         list_pos += 1;

@@ -1,4 +1,5 @@
 use super::article::ArticleListArticleModel;
+use chrono::NaiveDateTime;
 use news_flash::models::{ArticleID, Marked, Read};
 use std::fmt;
 
@@ -8,6 +9,7 @@ pub enum ArticleListChangeSet<'a> {
     Add(&'a ArticleListArticleModel, i32), // pos
     UpdateRead(ArticleID, Read),
     UpdateMarked(ArticleID, Marked),
+    UpdateDateString(ArticleID, NaiveDateTime),
 }
 
 impl<'a> PartialEq for ArticleListChangeSet<'a> {
@@ -29,6 +31,10 @@ impl<'a> PartialEq for ArticleListChangeSet<'a> {
                 ArticleListChangeSet::UpdateMarked(other_id, other_marked) => id == other_id && marked == other_marked,
                 _ => false,
             },
+            ArticleListChangeSet::UpdateDateString(id, date) => match other {
+                ArticleListChangeSet::UpdateDateString(other_id, other_date) => id == other_id && date == other_date,
+                _ => false,
+            },
         }
     }
 }
@@ -42,6 +48,9 @@ impl<'a> fmt::Display for ArticleListChangeSet<'a> {
                 write!(f, "UpdateMarked id='{}' marked='{:?}'", id, marked)
             }
             ArticleListChangeSet::UpdateRead(id, read) => write!(f, "UpdateMarked id='{}' read='{:?}'", id, read),
+            ArticleListChangeSet::UpdateDateString(id, date) => {
+                write!(f, "UpdateDateString id='{}' date='{}'", id, date)
+            }
         }
     }
 }
