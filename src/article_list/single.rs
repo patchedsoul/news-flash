@@ -6,6 +6,7 @@ use crate::article_list::ReadUpdate;
 use crate::content_page::ContentHeader;
 use crate::main_window_state::MainWindowState;
 use crate::util::{BuilderHelper, GtkUtil, Util};
+use chrono::NaiveDateTime;
 use gdk::RGBA;
 use glib::{clone, object::Cast, source::Continue, translate::ToGlib, Sender};
 use gtk::{
@@ -152,6 +153,12 @@ impl SingleArticleList {
     pub fn update_read(&mut self, id: &ArticleID, read: Read) {
         if let Some(article_handle) = self.articles.get(id) {
             article_handle.write().update_unread(read);
+        }
+    }
+
+    pub fn update_date_string(&mut self, id: &ArticleID, date: NaiveDateTime) {
+        if let Some(article_handle) = self.articles.get(id) {
+            article_handle.write().update_date_string(date);
         }
     }
 

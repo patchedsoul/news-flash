@@ -198,6 +198,9 @@ impl ArticleList {
                 ArticleListChangeSet::UpdateRead(id, read) => {
                     list.write().update_read(&id, read);
                 }
+                ArticleListChangeSet::UpdateDateString(id, date) => {
+                    list.write().update_date_string(&id, date);
+                }
             }
         }
     }

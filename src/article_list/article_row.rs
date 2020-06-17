@@ -2,6 +2,7 @@ use super::models::{ArticleListArticleModel, ArticleListModel, MarkUpdate, ReadU
 use crate::app::Action;
 use crate::main_window_state::MainWindowState;
 use crate::util::{BuilderHelper, DateUtil, GtkUtil, Util};
+use chrono::NaiveDateTime;
 use futures::channel::oneshot;
 use futures::future::FutureExt;
 use gdk::{EventType, NotifyType};
@@ -23,6 +24,7 @@ pub struct ArticleRow {
     marked_stack: Stack,
     unread_stack: Stack,
     title_label: Label,
+    date_label: Label,
     row_hovered: Arc<RwLock<bool>>,
     connected_signals: Vec<(usize, Widget)>,
 }
@@ -135,6 +137,7 @@ impl ArticleRow {
             marked_stack,
             unread_stack,
             title_label,
+            date_label,
             row_hovered,
             connected_signals,
         }
@@ -153,6 +156,10 @@ impl ArticleRow {
         Self::update_title_label(&self.title_label, unread);
         Self::update_unread_stack(&self.unread_stack, unread, *self.row_hovered.read());
         *self.read_handle.write() = unread;
+    }
+
+    pub fn update_date_string(&mut self, date: NaiveDateTime) {
+        self.date_label.set_text(&DateUtil::format(&date));
     }
 
     fn create_row(widget: &EventBox) -> ListBoxRow {
