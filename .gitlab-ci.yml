@@ -46,11 +46,8 @@ flatpak:
     cache:
         key: "flatpak"
         paths:
-          - .flatpak-builder/downloads/
           - .flatpak-builder/git/
           - _build/target/
-          - _build/target_test/
-          - _build/cargo/
 
 # Configure and run rustfmt
 # Exits and builds fails if on bad format
