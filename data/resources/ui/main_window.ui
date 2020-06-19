@@ -883,6 +883,7 @@
             </child>
             <child>
               <object class="GtkBox">
+                <property name="visible">True</property>
                 <property name="can_focus">False</property>
                 <property name="halign">center</property>
                 <property name="margin_start">20</property>
