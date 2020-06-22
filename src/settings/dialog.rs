@@ -79,6 +79,8 @@ impl SettingsDialog {
         article_order_event.set_events(EventMask::BUTTON_PRESS_MASK);
 
         let article_theme_label = builder.get::<Label>("article_theme_label");
+        article_theme_label.set_label(settings.read().get_article_view_theme().name());
+
         let article_theme_row = builder.get::<ActionRow>("article_theme_row");
         let article_theme_event = builder.get::<EventBox>("article_theme_event");
         article_theme_event.set_events(EventMask::BUTTON_PRESS_MASK);
