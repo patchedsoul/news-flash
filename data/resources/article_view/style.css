@@ -630,18 +630,18 @@ body.theme.gruvbox header.post span.source {
     color: #689d6a;
 }
 
-body.theme.gruvbox div.frcontent p,
+body.theme.gruvbox div.nfcontent p,
 body.theme.gruvbox header.post span.author {
     color: #fbf1c7;
 }
 
-body.theme.gruvbox div.frcontent a {
+body.theme.gruvbox div.nfcontent a {
     color: #689d6a;
 }
 
-body.theme.gruvbox div.frcontent h1,
-body.theme.gruvbox div.frcontent h2,
-body.theme.gruvbox div.frcontent h3,
-body.theme.gruvbox div.frcontent h4 {
+body.theme.gruvbox div.nfcontent h1,
+body.theme.gruvbox div.nfcontent h2,
+body.theme.gruvbox div.nfcontent h3,
+body.theme.gruvbox div.nfcontent h4 {
     color: #928374;
 }
