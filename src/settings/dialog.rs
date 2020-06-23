@@ -4,13 +4,13 @@ use super::keybindings::Keybindings;
 use super::theme_chooser::ThemeChooser;
 use crate::app::Action;
 use crate::settings::Settings;
-use crate::util::{BuilderHelper, Util, GTK_BUILDER_ERROR};
+use crate::util::{BuilderHelper, GtkUtil, Util, GTK_BUILDER_ERROR};
 use gdk::{EventMask, EventType};
-use glib::{clone, object::Cast, Sender};
+use glib::{clone, object::Cast, Sender, translate::ToGlib};
 use gtk::{
     prelude::GtkWindowExtManual, prelude::WidgetExtManual, DialogExt, EventBox, FontButton, FontButtonExt,
     FontChooserExt, GtkWindowExt, Inhibit, Label, LabelExt, ListBox, ListBoxExt, ListBoxRowExt, Popover, PopoverExt,
-    Settings as GtkSettings, SettingsExt as GtkSettingsExt, Switch, SwitchExt, WidgetExt, Window,
+    Settings as GtkSettings, SettingsExt as GtkSettingsExt, Switch, SwitchExt, Widget, WidgetExt, Window,
 };
 use libhandy::{ActionRow, PreferencesRowExt};
 use news_flash::models::ArticleOrder;
@@ -19,26 +19,42 @@ use std::sync::Arc;
 
 pub struct SettingsDialog {
     pub widget: Window,
+    delete_signal: Arc<RwLock<Option<usize>>>,
     keep_running_switch: Switch,
+    keep_running_signal: Arc<RwLock<Option<usize>>>,
     dark_theme_switch: Switch,
+    dark_theme_signal: Arc<RwLock<Option<usize>>>,
+    gtk_dark_theme_signal: Arc<RwLock<Option<usize>>>,
     sync_label: Label,
     sync_pop: Popover,
     sync_list: ListBox,
+    sync_list_signal: Arc<RwLock<Option<usize>>>,
+    sync_listbox_signal: Arc<RwLock<Option<usize>>>,
     sync_event: EventBox,
+    sync_event_signal: Arc<RwLock<Option<usize>>>,
     sync_row: ActionRow,
     article_order_pop: Popover,
     article_order_list: ListBox,
+    article_order_list_signal: Arc<RwLock<Option<usize>>>,
     article_order_label: Label,
     article_order_event: EventBox,
+    article_order_event_signal: Arc<RwLock<Option<usize>>>,
     article_order_row: ActionRow,
+    article_order_listbox_signal: Arc<RwLock<Option<usize>>>,
     article_theme_label: Label,
     article_theme_row: ActionRow,
+    article_theme_listbox_signal: Arc<RwLock<Option<usize>>>,
     article_theme_event: EventBox,
+    article_theme_event_signal: Arc<RwLock<Option<usize>>>,
     allow_selection_switch: Switch,
+    allow_selection_switch_signal: Arc<RwLock<Option<usize>>>,
     font_row: ActionRow,
     font_button: FontButton,
+    font_button_signal: Arc<RwLock<Option<usize>>>,
     use_system_font_switch: Switch,
+    use_system_font_switch_signal: Arc<RwLock<Option<usize>>>,
     settings: Arc<RwLock<Settings>>,
+    keybind_signals: Arc<RwLock<Vec<(usize, Widget)>>>,
     builder: BuilderHelper,
 }
 
@@ -102,26 +118,42 @@ impl SettingsDialog {
 
         let settings_dialog = SettingsDialog {
             widget: dialog,
+            delete_signal: Arc::new(RwLock::new(None)),
             keep_running_switch,
+            keep_running_signal: Arc::new(RwLock::new(None)),
             dark_theme_switch,
+            dark_theme_signal: Arc::new(RwLock::new(None)),
+            gtk_dark_theme_signal: Arc::new(RwLock::new(None)),
             sync_label,
             sync_pop,
             sync_list,
+            sync_list_signal: Arc::new(RwLock::new(None)),
+            sync_listbox_signal: Arc::new(RwLock::new(None)),
             sync_event,
+            sync_event_signal: Arc::new(RwLock::new(None)),
             sync_row,
             article_order_pop,
             article_order_label,
             article_order_list,
+            article_order_list_signal: Arc::new(RwLock::new(None)),
             article_order_event,
+            article_order_event_signal: Arc::new(RwLock::new(None)),
             article_order_row,
+            article_order_listbox_signal: Arc::new(RwLock::new(None)),
             article_theme_label,
             article_theme_row,
+            article_theme_listbox_signal: Arc::new(RwLock::new(None)),
             article_theme_event,
+            article_theme_event_signal: Arc::new(RwLock::new(None)),
             allow_selection_switch,
+            allow_selection_switch_signal: Arc::new(RwLock::new(None)),
             font_row,
             font_button,
+            font_button_signal: Arc::new(RwLock::new(None)),
             use_system_font_switch,
+            use_system_font_switch_signal: Arc::new(RwLock::new(None)),
             settings: settings.clone(),
+            keybind_signals: Arc::new(RwLock::new(Vec::new())),
             builder,
         };
 
@@ -132,7 +164,91 @@ impl SettingsDialog {
     }
 
     fn setup_ui_section(&self, sender: &Sender<Action>) {
-        self.keep_running_switch.connect_state_set(clone!(
+
+        // clean up signals
+        self.delete_signal.write().replace(self.widget.connect_delete_event(clone!(
+            @strong self.delete_signal as delete_signal,
+            @weak self.keep_running_switch as keep_running_switch,
+            @strong self.keep_running_signal as keep_running_signal,
+            @weak self.dark_theme_switch as dark_theme_switch,
+            @strong self.dark_theme_signal as dark_theme_signal,
+            @strong self.gtk_dark_theme_signal as gtk_dark_theme_signal,
+            @weak self.sync_list as sync_list,
+            @strong self.sync_list_signal as sync_list_signal,
+            @weak self.sync_row as sync_row,
+            @strong self.sync_listbox_signal as sync_listbox_signal,
+            @weak self.sync_event as sync_event,
+            @strong self.sync_event_signal as sync_event_signal,
+            @weak self.article_order_list as article_order_list,
+            @strong self.article_order_list_signal as article_order_list_signal,
+            @weak self.article_order_event as article_order_event,
+            @strong self.article_order_event_signal as article_order_event_signal,
+            @weak self.article_order_row as article_order_row,
+            @strong self.article_order_listbox_signal as article_order_listbox_signal,
+            @weak self.article_theme_event as article_theme_event,
+            @strong self.article_theme_event_signal as article_theme_event_signal,
+            @weak self.article_theme_row as article_theme_row,
+            @strong self.article_theme_listbox_signal as article_theme_listbox_signal,
+            @weak self.allow_selection_switch as allow_selection_switch,
+            @strong self.allow_selection_switch_signal as allow_selection_switch_signal,
+            @weak self.use_system_font_switch as use_system_font_switch,
+            @strong self.use_system_font_switch_signal as use_system_font_switch_signal,
+            @strong self.keybind_signals as keybind_signals,
+            @weak self.font_button as font_button,
+            @strong self.font_button_signal as font_button_signal => @default-panic, move |dialog, _event| {
+                GtkUtil::disconnect_signal(*delete_signal.read(), dialog);
+                GtkUtil::disconnect_signal(*keep_running_signal.read(), &keep_running_switch);
+                GtkUtil::disconnect_signal(*dark_theme_signal.read(), &dark_theme_switch);
+                GtkUtil::disconnect_signal(*sync_list_signal.read(), &sync_list);
+                GtkUtil::disconnect_signal(*article_order_list_signal.read(), &article_order_list);
+                GtkUtil::disconnect_signal(*article_order_event_signal.read(), &article_order_event);
+                GtkUtil::disconnect_signal(*article_theme_event_signal.read(), &article_theme_event);
+                GtkUtil::disconnect_signal(*allow_selection_switch_signal.read(), &allow_selection_switch);
+                GtkUtil::disconnect_signal(*use_system_font_switch_signal.read(), &use_system_font_switch);
+                GtkUtil::disconnect_signal(*font_button_signal.read(), &font_button);
+                if let Some(gtk_settings) = GtkSettings::get_default() {
+                    GtkUtil::disconnect_signal(*gtk_dark_theme_signal.read(), &gtk_settings);
+                    gtk_dark_theme_signal.write().take();
+                }
+                if let Some(listbox) = sync_row.get_parent() {
+                    if let Ok(listbox) = listbox.downcast::<ListBox>() {
+                        GtkUtil::disconnect_signal(*sync_listbox_signal.read(), &listbox);
+                        sync_listbox_signal.write().take();
+                    }
+                }
+                if let Some(listbox) = article_order_row.get_parent() {
+                    if let Ok(listbox) = listbox.downcast::<ListBox>() {
+                        GtkUtil::disconnect_signal(*article_order_listbox_signal.read(), &listbox);
+                        article_order_listbox_signal.write().take();
+                    }
+                }
+                if let Some(listbox) = article_theme_row.get_parent() {
+                    if let Ok(listbox) = listbox.downcast::<ListBox>() {
+                        GtkUtil::disconnect_signal(*article_theme_listbox_signal.read(), &listbox);
+                        article_theme_listbox_signal.write().take();
+                    }
+                }
+                delete_signal.write().take();
+                keep_running_signal.write().take();
+                dark_theme_signal.write().take();
+                sync_list_signal.write().take();
+                sync_event_signal.write().take();
+                article_order_list_signal.write().take();
+                article_order_event_signal.write().take();
+                article_theme_event_signal.write().take();
+                allow_selection_switch_signal.write().take();
+                use_system_font_switch_signal.write().take();
+                font_button_signal.write().take();
+
+                for (id, widget) in &*keybind_signals.read() {
+                    GtkUtil::disconnect_signal(Some(*id), widget);
+                }
+                keybind_signals.write().clear();
+
+                Inhibit(false)
+        })).to_glib() as usize);
+
+        self.keep_running_signal.write().replace(self.keep_running_switch.connect_state_set(clone!(
             @weak self.settings as settings,
             @strong sender => @default-panic, move |_switch, is_set|
         {
@@ -143,9 +259,9 @@ impl SettingsDialog {
                 );
             }
             Inhibit(false)
-        }));
+        })).to_glib() as usize);
 
-        self.dark_theme_switch.connect_state_set(clone!(
+        self.dark_theme_signal.write().replace(self.dark_theme_switch.connect_state_set(clone!(
             @weak self.settings as settings,
             @strong sender => @default-panic, move |_switch, is_set| {
             if settings.write().set_prefer_dark_theme(is_set).is_ok() {
@@ -161,19 +277,19 @@ impl SettingsDialog {
                 );
             }
             Inhibit(false)
-        }));
+        })).to_glib() as usize);
 
         if let Some(gtk_settings) = GtkSettings::get_default() {
-            gtk_settings.connect_property_gtk_application_prefer_dark_theme_notify(clone!(
+            self.gtk_dark_theme_signal.write().replace(gtk_settings.connect_property_gtk_application_prefer_dark_theme_notify(clone!(
                 @weak self.dark_theme_switch as dark_theme_switch  => @default-panic, move |gtk_settings|
             {
                 if gtk_settings.get_property_gtk_application_prefer_dark_theme() != dark_theme_switch.get_state() {
                     dark_theme_switch.set_state(gtk_settings.get_property_gtk_application_prefer_dark_theme());
                 }
-            }));
+            })).to_glib() as usize);
         }
 
-        self.sync_list.connect_row_activated(clone!(
+        self.sync_list_signal.write().replace(self.sync_list.connect_row_activated(clone!(
             @weak self.settings as settings,
             @weak self.sync_pop as sync_pop,
             @weak self.sync_label as sync_label,
@@ -197,9 +313,9 @@ impl SettingsDialog {
                     Action::ErrorSimpleMessage("Failed to set setting 'sync interval'.".to_owned()),
                 );
             }
-        }));
+        })).to_glib() as usize);
 
-        self.sync_event.connect_button_press_event(clone!(
+        self.sync_event_signal.write().replace(self.sync_event.connect_button_press_event(clone!(
             @weak self.sync_pop as sync_pop => @default-panic, move |_eventbox, event|
         {
             if event.get_button() != 1 {
@@ -214,11 +330,11 @@ impl SettingsDialog {
 
             sync_pop.popup();
             Inhibit(false)
-        }));
+        })).to_glib() as usize);
 
         if let Some(listbox) = self.sync_row.get_parent() {
             if let Ok(listbox) = listbox.downcast::<ListBox>() {
-                listbox.connect_row_activated(
+                self.sync_listbox_signal.write().replace(listbox.connect_row_activated(
                     clone!(@weak self.sync_pop as sync_pop => @default-panic, move |_list, row| {
                         if let Some(name) = row.get_widget_name() {
                             if name == "sync_row" {
@@ -226,11 +342,11 @@ impl SettingsDialog {
                             }
                         }
                     }),
-                );
+                ).to_glib() as usize);
             }
         }
 
-        self.article_order_list.connect_row_activated(clone!(
+        self.article_order_list_signal.write().replace(self.article_order_list.connect_row_activated(clone!(
             @weak self.article_order_pop as article_order_pop,
             @weak self.article_order_label as article_order_label,
             @weak self.settings as settings,
@@ -249,9 +365,9 @@ impl SettingsDialog {
                     Action::ErrorSimpleMessage("Failed to set setting 'article order'.".to_owned()),
                 );
             }
-        }));
+        })).to_glib() as usize);
 
-        self.article_order_event.connect_button_press_event(clone!(
+        self.article_order_event_signal.write().replace(self.article_order_event.connect_button_press_event(clone!(
             @weak self.article_order_pop as article_order_pop => @default-panic, move |_eventbox, event|
         {
             if event.get_button() != 1 {
@@ -266,11 +382,11 @@ impl SettingsDialog {
 
             article_order_pop.popup();
             Inhibit(false)
-        }));
+        })).to_glib() as usize);
 
         if let Some(listbox) = self.article_order_row.get_parent() {
             if let Ok(listbox) = listbox.downcast::<ListBox>() {
-                listbox.connect_row_activated(
+                self.article_order_listbox_signal.write().replace(listbox.connect_row_activated(
                     clone!(@weak self.article_order_pop as article_order_pop => @default-panic, move |_list, row| {
                         if let Some(name) = row.get_widget_name() {
                             if name == "article_order_row" {
@@ -278,11 +394,11 @@ impl SettingsDialog {
                             }
                         }
                     }),
-                );
+                ).to_glib() as usize);
             }
         }
 
-        self.article_theme_event.connect_button_press_event(clone!(
+        self.article_theme_event_signal.write().replace(self.article_theme_event.connect_button_press_event(clone!(
             @weak self.settings as settings,
             @weak self.article_theme_label as article_theme_label,
             @strong sender => @default-panic, move |eventbox, event|
@@ -298,22 +414,26 @@ impl SettingsDialog {
             }
 
             let theme_chooser = ThemeChooser::new(eventbox, &sender, &settings);
-            theme_chooser.widget().connect_closed(clone!(
+            let theme_chooser_close_signal = Arc::new(RwLock::new(None));
+            theme_chooser_close_signal.write().replace(theme_chooser.widget().connect_closed(clone!(
                 @weak settings,
                 @weak article_theme_label,
-                @strong sender => @default-panic, move |_pop|
+                @strong theme_chooser_close_signal,
+                @strong sender => @default-panic, move |pop|
             {
+                GtkUtil::disconnect_signal(*theme_chooser_close_signal.read(), pop);
+                theme_chooser_close_signal.write().take();
                 article_theme_label.set_label(settings.read().get_article_view_theme().name());
                 Util::send(&sender, Action::RedrawArticle);
-            }));
+            })).to_glib() as usize);
             theme_chooser.widget().popup();
 
             Inhibit(false)
-        }));
+        })).to_glib() as usize);
 
         if let Some(listbox) = self.article_theme_row.get_parent() {
             if let Ok(listbox) = listbox.downcast::<ListBox>() {
-                listbox.connect_row_activated(clone!(
+                self.article_theme_listbox_signal.write().replace(listbox.connect_row_activated(clone!(
                     @weak self.article_theme_label as article_theme_label,
                     @weak self.article_theme_event as article_theme_event,
                     @weak self.settings as settings,
@@ -322,21 +442,25 @@ impl SettingsDialog {
                     if let Some(name) = row.get_widget_name() {
                         if name == "article_theme_row" {
                             let theme_chooser = ThemeChooser::new(&article_theme_event, &sender, &settings);
-                            theme_chooser.widget().connect_closed(clone!(
+                            let theme_chooser_close_signal = Arc::new(RwLock::new(None));
+                            theme_chooser_close_signal.write().replace(theme_chooser.widget().connect_closed(clone!(
                                 @strong sender,
-                                @weak settings => @default-panic, move |_pop|
+                                @strong theme_chooser_close_signal,
+                                @weak settings => @default-panic, move |pop|
                             {
+                                GtkUtil::disconnect_signal(*theme_chooser_close_signal.read(), pop);
+                                theme_chooser_close_signal.write().take();
                                 article_theme_label.set_label(settings.read().get_article_view_theme().name());
                                 Util::send(&sender, Action::RedrawArticle);
-                            }));
+                            })).to_glib() as usize);
                             theme_chooser.widget().popup();
                         }
                     }
-                }));
+                })).to_glib() as usize);
             }
         }
 
-        self.allow_selection_switch.connect_state_set(clone!(
+        self.allow_selection_switch_signal.write().replace(self.allow_selection_switch.connect_state_set(clone!(
             @weak self.settings as settings,
             @strong sender => @default-panic, move |_switch, is_set|
         {
@@ -349,9 +473,9 @@ impl SettingsDialog {
                 );
             }
             Inhibit(false)
-        }));
+        })).to_glib() as usize);
 
-        self.font_button.connect_font_set(
+        self.font_button_signal.write().replace(self.font_button.connect_font_set(
             clone!(@weak self.settings as settings, @strong sender => @default-panic, move |button| {
                 let font = match button.get_font() {
                     Some(font) => Some(font.to_string()),
@@ -366,9 +490,9 @@ impl SettingsDialog {
                     );
                 }
             }),
-        );
+        ).to_glib() as usize);
 
-        self.use_system_font_switch.connect_state_set(clone!(
+        self.use_system_font_switch_signal.write().replace(self.use_system_font_switch.connect_state_set(clone!(
             @weak self.font_button as font_button,
             @weak self.font_row as font_row,
             @weak self.settings as settings,
@@ -392,7 +516,7 @@ impl SettingsDialog {
                 );
             }
             Inhibit(false)
-        }));
+        })).to_glib() as usize);
     }
 
     fn setup_keybindings_section(&self, sender: &Sender<Action>) {
@@ -471,7 +595,7 @@ impl SettingsDialog {
         if let Some(listbox) = row.get_parent() {
             if let Ok(listbox) = listbox.downcast::<ListBox>() {
                 let info_text = row.get_title().expect(GTK_BUILDER_ERROR);
-                listbox.connect_row_activated(clone!(
+                self.keybind_signals.write().push((listbox.connect_row_activated(clone!(
                     @weak self.widget as dialog,
                     @weak self.settings as settings,
                     @strong sender,
@@ -515,7 +639,7 @@ impl SettingsDialog {
                             }));
                         }
                     }
-                }));
+                })).to_glib() as usize, listbox.clone().upcast::<Widget>()));
             }
         }
     }
