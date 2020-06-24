@@ -44,10 +44,28 @@
       <description>
 				<p>Bugfixes:</p>
 				<ul>
+          <li>Updated App Icon</li>
           <li>Set webview background color according to Gtk theme</li>
           <li>Allow flatpak to access 'Downloads' to save images from the article view</li>
           <li>Remove article view content justification</li>
           <li>React to dark theme preference set from outside</li>
+          <li>Add "busy timeout" for database connections</li>
+          <li>Fever: escape HTML entities in title</li>
+          <li>feedly: ignore articles without existing feed</li>
+          <li>feedly: make stream_id optional</li>
+          <li>OPML import: use `No Title` if both `title` and `text` are missing</li>
+          <li>OPML import: always parse feed if no website is available</li>
+          <li>OPML import: Spin the update button to indicate long processing</li>
+          <li>Article list: don't insert row when already contained in model</li>
+          <li>Toggle article state based of article list selection instead of article view</li>
+          <li>Convert timestamp into local timezone for display</li>
+          <li>Fix 32 bit build</li>
+          <li>Fix copying text by not inhibiting all key presses in webview</li>
+          <li>Fix appicon not properly shown: don't call show_all() in application constructor</li>
+          <li>Update date string in article list if a new day has begun</li>
+          <li>Correctly show initial state of article theme setting</li>
+          <li>Crash when opening and using settings a second time</li>
+          <li>Unreadable links in Gruvbox theme</li>
         </ul>
 			</description>
     </release>
