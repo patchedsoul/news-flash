@@ -201,6 +201,7 @@ impl SettingsDialog {
                         GtkUtil::disconnect_signal(*keep_running_signal.read(), &keep_running_switch);
                         GtkUtil::disconnect_signal(*dark_theme_signal.read(), &dark_theme_switch);
                         GtkUtil::disconnect_signal(*sync_list_signal.read(), &sync_list);
+                        GtkUtil::disconnect_signal(*sync_event_signal.read(), &sync_event);
                         GtkUtil::disconnect_signal(*article_order_list_signal.read(), &article_order_list);
                         GtkUtil::disconnect_signal(*article_order_event_signal.read(), &article_order_event);
                         GtkUtil::disconnect_signal(*article_theme_event_signal.read(), &article_theme_event);
