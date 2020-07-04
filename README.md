@@ -63,9 +63,9 @@ sudo ninja -C build install
 
 ## Migrate from FeedReader
 
-Although NewsFlash is the **spiritual** successor to FeedReader it is a different application. There are differences and most of them are on purpose.
+Although NewsFlash is the **spiritual** successor to FeedReader, it is a different application. There are differences and most of them are on purpose.
 
-For services that are supported by NewsFlash as well migration is as easy as can be: just log into your account and sync away.
+For services that are supported by NewsFlash as well, migration is as easy as can be: just log into your account and sync away.
 
 Some services supported by FeedReader have not yet found their way into NewsFlash. Work for Google Reader style APIs is already on the way (FreshRSS, InoReader, The Old Reader).
 Nextcloud News will probably only happen as soon as their [APIv2 draft](https://github.com/nextcloud/news/blob/ec3cc602f1bd363efe776ce4914319034d35c18e/docs/externalapi/External-Api.md) gets implemented.
