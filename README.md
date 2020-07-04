@@ -10,10 +10,11 @@ and having access to all your articles as long as you like.
 
 ![Screenshot](./data/screenshots/Main.png "WIP 2020-04-20")
 
-## Beta1 Flatpak
+## Flathub
 
-Currently available [here](https://gitlab.com/news-flash/news_flash_gtk/-/jobs/535363840/artifacts/raw/com.gitlab.newsflash.Devel.flatpak). Flathub is planned,
-but currently blocked by not supporting API secrets.
+Official pacakges available on flathub:
+
+<a href='https://flathub.org/apps/details/com.gitlab.newsflash'><img width='240' alt='Download on Flathub' src='https://flathub.org/assets/badges/flathub-badge-en.png'/></a>
 
 ## Fedora
 
