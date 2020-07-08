@@ -10,9 +10,10 @@ pub struct BuilderHelper {
 
 impl BuilderHelper {
     pub fn new(ui_file: &str) -> Self {
-        let ui_data =
-            Resources::get(&format!("ui/{}.ui", ui_file)).expect(&format!("{} - {}", GTK_RESOURCE_FILE_ERROR, ui_file));
-        let ui_xml = str::from_utf8(ui_data.as_ref()).expect(&format!("{} - {}", GTK_RESOURCE_FILE_ERROR, ui_file));
+        let ui_data = Resources::get(&format!("ui/{}.ui", ui_file))
+            .unwrap_or_else(|| panic!("{} - {}", GTK_RESOURCE_FILE_ERROR, ui_file));
+        let ui_xml =
+            str::from_utf8(ui_data.as_ref()).unwrap_or_else(|_| panic!("{} - {}", GTK_RESOURCE_FILE_ERROR, ui_file));
         Self::new_from_xml(ui_xml)
     }
 
@@ -25,7 +26,7 @@ impl BuilderHelper {
         let widget: T = self
             .builder
             .get_object(name)
-            .expect(&format!("{} - {}", GTK_BUILDER_ERROR, name));
+            .unwrap_or_else(|| panic!("{} - {}", GTK_BUILDER_ERROR, name));
         widget
     }
 }

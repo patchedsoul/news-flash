@@ -635,7 +635,7 @@ impl SettingsDialog {
 
     fn setup_keybinding_row(&self, id: &str, keybinding: Option<String>, sender: &Sender<Action>) {
         let label = self.builder.get::<Label>(&format!("{}_label", id));
-        Self::keybind_label_text(keybinding.clone(), &label);
+        Self::keybind_label_text(keybinding, &label);
         let row_name = format!("{}_row", id);
         let row = self.builder.get::<ActionRow>(&row_name);
         let id = id.to_owned();
@@ -687,7 +687,7 @@ impl SettingsDialog {
                             }));
                         }
                     }
-                })).to_glib() as usize, listbox.clone().upcast::<Widget>()));
+                })).to_glib() as usize, listbox.upcast::<Widget>()));
             }
         }
     }

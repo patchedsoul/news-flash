@@ -43,7 +43,7 @@ impl Settings {
         if path.as_path().exists() {
             let data = fs::read_to_string(&path).context(SettingsErrorKind::ReadFromDisk)?;
             let mut settings: Self = serde_json::from_str(&data).context(SettingsErrorKind::InvalidJsonContent)?;
-            settings.path = path.clone();
+            settings.path = path;
             return Ok(settings);
         }
 
@@ -55,7 +55,7 @@ impl Settings {
             article_list: ArticleListSettings::default(),
             article_view: ArticleViewSettings::default(),
             keybindings: Keybindings::default(),
-            path: path.clone(),
+            path,
         };
         settings.write().context(SettingsErrorKind::WriteToDisk)?;
         Ok(settings)

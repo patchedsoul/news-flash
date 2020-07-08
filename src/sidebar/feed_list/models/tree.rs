@@ -206,7 +206,11 @@ impl FeedListTree {
                     new_index += 1;
                     match new_item {
                         FeedListItem::Feed(new_feed) => {
-                            diff.push(FeedListChangeSet::AddFeed(new_feed.clone(), *list_pos, visible));
+                            diff.push(FeedListChangeSet::AddFeed(
+                                Box::new(new_feed.clone()),
+                                *list_pos,
+                                visible,
+                            ));
                             *list_pos += 1;
                         }
                         FeedListItem::Category(ref mut new_category) => {

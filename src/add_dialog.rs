@@ -437,8 +437,6 @@ impl AddPopover {
                     }
                 }
             } else if let Some(icon_url) = feed.icon_url {
-                let favicon_image = favicon_image.clone();
-
                 let (sender, receiver) = oneshot::channel::<Option<Vec<u8>>>();
 
                 let thread_future = async move {

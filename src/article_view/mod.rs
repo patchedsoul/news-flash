@@ -244,7 +244,7 @@ impl ArticleView {
     }
 
     pub fn update_background_color(&self, color: &RGBA) {
-        if color.alpha == 1.0 {
+        if (color.alpha - 1.0).abs() == f64::EPSILON {
             let webview_1 = self
                 .stack
                 .get_child_by_name(InternalState::View1.to_str().expect("InternalState to str"))
@@ -275,7 +275,7 @@ impl ArticleView {
             }
         }
 
-        Err(ArticleViewErrorKind::Unknown)?
+        Err(ArticleViewErrorKind::Unknown.into())
     }
 
     fn disconnect_old_view(&self) {
@@ -855,7 +855,7 @@ impl ArticleView {
         if let Some(author) = &article.author {
             author_date.push_str(&format!("posted by: {}, {}", author, date));
         } else {
-            author_date.push_str(&date.to_string());
+            author_date.push_str(&date);
         }
 
         // $HTML
@@ -865,10 +865,8 @@ impl ArticleView {
             } else if let Some(html) = &article.html {
                 template_string = template_string.replacen("$HTML", html, 1);
             }
-        } else {
-            if let Some(html) = &article.html {
-                template_string = template_string.replacen("$HTML", html, 1);
-            }
+        } else if let Some(html) = &article.html {
+            template_string = template_string.replacen("$HTML", html, 1);
         }
 
         // $UNSELECTABLE
@@ -980,11 +978,13 @@ impl ArticleView {
 
         wait_loop.run();
 
-        if let Some(pos) = *value.clone().read() {
-            return Ok(pos);
+        let output = if let Some(pos) = *value.read() {
+            Ok(pos)
         } else {
-            return Err(ArticleViewErrorKind::NoValueFromJS.into());
-        }
+            Err(ArticleViewErrorKind::NoValueFromJS.into())
+        };
+
+        output
     }
 
     fn set_scroll_abs(&self, scroll: f64) -> Result<(), ArticleViewError> {

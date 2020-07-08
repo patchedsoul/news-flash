@@ -61,7 +61,7 @@ impl CategoryRow {
             arrow_event: arrow_event.clone(),
             item_count: item_count_label,
             item_count_event,
-            title: title_label.clone(),
+            title: title_label,
             expanded: model.expanded,
             connected_signals: Vec::new(),
         };
@@ -73,7 +73,7 @@ impl CategoryRow {
             state,
             features,
             model.label.clone(),
-            sender.clone(),
+            sender,
         ) {
             category.connected_signals.push(signal_widget_pair);
         }
@@ -128,7 +128,7 @@ impl CategoryRow {
                     }),
                 )
                 .to_glib() as usize,
-            arrow_event.clone().upcast::<Widget>(),
+            arrow_event.upcast::<Widget>(),
         ));
 
         handle
@@ -240,7 +240,7 @@ impl CategoryRow {
                 row.set_state_flags(StateFlags::PRELIGHT, false);
 
                 Inhibit(true)
-            })).to_glib() as usize, eventbox.clone().upcast::<Widget>()))
+            })).to_glib() as usize, eventbox.upcast::<Widget>()))
         } else {
             None
         }

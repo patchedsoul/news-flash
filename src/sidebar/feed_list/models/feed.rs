@@ -1,6 +1,5 @@
 use news_flash::models::{CategoryID, Feed, FeedID, FeedMapping};
 use serde::{Deserialize, Serialize};
-use std;
 use std::cmp::Ordering;
 use std::fmt;
 

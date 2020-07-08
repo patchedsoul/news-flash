@@ -164,7 +164,7 @@ impl ArticleList {
         };
 
         for model in new_list.models() {
-            if !self.list_model.write().add_model(model.clone()).is_err() {
+            if self.list_model.write().add_model(model.clone()).is_ok() {
                 gtk::idle_add(clone!(
                     @weak self.global_state as global_state,
                     @weak self.list_model as list_model,
@@ -262,7 +262,7 @@ impl ArticleList {
                         Util::send(&sender, Action::MarkArticleRead(update));
                     }
 
-                    Util::send(&sender, Action::ShowArticle(selected_article.id.clone()));
+                    Util::send(&sender, Action::ShowArticle(selected_article.id));
                 }
             }))
             .to_glib();

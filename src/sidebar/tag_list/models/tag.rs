@@ -1,5 +1,4 @@
 use news_flash::models::{Tag, TagID};
-use std;
 use std::cmp::Ordering;
 
 #[derive(Eq, Clone, Debug)]

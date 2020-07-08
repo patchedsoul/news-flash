@@ -8,7 +8,7 @@ use std::fmt;
 pub enum FeedListChangeSet {
     RemoveFeed(FeedID, CategoryID), // parent
     RemoveCategory(CategoryID),
-    AddFeed(FeedListFeedModel, i32, bool),         // pos, visible
+    AddFeed(Box<FeedListFeedModel>, i32, bool),    // pos, visible
     AddCategory(FeedListCategoryModel, i32, bool), // pos, visible
     FeedUpdateItemCount(FeedID, i64),              // item count
     CategoryUpdateItemCount(CategoryID, i64),      // item count

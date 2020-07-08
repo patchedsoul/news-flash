@@ -123,7 +123,7 @@ impl Util {
         count
     }
 
-    pub fn create_mappings_for_uncategorized_feeds(feeds: &Vec<Feed>, mappings: &Vec<FeedMapping>) -> Vec<FeedMapping> {
+    pub fn create_mappings_for_uncategorized_feeds(feeds: &[Feed], mappings: &[FeedMapping]) -> Vec<FeedMapping> {
         let mut uncategorized_mappings = Vec::new();
         for feed in feeds {
             if !mappings.iter().any(|m| m.feed_id == feed.feed_id) {

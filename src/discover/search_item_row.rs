@@ -76,7 +76,7 @@ impl SearchItemRow {
                         Ok(categories) => categories,
                         Err(error) => {
                             error!("{}", error_message);
-                            Util::send(&sender, Action::Error(error_message.clone(), error));
+                            Util::send(&sender, Action::Error(error_message, error));
                             return Inhibit(false);
                         }
                     };
@@ -106,10 +106,7 @@ impl SearchItemRow {
         );
 
         let description = if let Some(description) = &item.description {
-            let description = str::replace(&description, "\n", " ");
-            let description = str::replace(&description, "\r", " ");
-            let description = str::replace(&description, "_", " ");
-            description
+            description.replace('\n', " ").replace('\r', " ").replace('_', " ")
         } else {
             "No description".to_owned()
         };

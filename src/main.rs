@@ -1,3 +1,5 @@
+#![allow(clippy::derive_hash_xor_eq)]
+
 mod about_dialog;
 mod add_dialog;
 mod app;

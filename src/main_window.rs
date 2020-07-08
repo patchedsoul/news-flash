@@ -160,7 +160,7 @@ impl MainWindow {
         MainWindow {
             widget: window,
             error_bar,
-            undo_bar: undo_bar,
+            undo_bar,
             content_page,
             oauth_login_page,
             password_login_page,
@@ -319,8 +319,8 @@ impl MainWindow {
             if Self::check_shortcut("sidebar_set_read", &settings, event) {
                 if !state.read().get_offline() {
                     Util::send(&sender, Action::SetSidebarRead);
-                    return Inhibit(true);
                 }
+                return Inhibit(true);
             }
 
             Inhibit(false)
@@ -679,7 +679,7 @@ impl MainWindow {
                 let (sender, receiver) = oneshot::channel::<Result<(), NewsFlashError>>();
 
                 let news_flash = news_flash.clone();
-                let category_id_vec = vec![category_id.clone()];
+                let category_id_vec = vec![category_id];
                 let thread_future = async move {
                     if let Some(news_flash) = news_flash.read().as_ref() {
                         sender
@@ -716,7 +716,7 @@ impl MainWindow {
                 let (sender, receiver) = oneshot::channel::<Result<(), NewsFlashError>>();
 
                 let news_flash = news_flash.clone();
-                let feed_id_vec = vec![feed_id.clone()];
+                let feed_id_vec = vec![feed_id];
                 let thread_future = async move {
                     if let Some(news_flash) = news_flash.read().as_ref() {
                         sender
@@ -755,7 +755,7 @@ impl MainWindow {
                 let (sender, receiver) = oneshot::channel::<Result<(), NewsFlashError>>();
 
                 let news_flash = news_flash.clone();
-                let tag_id_vec = vec![tag_id.clone()];
+                let tag_id_vec = vec![tag_id];
                 let thread_future = async move {
                     if let Some(news_flash) = news_flash.read().as_ref() {
                         sender

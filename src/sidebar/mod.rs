@@ -124,7 +124,7 @@ impl SideBar {
 
             if let Some((item, title)) = self_handle.read().get_selection() {
                 let selection = SidebarSelection::from_feed_list_selection(item, title);
-                *selection_handle.write() = selection.clone();
+                *selection_handle.write() = selection;
             }
         }));
 
@@ -154,7 +154,7 @@ impl SideBar {
 
             if let Some((selected_id, title)) = tag_list_handle.read().get_selection() {
                 let selection = SidebarSelection::Tag(selected_id, title);
-                *selection_handle.write() = selection.clone();
+                *selection_handle.write() = selection;
             }
         }));
 

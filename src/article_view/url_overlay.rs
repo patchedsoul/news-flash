@@ -14,9 +14,8 @@ impl UrlOverlay {
         UrlOverlay { label }
     }
 
-    pub fn set_url(&self, uri: String, align: gtk::Align) {
+    pub fn set_url(&self, mut uri: String, align: gtk::Align) {
         let max_length = 45;
-        let mut uri = uri.clone();
         if uri.chars().count() > max_length {
             uri = uri.chars().take(max_length).collect::<String>();
             uri.push_str("...");

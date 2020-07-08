@@ -2,7 +2,6 @@ use super::item::FeedListItem;
 use log::warn;
 use news_flash::models::{Category, CategoryID, CategoryType};
 use serde::{Deserialize, Serialize};
-use std;
 use std::cmp::Ordering;
 use std::fmt;
 use std::hash::{Hash, Hasher};

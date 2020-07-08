@@ -78,7 +78,7 @@ impl ContentPage {
             article_view,
             settings,
             state: state.clone(),
-            sender: sender.clone(),
+            sender,
         }
     }
 

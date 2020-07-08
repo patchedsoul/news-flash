@@ -439,9 +439,7 @@ impl App {
                         &self.sender,
                         Action::ShowPasswordLogin(password_data.id.clone(), Some(password_data)),
                     ),
-                    LoginData::OAuth(oauth_data) => {
-                        Util::send(&self.sender, Action::ShowOauthLogin(oauth_data.id.clone()))
-                    }
+                    LoginData::OAuth(oauth_data) => Util::send(&self.sender, Action::ShowOauthLogin(oauth_data.id)),
                 }
             }
         }
@@ -604,7 +602,6 @@ impl App {
         let news_flash = self.news_flash.clone();
         let global_sender = self.sender.clone();
         let settings = self.settings.clone();
-        let feed = feed.clone();
         let thread_future = async move {
             if let Some(news_flash) = news_flash.read().as_ref() {
                 let favicon = match Runtime::new()
@@ -681,9 +678,8 @@ impl App {
 
             Util::send(&global_sender, Action::UpdateSidebar);
             let visible_article = content_page.article_view.get_visible_article();
-            if let Some(visible_article) = visible_article {
+            if let Some(mut visible_article) = visible_article {
                 if visible_article.article_id == update.article_id {
-                    let mut visible_article = visible_article.clone();
                     visible_article.unread = update.read;
                     content_header.show_article(Some(&visible_article), &news_flash, &features);
                     content_page
@@ -750,9 +746,8 @@ impl App {
 
             Util::send(&global_sender, Action::UpdateSidebar);
             let visible_article = content_page.article_view.get_visible_article();
-            if let Some(visible_article) = visible_article {
+            if let Some(mut visible_article) = visible_article {
                 if visible_article.article_id == update.article_id {
-                    let mut visible_article = visible_article.clone();
                     visible_article.marked = update.marked;
                     content_header.show_article(Some(&visible_article), &news_flash, &features);
                     content_page
@@ -844,7 +839,7 @@ impl App {
                 Ok(categories) => categories,
                 Err(error) => {
                     error!("{}", error_message);
-                    Util::send(&self.sender, Action::Error(error_message.clone(), error));
+                    Util::send(&self.sender, Action::Error(error_message, error));
                     return;
                 }
             };
@@ -878,7 +873,7 @@ impl App {
                                 Ok(category) => category,
                                 Err(error) => {
                                     error!("{}: Can't add Category", error_message);
-                                    Util::send(&global_sender, Action::Error(error_message.clone(), error));
+                                    Util::send(&global_sender, Action::Error(error_message, error));
                                     return;
                                 }
                             };
@@ -1539,13 +1534,13 @@ impl App {
         self.window.content_header.stop_scrap_content_spinner();
 
         let article_id = match article {
-            Some(article) => Some(article.article_id.clone()),
+            Some(article) => Some(article.article_id),
             None => self
                 .window
                 .content_page
                 .article_view
                 .get_visible_article()
-                .map(|a| a.article_id.clone()),
+                .map(|a| a.article_id),
         };
 
         if let Some(article_id) = article_id {

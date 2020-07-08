@@ -57,7 +57,7 @@ impl GtkUtil {
         let pixbuf = Self::create_pixbuf_from_bytes(data, width, height, scale_factor)?;
         let surface = match ImageSurface::create(cairo::Format::ARgb32, width * scale_factor, height * scale_factor) {
             Ok(surface) => surface,
-            Err(_) => return Err(UtilErrorKind::CairoSurface)?,
+            Err(_) => return Err(UtilErrorKind::CairoSurface.into()),
         };
         let ctx = Context::new(&surface);
         ctx.set_source_pixbuf(&pixbuf, 0.0, 0.0);

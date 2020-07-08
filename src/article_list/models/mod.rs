@@ -153,7 +153,7 @@ impl ArticleListModel {
                         if new_day && self.created - old_model.date.date() <= Duration::days(1) {
                             diff.push(ArticleListChangeSet::UpdateDateString(
                                 new_model.id.clone(),
-                                new_model.date.clone(),
+                                new_model.date,
                             ));
                         }
                         list_pos += 1;

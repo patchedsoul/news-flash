@@ -297,7 +297,7 @@ impl FeedList {
                             }
 
                             let dnd_data_string = dnd_data_string.as_str().to_owned().split_off(6);
-                            let dnd_data_string: Vec<&str> = dnd_data_string.split(";").collect();
+                            let dnd_data_string: Vec<&str> = dnd_data_string.split(';').collect();
                             let feed_string =
                                 dnd_data_string.get(0).expect("Didn't receive feed ID with DnD data.");
                             let feed: FeedID =
@@ -310,7 +310,7 @@ impl FeedList {
                             let dnd_data = FeedListDndAction::MoveFeed(
                                 feed,
                                 current_category,
-                                parent_category.clone(),
+                                parent_category,
                                 sort_index,
                             );
                             Util::send(&sender, Action::DragAndDrop(dnd_data));
@@ -324,7 +324,7 @@ impl FeedList {
                                 serde_json::from_str(&dnd_data_string.as_str().to_owned().split_off(10))
                                     .expect("Failed to deserialize CategoryID.");
                             let dnd_data =
-                                FeedListDndAction::MoveCategory(category, parent_category.clone(), sort_index);
+                                FeedListDndAction::MoveCategory(category, parent_category, sort_index);
                             Util::send(&sender, Action::DragAndDrop(dnd_data));
                             ctx.drag_drop_done(true);
                             ctx.drop_finish(true, time);
@@ -533,16 +533,16 @@ impl FeedList {
 
         if let Some(last) = last_item {
             match last {
-                FeedListItem::Feed(item) => return Some(FeedListItemID::Feed(item.id.clone(), item.parent_id.clone())),
+                FeedListItem::Feed(item) => return Some(FeedListItemID::Feed(item.id.clone(), item.parent_id)),
                 FeedListItem::Category(item) => {
                     if item.expanded {
                         if item.children.is_empty() {
-                            return Some(FeedListItemID::Category(item.id.clone()));
+                            return Some(FeedListItemID::Category(item.id));
                         } else {
                             return self.get_last_item(item.children.last().cloned());
                         }
                     } else {
-                        return Some(FeedListItemID::Category(item.id.clone()));
+                        return Some(FeedListItemID::Category(item.id));
                     }
                 }
             }

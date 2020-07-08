@@ -139,11 +139,11 @@ impl TagList {
     }
 
     pub fn get_first_item(&self) -> Option<TagID> {
-        self.list_model.write().first().map(|model| model.id.clone())
+        self.list_model.write().first().map(|model| model.id)
     }
 
     pub fn get_last_item(&self) -> Option<TagID> {
-        self.list_model.write().last().map(|model| model.id.clone())
+        self.list_model.write().last().map(|model| model.id)
     }
 
     pub fn set_selection(&self, selection: TagID) -> Result<(), TagListError> {

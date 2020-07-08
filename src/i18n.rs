@@ -16,15 +16,14 @@ fn freplace(input: String, args: &[&str]) -> String {
 }
 
 #[allow(dead_code)]
-fn kreplace(input: String, kwargs: &[(&str, &str)]) -> String {
-    let mut s = input.clone();
+fn kreplace(mut input: String, kwargs: &[(&str, &str)]) -> String {
     for (k, v) in kwargs {
         if let Ok(re) = Regex::new(&format!("\\{{{}\\}}", k)) {
-            s = re.replace_all(&s, |_: &Captures<'_>| v.to_string().clone()).to_string();
+            input = re.replace_all(&input, |_: &Captures<'_>| v).to_string();
         }
     }
 
-    s
+    input
 }
 
 // Simple translations functions
