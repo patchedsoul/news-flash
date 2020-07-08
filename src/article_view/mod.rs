@@ -244,7 +244,7 @@ impl ArticleView {
     }
 
     pub fn update_background_color(&self, color: &RGBA) {
-        if (color.alpha - 1.0).abs() == f64::EPSILON {
+        if (color.alpha - 1.0).abs() == std::f64::EPSILON {
             let webview_1 = self
                 .stack
                 .get_child_by_name(InternalState::View1.to_str().expect("InternalState to str"))
