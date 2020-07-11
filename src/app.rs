@@ -1,9 +1,9 @@
+use open;
 use std::env;
 use std::path::PathBuf;
 use std::rc::Rc;
 use std::sync::Arc;
 use std::time;
-use open;
 
 use crate::i18n::{i18n, i18n_f};
 use futures::channel::oneshot::{self, Sender as OneShotSender};
