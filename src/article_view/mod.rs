@@ -508,7 +508,7 @@ impl ArticleView {
                         }
                         return Inhibit(true);
                     }
-                    Inhibit(true)
+                    Inhibit(false)
                 })
                 .to_glib() as usize,
         );

@@ -205,56 +205,68 @@ impl MainWindow {
 
             if Self::check_shortcut("shortcuts", &settings, event) {
                 Util::send(&sender, Action::ShowShortcutWindow);
+                return Inhibit(true);
             }
 
             if Self::check_shortcut("refresh", &settings, event) {
                 if !state.read().get_offline() {
                     Util::send(&sender, Action::Sync);
                 }
+                return Inhibit(true);
             }
 
             if Self::check_shortcut("quit", &settings, event) {
                 Util::send(&sender, Action::QueueQuit);
+                return Inhibit(true);
             }
 
             if Self::check_shortcut("search", &settings, event) {
                 content_header.focus_search();
+                return Inhibit(true);
             }
 
             if Self::check_shortcut("all_articles", &settings, event) {
                 content_header.select_all_button();
+                return Inhibit(true);
             }
 
             if Self::check_shortcut("only_unread", &settings, event) {
                 content_header.select_unread_button();
+                return Inhibit(true);
             }
 
             if Self::check_shortcut("only_starred", &settings, event) {
                 content_header.select_marked_button();
+                return Inhibit(true);
             }
 
             if Self::check_shortcut("next_article", &settings, event) {
                 Util::send(&sender, Action::SelectNextArticle);
+                return Inhibit(true);
             }
 
             if Self::check_shortcut("previous_article", &settings, event) {
                 Util::send(&sender, Action::SelectPrevArticle);
+                return Inhibit(true);
             }
 
             if Self::check_shortcut("toggle_category_expanded", &settings, event) {
                 content_page.sidebar.read().expand_collapse_selected_category();
+                return Inhibit(true);
             }
 
             if Self::check_shortcut("toggle_read", &settings, event) {
                 if !state.read().get_offline() {
                     Util::send(&sender, Action::ToggleArticleRead);
                 }
+                return Inhibit(true);
             }
 
             if Self::check_shortcut("toggle_marked", &settings, event) {
                 if !state.read().get_offline() {
                     Util::send(&sender, Action::ToggleArticleMarked);
                 }
+                return Inhibit(true);
             }
 
             if Self::check_shortcut("open_browser", &settings, event) {
@@ -266,6 +278,7 @@ impl MainWindow {
                     &sender,
                     Action::ErrorSimpleMessage("Failed to select next item in sidebar.".to_owned()),
                 );
+                return Inhibit(true);
             }
 
             if Self::check_shortcut("previous_item", &settings, event)
@@ -275,6 +288,7 @@ impl MainWindow {
                     &sender,
                     Action::ErrorSimpleMessage("Failed to select previous item in sidebar.".to_owned()),
                 );
+                return Inhibit(true);
             }
 
             if Self::check_shortcut("scroll_up", &settings, event)
@@ -284,6 +298,7 @@ impl MainWindow {
                     &sender,
                     Action::ErrorSimpleMessage("Failed to select scroll article view up.".to_owned()),
                 );
+                return Inhibit(true);
             }
 
             if Self::check_shortcut("scroll_down", &settings, event)
@@ -293,15 +308,18 @@ impl MainWindow {
                     &sender,
                     Action::ErrorSimpleMessage("Failed to select scroll article view down.".to_owned()),
                 );
+                return Inhibit(true);
             }
 
             if Self::check_shortcut("scrap_content", &settings, event) {
                 Util::send(&sender, Action::StartGrabArticleContent);
+                return Inhibit(true);
             }
 
             if Self::check_shortcut("sidebar_set_read", &settings, event) {
                 if !state.read().get_offline() {
                     Util::send(&sender, Action::SetSidebarRead);
+                    return Inhibit(true);
                 }
             }
 
