@@ -1,6 +1,6 @@
 use crate::config::{APP_ID, VERSION};
 use glib::object::IsA;
-use gtk::{AboutDialog, AboutDialogExt, GtkWindowExt, License, Window};
+use gtk::{AboutDialog, AboutDialogExt, DialogExt, GtkWindowExt, License, ResponseType, Window};
 
 pub const APP_NAME: &str = "NewsFlash";
 pub const COPYRIGHT: &str = "Copyright © 2017-2020 Jan Lukas Gernert";
@@ -25,6 +25,10 @@ impl NewsFlashAbout {
         widget.set_version(Some(VERSION));
         widget.set_license_type(License::Gpl30);
         widget.set_wrap_license(true);
+        widget.connect_response(|dialog, response| match response {
+            ResponseType::Cancel | ResponseType::DeleteEvent => dialog.close(),
+            _ => {}
+        });
 
         NewsFlashAbout { widget }
     }
