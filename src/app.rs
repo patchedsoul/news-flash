@@ -1791,7 +1791,7 @@ impl App {
         if let Err(error) = result {
             Util::send(
                 &self.sender,
-                Action::ErrorSimpleMessage(format!("Failed to open ULR: {}", error)),
+                Action::ErrorSimpleMessage(format!("Failed to open URL: {}", error)),
             );
         }
     }
