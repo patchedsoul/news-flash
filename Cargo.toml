@@ -38,4 +38,4 @@ num_cpus = "1.13"
 regex = "1.3"
 feedly_api = "0.3"
 news-flash = "1.0"
-
+open = "1.4.0"
