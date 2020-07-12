@@ -1,3 +1,4 @@
+use open;
 use std::env;
 use std::path::PathBuf;
 use std::rc::Rc;
@@ -1780,12 +1781,12 @@ impl App {
     }
 
     fn open_url_in_default_browser(&self, url: String) {
-        let result = gtk::show_uri_on_window(Some(&self.window.widget), &url, glib::get_current_time().tv_sec as u32);
+        let result = open::that(&url);
 
         if let Err(error) = result {
             Util::send(
                 &self.sender,
-                Action::ErrorSimpleMessage(format!("Failed to open ULR: {}", error)),
+                Action::ErrorSimpleMessage(format!("Failed to open URL: {}", error)),
             );
         }
     }
