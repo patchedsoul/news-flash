@@ -40,7 +40,18 @@
   </screenshots>
   <url type="homepage">https://gitlab.com/news-flash/news_flash_gtk</url>
   <url type="bugtracker">https://gitlab.com/news-flash/news_flash_gtk/issues</url>
-  <release version="1.0.0" timestamp="1590389867">
+  <releases>
+    <release version="1.0.1" timestamp="1594699843">
+      <description>
+				<p>Bugfixes:</p>
+				<ul>
+          <li>Close about dialog with no headerbar</li>
+          <li>Don't trigger shortcuts twice when article view is in focus</li>
+          <li>Firefox issues when opening URL with it</li>
+        </ul>
+			</description>
+    </release>
+    <release version="1.0.0" timestamp="1590389867">
       <description>
 				<p>Bugfixes:</p>
 				<ul>
@@ -69,7 +80,6 @@
         </ul>
 			</description>
     </release>
-  <releases>
     <release version="1.0.0 RC" timestamp="1590130667">
       <description>
         <p>Features:</p>
