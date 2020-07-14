@@ -80,7 +80,7 @@
         </ul>
 			</description>
     </release>
-    <release version="1.0.0 RC" timestamp="1590130667">
+    <release version="0.9.9" timestamp="1590130667">
       <description>
         <p>Features:</p>
         <ul>
@@ -114,7 +114,7 @@
         </ul>
 			</description>
     </release>
-    <release version="1.0.0 Beta 1" timestamp="1588229867">
+    <release version="0.9.8" timestamp="1588229867">
       <description>
 				First public release
 			</description>
