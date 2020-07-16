@@ -62,8 +62,15 @@ impl SingleArticleList {
                     let max = vadj.get_upper() - vadj.get_page_size();
                     if max > 0.0 && vadj.get_value() >= (max - LIST_BOTTOM_THREASHOLD) {
                         *scroll_cooldown.write() = true;
-                        gtk::timeout_add(800, clone!(@weak scroll_cooldown => @default-panic, move || {
+                        gtk::timeout_add(800, clone!(
+                            @weak vadj,
+                            @weak scroll_cooldown,
+                            @strong sender => @default-panic, move || {
                             *scroll_cooldown.write() = false;
+                            let max = vadj.get_upper() - vadj.get_page_size();
+                            if max > 0.0 && vadj.get_value() >= (max - (LIST_BOTTOM_THREASHOLD / 4.0)) {
+                                Util::send(&sender, Action::LoadMoreArticles);
+                            }
                             Continue(false)
                         }));
                         Util::send(&sender, Action::LoadMoreArticles);
