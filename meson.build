@@ -1,6 +1,6 @@
 project(
   'newsflash', 'rust',
-  version: '1.0.1',
+  version: '1.0.2',
   license: 'GPLv3',
 )
 

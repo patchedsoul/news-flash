@@ -41,6 +41,14 @@
   <url type="homepage">https://gitlab.com/news-flash/news_flash_gtk</url>
   <url type="bugtracker">https://gitlab.com/news-flash/news_flash_gtk/issues</url>
   <releases>
+    <release version="1.0.2" timestamp="1594908289">
+      <description>
+				<p>Bugfixes:</p>
+				<ul>
+          <li>Article List: Load more articles even when scrolling very fast</li>
+        </ul>
+			</description>
+    </release>
     <release version="1.0.1" timestamp="1594699843">
       <description>
 				<p>Bugfixes:</p>
