@@ -690,7 +690,7 @@ mod tests {
         assert_eq!(
             diff.get(2),
             Some(&FeedListChangeSet::AddFeed(
-                FeedListFeedModel::new(&feed_1, &mapping_2, 2, 1),
+                Box::new(FeedListFeedModel::new(&feed_1, &mapping_2, 2, 1)),
                 1,
                 false
             ))
