@@ -358,10 +358,8 @@ impl SettingsDialog {
                     listbox
                         .connect_row_activated(
                             clone!(@weak self.sync_pop as sync_pop => @default-panic, move |_list, row| {
-                                if let Some(name) = row.get_widget_name() {
-                                    if name == "sync_row" {
-                                        sync_pop.popup();
-                                    }
+                                if row.get_widget_name() == "sync_row" {
+                                    sync_pop.popup();
                                 }
                             }),
                         )
@@ -420,10 +418,8 @@ impl SettingsDialog {
             if let Ok(listbox) = listbox.downcast::<ListBox>() {
                 self.article_order_listbox_signal.write().replace(listbox.connect_row_activated(
                     clone!(@weak self.article_order_pop as article_order_pop => @default-panic, move |_list, row| {
-                        if let Some(name) = row.get_widget_name() {
-                            if name == "article_order_row" {
-                                article_order_pop.popup();
-                            }
+                        if row.get_widget_name() == "article_order_row" {
+                            article_order_pop.popup();
                         }
                     }),
                 ).to_glib() as usize);
@@ -469,30 +465,32 @@ impl SettingsDialog {
 
         if let Some(listbox) = self.article_theme_row.get_parent() {
             if let Ok(listbox) = listbox.downcast::<ListBox>() {
-                self.article_theme_listbox_signal.write().replace(listbox.connect_row_activated(clone!(
-                    @weak self.article_theme_label as article_theme_label,
-                    @weak self.article_theme_event as article_theme_event,
-                    @weak self.settings as settings,
-                    @strong sender => @default-panic, move |_list, row|
-                {
-                    if let Some(name) = row.get_widget_name() {
-                        if name == "article_theme_row" {
-                            let theme_chooser = ThemeChooser::new(&article_theme_event, &sender, &settings);
-                            let theme_chooser_close_signal = Arc::new(RwLock::new(None));
-                            theme_chooser_close_signal.write().replace(theme_chooser.widget().connect_closed(clone!(
-                                @strong sender,
-                                @strong theme_chooser_close_signal,
-                                @weak settings => @default-panic, move |pop|
-                            {
-                                GtkUtil::disconnect_signal(*theme_chooser_close_signal.read(), pop);
-                                theme_chooser_close_signal.write().take();
-                                article_theme_label.set_label(settings.read().get_article_view_theme().name());
-                                Util::send(&sender, Action::RedrawArticle);
-                            })).to_glib() as usize);
-                            theme_chooser.widget().popup();
-                        }
-                    }
-                })).to_glib() as usize);
+                self.article_theme_listbox_signal.write().replace(
+                    listbox
+                        .connect_row_activated(clone!(
+                            @weak self.article_theme_label as article_theme_label,
+                            @weak self.article_theme_event as article_theme_event,
+                            @weak self.settings as settings,
+                            @strong sender => @default-panic, move |_list, row|
+                        {
+                            if row.get_widget_name() == "article_theme_row" {
+                                let theme_chooser = ThemeChooser::new(&article_theme_event, &sender, &settings);
+                                let theme_chooser_close_signal = Arc::new(RwLock::new(None));
+                                theme_chooser_close_signal.write().replace(theme_chooser.widget().connect_closed(clone!(
+                                    @strong sender,
+                                    @strong theme_chooser_close_signal,
+                                    @weak settings => @default-panic, move |pop|
+                                {
+                                    GtkUtil::disconnect_signal(*theme_chooser_close_signal.read(), pop);
+                                    theme_chooser_close_signal.write().take();
+                                    article_theme_label.set_label(settings.read().get_article_view_theme().name());
+                                    Util::send(&sender, Action::RedrawArticle);
+                                })).to_glib() as usize);
+                                theme_chooser.widget().popup();
+                            }
+                        }))
+                        .to_glib() as usize,
+                );
             }
         }
 
@@ -649,43 +647,41 @@ impl SettingsDialog {
                     @strong sender,
                     @strong id => @default-panic, move |_list, row|
                 {
-                    if let Some(name) = row.get_widget_name() {
-                        if name.as_str() == row_name {
-                            let editor = KeybindingEditor::new(&dialog, &info_text);
-                            editor.widget().present();
-                            editor.widget().connect_close(clone!(
-                                @weak label,
-                                @weak settings,
-                                @strong sender,
-                                @strong id => @default-panic, move |_dialog|
-                            {
-                                let _settings = settings.clone();
-                                match &*editor.keybinding.read() {
-                                    KeybindState::Canceled | KeybindState::Illegal => {}
-                                    KeybindState::Disabled => {
-                                        if Keybindings::write_keybinding(&id, None, &settings).is_ok() {
-                                            Self::keybind_label_text(None, &label);
-                                        } else {
-                                            Util::send(
-                                                &sender,
-                                                Action::ErrorSimpleMessage("Failed to write keybinding.".to_owned()),
-                                            );
-                                        }
-                                    }
-                                    KeybindState::Enabled(keybind) => {
-                                        if Keybindings::write_keybinding(&id, Some(keybind.clone()), &settings).is_ok()
-                                        {
-                                            Self::keybind_label_text(Some(keybind.clone()), &label);
-                                        } else {
-                                            Util::send(
-                                                &sender,
-                                                Action::ErrorSimpleMessage("Failed to write keybinding.".to_owned()),
-                                            );
-                                        }
+                    if row.get_widget_name().as_str() == row_name {
+                        let editor = KeybindingEditor::new(&dialog, &info_text);
+                        editor.widget().present();
+                        editor.widget().connect_close(clone!(
+                            @weak label,
+                            @weak settings,
+                            @strong sender,
+                            @strong id => @default-panic, move |_dialog|
+                        {
+                            let _settings = settings.clone();
+                            match &*editor.keybinding.read() {
+                                KeybindState::Canceled | KeybindState::Illegal => {}
+                                KeybindState::Disabled => {
+                                    if Keybindings::write_keybinding(&id, None, &settings).is_ok() {
+                                        Self::keybind_label_text(None, &label);
+                                    } else {
+                                        Util::send(
+                                            &sender,
+                                            Action::ErrorSimpleMessage("Failed to write keybinding.".to_owned()),
+                                        );
                                     }
                                 }
-                            }));
-                        }
+                                KeybindState::Enabled(keybind) => {
+                                    if Keybindings::write_keybinding(&id, Some(keybind.clone()), &settings).is_ok()
+                                    {
+                                        Self::keybind_label_text(Some(keybind.clone()), &label);
+                                    } else {
+                                        Util::send(
+                                            &sender,
+                                            Action::ErrorSimpleMessage("Failed to write keybinding.".to_owned()),
+                                        );
+                                    }
+                                }
+                            }
+                        }));
                     }
                 })).to_glib() as usize, listbox.upcast::<Widget>()));
             }

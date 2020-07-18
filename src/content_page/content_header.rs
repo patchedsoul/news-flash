@@ -326,9 +326,7 @@ impl ContentHeader {
 
     fn setup_search_entry(search_entry: &SearchEntry, sender: &Sender<Action>) {
         search_entry.connect_search_changed(clone!(@strong sender => @default-panic, move |search_entry| {
-            if let Some(text) = search_entry.get_text() {
-                Util::send(&sender, Action::SearchTerm(text.as_str().to_owned()));
-            }
+            Util::send(&sender, Action::SearchTerm(search_entry.get_text().as_str().into()));
         }));
     }
 

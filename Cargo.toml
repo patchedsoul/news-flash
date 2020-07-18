@@ -15,15 +15,15 @@ rust-embed = { version = "5.5", features = ["debug-embed", "interpolate-folder-p
 failure = "0.1"
 serde = { version = "1.0", features = ["serde_derive"] }
 serde_json = "1.0"
-cairo-rs = { version = "0.8", features = ["v1_16"] }
-pango = "0.8"
-glib = { version = "0.9" }
-gdk-pixbuf = { version = "0.8", features = ["v2_36"] }
-gtk = { version = "0.8", features = ["v3_24"] }
-gio = { version = "0.8", features = ["v2_58"] }
-gdk = { version = "0.12", features = ["v3_24"] }
-libhandy = { version = "0.5", features = ["v0_0_10"] }
-webkit2gtk = { version = "0.9", features = ["v2_16"] }
+cairo-rs = { version = "0.9", features = ["v1_16"] }
+pango = "0.9"
+glib = { version = "0.10" }
+gdk-pixbuf = { version = "0.9", features = ["v2_36"] }
+gtk = { version = "0.9", features = ["v3_24"] }
+gio = { version = "0.9", features = ["v2_58"] }
+gdk = { version = "0.13", features = ["v3_24"] }
+libhandy = { version = "0.6", features = ["v0_0_10"] }
+webkit2gtk = { version = "0.10", features = ["v2_16"] }
 gettext-rs = { version = "0.4", features = ["gettext-system"] }
 log4rs = "0.12"
 dirs = "3.0"

@@ -82,29 +82,28 @@ impl ThemeChooser {
         let theme_list = builder.get::<ListBox>("theme_list");
         theme_list.connect_row_activated(
             clone!(@strong sender, @weak settings, @weak pop => @default-panic, move |_list, row| {
-                if let Some(row_name) = row.get_widget_name() {
-                    let result = if "default" == row_name {
-                        settings.write().set_article_view_theme(ArticleTheme::Default)
-                    } else if "spring" == row_name {
-                        settings.write().set_article_view_theme(ArticleTheme::Spring)
-                    } else if "midnight" == row_name {
-                        settings.write().set_article_view_theme(ArticleTheme::Midnight)
-                    } else if "parchment" == row_name {
-                        settings.write().set_article_view_theme(ArticleTheme::Parchment)
-                    } else if "gruvbox" == row_name {
-                        settings.write().set_article_view_theme(ArticleTheme::Gruvbox)
-                    } else {
-                        Ok(())
-                    };
+                let row_name = row.get_widget_name();
+                let result = if "default" == row_name {
+                    settings.write().set_article_view_theme(ArticleTheme::Default)
+                } else if "spring" == row_name {
+                    settings.write().set_article_view_theme(ArticleTheme::Spring)
+                } else if "midnight" == row_name {
+                    settings.write().set_article_view_theme(ArticleTheme::Midnight)
+                } else if "parchment" == row_name {
+                    settings.write().set_article_view_theme(ArticleTheme::Parchment)
+                } else if "gruvbox" == row_name {
+                    settings.write().set_article_view_theme(ArticleTheme::Gruvbox)
+                } else {
+                    Ok(())
+                };
 
-                    if result.is_err() {
-                        Util::send(
-                            &sender,
-                            Action::ErrorSimpleMessage("Failed to set theme setting.".to_owned()),
-                        );
-                    }
-                    pop.popdown();
+                if result.is_err() {
+                    Util::send(
+                        &sender,
+                        Action::ErrorSimpleMessage("Failed to set theme setting.".to_owned()),
+                    );
                 }
+                pop.popdown();
             }),
         );
 

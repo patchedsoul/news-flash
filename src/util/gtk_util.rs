@@ -30,7 +30,7 @@ impl GtkUtil {
     pub fn register_symbolic_icons() {
         let data = Resources::get("gresource_bundles/symbolic_icons.gresource").expect(GTK_RESOURCE_FILE_ERROR);
         let bytes = Bytes::from(&data);
-        let icon_resource = Resource::new_from_data(&bytes).expect("Error creating gio resource.");
+        let icon_resource = Resource::from_data(&bytes).expect("Error creating gio resource.");
         gio::resources_register(&icon_resource);
         IconTheme::get_default()
             .unwrap_or_else(|| panic!("Failed to register symbolic icons."))
@@ -74,10 +74,10 @@ impl GtkUtil {
         scale_factor: i32,
     ) -> Result<Pixbuf, UtilError> {
         let bytes = Bytes::from(data);
-        let stream = MemoryInputStream::new_from_bytes(&bytes);
+        let stream = MemoryInputStream::from_bytes(&bytes);
         let cancellable: Option<&Cancellable> = None;
         let pixbuf =
-            Pixbuf::new_from_stream_at_scale(&stream, width * scale_factor, height * scale_factor, true, cancellable)
+            Pixbuf::from_stream_at_scale(&stream, width * scale_factor, height * scale_factor, true, cancellable)
                 .context(UtilErrorKind::CairoSurface)?;
         Ok(pixbuf)
     }

@@ -999,17 +999,15 @@ impl App {
                 @weak dialog.dialog as rename_dialog,
                 @strong self.sender as sender => @default-panic, move |_button|
             {
-                let new_label = match rename_entry.get_text().map(|label| label.to_owned()) {
-                    Some(label) => label,
-                    None => {
-                        Util::send(
-                            &sender,
-                            Action::ErrorSimpleMessage("No valid title to rename feed.".to_owned()),
-                        );
-                        rename_dialog.emit_close();
-                        return;
-                    }
-                };
+                let new_label = rename_entry.get_text().to_owned();
+                if new_label.is_empty() {
+                    Util::send(
+                        &sender,
+                        Action::ErrorSimpleMessage("No valid title to rename feed.".to_owned()),
+                    );
+                    rename_dialog.emit_close();
+                    return;
+                }
 
                 let feed = feed.clone();
                 Util::send(&sender, Action::RenameFeed((feed, new_label)));
@@ -1070,17 +1068,15 @@ impl App {
                 @weak dialog.rename_entry as rename_entry,
                 @strong self.sender as sender => @default-panic, move |_button|
             {
-                let new_label = match rename_entry.get_text().map(|label| label.to_owned()) {
-                    Some(label) => label,
-                    None => {
-                        Util::send(
-                            &sender,
-                            Action::ErrorSimpleMessage("No valid title to rename feed.".to_owned()),
-                        );
-                        rename_dialog.emit_close();
-                        return;
-                    }
-                };
+                let new_label = rename_entry.get_text().to_owned();
+                if new_label.is_empty() {
+                    Util::send(
+                        &sender,
+                        Action::ErrorSimpleMessage("No valid title to rename category.".to_owned()),
+                    );
+                    rename_dialog.emit_close();
+                    return;
+                }
 
                 let category = category.clone();
                 Util::send(&sender, Action::RenameCategory((category, new_label)));

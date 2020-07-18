@@ -18,7 +18,7 @@ impl BuilderHelper {
     }
 
     pub fn new_from_xml(ui_xml: &str) -> Self {
-        let builder = Builder::new_from_string(ui_xml);
+        let builder = Builder::from_string(ui_xml);
         BuilderHelper { builder }
     }
 

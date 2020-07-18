@@ -19,8 +19,9 @@ use futures::FutureExt;
 use gdk::EventKey;
 use glib::{self, clone, Sender};
 use gtk::{
-    self, ApplicationWindow, CssProvider, CssProviderExt, GtkWindowExt, Inhibit, Settings as GtkSettings, SettingsExt,
-    Stack, StackExt, StackTransitionType, StyleContext, StyleContextExt, WidgetExt,
+    self, prelude::WidgetExtManual, ApplicationWindow, CssProvider, CssProviderExt, GtkWindowExt, Inhibit,
+    Settings as GtkSettings, SettingsExt, Stack, StackExt, StackTransitionType, StyleContext, StyleContextExt,
+    WidgetExt,
 };
 use log::{error, warn};
 use news_flash::models::{
@@ -332,7 +333,7 @@ impl MainWindow {
             if let Some(keybinding) = keybinding {
                 let (keyval, modifier) = gtk::accelerator_parse(&keybinding);
 
-                if gdk::keyval_to_lower(keyval) == gdk::keyval_to_lower(event.get_keyval()) {
+                if gdk::keyval_to_lower(keyval) == gdk::keyval_to_lower(*event.get_keyval()) {
                     if modifier.is_empty() {
                         if Keybindings::clean_modifier(event.get_state()).is_empty() {
                             return true;

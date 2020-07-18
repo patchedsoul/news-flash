@@ -14,8 +14,8 @@ use crate::settings::Settings;
 use crate::util::{BuilderHelper, DateUtil, FileUtil, GtkUtil, Util, GTK_RESOURCE_FILE_ERROR};
 use crate::Resources;
 use gdk::{
-    enums::key::KP_Add as KP_ADD, enums::key::KP_Subtract as KP_SUBTRACT, enums::key::KP_0, Cursor, CursorType,
-    Display, EventMask, ModifierType, ScrollDirection, RGBA,
+    keys::constants::KP_Add as KP_ADD, keys::constants::KP_Subtract as KP_SUBTRACT, keys::constants::KP_0, Cursor,
+    CursorType, Display, EventMask, ModifierType, ScrollDirection, RGBA,
 };
 use gio::{Cancellable, Settings as GSettings, SettingsExt as GSettingsExt};
 use glib::{clone, object::Cast, source::Continue, translate::ToGlib, MainLoop, Sender};
@@ -375,7 +375,7 @@ impl ArticleView {
         settings.set_media_playback_requires_user_gesture(true);
         settings.set_user_agent_with_application_details(Some("NewsFlash"), None);
 
-        let webview = WebView::new_with_context(ctx);
+        let webview = WebView::with_context(ctx);
         webview.set_settings(&settings);
         webview.set_events(EventMask::POINTER_MOTION_MASK);
         webview.set_events(EventMask::SCROLL_MASK);

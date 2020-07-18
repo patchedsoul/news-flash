@@ -186,35 +186,32 @@ impl PasswordLogin {
                         @strong self.sender as sender => @default-panic, move |_button|
                     {
                         let url: Option<String> = if pw_gui_desc.url {
-                            match url_entry.get_text() {
-                                Some(url) => Some(url.as_str().to_owned()),
-                                None => None,
-                            }
+                            Some(url_entry.get_text().as_str().to_owned())
                         } else {
                             None
                         };
                         let user = user_entry
                             .get_text()
-                            .expect("Login button should be insensitive if user entry is empty.")
                             .as_str()
                             .to_owned();
                         let password = pass_entry
                             .get_text()
-                            .expect("Login button should be insensitive if password entry is empty.")
                             .as_str()
                             .to_owned();
                         let http_user: Option<String> = if http_revealer.get_child_revealed() {
-                            match http_user_entry.get_text() {
-                                Some(user) => Some(user.as_str().to_owned()),
-                                None => None,
+                            if http_user_entry.get_text().is_empty() {
+                                None
+                            } else {
+                                Some(http_user_entry.get_text().as_str().to_owned())
                             }
                         } else {
                             None
                         };
                         let http_password: Option<String> = if http_revealer.get_child_revealed() {
-                            match http_pass_entry.get_text() {
-                                Some(pass) => Some(pass.as_str().to_owned()),
-                                None => None,
+                            if http_pass_entry.get_text().is_empty() {
+                                None
+                            } else {
+                                Some(http_pass_entry.get_text().as_str().to_owned())
                             }
                         } else {
                             None

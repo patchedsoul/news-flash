@@ -1,7 +1,7 @@
 use super::keybindings::Keybindings;
 use crate::i18n::i18n;
 use crate::util::BuilderHelper;
-use gdk::enums::key;
+use gdk::keys::constants;
 use glib::{clone, object::IsA};
 use gtk::{
     Align, Button, ButtonExt, Dialog, DialogExt, GtkWindowExt, Inhibit, Label, LabelExt, ShortcutLabel, Stack,
@@ -51,13 +51,13 @@ impl KeybindingEditor {
             let keyval = event.get_keyval();
             let modifier = Keybindings::clean_modifier(event.get_state());
 
-            if keyval == key::Escape {
+            if keyval == constants::Escape {
                 *keybinding_public.write() = KeybindState::Canceled;
                 widget.emit_close();
                 return Inhibit(true);
             }
 
-            if keyval == key::BackSpace {
+            if keyval == constants::BackSpace {
                 shortcut_meta.set_label(&i18n("Disable Keybinding"));
                 set_button.set_visible(true);
                 cancel_button.set_visible(true);
@@ -66,11 +66,11 @@ impl KeybindingEditor {
                 return Inhibit(false);
             }
 
-            let internal_shortcut = gtk::accelerator_name(keyval, modifier)
+            let internal_shortcut = gtk::accelerator_name(*keyval, modifier)
                 .expect("Shortcut not convertable. This should never happen!")
                 .to_string();
 
-            if Keybindings::parse_keyval(keyval).is_some() {
+            if Keybindings::parse_keyval(*keyval).is_some() {
                 set_button.set_visible(true);
                 cancel_button.set_visible(true);
                 shortcut_label.set_accelerator(&internal_shortcut);

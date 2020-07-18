@@ -130,14 +130,10 @@ impl AddPopover {
 
         // make parse button sensitive if entry contains text and vice versa
         url_entry.connect_changed(clone!(@weak parse_button => @default-panic, move |entry| {
-            if let Some(text) = entry.get_text() {
-                if text.as_str().is_empty() {
-                    parse_button.set_sensitive(false);
-                } else {
-                    parse_button.set_sensitive(true);
-                }
-            } else {
+            if entry.get_text().as_str().is_empty() {
                 parse_button.set_sensitive(false);
+            } else {
+                parse_button.set_sensitive(true);
             }
 
             entry.set_property_secondary_icon_name(None);
@@ -153,14 +149,10 @@ impl AddPopover {
 
         // make parse button sensitive if entry contains text and vice versa
         category_entry.connect_changed(clone!(@weak category_add_button => @default-panic, move |entry| {
-            if let Some(text) = entry.get_text() {
-                if text.as_str().is_empty() {
-                    category_add_button.set_sensitive(false);
-                } else {
-                    category_add_button.set_sensitive(true);
-                }
-            } else {
+            if entry.get_text().as_str().is_empty() {
                 category_add_button.set_sensitive(false);
+            } else {
+                category_add_button.set_sensitive(true);
             }
 
             entry.set_property_secondary_icon_name(None);
@@ -176,14 +168,10 @@ impl AddPopover {
 
         // make parse button sensitive if entry contains text and vice versa
         tag_entry.connect_changed(clone!(@weak tag_add_button => @default-panic, move |entry| {
-            if let Some(text) = entry.get_text() {
-                if text.as_str().is_empty() {
-                    tag_add_button.set_sensitive(false);
-                } else {
-                    tag_add_button.set_sensitive(true);
-                }
-            } else {
+            if entry.get_text().as_str().is_empty() {
                 tag_add_button.set_sensitive(false);
+            } else {
+                tag_add_button.set_sensitive(true);
             }
 
             entry.set_property_secondary_icon_name(None);
@@ -216,39 +204,33 @@ impl AddPopover {
             @strong feed_url,
             @strong settings => @default-panic, move |button|
         {
-            if let Some(url_text) = url_entry.get_text() {
-                let mut url_text = url_text.as_str().to_owned();
-                if !url_text.starts_with("http://") && !url_text.starts_with("https://") {
-                    url_text.insert_str(0, "https://");
-                }
-                if let Ok(url) = Url::parse(&url_text) {
-                    // set 'next' button insensitive and show spinner
-                    parse_button_stack.set_visible_child_name("spinner");
-                    button.set_sensitive(false);
+            let mut url_text = url_entry.get_text().as_str().to_owned();
+            if !url_text.starts_with("http://") && !url_text.starts_with("https://") {
+                url_text.insert_str(0, "https://");
+            }
+            if let Ok(url) = Url::parse(&url_text) {
+                // set 'next' button insensitive and show spinner
+                parse_button_stack.set_visible_child_name("spinner");
+                button.set_sensitive(false);
 
-                    Self::parse_feed_url(
-                        &url,
-                        &settings,
-                        &threadpool,
-                        &main_stack,
-                        &feed_list,
-                        &feed_title_entry,
-                        &select_button,
-                        &select_button_stack,
-                        &favicon_image,
-                        &feed_url,
-                        &parse_button_stack,
-                        button,
-                        &url_entry);
-                } else {
-                    error!("No valid url: '{}'", url_text);
-                    url_entry.set_property_secondary_icon_name(Some(WARN_ICON));
-                    url_entry.set_property_secondary_icon_tooltip_text(Some(&i18n("No valid URL.")));
-                }
+                Self::parse_feed_url(
+                    &url,
+                    &settings,
+                    &threadpool,
+                    &main_stack,
+                    &feed_list,
+                    &feed_title_entry,
+                    &select_button,
+                    &select_button_stack,
+                    &favicon_image,
+                    &feed_url,
+                    &parse_button_stack,
+                    button,
+                    &url_entry);
             } else {
-                error!("Empty url");
+                error!("No valid url: '{}'", url_text);
                 url_entry.set_property_secondary_icon_name(Some(WARN_ICON));
-                url_entry.set_property_secondary_icon_tooltip_text(Some(&i18n("Empty URL")));
+                url_entry.set_property_secondary_icon_tooltip_text(Some(&i18n("No valid URL.")));
             }
         }));
 
@@ -262,8 +244,6 @@ impl AddPopover {
             let sensitive = Self::calc_add_button_sensitive(&feed_title_entry, &entry);
             feed_add_button.set_sensitive(sensitive);
 
-            let entry_text = entry.get_text().map(|t| t.as_str().to_owned());
-
             let folder_icon = if category_combo.get_active_id().is_some() {
                 if let Some(id) = category_combo.get_active_id() {
                     let category_id = CategoryID::new(id.as_str());
@@ -272,13 +252,10 @@ impl AddPopover {
                         .replace(AddCategory::Existing(category_id));
                 }
                 None
-            } else if entry_text.is_none() {
-                feed_category.write().take();
-                None
-            } else if categories.iter().any(|c| Some(c.label.clone()) == entry_text) {
+            } else if categories.iter().any(|c| c.label == entry.get_text().as_str()) {
                 let category_id = categories
                     .iter()
-                    .find(|c| Some(c.label.clone()) == entry_text)
+                    .find(|c| c.label == entry.get_text().as_str())
                     .map(|c| c.category_id.clone());
 
                 if let Some(category_id) = category_id {
@@ -288,9 +265,7 @@ impl AddPopover {
                 }
                 None
             } else {
-                feed_category.write().replace(AddCategory::New(
-                    entry_text.expect("entry_text already checked for None"),
-                ));
+                feed_category.write().replace(AddCategory::New(entry.get_text().as_str().into()));
                 Some(NEW_CATEGORY_ICON)
             };
 
@@ -333,7 +308,7 @@ impl AddPopover {
                     return;
                 }
             };
-            let feed_title = feed_title_entry.get_text().map(|title| title.as_str().to_owned());
+            let feed_title = if feed_title_entry.get_text().as_str().is_empty() { None } else { Some(feed_title_entry.get_text().as_str().into()) };
             let feed_category = feed_category.read().clone();
 
             Util::send(&sender, Action::AddFeed((feed_url, feed_title, feed_category)));
@@ -344,9 +319,8 @@ impl AddPopover {
             @weak category_entry,
             @strong sender => @default-panic, move |_button|
         {
-            let category_title = category_entry.get_text().map(|text| text.as_str().to_owned());
-            if let Some(category_title) = category_title {
-                Util::send(&sender, Action::AddCategory(category_title));
+            if !category_entry.get_text().as_str().is_empty() {
+                Util::send(&sender, Action::AddCategory(category_entry.get_text().as_str().into()));
                 popover.popdown()
             }
         }));
@@ -356,12 +330,11 @@ impl AddPopover {
             @weak color_button,
             @strong sender => @default-panic, move |_button|
         {
-            let tag_title = tag_entry.get_text().map(|text| text.as_str().to_owned());
             let rgba = color_button.get_rgba();
             let rgba = ColorRGBA::from_normalized(rgba.red, rgba.green, rgba.blue, rgba.alpha);
             let color = rgba.to_string_no_alpha();
-            if let Some(tag_title) = tag_title {
-                Util::send(&sender, Action::AddTag(color, tag_title));
+            if !tag_entry.get_text().as_str().is_empty() {
+                Util::send(&sender, Action::AddTag(color, tag_entry.get_text().as_str().into()));
                 popover.popdown()
             }
         }));
@@ -494,61 +467,59 @@ impl AddPopover {
             @weak select_button_stack => @default-panic, move |button|
         {
             if let Some(row) = list.get_selected_row() {
-                if let Some(name) = row.get_widget_name() {
-                    select_button_stack.set_visible_child_name("spinner");
-                    button.set_sensitive(false);
+                select_button_stack.set_visible_child_name("spinner");
+                button.set_sensitive(false);
 
-                    let url = Url::parse(name.as_str()).expect("should never fail since it comes from 'url.as_str()'");
-                    let feed_id = FeedID::new(url.get().as_str());
+                let url = Url::parse(row.get_widget_name().as_str()).expect("should never fail since it comes from 'url.as_str()'");
+                let feed_id = FeedID::new(url.get().as_str());
 
-                    let (sender, receiver) = oneshot::channel::<Option<ParsedUrl>>();
+                let (sender, receiver) = oneshot::channel::<Option<ParsedUrl>>();
 
-                    let settings_clone = settings.clone();
-                    let thread_future = async move {
-                        let result = Runtime::new()
-                            .expect(RUNTIME_ERROR)
-                            .block_on(news_flash::feed_parser::download_and_parse_feed(
-                                &url, &feed_id, None, None, &App::build_client(&settings_clone),
-                            ))
-                            .ok();
-                        sender.send(result).expect(CHANNEL_ERROR);
-                    };
+                let settings_clone = settings.clone();
+                let thread_future = async move {
+                    let result = Runtime::new()
+                        .expect(RUNTIME_ERROR)
+                        .block_on(news_flash::feed_parser::download_and_parse_feed(
+                            &url, &feed_id, None, None, &App::build_client(&settings_clone),
+                        ))
+                        .ok();
+                    sender.send(result).expect(CHANNEL_ERROR);
+                };
 
-                    let glib_future = receiver.map(clone!(
-                        @strong threadpool,
-                        @weak button as select_button,
-                        @weak select_button_stack,
-                        @strong feed_url,
-                        @strong settings,
-                        @weak favicon,
-                        @weak title_entry,
-                        @weak stack as main_stack => @default-panic, move |res|
-                    {
-                        if let Some(ParsedUrl::SingleFeed(feed)) = res.expect(CHANNEL_ERROR) {
-                            Self::fill_feed_page(
-                                feed,
-                                &title_entry,
-                                &favicon,
-                                &feed_url,
-                                threadpool,
-                                &settings,
-                            );
-                            main_stack.set_visible_child_name("feed_page");
-                        } else if let Some(child) = row.get_child() {
-                            if let Ok(_box) = child.downcast::<Box>() {
-                                if let Some(icon) = _box.get_children().get(1) {
-                                    icon.set_visible(true);
-                                }
+                let glib_future = receiver.map(clone!(
+                    @strong threadpool,
+                    @weak button as select_button,
+                    @weak select_button_stack,
+                    @strong feed_url,
+                    @strong settings,
+                    @weak favicon,
+                    @weak title_entry,
+                    @weak stack as main_stack => @default-panic, move |res|
+                {
+                    if let Some(ParsedUrl::SingleFeed(feed)) = res.expect(CHANNEL_ERROR) {
+                        Self::fill_feed_page(
+                            feed,
+                            &title_entry,
+                            &favicon,
+                            &feed_url,
+                            threadpool,
+                            &settings,
+                        );
+                        main_stack.set_visible_child_name("feed_page");
+                    } else if let Some(child) = row.get_child() {
+                        if let Ok(_box) = child.downcast::<Box>() {
+                            if let Some(icon) = _box.get_children().get(1) {
+                                icon.set_visible(true);
                             }
                         }
+                    }
 
-                        select_button_stack.set_visible_child_name("text");
-                        select_button.set_sensitive(true);
-                    }));
+                    select_button_stack.set_visible_child_name("text");
+                    select_button.set_sensitive(true);
+                }));
 
-                    threadpool.spawn_ok(thread_future);
-                    Util::glib_spawn_future(glib_future);
-                }
+                threadpool.spawn_ok(thread_future);
+                Util::glib_spawn_future(glib_future);
             }
         }));
         for (title, url) in feed_vec {
@@ -557,7 +528,7 @@ impl AddPopover {
             label.set_ellipsize(EllipsizeMode::End);
             label.set_xalign(0.0);
 
-            let warn_icon = Image::new_from_icon_name(Some(WARN_ICON), IconSize::Button);
+            let warn_icon = Image::from_icon_name(Some(WARN_ICON), IconSize::Button);
             warn_icon.set_tooltip_text(Some(&i18n("Failed to get Feed.")));
             warn_icon.set_no_show_all(true);
 
@@ -595,16 +566,12 @@ impl AddPopover {
     }
 
     fn calc_add_button_sensitive(title_entry: &Entry, feed_category_entry: &Entry) -> bool {
-        if let Some(text) = title_entry.get_text() {
-            if text.as_str().is_empty() {
-                return false;
-            }
+        if title_entry.get_text().as_str().is_empty() {
+            return false;
         }
 
-        if let Some(text) = feed_category_entry.get_text() {
-            if text.as_str().is_empty() {
-                return false;
-            }
+        if feed_category_entry.get_text().as_str().is_empty() {
+            return false;
         }
 
         true
