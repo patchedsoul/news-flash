@@ -46,6 +46,9 @@
 				<p>Bugfixes:</p>
 				<ul>
           <li>Article List: Load more articles even when scrolling very fast</li>
+          <li>feedbin: don't require entries to have a summary</li>
+          <li>feedbin: reset cache after a sync failed</li>
+          <li>fever: fix issue with tt-rss fever plugin</li>
         </ul>
 			</description>
     </release>
