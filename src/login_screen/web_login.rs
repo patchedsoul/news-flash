@@ -152,4 +152,9 @@ impl WebLogin {
         GtkUtil::disconnect_signal(*self.info_bar_response_signal.read(), &self.info_bar);
         self.webview.load_plain_text("");
     }
+
+    pub fn show(&self) {
+        self.webview.show();
+        self.info_bar.show_all();
+    }
 }

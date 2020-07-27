@@ -467,6 +467,7 @@ impl MainWindow {
     pub fn show_oauth_login_page(&self, plugin_id: &PluginID) {
         if let Some(service_meta) = NewsFlash::list_backends().get(plugin_id) {
             if let Ok(()) = self.oauth_login_page.set_service(service_meta.clone()) {
+                self.oauth_login_page.show();
                 self.header_stack.set_visible_child_name("login");
                 self.stack.set_transition_type(StackTransitionType::SlideLeft);
                 self.stack.set_visible_child_name("oauth_login");
