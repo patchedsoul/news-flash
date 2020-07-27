@@ -41,6 +41,15 @@
   <url type="homepage">https://gitlab.com/news-flash/news_flash_gtk</url>
   <url type="bugtracker">https://gitlab.com/news-flash/news_flash_gtk/issues</url>
   <releases>
+    <release version="1.0.3" timestamp="1595870068">
+      <description>
+				<p>Bugfixes:</p>
+				<ul>
+          <li>web login page invisible</li>
+          <li>OPML import containing feeds without category</li>
+        </ul>
+			</description>
+    </release>
     <release version="1.0.2" timestamp="1594908289">
       <description>
 				<p>Bugfixes:</p>
