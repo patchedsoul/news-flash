@@ -18,14 +18,18 @@ Official pacakges available on flathub:
 
 ## Fedora
 
-Currently available in [COPR](https://copr.fedorainfracloud.org/coprs/atim/newsflash/):
+Fedora 32+:
 
-```
-sudo dnf copr enable atim/newsflash -y
+```sh
 sudo dnf install newsflash
 ```
 
-Note: due to missing API secrets it has limited features (e.g. feedly & content scraper).
+Fedora 31:
+
+```sh
+sudo dnf copr enable atim/newsflash
+sudo dnf install newsflash
+```
 
 ## Arch Linux
 
