@@ -48,7 +48,9 @@
           <li>Article List: Load more articles even when scrolling very fast</li>
           <li>feedbin: don't require entries to have a summary</li>
           <li>feedbin: reset cache after a sync failed</li>
+          <li>feedbin: ignore articles without feed</li>
           <li>fever: fix issue with tt-rss fever plugin</li>
+          <li>Import atom feeds from OPML exported with liferea</li>
         </ul>
 			</description>
     </release>
