@@ -207,7 +207,7 @@ impl Keybindings {
             "toggle_read" => settings.write().set_keybind_article_list_read(keybinding),
             "toggle_marked" => settings.write().set_keybind_article_list_mark(keybinding),
             "open_browser" => settings.write().set_keybind_article_list_open(keybinding),
-            "feed_keys_list" => settings.write().set_keybind_feed_list_next(keybinding),
+            "next_item" => settings.write().set_keybind_feed_list_next(keybinding),
             "previous_item" => settings.write().set_keybind_feed_list_prev(keybinding),
             "toggle_category_expanded" => settings.write().set_keybind_feed_list_toggle_expanded(keybinding),
             "sidebar_set_read" => settings.write().set_keybind_sidebar_set_read(keybinding),
