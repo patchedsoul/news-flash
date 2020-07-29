@@ -10,7 +10,7 @@ pub struct RenameDialog {
 }
 
 impl RenameDialog {
-    pub fn new(parent: &gtk::ApplicationWindow, item: &SidebarSelection) -> Self {
+    pub fn new(parent: &libhandy::ApplicationWindow, item: &SidebarSelection) -> Self {
         let builder = BuilderHelper::new("rename_dialog");
         let header = builder.get::<HeaderBar>("headerbar");
         let rename_button = builder.get::<Button>("rename_button");

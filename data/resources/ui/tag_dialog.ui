@@ -47,24 +47,17 @@
                 <property name="transition_duration">50</property>
                 <property name="transition_type">crossfade</property>
                 <child>
-                  <object class="GtkViewport">
+                  <object class="GtkLabel" id="article_not_tagged_label">
+                    <property name="width_request">150</property>
+                    <property name="height_request">40</property>
                     <property name="visible">True</property>
                     <property name="can_focus">False</property>
-                    <child>
-                      <object class="GtkLabel" id="article_not_tagged_label">
-                        <property name="width_request">150</property>
-                        <property name="height_request">20</property>
-                        <property name="visible">True</property>
-                        <property name="can_focus">False</property>
-                        <property name="margin_left">5</property>
-                        <property name="margin_right">5</property>
-                        <property name="margin_top">5</property>
-                        <property name="margin_bottom">5</property>
-                        <property name="hexpand">True</property>
-                        <property name="vexpand">True</property>
-                        <property name="label" translatable="yes">Article is not tagged</property>
-                      </object>
-                    </child>
+                    <property name="hexpand">True</property>
+                    <property name="vexpand">True</property>
+                    <property name="label" translatable="yes">Article is not tagged</property>
+                    <style>
+                      <class name="listlike-label"/>
+                    </style>
                   </object>
                   <packing>
                     <property name="name">empty</property>
@@ -72,21 +65,13 @@
                   </packing>
                 </child>
                 <child>
-                  <object class="GtkViewport">
+                  <object class="GtkListBox" id="assinged_tag_list">
                     <property name="visible">True</property>
                     <property name="can_focus">False</property>
-                    <property name="margin_top">5</property>
-                    <property name="margin_bottom">5</property>
-                    <child>
-                      <object class="GtkListBox" id="assinged_tag_list">
-                        <property name="visible">True</property>
-                        <property name="can_focus">False</property>
-                        <property name="selection_mode">none</property>
-                        <style>
-                          <class name="tag-pop-list"/>
-                        </style>
-                      </object>
-                    </child>
+                    <property name="selection_mode">none</property>
+                    <style>
+                      <class name="preferences"/>
+                    </style>
                   </object>
                   <packing>
                     <property name="name">list</property>
@@ -138,18 +123,15 @@
                 <property name="visible">True</property>
                 <property name="can_focus">False</property>
                 <child>
-                  <object class="GtkViewport">
+                  <object class="GtkLabel">
                     <property name="visible">True</property>
                     <property name="can_focus">False</property>
-                    <child>
-                      <object class="GtkLabel">
-                        <property name="visible">True</property>
-                        <property name="can_focus">False</property>
-                        <property name="hexpand">True</property>
-                        <property name="vexpand">True</property>
-                        <property name="label" translatable="yes">Create some Tags first</property>
-                      </object>
-                    </child>
+                    <property name="hexpand">True</property>
+                    <property name="vexpand">True</property>
+                    <property name="label" translatable="yes">Create some Tags</property>
+                    <style>
+                      <class name="listlike-label"/>
+                    </style>
                   </object>
                   <packing>
                     <property name="name">empty</property>
@@ -157,21 +139,13 @@
                   </packing>
                 </child>
                 <child>
-                  <object class="GtkViewport">
+                  <object class="GtkListBox" id="possible_tags_list">
                     <property name="visible">True</property>
-                    <property name="can_focus">False</property>
-                    <property name="margin_top">5</property>
-                    <property name="margin_bottom">5</property>
-                    <child>
-                      <object class="GtkListBox" id="possible_tags_list">
-                        <property name="visible">True</property>
-                        <property name="can_focus">True</property>
-                        <property name="selection_mode">none</property>
-                        <style>
-                          <class name="tag-pop-list"/>
-                        </style>
-                      </object>
-                    </child>
+                    <property name="can_focus">True</property>
+                    <property name="selection_mode">none</property>
+                    <style>
+                      <class name="preferences"/>
+                    </style>
                   </object>
                   <packing>
                     <property name="name">list</property>

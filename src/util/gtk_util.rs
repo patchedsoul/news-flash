@@ -94,16 +94,19 @@ impl GtkUtil {
     }
 
     pub fn is_main_window<W: IsA<Object> + IsA<gtk::Widget> + Clone>(widget: &W) -> bool {
-        widget.clone().upcast::<gtk::Widget>().is::<gtk::ApplicationWindow>()
+        widget
+            .clone()
+            .upcast::<gtk::Widget>()
+            .is::<libhandy::ApplicationWindow>()
     }
 
     pub fn get_main_window<W: IsA<Object> + IsA<gtk::Widget> + WidgetExt + Clone>(
         widget: &W,
-    ) -> Result<gtk::ApplicationWindow, UtilError> {
+    ) -> Result<libhandy::ApplicationWindow, UtilError> {
         if let Some(toplevel) = widget.get_toplevel() {
             if Self::is_main_window(&toplevel) {
                 let main_window = toplevel
-                    .downcast::<gtk::ApplicationWindow>()
+                    .downcast::<libhandy::ApplicationWindow>()
                     .expect("Already checked if toplevel is main_window");
                 return Ok(main_window);
             }

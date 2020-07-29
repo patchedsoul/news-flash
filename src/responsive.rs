@@ -1,7 +1,7 @@
 use crate::util::BuilderHelper;
 use glib::clone;
-use gtk::{Box, Button, ButtonExt, HeaderBar, MenuButton, ToggleButton, WidgetExt};
-use libhandy::{Leaflet, LeafletExt};
+use gtk::{Box, Button, ButtonExt, MenuButton, ToggleButton, WidgetExt};
+use libhandy::{HeaderBar, Leaflet, LeafletExt};
 use log::debug;
 use parking_lot::RwLock;
 use std::sync::Arc;
@@ -72,7 +72,7 @@ impl ResponsiveLayout {
         layout.major_leaflet.connect_property_folded_notify(clone!(
             @weak layout => @default-panic, move |_leaflet|
         {
-            if minor_leaflet.get_property_folded() {
+            if minor_leaflet.get_folded() {
                 debug!("Widget: Minor Leaflet folded");
                 layout.state.write().minor_leaflet_folded = true;
                 Self::process_state_change(&layout);
@@ -85,7 +85,7 @@ impl ResponsiveLayout {
         layout.minor_leaflet.connect_property_folded_notify(clone!(
             @weak layout => @default-panic, move |_leaflet|
         {
-            if !major_leaflet.get_property_folded() {
+            if !major_leaflet.get_folded() {
                 return;
             }
             layout.state.write().minor_leaflet_folded = true;
@@ -110,7 +110,7 @@ impl ResponsiveLayout {
     pub fn process_state_change(&self) {
         if self.state.read().major_leaflet_folded {
             // article view (dis)appeared
-            if !self.major_leaflet.get_property_folded() {
+            if !self.major_leaflet.get_folded() {
                 self.right_button.set_visible(false);
                 self.major_leaflet.set_visible_child(&self.minor_leaflet);
                 self.header_leaflet.set_visible_child(&self.left_header);
@@ -128,7 +128,7 @@ impl ResponsiveLayout {
         if self.state.read().minor_leaflet_folded {
             // article list (dis)appeared
             log::info!("minor leaflet folded");
-            if !self.minor_leaflet.get_property_folded() {
+            if !self.minor_leaflet.get_folded() {
                 self.left_button.set_visible(false);
                 self.search_button.set_visible(true);
                 self.mode_switch_button.set_visible(true);
@@ -169,7 +169,7 @@ impl ResponsiveLayout {
 
         if self.state.read().major_leaflet_selected {
             // article selected
-            if self.major_leaflet.get_property_folded() {
+            if self.major_leaflet.get_folded() {
                 self.major_leaflet.set_visible_child(&self.article_view_box);
                 self.header_leaflet.set_visible_child(&self.right_header);
                 self.right_button.set_visible(true);
@@ -181,7 +181,7 @@ impl ResponsiveLayout {
 
         if self.state.read().minor_leaflet_selected {
             // sidebar selected
-            if self.minor_leaflet.get_property_folded() {
+            if self.minor_leaflet.get_folded() {
                 self.minor_leaflet.set_visible_child(&self.article_list_box);
                 self.left_button.set_visible(true);
                 self.search_button.set_visible(true);

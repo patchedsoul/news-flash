@@ -21,7 +21,7 @@
                 <property name="subtitle" translatable="yes">Fetch updates in the background</property>
                 <property name="activatable_widget">keep_running_switch</property>
                 <property name="visible">True</property>
-                <child type="action">
+                <child>
                   <object id="keep_running_switch" class="GtkSwitch">
                     <property name="margin">12</property>
                     <property name="visible">True</property>
@@ -35,7 +35,7 @@
                 <property name="subtitle" translatable="yes">Sync data every</property>
                 <property name="name">sync_row</property>
                 <property name="visible">True</property>
-                <child type="action">
+                <child>
                   <object id="sync_event" class="GtkEventBox">
                     <property name="visible">True</property>
                     <property name="receives_default">True</property>
@@ -86,7 +86,7 @@
                 <property name="title" translatable="yes">Dark mode</property>
                 <property name="activatable_widget">dark_theme_switch</property>
                 <property name="visible">True</property>
-                <child type="action">
+                <child>
                   <object id="dark_theme_switch" class="GtkSwitch">
                     <property name="margin">12</property>
                     <property name="visible">True</property>
@@ -105,7 +105,7 @@
                 <property name="title" translatable="yes">Order</property>
                 <property name="name">article_order_row</property>
                 <property name="visible">True</property>
-                <child type="action">
+                <child>
                   <object id="article_order_event" class="GtkEventBox">
                     <property name="visible">True</property>
                     <property name="receives_default">True</property>
@@ -162,7 +162,7 @@
                 <property name="title" translatable="yes">Theme</property>
                 <property name="name">article_theme_row</property>
                 <property name="visible">True</property>
-                <child type="action">
+                <child>
                   <object id="article_theme_event" class="GtkEventBox">
                     <property name="visible">True</property>
                     <property name="receives_default">True</property>
@@ -213,7 +213,7 @@
                 <property name="title" translatable="yes">Allow selection</property>
                 <property name="activatable_widget">allow_selection_switch</property>
                 <property name="visible">True</property>
-                <child type="action">
+                <child>
                   <object id="allow_selection_switch" class="GtkSwitch">
                     <property name="margin">12</property>
                     <property name="visible">True</property>
@@ -226,7 +226,7 @@
                 <property name="title" translatable="yes">Use System Font</property>
                 <property name="activatable_widget">use_system_font_switch</property>
                 <property name="visible">True</property>
-                <child type="action">
+                <child>
                   <object id="use_system_font_switch" class="GtkSwitch">
                     <property name="margin">12</property>
                     <property name="visible">True</property>
@@ -239,7 +239,7 @@
                 <property name="title" translatable="yes">Font</property>
                 <property name="activatable_widget">font_button</property>
                 <property name="visible">True</property>
-                <child type="action">
+                <child>
                   <object class="GtkFontButton" id="font_button">
                     <property name="visible">True</property>
                     <property name="sensitive">False</property>
@@ -272,7 +272,7 @@
                 <property name="title" translatable="yes">Next Article</property>
                 <property name="name">next_article_row</property>
                 <property name="visible">True</property>
-                <child type="action">
+                <child>
                   <object id="next_article_label" class="GtkLabel">
                     <property name="margin">12</property>
                     <property name="visible">True</property>
@@ -288,7 +288,7 @@
                 <property name="title" translatable="yes">Previous Article</property>
                 <property name="name">previous_article_row</property>
                 <property name="visible">True</property>
-                <child type="action">
+                <child>
                   <object id="previous_article_label" class="GtkLabel">
                     <property name="margin">12</property>
                     <property name="visible">True</property>
@@ -304,7 +304,7 @@
                 <property name="title" translatable="yes">Toggle Read</property>
                 <property name="name">toggle_read_row</property>
                 <property name="visible">True</property>
-                <child type="action">
+                <child>
                   <object id="toggle_read_label" class="GtkLabel">
                     <property name="margin">12</property>
                     <property name="visible">True</property>
@@ -320,7 +320,7 @@
                 <property name="title" translatable="yes">Toggle Starred</property>
                 <property name="name">toggle_marked_row</property>
                 <property name="visible">True</property>
-                <child type="action">
+                <child>
                   <object id="toggle_marked_label" class="GtkLabel">
                     <property name="margin">12</property>
                     <property name="visible">True</property>
@@ -336,7 +336,7 @@
                 <property name="title" translatable="yes">Open URL</property>
                 <property name="name">open_browser_row</property>
                 <property name="visible">True</property>
-                <child type="action">
+                <child>
                   <object id="open_browser_label" class="GtkLabel">
                     <property name="margin">12</property>
                     <property name="visible">True</property>
@@ -358,7 +358,7 @@
                 <property name="title" translatable="yes">Next Item</property>
                 <property name="name">next_item_row</property>
                 <property name="visible">True</property>
-                <child type="action">
+                <child>
                   <object id="next_item_label" class="GtkLabel">
                     <property name="margin">12</property>
                     <property name="visible">True</property>
@@ -374,7 +374,7 @@
                 <property name="title" translatable="yes">Previous Item</property>
                 <property name="name">previous_item_row</property>
                 <property name="visible">True</property>
-                <child type="action">
+                <child>
                   <object id="previous_item_label" class="GtkLabel">
                     <property name="margin">12</property>
                     <property name="visible">True</property>
@@ -390,7 +390,7 @@
                 <property name="title" translatable="yes">Expand / Collapse</property>
                 <property name="name">toggle_category_expanded_row</property>
                 <property name="visible">True</property>
-                <child type="action">
+                <child>
                   <object id="toggle_category_expanded_label" class="GtkLabel">
                     <property name="margin">12</property>
                     <property name="visible">True</property>
@@ -406,7 +406,7 @@
                 <property name="title" translatable="yes">Mark selected read</property>
                 <property name="name">sidebar_set_read_row</property>
                 <property name="visible">True</property>
-                <child type="action">
+                <child>
                   <object id="sidebar_set_read_label" class="GtkLabel">
                     <property name="margin">12</property>
                     <property name="visible">True</property>
@@ -428,7 +428,7 @@
                 <property name="title" translatable="yes">Shortcuts</property>
                 <property name="name">shortcuts_row</property>
                 <property name="visible">True</property>
-                <child type="action">
+                <child>
                   <object id="shortcuts_label" class="GtkLabel">
                     <property name="margin">12</property>
                     <property name="visible">True</property>
@@ -444,7 +444,7 @@
                 <property name="title" translatable="yes">Refresh</property>
                 <property name="name">refresh_row</property>
                 <property name="visible">True</property>
-                <child type="action">
+                <child>
                   <object id="refresh_label" class="GtkLabel">
                     <property name="margin">12</property>
                     <property name="visible">True</property>
@@ -460,7 +460,7 @@
                 <property name="title" translatable="yes">Search</property>
                 <property name="name">search_row</property>
                 <property name="visible">True</property>
-                <child type="action">
+                <child>
                   <object id="search_label" class="GtkLabel">
                     <property name="margin">12</property>
                     <property name="visible">True</property>
@@ -476,7 +476,7 @@
                 <property name="title" translatable="yes">Quit</property>
                 <property name="name">quit_row</property>
                 <property name="visible">True</property>
-                <child type="action">
+                <child>
                   <object id="quit_label" class="GtkLabel">
                     <property name="margin">12</property>
                     <property name="visible">True</property>
@@ -492,7 +492,7 @@
                 <property name="title" translatable="yes">All Articles</property>
                 <property name="name">all_articles_row</property>
                 <property name="visible">True</property>
-                <child type="action">
+                <child>
                   <object id="all_articles_label" class="GtkLabel">
                     <property name="margin">12</property>
                     <property name="visible">True</property>
@@ -508,7 +508,7 @@
                 <property name="title" translatable="yes">Only Unread</property>
                 <property name="name">only_unread_row</property>
                 <property name="visible">True</property>
-                <child type="action">
+                <child>
                   <object id="only_unread_label" class="GtkLabel">
                     <property name="margin">12</property>
                     <property name="visible">True</property>
@@ -524,7 +524,7 @@
                 <property name="title" translatable="yes">Only Starred</property>
                 <property name="name">only_starred_row</property>
                 <property name="visible">True</property>
-                <child type="action">
+                <child>
                   <object id="only_starred_label" class="GtkLabel">
                     <property name="margin">12</property>
                     <property name="visible">True</property>
@@ -546,7 +546,7 @@
                 <property name="title" translatable="yes">Scroll up</property>
                 <property name="name">scroll_up_row</property>
                 <property name="visible">True</property>
-                <child type="action">
+                <child>
                   <object id="scroll_up_label" class="GtkLabel">
                     <property name="margin">12</property>
                     <property name="visible">True</property>
@@ -562,7 +562,7 @@
                 <property name="title" translatable="yes">Scroll down</property>
                 <property name="name">scroll_down_row</property>
                 <property name="visible">True</property>
-                <child type="action">
+                <child>
                   <object id="scroll_down_label" class="GtkLabel">
                     <property name="margin">12</property>
                     <property name="visible">True</property>
@@ -578,7 +578,7 @@
                 <property name="title" translatable="yes">Scrape article content</property>
                 <property name="name">scrap_content_row</property>
                 <property name="visible">True</property>
-                <child type="action">
+                <child>
                   <object id="scrap_content_label" class="GtkLabel">
                     <property name="margin">12</property>
                     <property name="visible">True</property>

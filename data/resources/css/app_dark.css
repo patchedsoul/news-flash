@@ -84,11 +84,15 @@
 /*     lists      */
 /******************/
 
-.list-separated row,
-.tag-pop-list row:not(:last-child) {
+.list-separated row {
 	border-bottom-width: 1px;
 	border-bottom-style: solid;
 	border-bottom-color: rgba(128, 128, 128, 0.3);
+}
+.listlike-label {
+	background: rgb(45, 45, 45);
+	border-radius: 8px;
+	border: 1px solid alpha(#1b1b1b, 0.5);
 }
 
 /******************/

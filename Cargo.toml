@@ -22,7 +22,7 @@ gdk-pixbuf = { version = "0.9", features = ["v2_36"] }
 gtk = { version = "0.9", features = ["v3_24"] }
 gio = { version = "0.9", features = ["v2_58"] }
 gdk = { version = "0.13", features = ["v3_24"] }
-libhandy = { version = "0.6", features = ["v0_0_10"] }
+libhandy = { git = "https://gitlab.gnome.org/World/Rust/libhandy-rs.git", features = ["v1_0"] }
 webkit2gtk = { version = "0.10", features = ["v2_16"] }
 gettext-rs = { version = "0.4", features = ["gettext-system"] }
 log4rs = "0.12"
@@ -30,12 +30,13 @@ dirs = "3.0"
 parking_lot = "0.11"
 color-backtrace = "0.4"
 lazy_static = "1.4"
-reqwest = { version = "0.10", features = ["json", "native-tls", "socks"] }
+reqwest = { version = "0.10", features = ["json", "native-tls", "socks", "gzip"] }
 tokio = { version = "=0.2", features = ["macros"] }
 futures = { version = "0.3", features = ["thread-pool"] }
 futures-util = "0.3"
 num_cpus = "1.13"
 regex = "1.3"
 feedly_api = "0.3"
-news-flash = "1.0"
+# news-flash = { version = "1.0", features = ["readability-fallback"] }
+news-flash = { version = "1.0" }
 open = "1.4.0"

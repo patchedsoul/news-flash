@@ -59,7 +59,11 @@ pub struct SettingsDialog {
 }
 
 impl SettingsDialog {
-    pub fn new(window: &gtk::ApplicationWindow, sender: &Sender<Action>, settings: &Arc<RwLock<Settings>>) -> Self {
+    pub fn new(
+        window: &libhandy::ApplicationWindow,
+        sender: &Sender<Action>,
+        settings: &Arc<RwLock<Settings>>,
+    ) -> Self {
         let have_custom_font = settings.read().get_article_view_font().is_some();
 
         let builder = BuilderHelper::new("settings");

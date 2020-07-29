@@ -19,10 +19,10 @@ use futures::FutureExt;
 use gdk::EventKey;
 use glib::{self, clone, Sender};
 use gtk::{
-    self, prelude::WidgetExtManual, ApplicationWindow, CssProvider, CssProviderExt, GtkWindowExt, Inhibit,
-    Settings as GtkSettings, SettingsExt, Stack, StackExt, StackTransitionType, StyleContext, StyleContextExt,
-    WidgetExt,
+    self, prelude::WidgetExtManual, CssProvider, CssProviderExt, GtkWindowExt, Inhibit, Settings as GtkSettings,
+    SettingsExt, Stack, StackExt, StackTransitionType, StyleContext, StyleContextExt, WidgetExt,
 };
+use libhandy::ApplicationWindow;
 use log::{error, warn};
 use news_flash::models::{
     ArticleID, FatArticle, Feed, PasswordLogin as PasswordLoginData, PluginCapabilities, PluginID,

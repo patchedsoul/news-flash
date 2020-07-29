@@ -207,7 +207,9 @@ impl App {
     }
 
     fn setup_signals(&self) {
-        self.application.connect_startup(|_app| {});
+        self.application.connect_startup(|_app| {
+            libhandy::init();
+        });
 
         self.application.connect_activate(clone!(
             @weak self.window.widget as window,
@@ -1723,6 +1725,7 @@ impl App {
         let mut builder = ClientBuilder::new()
             .user_agent("Mozilla/5.0 (X11; Linux x86_64; rv:72.0) Gecko/20100101 Firefox/72.0")
             .use_native_tls()
+            .gzip(true)
             .danger_accept_invalid_certs(settings.read().get_accept_invalid_certs())
             .danger_accept_invalid_hostnames(settings.read().get_accept_invalid_hostnames());
 

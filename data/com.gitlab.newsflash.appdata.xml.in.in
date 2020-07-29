@@ -41,6 +41,20 @@
   <url type="homepage">https://gitlab.com/news-flash/news_flash_gtk</url>
   <url type="bugtracker">https://gitlab.com/news-flash/news_flash_gtk/issues</url>
   <releases>
+    <release version="1.0.4" timestamp="1596022633">
+      <description>
+        <p>Features:</p>
+        <ul>
+          <li>enable readability as a fallback for mercury parser</li>
+        </ul>
+				<p>Bugfixes:</p>
+				<ul>
+          <li>enable automatic gzip decompression in http client</li>
+          <li>fix editing "next article" shortcut</li>
+          <li>feedly: fix issue with incomplete profile</li>
+        </ul>
+			</description>
+    </release>
     <release version="1.0.3" timestamp="1595870068">
       <description>
 				<p>Bugfixes:</p>

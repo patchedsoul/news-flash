@@ -28,7 +28,7 @@ pub struct DiscoverDialog {
 
 impl DiscoverDialog {
     pub fn new(
-        window: &gtk::ApplicationWindow,
+        window: &libhandy::ApplicationWindow,
         sender: &Sender<Action>,
         settings: &Arc<RwLock<Settings>>,
         news_flash: &Arc<RwLock<Option<NewsFlash>>>,

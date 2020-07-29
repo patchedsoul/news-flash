@@ -10,7 +10,7 @@ pub struct ErrorDialog {
 }
 
 impl ErrorDialog {
-    pub fn new(error: &NewsFlashError, parent: &gtk::ApplicationWindow) -> Self {
+    pub fn new(error: &NewsFlashError, parent: &libhandy::ApplicationWindow) -> Self {
         let builder = BuilderHelper::new("error_detail_dialog");
         let list_box = builder.get::<Box>("list_box");
         let error_dialog = builder.get::<Window>("error_dialog");
