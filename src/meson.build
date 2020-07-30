@@ -85,7 +85,6 @@ newsflash_sources = files(
   'util/mod.rs',
   'welcome_screen/mod.rs',
   'welcome_screen/service_row.rs',
-  'welcome_screen/welcome_headerbar.rs',
   'welcome_screen/welcome_page.rs',
   'about_dialog.rs',
   'add_dialog.rs',
