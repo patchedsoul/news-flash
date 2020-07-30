@@ -619,633 +619,6 @@
             <property name="can_focus">False</property>
             <property name="orientation">vertical</property>
             <child>
-                <object class="HdyLeaflet" id="header_leaflet">
-                <property name="visible">True</property>
-                <property name="can_focus">False</property>
-                <property name="visible_child">left_headerbar</property>
-                <property name="transition_type">over</property>
-                <child>
-                    <object class="HdyHeaderBar" id="left_headerbar">
-                    <property name="visible">True</property>
-                    <property name="can_focus">False</property>
-                    <property name="has_subtitle">False</property>
-                    <property name="spacing">5</property>
-                    <property name="show_close_button">True</property>
-                    <child>
-                        <object class="GtkButton" id="left_back_button">
-                        <property name="can_focus">True</property>
-                        <property name="receives_default">True</property>
-                        <property name="no_show_all">True</property>
-                        <child>
-                            <object class="GtkImage">
-                            <property name="visible">True</property>
-                            <property name="can_focus">False</property>
-                            <property name="icon_name">go-previous-symbolic</property>
-                            </object>
-                        </child>
-                        </object>
-                    </child>
-                    <child>
-                        <object class="GtkMenuButton" id="mode_switch_button">
-                        <property name="can_focus">True</property>
-                        <property name="receives_default">True</property>
-                        <property name="no_show_all">True</property>
-                        <child>
-                            <object class="GtkBox">
-                            <property name="visible">True</property>
-                            <property name="can_focus">False</property>
-                            <property name="spacing">5</property>
-                            <child>
-                                <object class="GtkStack" id="mode_switch_stack">
-                                <property name="visible">True</property>
-                                <property name="can_focus">False</property>
-                                <property name="transition_duration">50</property>
-                                <property name="transition_type">crossfade</property>
-                                <child>
-                                    <object class="GtkLabel">
-                                    <property name="visible">True</property>
-                                    <property name="can_focus">False</property>
-                                    <property name="label" translatable="yes">All</property>
-                                    <property name="xalign">0</property>
-                                    </object>
-                                    <packing>
-                                    <property name="name">all</property>
-                                    <property name="title" translatable="yes">all</property>
-                                    </packing>
-                                </child>
-                                <child>
-                                    <object class="GtkLabel">
-                                    <property name="visible">True</property>
-                                    <property name="can_focus">False</property>
-                                    <property name="label" translatable="yes">Unread</property>
-                                    <property name="xalign">0</property>
-                                    </object>
-                                    <packing>
-                                    <property name="name">unread</property>
-                                    <property name="title" translatable="yes">unread</property>
-                                    <property name="position">1</property>
-                                    </packing>
-                                </child>
-                                <child>
-                                    <object class="GtkLabel">
-                                    <property name="visible">True</property>
-                                    <property name="can_focus">False</property>
-                                    <property name="label" translatable="yes">Starred</property>
-                                    <property name="xalign">0</property>
-                                    </object>
-                                    <packing>
-                                    <property name="name">marked</property>
-                                    <property name="title" translatable="yes">marked</property>
-                                    <property name="position">2</property>
-                                    </packing>
-                                </child>
-                                </object>
-                                <packing>
-                                <property name="expand">False</property>
-                                <property name="fill">True</property>
-                                <property name="position">0</property>
-                                </packing>
-                            </child>
-                            <child>
-                                <object class="GtkImage">
-                                <property name="visible">True</property>
-                                <property name="can_focus">False</property>
-                                <property name="icon_name">go-down-symbolic</property>
-                                </object>
-                                <packing>
-                                <property name="expand">False</property>
-                                <property name="fill">True</property>
-                                <property name="position">1</property>
-                                </packing>
-                            </child>
-                            </object>
-                        </child>
-                        </object>
-                        <packing>
-                        <property name="position">1</property>
-                        </packing>
-                    </child>
-                    <child>
-                        <object class="GtkBox" id="mode_switch_box">
-                        <property name="visible">True</property>
-                        <property name="can_focus">False</property>
-                        <property name="homogeneous">True</property>
-                        <child>
-                            <object class="GtkToggleButton" id="all_button">
-                            <property name="visible">True</property>
-                            <property name="can_focus">False</property>
-                            <property name="focus_on_click">False</property>
-                            <property name="receives_default">True</property>
-                            <property name="active">True</property>
-                            <child>
-                                <object class="GtkLabel">
-                                <property name="visible">True</property>
-                                <property name="can_focus">False</property>
-                                <property name="label" translatable="yes">All</property>
-                                </object>
-                            </child>
-                            </object>
-                            <packing>
-                            <property name="expand">False</property>
-                            <property name="fill">True</property>
-                            <property name="position">0</property>
-                            </packing>
-                        </child>
-                        <child>
-                            <object class="GtkToggleButton" id="unread_button">
-                            <property name="visible">True</property>
-                            <property name="can_focus">False</property>
-                            <property name="focus_on_click">False</property>
-                            <property name="receives_default">True</property>
-                            <child>
-                                <object class="GtkLabel">
-                                <property name="visible">True</property>
-                                <property name="can_focus">False</property>
-                                <property name="label" translatable="yes">Unread</property>
-                                </object>
-                            </child>
-                            </object>
-                            <packing>
-                            <property name="expand">False</property>
-                            <property name="fill">True</property>
-                            <property name="position">1</property>
-                            </packing>
-                        </child>
-                        <child>
-                            <object class="GtkToggleButton" id="marked_button">
-                            <property name="visible">True</property>
-                            <property name="can_focus">False</property>
-                            <property name="focus_on_click">False</property>
-                            <property name="receives_default">True</property>
-                            <child>
-                                <object class="GtkLabel">
-                                <property name="visible">True</property>
-                                <property name="can_focus">False</property>
-                                <property name="label" translatable="yes">Starred</property>
-                                </object>
-                            </child>
-                            </object>
-                            <packing>
-                            <property name="expand">False</property>
-                            <property name="fill">True</property>
-                            <property name="position">2</property>
-                            </packing>
-                        </child>
-                        <style>
-                            <class name="linked"/>
-                        </style>
-                        </object>
-                        <packing>
-                        <property name="position">2</property>
-                        </packing>
-                    </child>
-                    <child>
-                        <object class="GtkMenuButton" id="menu_button">
-                        <property name="visible">True</property>
-                        <property name="can_focus">True</property>
-                        <property name="receives_default">True</property>
-                        <child>
-                            <object class="GtkImage">
-                            <property name="visible">True</property>
-                            <property name="can_focus">False</property>
-                            <property name="icon_name">open-menu-symbolic</property>
-                            </object>
-                        </child>
-                        </object>
-                        <packing>
-                        <property name="pack_type">end</property>
-                        <property name="position">3</property>
-                        </packing>
-                    </child>
-                    <child>
-                        <object class="GtkButton" id="update_button">
-                        <property name="visible">True</property>
-                        <property name="can_focus">True</property>
-                        <property name="receives_default">True</property>
-                        <property name="tooltip_text" translatable="yes">Refresh Content</property>
-                        <child>
-                            <object class="GtkStack" id="update_stack">
-                            <property name="visible">True</property>
-                            <property name="can_focus">False</property>
-                            <property name="transition_type">crossfade</property>
-                            <child>
-                                <object class="GtkImage">
-                                <property name="visible">True</property>
-                                <property name="can_focus">False</property>
-                                <property name="icon_name">view-refresh-symbolic</property>
-                                </object>
-                                <packing>
-                                <property name="name">icon</property>
-                                <property name="title" translatable="yes">icon</property>
-                                </packing>
-                            </child>
-                            <child>
-                                <object class="GtkSpinner">
-                                <property name="visible">True</property>
-                                <property name="can_focus">False</property>
-                                <property name="active">True</property>
-                                </object>
-                                <packing>
-                                <property name="name">spinner</property>
-                                <property name="title" translatable="yes">spinner</property>
-                                <property name="position">1</property>
-                                </packing>
-                            </child>
-                            </object>
-                        </child>
-                        </object>
-                        <packing>
-                        <property name="position">3</property>
-                        </packing>
-                    </child>
-                    <child>
-                        <object class="GtkButton" id="offline_status_button">
-                        <property name="can_focus">True</property>
-                        <property name="receives_default">True</property>
-                        <property name="no_show_all">True</property>
-                        <property name="tooltip_text" translatable="yes">Go back to online mode</property>
-                        <child>
-                            <object class="GtkImage">
-                            <property name="visible">True</property>
-                            <property name="can_focus">False</property>
-                            <property name="icon_name">network-offline-symbolic</property>
-                            </object>
-                        </child>
-                        </object>
-                        <packing>
-                        <property name="position">5</property>
-                        </packing>
-                    </child>
-                    <child>
-                        <object class="GtkToggleButton" id="search_button">
-                        <property name="visible">True</property>
-                        <property name="can_focus">True</property>
-                        <property name="receives_default">True</property>
-                        <property name="tooltip_text" translatable="yes">Search Articles</property>
-                        <child>
-                            <object class="GtkImage">
-                            <property name="visible">True</property>
-                            <property name="can_focus">False</property>
-                            <property name="icon_name">system-search-symbolic</property>
-                            </object>
-                        </child>
-                        </object>
-                        <packing>
-                        <property name="position">5</property>
-                        </packing>
-                    </child>
-                    <child>
-                        <object class="GtkButton" id="mark_all_button">
-                        <property name="visible">True</property>
-                        <property name="can_focus">True</property>
-                        <property name="receives_default">True</property>
-                        <property name="tooltip_text" translatable="yes">Set All/Feed/Category as read</property>
-                        <child>
-                            <object class="GtkStack" id="mark_all_stack">
-                            <property name="visible">True</property>
-                            <property name="can_focus">False</property>
-                            <child>
-                                <object class="GtkImage">
-                                <property name="visible">True</property>
-                                <property name="can_focus">False</property>
-                                <property name="icon_name">emblem-ok-symbolic</property>
-                                </object>
-                                <packing>
-                                <property name="name">image</property>
-                                <property name="title" translatable="yes">image</property>
-                                </packing>
-                            </child>
-                            <child>
-                                <object class="GtkSpinner">
-                                <property name="visible">True</property>
-                                <property name="can_focus">False</property>
-                                <property name="active">True</property>
-                                </object>
-                                <packing>
-                                <property name="name">spinner</property>
-                                <property name="title" translatable="yes">spinner</property>
-                                <property name="position">1</property>
-                                </packing>
-                            </child>
-                            </object>
-                        </child>
-                        </object>
-                        <packing>
-                        <property name="position">7</property>
-                        </packing>
-                    </child>
-                    </object>
-                </child>
-                <child>
-                    <object class="GtkSeparator">
-                    <property name="visible">True</property>
-                    <property name="can_focus">False</property>
-                    <property name="vexpand">False</property>
-                    <property name="orientation">vertical</property>
-                    </object>
-                </child>
-                <child>
-                    <object class="HdyHeaderBar" id="right_headerbar">
-                    <property name="width_request">300</property>
-                    <property name="visible">True</property>
-                    <property name="can_focus">False</property>
-                    <property name="hexpand">True</property>
-                    <property name="has_subtitle">False</property>
-                    <property name="spacing">5</property>
-                    <property name="show_close_button">True</property>
-                    <child>
-                        <object class="GtkMenuButton" id="more_actions_button">
-                        <property name="visible">True</property>
-                        <property name="sensitive">False</property>
-                        <property name="can_focus">True</property>
-                        <property name="receives_default">True</property>
-                        <child>
-                            <object class="GtkStack" id="more_actions_stack">
-                            <property name="visible">True</property>
-                            <property name="can_focus">False</property>
-                            <child>
-                                <object class="GtkImage">
-                                <property name="visible">True</property>
-                                <property name="can_focus">False</property>
-                                <property name="icon_name">view-more-symbolic</property>
-                                </object>
-                                <packing>
-                                <property name="name">image</property>
-                                <property name="title" translatable="yes">image</property>
-                                </packing>
-                            </child>
-                            <child>
-                                <object class="GtkSpinner">
-                                <property name="visible">True</property>
-                                <property name="can_focus">False</property>
-                                <property name="active">True</property>
-                                </object>
-                                <packing>
-                                <property name="name">spinner</property>
-                                <property name="title" translatable="yes">spinner</property>
-                                <property name="position">1</property>
-                                </packing>
-                            </child>
-                            </object>
-                        </child>
-                        </object>
-                        <packing>
-                        <property name="pack_type">end</property>
-                        <property name="position">1</property>
-                        </packing>
-                    </child>
-                    <child>
-                        <object class="GtkButton" id="right_back_button">
-                        <property name="can_focus">True</property>
-                        <property name="receives_default">True</property>
-                        <property name="no_show_all">True</property>
-                        <child>
-                            <object class="GtkImage">
-                            <property name="visible">True</property>
-                            <property name="can_focus">False</property>
-                            <property name="icon_name">go-previous-symbolic</property>
-                            </object>
-                        </child>
-                        </object>
-                        <packing>
-                        <property name="position">1</property>
-                        </packing>
-                    </child>
-                    <child>
-                        <object class="GtkBox">
-                        <property name="visible">True</property>
-                        <property name="can_focus">False</property>
-                        <child>
-                            <object class="GtkToggleButton" id="mark_article_button">
-                            <property name="visible">True</property>
-                            <property name="sensitive">False</property>
-                            <property name="can_focus">True</property>
-                            <property name="receives_default">True</property>
-                            <property name="tooltip_text" translatable="yes">Toggle Starred</property>
-                            <child>
-                                <object class="GtkStack" id="mark_article_stack">
-                                <property name="visible">True</property>
-                                <property name="can_focus">False</property>
-                                <property name="transition_duration">50</property>
-                                <property name="transition_type">crossfade</property>
-                                <child>
-                                    <object class="GtkImage">
-                                    <property name="visible">True</property>
-                                    <property name="can_focus">False</property>
-                                    <property name="icon_name">unmarked-symbolic</property>
-                                    </object>
-                                    <packing>
-                                    <property name="name">unmarked</property>
-                                    <property name="title" translatable="yes">unmarked</property>
-                                    </packing>
-                                </child>
-                                <child>
-                                    <object class="GtkImage">
-                                    <property name="visible">True</property>
-                                    <property name="can_focus">False</property>
-                                    <property name="icon_name">marked-symbolic</property>
-                                    </object>
-                                    <packing>
-                                    <property name="name">marked</property>
-                                    <property name="title" translatable="yes">marked</property>
-                                    <property name="position">1</property>
-                                    </packing>
-                                </child>
-                                </object>
-                            </child>
-                            </object>
-                            <packing>
-                            <property name="expand">False</property>
-                            <property name="fill">True</property>
-                            <property name="position">0</property>
-                            </packing>
-                        </child>
-                        <child>
-                            <object class="GtkToggleButton" id="mark_article_read_button">
-                            <property name="visible">True</property>
-                            <property name="sensitive">False</property>
-                            <property name="can_focus">True</property>
-                            <property name="receives_default">True</property>
-                            <property name="tooltip_text" translatable="yes">Toggle Read</property>
-                            <child>
-                                <object class="GtkStack" id="mark_article_read_stack">
-                                <property name="visible">True</property>
-                                <property name="can_focus">False</property>
-                                <property name="transition_duration">50</property>
-                                <property name="transition_type">crossfade</property>
-                                <child>
-                                    <object class="GtkImage">
-                                    <property name="visible">True</property>
-                                    <property name="can_focus">False</property>
-                                    <property name="icon_name">read-symbolic</property>
-                                    </object>
-                                    <packing>
-                                    <property name="name">read</property>
-                                    <property name="title" translatable="yes">read</property>
-                                    </packing>
-                                </child>
-                                <child>
-                                    <object class="GtkImage">
-                                    <property name="visible">True</property>
-                                    <property name="can_focus">False</property>
-                                    <property name="icon_name">unread-symbolic</property>
-                                    </object>
-                                    <packing>
-                                    <property name="name">unread</property>
-                                    <property name="title" translatable="yes">unread</property>
-                                    <property name="position">1</property>
-                                    </packing>
-                                </child>
-                                </object>
-                            </child>
-                            </object>
-                            <packing>
-                            <property name="expand">False</property>
-                            <property name="fill">True</property>
-                            <property name="position">1</property>
-                            </packing>
-                        </child>
-                        <style>
-                            <class name="linked"/>
-                        </style>
-                        </object>
-                        <packing>
-                        <property name="position">2</property>
-                        </packing>
-                    </child>
-                    <child>
-                        <object class="GtkMenuButton" id="tag_button">
-                        <property name="visible">True</property>
-                        <property name="sensitive">False</property>
-                        <property name="can_focus">True</property>
-                        <property name="receives_default">True</property>
-                        <child>
-                            <object class="GtkImage" id="tag_image">
-                            <property name="visible">True</property>
-                            <property name="can_focus">False</property>
-                            <property name="icon_name">tag-symbolic</property>
-                            </object>
-                        </child>
-                        </object>
-                        <packing>
-                        <property name="pack_type">end</property>
-                        <property name="position">3</property>
-                        </packing>
-                    </child>
-                    <child>
-                        <object class="GtkToggleButton" id="scrap_content_button">
-                        <property name="visible">True</property>
-                        <property name="sensitive">False</property>
-                        <property name="can_focus">True</property>
-                        <property name="receives_default">True</property>
-                        <property name="tooltip_text" translatable="yes">Try to show full content</property>
-                        <child>
-                            <object class="GtkStack" id="scrap_article_stack">
-                            <property name="visible">True</property>
-                            <property name="can_focus">False</property>
-                            <property name="transition_duration">50</property>
-                            <property name="transition_type">crossfade</property>
-                            <child>
-                                <object class="GtkImage">
-                                <property name="visible">True</property>
-                                <property name="can_focus">False</property>
-                                <property name="icon_name">accessories-dictionary-symbolic</property>
-                                </object>
-                                <packing>
-                                <property name="name">image</property>
-                                <property name="title" translatable="yes">image</property>
-                                </packing>
-                            </child>
-                            <child>
-                                <object class="GtkSpinner">
-                                <property name="visible">True</property>
-                                <property name="can_focus">False</property>
-                                <property name="active">True</property>
-                                </object>
-                                <packing>
-                                <property name="name">spinner</property>
-                                <property name="title" translatable="yes">spinner</property>
-                                <property name="position">1</property>
-                                </packing>
-                            </child>
-                            </object>
-                        </child>
-                        </object>
-                        <packing>
-                        <property name="pack_type">end</property>
-                        <property name="position">4</property>
-                        </packing>
-                    </child>
-                    </object>
-                </child>
-                </object>
-                <packing>
-                  <property name="position">0</property>
-                </packing>
-            </child>
-            <child>
-              <object class="GtkInfoBar" id="undo_bar">
-                <property name="can_focus">False</property>
-                <property name="no_show_all">True</property>
-                <property name="message_type">warning</property>
-                <property name="show_close_button">True</property>
-                <property name="revealed">False</property>
-                <child internal-child="action_area">
-                  <object class="GtkButtonBox">
-                    <property name="can_focus">False</property>
-                    <property name="spacing">6</property>
-                    <property name="layout_style">end</property>
-                    <child>
-                      <object class="GtkButton" id="undo_button">
-                        <property name="label" translatable="yes">Undo</property>
-                        <property name="visible">True</property>
-                        <property name="can_focus">True</property>
-                        <property name="receives_default">True</property>
-                      </object>
-                      <packing>
-                        <property name="expand">True</property>
-                        <property name="fill">True</property>
-                        <property name="position">0</property>
-                      </packing>
-                    </child>
-                  </object>
-                  <packing>
-                    <property name="expand">False</property>
-                    <property name="fill">False</property>
-                    <property name="position">0</property>
-                  </packing>
-                </child>
-                <child internal-child="content_area">
-                  <object class="GtkBox">
-                    <property name="can_focus">False</property>
-                    <property name="spacing">16</property>
-                    <child>
-                      <object class="GtkLabel" id="undo_label">
-                        <property name="visible">True</property>
-                        <property name="can_focus">False</property>
-                        <property name="label" translatable="yes">Delte Feed/Category</property>
-                      </object>
-                      <packing>
-                        <property name="expand">False</property>
-                        <property name="fill">True</property>
-                        <property name="position">0</property>
-                      </packing>
-                    </child>
-                  </object>
-                  <packing>
-                    <property name="expand">False</property>
-                    <property name="fill">False</property>
-                    <property name="position">0</property>
-                  </packing>
-                </child>
-              </object>
-              <packing>
-                <property name="expand">False</property>
-                <property name="fill">True</property>
-                <property name="position">1</property>
-              </packing>
-            </child>
-            <child>
               <object class="GtkInfoBar" id="error_bar">
                 <property name="can_focus">False</property>
                 <property name="no_show_all">True</property>
@@ -1352,7 +725,69 @@
               <packing>
                 <property name="expand">False</property>
                 <property name="fill">True</property>
-                <property name="position">2</property>
+                <property name="position">0</property>
+              </packing>
+            </child>
+            <child>
+              <object class="GtkInfoBar" id="undo_bar">
+                <property name="can_focus">False</property>
+                <property name="no_show_all">True</property>
+                <property name="message_type">warning</property>
+                <property name="show_close_button">True</property>
+                <property name="revealed">False</property>
+                <child internal-child="action_area">
+                  <object class="GtkButtonBox">
+                    <property name="can_focus">False</property>
+                    <property name="spacing">6</property>
+                    <property name="layout_style">end</property>
+                    <child>
+                      <object class="GtkButton" id="undo_button">
+                        <property name="label" translatable="yes">Undo</property>
+                        <property name="visible">True</property>
+                        <property name="can_focus">True</property>
+                        <property name="receives_default">True</property>
+                      </object>
+                      <packing>
+                        <property name="expand">True</property>
+                        <property name="fill">True</property>
+                        <property name="position">0</property>
+                      </packing>
+                    </child>
+                  </object>
+                  <packing>
+                    <property name="expand">False</property>
+                    <property name="fill">False</property>
+                    <property name="position">0</property>
+                  </packing>
+                </child>
+                <child internal-child="content_area">
+                  <object class="GtkBox">
+                    <property name="can_focus">False</property>
+                    <property name="spacing">16</property>
+                    <child>
+                      <object class="GtkLabel" id="undo_label">
+                        <property name="visible">True</property>
+                        <property name="can_focus">False</property>
+                        <property name="label" translatable="yes">Delte Feed/Category</property>
+                      </object>
+                      <packing>
+                        <property name="expand">False</property>
+                        <property name="fill">True</property>
+                        <property name="position">0</property>
+                      </packing>
+                    </child>
+                  </object>
+                  <packing>
+                    <property name="expand">False</property>
+                    <property name="fill">False</property>
+                    <property name="position">0</property>
+                  </packing>
+                </child>
+              </object>
+              <packing>
+                <property name="expand">False</property>
+                <property name="fill">True</property>
+                <property name="position">1</property>
               </packing>
             </child>
             <child>
@@ -1361,65 +796,384 @@
                 <property name="can_focus">False</property>
                 <property name="hexpand">True</property>
                 <property name="vexpand">True</property>
-                <property name="visible_child">minor_leaflet</property>
+                <property name="visible_child">minor_leaflet_box</property>
                 <property name="transition_type">over</property>
                 <child>
-                  <object class="HdyLeaflet" id="minor_leaflet">
+                  <object class="GtkBox" id="minor_leaflet_box">
                     <property name="visible">True</property>
-                    <property name="can_focus">False</property>
-                    <property name="visible_child">feedlist_box</property>
-                    <property name="transition_type">over</property>
+                    <property name="orientation">vertical</property>
                     <child>
-                      <object class="GtkBox" id="feedlist_box">
-                        <property name="width_request">220</property>
+                        <object class="HdyHeaderBar" id="left_headerbar">
                         <property name="visible">True</property>
                         <property name="can_focus">False</property>
-                        <property name="hexpand">True</property>
-                        <property name="orientation">vertical</property>
+                        <property name="has_subtitle">False</property>
+                        <property name="spacing">5</property>
+                        <property name="show_close_button">True</property>
                         <child>
-                          <placeholder/>
+                            <object class="GtkButton" id="left_back_button">
+                            <property name="can_focus">True</property>
+                            <property name="receives_default">True</property>
+                            <property name="no_show_all">True</property>
+                            <child>
+                                <object class="GtkImage">
+                                <property name="visible">True</property>
+                                <property name="can_focus">False</property>
+                                <property name="icon_name">go-previous-symbolic</property>
+                                </object>
+                            </child>
+                            </object>
                         </child>
-                      </object>
-                    </child>
-                    <child>
-                      <object class="GtkSeparator">
-                        <property name="visible">True</property>
-                        <property name="can_focus">False</property>
-                        <property name="orientation">vertical</property>
-                        <style>
-                          <class name="dark-separator"/>
-                        </style>
-                      </object>
-                    </child>
-                    <child>
-                      <object class="GtkBox" id="articlelist_box">
-                        <property name="width_request">380</property>
-                        <property name="visible">True</property>
-                        <property name="can_focus">False</property>
-                        <property name="hexpand">True</property>
-                        <property name="orientation">vertical</property>
                         <child>
-                          <object class="HdySearchBar" id="search_bar">
+                            <object class="GtkMenuButton" id="mode_switch_button">
+                            <property name="can_focus">True</property>
+                            <property name="receives_default">True</property>
+                            <property name="no_show_all">True</property>
+                            <child>
+                                <object class="GtkBox">
+                                <property name="visible">True</property>
+                                <property name="can_focus">False</property>
+                                <property name="spacing">5</property>
+                                <child>
+                                    <object class="GtkStack" id="mode_switch_stack">
+                                    <property name="visible">True</property>
+                                    <property name="can_focus">False</property>
+                                    <property name="transition_duration">50</property>
+                                    <property name="transition_type">crossfade</property>
+                                    <child>
+                                        <object class="GtkLabel">
+                                        <property name="visible">True</property>
+                                        <property name="can_focus">False</property>
+                                        <property name="label" translatable="yes">All</property>
+                                        <property name="xalign">0</property>
+                                        </object>
+                                        <packing>
+                                        <property name="name">all</property>
+                                        <property name="title" translatable="yes">all</property>
+                                        </packing>
+                                    </child>
+                                    <child>
+                                        <object class="GtkLabel">
+                                        <property name="visible">True</property>
+                                        <property name="can_focus">False</property>
+                                        <property name="label" translatable="yes">Unread</property>
+                                        <property name="xalign">0</property>
+                                        </object>
+                                        <packing>
+                                        <property name="name">unread</property>
+                                        <property name="title" translatable="yes">unread</property>
+                                        <property name="position">1</property>
+                                        </packing>
+                                    </child>
+                                    <child>
+                                        <object class="GtkLabel">
+                                        <property name="visible">True</property>
+                                        <property name="can_focus">False</property>
+                                        <property name="label" translatable="yes">Starred</property>
+                                        <property name="xalign">0</property>
+                                        </object>
+                                        <packing>
+                                        <property name="name">marked</property>
+                                        <property name="title" translatable="yes">marked</property>
+                                        <property name="position">2</property>
+                                        </packing>
+                                    </child>
+                                    </object>
+                                    <packing>
+                                    <property name="expand">False</property>
+                                    <property name="fill">True</property>
+                                    <property name="position">0</property>
+                                    </packing>
+                                </child>
+                                <child>
+                                    <object class="GtkImage">
+                                    <property name="visible">True</property>
+                                    <property name="can_focus">False</property>
+                                    <property name="icon_name">go-down-symbolic</property>
+                                    </object>
+                                    <packing>
+                                    <property name="expand">False</property>
+                                    <property name="fill">True</property>
+                                    <property name="position">1</property>
+                                    </packing>
+                                </child>
+                                </object>
+                            </child>
+                            </object>
+                            <packing>
+                            <property name="position">1</property>
+                            </packing>
+                        </child>
+                        <child>
+                            <object class="GtkBox" id="mode_switch_box">
                             <property name="visible">True</property>
                             <property name="can_focus">False</property>
+                            <property name="homogeneous">True</property>
                             <child>
-                              <object class="GtkSearchEntry" id="search_entry">
+                                <object class="GtkToggleButton" id="all_button">
                                 <property name="visible">True</property>
-                                <property name="can_focus">True</property>
-                                <property name="primary_icon_name">edit-find-symbolic</property>
-                                <property name="primary_icon_activatable">False</property>
-                                <property name="primary_icon_sensitive">False</property>
-                              </object>
+                                <property name="can_focus">False</property>
+                                <property name="focus_on_click">False</property>
+                                <property name="receives_default">True</property>
+                                <property name="active">True</property>
+                                <child>
+                                    <object class="GtkLabel">
+                                    <property name="visible">True</property>
+                                    <property name="can_focus">False</property>
+                                    <property name="label" translatable="yes">All</property>
+                                    </object>
+                                </child>
+                                </object>
+                                <packing>
+                                <property name="expand">False</property>
+                                <property name="fill">True</property>
+                                <property name="position">0</property>
+                                </packing>
                             </child>
-                          </object>
-                          <packing>
-                            <property name="expand">False</property>
-                            <property name="fill">True</property>
-                            <property name="position">0</property>
-                          </packing>
+                            <child>
+                                <object class="GtkToggleButton" id="unread_button">
+                                <property name="visible">True</property>
+                                <property name="can_focus">False</property>
+                                <property name="focus_on_click">False</property>
+                                <property name="receives_default">True</property>
+                                <child>
+                                    <object class="GtkLabel">
+                                    <property name="visible">True</property>
+                                    <property name="can_focus">False</property>
+                                    <property name="label" translatable="yes">Unread</property>
+                                    </object>
+                                </child>
+                                </object>
+                                <packing>
+                                <property name="expand">False</property>
+                                <property name="fill">True</property>
+                                <property name="position">1</property>
+                                </packing>
+                            </child>
+                            <child>
+                                <object class="GtkToggleButton" id="marked_button">
+                                <property name="visible">True</property>
+                                <property name="can_focus">False</property>
+                                <property name="focus_on_click">False</property>
+                                <property name="receives_default">True</property>
+                                <child>
+                                    <object class="GtkLabel">
+                                    <property name="visible">True</property>
+                                    <property name="can_focus">False</property>
+                                    <property name="label" translatable="yes">Starred</property>
+                                    </object>
+                                </child>
+                                </object>
+                                <packing>
+                                <property name="expand">False</property>
+                                <property name="fill">True</property>
+                                <property name="position">2</property>
+                                </packing>
+                            </child>
+                            <style>
+                                <class name="linked"/>
+                            </style>
+                            </object>
+                            <packing>
+                            <property name="position">2</property>
+                            </packing>
                         </child>
                         <child>
-                          <placeholder/>
+                            <object class="GtkMenuButton" id="menu_button">
+                            <property name="visible">True</property>
+                            <property name="can_focus">True</property>
+                            <property name="receives_default">True</property>
+                            <child>
+                                <object class="GtkImage">
+                                <property name="visible">True</property>
+                                <property name="can_focus">False</property>
+                                <property name="icon_name">open-menu-symbolic</property>
+                                </object>
+                            </child>
+                            </object>
+                            <packing>
+                            <property name="pack_type">end</property>
+                            <property name="position">3</property>
+                            </packing>
+                        </child>
+                        <child>
+                            <object class="GtkButton" id="update_button">
+                            <property name="visible">True</property>
+                            <property name="can_focus">True</property>
+                            <property name="receives_default">True</property>
+                            <property name="tooltip_text" translatable="yes">Refresh Content</property>
+                            <child>
+                                <object class="GtkStack" id="update_stack">
+                                <property name="visible">True</property>
+                                <property name="can_focus">False</property>
+                                <property name="transition_type">crossfade</property>
+                                <child>
+                                    <object class="GtkImage">
+                                    <property name="visible">True</property>
+                                    <property name="can_focus">False</property>
+                                    <property name="icon_name">view-refresh-symbolic</property>
+                                    </object>
+                                    <packing>
+                                    <property name="name">icon</property>
+                                    <property name="title" translatable="yes">icon</property>
+                                    </packing>
+                                </child>
+                                <child>
+                                    <object class="GtkSpinner">
+                                    <property name="visible">True</property>
+                                    <property name="can_focus">False</property>
+                                    <property name="active">True</property>
+                                    </object>
+                                    <packing>
+                                    <property name="name">spinner</property>
+                                    <property name="title" translatable="yes">spinner</property>
+                                    <property name="position">1</property>
+                                    </packing>
+                                </child>
+                                </object>
+                            </child>
+                            </object>
+                            <packing>
+                            <property name="position">3</property>
+                            </packing>
+                        </child>
+                        <child>
+                            <object class="GtkButton" id="offline_status_button">
+                            <property name="can_focus">True</property>
+                            <property name="receives_default">True</property>
+                            <property name="no_show_all">True</property>
+                            <property name="tooltip_text" translatable="yes">Go back to online mode</property>
+                            <child>
+                                <object class="GtkImage">
+                                <property name="visible">True</property>
+                                <property name="can_focus">False</property>
+                                <property name="icon_name">network-offline-symbolic</property>
+                                </object>
+                            </child>
+                            </object>
+                            <packing>
+                            <property name="position">5</property>
+                            </packing>
+                        </child>
+                        <child>
+                            <object class="GtkToggleButton" id="search_button">
+                            <property name="visible">True</property>
+                            <property name="can_focus">True</property>
+                            <property name="receives_default">True</property>
+                            <property name="tooltip_text" translatable="yes">Search Articles</property>
+                            <child>
+                                <object class="GtkImage">
+                                <property name="visible">True</property>
+                                <property name="can_focus">False</property>
+                                <property name="icon_name">system-search-symbolic</property>
+                                </object>
+                            </child>
+                            </object>
+                            <packing>
+                            <property name="position">5</property>
+                            </packing>
+                        </child>
+                        <child>
+                            <object class="GtkButton" id="mark_all_button">
+                            <property name="visible">True</property>
+                            <property name="can_focus">True</property>
+                            <property name="receives_default">True</property>
+                            <property name="tooltip_text" translatable="yes">Set All/Feed/Category as read</property>
+                            <child>
+                                <object class="GtkStack" id="mark_all_stack">
+                                <property name="visible">True</property>
+                                <property name="can_focus">False</property>
+                                <child>
+                                    <object class="GtkImage">
+                                    <property name="visible">True</property>
+                                    <property name="can_focus">False</property>
+                                    <property name="icon_name">emblem-ok-symbolic</property>
+                                    </object>
+                                    <packing>
+                                    <property name="name">image</property>
+                                    <property name="title" translatable="yes">image</property>
+                                    </packing>
+                                </child>
+                                <child>
+                                    <object class="GtkSpinner">
+                                    <property name="visible">True</property>
+                                    <property name="can_focus">False</property>
+                                    <property name="active">True</property>
+                                    </object>
+                                    <packing>
+                                    <property name="name">spinner</property>
+                                    <property name="title" translatable="yes">spinner</property>
+                                    <property name="position">1</property>
+                                    </packing>
+                                </child>
+                                </object>
+                            </child>
+                            </object>
+                            <packing>
+                            <property name="position">7</property>
+                            </packing>
+                        </child>
+                        </object>
+                    </child>
+                    <child>
+                      <object class="HdyLeaflet" id="minor_leaflet">
+                        <property name="visible">True</property>
+                        <property name="orientation">horizontal</property>
+                        <property name="can_focus">False</property>
+                        <property name="visible_child">feedlist_box</property>
+                        <property name="transition_type">over</property>
+                        <child>
+                          <object class="GtkBox" id="feedlist_box">
+                            <property name="width_request">220</property>
+                            <property name="visible">True</property>
+                            <property name="can_focus">False</property>
+                            <property name="hexpand">True</property>
+                            <property name="orientation">vertical</property>
+                            <child>
+                              <placeholder/>
+                            </child>
+                          </object>
+                        </child>
+                        <child>
+                          <object class="GtkSeparator">
+                            <property name="visible">True</property>
+                            <property name="can_focus">False</property>
+                            <property name="orientation">vertical</property>
+                            <style>
+                              <class name="dark-separator"/>
+                            </style>
+                          </object>
+                        </child>
+                        <child>
+                          <object class="GtkBox" id="articlelist_box">
+                            <property name="width_request">380</property>
+                            <property name="visible">True</property>
+                            <property name="can_focus">False</property>
+                            <property name="hexpand">True</property>
+                            <property name="orientation">vertical</property>
+                            <child>
+                              <object class="HdySearchBar" id="search_bar">
+                                <property name="visible">True</property>
+                                <property name="can_focus">False</property>
+                                <child>
+                                  <object class="GtkSearchEntry" id="search_entry">
+                                    <property name="visible">True</property>
+                                    <property name="can_focus">True</property>
+                                    <property name="primary_icon_name">edit-find-symbolic</property>
+                                    <property name="primary_icon_activatable">False</property>
+                                    <property name="primary_icon_sensitive">False</property>
+                                  </object>
+                                </child>
+                              </object>
+                              <packing>
+                                <property name="expand">False</property>
+                                <property name="fill">True</property>
+                                <property name="position">3</property>
+                              </packing>
+                            </child>
+                            <child>
+                              <placeholder/>
+                            </child>
+                          </object>
                         </child>
                       </object>
                     </child>
@@ -1440,6 +1194,240 @@
                     <property name="hexpand">True</property>
                     <property name="orientation">vertical</property>
                     <child>
+                        <object class="HdyHeaderBar" id="right_headerbar">
+                        <property name="width_request">300</property>
+                        <property name="visible">True</property>
+                        <property name="can_focus">False</property>
+                        <property name="hexpand">True</property>
+                        <property name="has_subtitle">False</property>
+                        <property name="spacing">5</property>
+                        <property name="show_close_button">True</property>
+                        <child>
+                            <object class="GtkMenuButton" id="more_actions_button">
+                            <property name="visible">True</property>
+                            <property name="sensitive">False</property>
+                            <property name="can_focus">True</property>
+                            <property name="receives_default">True</property>
+                            <child>
+                                <object class="GtkStack" id="more_actions_stack">
+                                <property name="visible">True</property>
+                                <property name="can_focus">False</property>
+                                <child>
+                                    <object class="GtkImage">
+                                    <property name="visible">True</property>
+                                    <property name="can_focus">False</property>
+                                    <property name="icon_name">view-more-symbolic</property>
+                                    </object>
+                                    <packing>
+                                    <property name="name">image</property>
+                                    <property name="title" translatable="yes">image</property>
+                                    </packing>
+                                </child>
+                                <child>
+                                    <object class="GtkSpinner">
+                                    <property name="visible">True</property>
+                                    <property name="can_focus">False</property>
+                                    <property name="active">True</property>
+                                    </object>
+                                    <packing>
+                                    <property name="name">spinner</property>
+                                    <property name="title" translatable="yes">spinner</property>
+                                    <property name="position">1</property>
+                                    </packing>
+                                </child>
+                                </object>
+                            </child>
+                            </object>
+                            <packing>
+                            <property name="pack_type">end</property>
+                            <property name="position">1</property>
+                            </packing>
+                        </child>
+                        <child>
+                            <object class="GtkButton" id="right_back_button">
+                            <property name="can_focus">True</property>
+                            <property name="receives_default">True</property>
+                            <property name="no_show_all">True</property>
+                            <child>
+                                <object class="GtkImage">
+                                <property name="visible">True</property>
+                                <property name="can_focus">False</property>
+                                <property name="icon_name">go-previous-symbolic</property>
+                                </object>
+                            </child>
+                            </object>
+                            <packing>
+                            <property name="position">1</property>
+                            </packing>
+                        </child>
+                        <child>
+                            <object class="GtkBox">
+                            <property name="visible">True</property>
+                            <property name="can_focus">False</property>
+                            <child>
+                                <object class="GtkToggleButton" id="mark_article_button">
+                                <property name="visible">True</property>
+                                <property name="sensitive">False</property>
+                                <property name="can_focus">True</property>
+                                <property name="receives_default">True</property>
+                                <property name="tooltip_text" translatable="yes">Toggle Starred</property>
+                                <child>
+                                    <object class="GtkStack" id="mark_article_stack">
+                                    <property name="visible">True</property>
+                                    <property name="can_focus">False</property>
+                                    <property name="transition_duration">50</property>
+                                    <property name="transition_type">crossfade</property>
+                                    <child>
+                                        <object class="GtkImage">
+                                        <property name="visible">True</property>
+                                        <property name="can_focus">False</property>
+                                        <property name="icon_name">unmarked-symbolic</property>
+                                        </object>
+                                        <packing>
+                                        <property name="name">unmarked</property>
+                                        <property name="title" translatable="yes">unmarked</property>
+                                        </packing>
+                                    </child>
+                                    <child>
+                                        <object class="GtkImage">
+                                        <property name="visible">True</property>
+                                        <property name="can_focus">False</property>
+                                        <property name="icon_name">marked-symbolic</property>
+                                        </object>
+                                        <packing>
+                                        <property name="name">marked</property>
+                                        <property name="title" translatable="yes">marked</property>
+                                        <property name="position">1</property>
+                                        </packing>
+                                    </child>
+                                    </object>
+                                </child>
+                                </object>
+                                <packing>
+                                <property name="expand">False</property>
+                                <property name="fill">True</property>
+                                <property name="position">0</property>
+                                </packing>
+                            </child>
+                            <child>
+                                <object class="GtkToggleButton" id="mark_article_read_button">
+                                <property name="visible">True</property>
+                                <property name="sensitive">False</property>
+                                <property name="can_focus">True</property>
+                                <property name="receives_default">True</property>
+                                <property name="tooltip_text" translatable="yes">Toggle Read</property>
+                                <child>
+                                    <object class="GtkStack" id="mark_article_read_stack">
+                                    <property name="visible">True</property>
+                                    <property name="can_focus">False</property>
+                                    <property name="transition_duration">50</property>
+                                    <property name="transition_type">crossfade</property>
+                                    <child>
+                                        <object class="GtkImage">
+                                        <property name="visible">True</property>
+                                        <property name="can_focus">False</property>
+                                        <property name="icon_name">read-symbolic</property>
+                                        </object>
+                                        <packing>
+                                        <property name="name">read</property>
+                                        <property name="title" translatable="yes">read</property>
+                                        </packing>
+                                    </child>
+                                    <child>
+                                        <object class="GtkImage">
+                                        <property name="visible">True</property>
+                                        <property name="can_focus">False</property>
+                                        <property name="icon_name">unread-symbolic</property>
+                                        </object>
+                                        <packing>
+                                        <property name="name">unread</property>
+                                        <property name="title" translatable="yes">unread</property>
+                                        <property name="position">1</property>
+                                        </packing>
+                                    </child>
+                                    </object>
+                                </child>
+                                </object>
+                                <packing>
+                                <property name="expand">False</property>
+                                <property name="fill">True</property>
+                                <property name="position">1</property>
+                                </packing>
+                            </child>
+                            <style>
+                                <class name="linked"/>
+                            </style>
+                            </object>
+                            <packing>
+                            <property name="position">2</property>
+                            </packing>
+                        </child>
+                        <child>
+                            <object class="GtkMenuButton" id="tag_button">
+                            <property name="visible">True</property>
+                            <property name="sensitive">False</property>
+                            <property name="can_focus">True</property>
+                            <property name="receives_default">True</property>
+                            <child>
+                                <object class="GtkImage" id="tag_image">
+                                <property name="visible">True</property>
+                                <property name="can_focus">False</property>
+                                <property name="icon_name">tag-symbolic</property>
+                                </object>
+                            </child>
+                            </object>
+                            <packing>
+                            <property name="pack_type">end</property>
+                            <property name="position">3</property>
+                            </packing>
+                        </child>
+                        <child>
+                            <object class="GtkToggleButton" id="scrap_content_button">
+                            <property name="visible">True</property>
+                            <property name="sensitive">False</property>
+                            <property name="can_focus">True</property>
+                            <property name="receives_default">True</property>
+                            <property name="tooltip_text" translatable="yes">Try to show full content</property>
+                            <child>
+                                <object class="GtkStack" id="scrap_article_stack">
+                                <property name="visible">True</property>
+                                <property name="can_focus">False</property>
+                                <property name="transition_duration">50</property>
+                                <property name="transition_type">crossfade</property>
+                                <child>
+                                    <object class="GtkImage">
+                                    <property name="visible">True</property>
+                                    <property name="can_focus">False</property>
+                                    <property name="icon_name">accessories-dictionary-symbolic</property>
+                                    </object>
+                                    <packing>
+                                    <property name="name">image</property>
+                                    <property name="title" translatable="yes">image</property>
+                                    </packing>
+                                </child>
+                                <child>
+                                    <object class="GtkSpinner">
+                                    <property name="visible">True</property>
+                                    <property name="can_focus">False</property>
+                                    <property name="active">True</property>
+                                    </object>
+                                    <packing>
+                                    <property name="name">spinner</property>
+                                    <property name="title" translatable="yes">spinner</property>
+                                    <property name="position">1</property>
+                                    </packing>
+                                </child>
+                                </object>
+                            </child>
+                            </object>
+                            <packing>
+                            <property name="pack_type">end</property>
+                            <property name="position">4</property>
+                            </packing>
+                        </child>
+                        </object>
+                    </child>
+                    <child>
                       <placeholder/>
                     </child>
                   </object>
@@ -1448,7 +1436,7 @@
               <packing>
                 <property name="expand">False</property>
                 <property name="fill">True</property>
-                <property name="position">2</property>
+                <property name="position">3</property>
               </packing>
             </child>
           </object>

@@ -14,7 +14,7 @@ pub struct ResponsiveLayout {
     pub right_button: Button,
     pub major_leaflet: Leaflet,
     pub minor_leaflet: Leaflet,
-    pub header_leaflet: Leaflet,
+    pub minor_leaflet_box: Box,
     pub sidebar_box: Box,
     pub article_list_box: Box,
     pub article_view_box: Box,
@@ -31,13 +31,13 @@ impl ResponsiveLayout {
 
         let minor_leaflet = builder.get::<Leaflet>("minor_leaflet");
         let major_leaflet = builder.get::<Leaflet>("major_leaflet");
+        let minor_leaflet_box = builder.get::<Box>("minor_leaflet_box");
         let left_button = builder.get::<Button>("left_back_button");
         let search_button = builder.get::<ToggleButton>("search_button");
         let right_button = builder.get::<Button>("right_back_button");
         let sidebar_box = builder.get::<Box>("feedlist_box");
         let article_list_box = builder.get::<Box>("articlelist_box");
         let article_view_box = builder.get::<Box>("articleview_box");
-        let header_leaflet = builder.get::<Leaflet>("header_leaflet");
         let left_header = builder.get::<HeaderBar>("left_headerbar");
         let right_header = builder.get::<HeaderBar>("right_headerbar");
         let mode_switch_box = builder.get::<Box>("mode_switch_box");
@@ -50,7 +50,7 @@ impl ResponsiveLayout {
             right_button,
             major_leaflet,
             minor_leaflet,
-            header_leaflet,
+            minor_leaflet_box,
             sidebar_box,
             article_list_box,
             article_view_box,
@@ -112,8 +112,7 @@ impl ResponsiveLayout {
             // article view (dis)appeared
             if !self.major_leaflet.get_folded() {
                 self.right_button.set_visible(false);
-                self.major_leaflet.set_visible_child(&self.minor_leaflet);
-                self.header_leaflet.set_visible_child(&self.left_header);
+                self.major_leaflet.set_visible_child(&self.minor_leaflet_box);
                 self.mode_switch_box.set_visible(true);
                 self.mode_switch_button.set_visible(false);
             } else {
@@ -127,7 +126,6 @@ impl ResponsiveLayout {
 
         if self.state.read().minor_leaflet_folded {
             // article list (dis)appeared
-            log::info!("minor leaflet folded");
             if !self.minor_leaflet.get_folded() {
                 self.left_button.set_visible(false);
                 self.search_button.set_visible(true);
@@ -159,8 +157,7 @@ impl ResponsiveLayout {
         if self.state.read().right_button_clicked {
             // right back
             //self.minor_leaflet.set_visible_child(&self.article_list_box);
-            self.major_leaflet.set_visible_child(&self.minor_leaflet);
-            self.header_leaflet.set_visible_child(&self.left_header);
+            self.major_leaflet.set_visible_child(&self.minor_leaflet_box);
             self.right_button.set_visible(false);
 
             self.state.write().right_button_clicked = false;
@@ -171,7 +168,6 @@ impl ResponsiveLayout {
             // article selected
             if self.major_leaflet.get_folded() {
                 self.major_leaflet.set_visible_child(&self.article_view_box);
-                self.header_leaflet.set_visible_child(&self.right_header);
                 self.right_button.set_visible(true);
             }
 
