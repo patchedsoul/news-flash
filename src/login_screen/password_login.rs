@@ -63,6 +63,11 @@ impl PasswordLogin {
         let info_bar_label = builder.get::<Label>("pw_info_bar_label");
         let ignore_tls_button = builder.get::<Button>("ignore_button");
         let error_details_button = builder.get::<Button>("pw_details_button");
+        let back_button = builder.get::<Button>("pass_back_button");
+
+        back_button.connect_clicked(clone!(@strong sender => @default-panic, move |_button| {
+            Util::send(&sender, Action::ShowWelcomePage);
+        }));
 
         let scale_factor = GtkUtil::get_scale(&page);
         let surface = GtkUtil::create_surface_from_icon_name("feed-service-generic", 64, scale_factor);

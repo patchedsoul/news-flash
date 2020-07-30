@@ -31,6 +31,11 @@ impl WebLogin {
         let info_bar = builder.get::<InfoBar>("oauth_info_bar");
         let error_details_button = builder.get::<Button>("oauth_details_button");
         let info_bar_label = builder.get::<Label>("oauth_info_bar_label");
+        let back_button = builder.get::<Button>("web_back_button");
+
+        back_button.connect_clicked(clone!(@strong sender => @default-panic, move |_button| {
+            Util::send(&sender, Action::ShowWelcomePage);
+        }));
 
         let context = WebContext::get_default().expect(GTK_BUILDER_ERROR);
         let content_manager = UserContentManager::new();

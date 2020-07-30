@@ -3,7 +3,7 @@ use crate::app::{Action, App};
 use crate::config::{APP_ID, PROFILE};
 use crate::content_page::{ContentHeader, ContentPage, HeaderSelection};
 use crate::error_bar::ErrorBar;
-use crate::login_screen::{LoginHeaderbar, PasswordLogin, WebLogin};
+use crate::login_screen::{PasswordLogin, WebLogin};
 use crate::main_window_state::MainWindowState;
 use crate::reset_page::ResetPage;
 use crate::responsive::ResponsiveLayout;
@@ -11,7 +11,7 @@ use crate::settings::{Keybindings, Settings};
 use crate::sidebar::models::SidebarSelection;
 use crate::undo_bar::{UndoActionModel, UndoBar};
 use crate::util::{BuilderHelper, GtkUtil, Util, CHANNEL_ERROR, GTK_CSS_ERROR, GTK_RESOURCE_FILE_ERROR, RUNTIME_ERROR};
-use crate::welcome_screen::{WelcomeHeaderbar, WelcomePage};
+use crate::welcome_screen::WelcomePage;
 use crate::Resources;
 use futures::channel::oneshot;
 use futures::executor::ThreadPool;
@@ -44,7 +44,6 @@ pub struct MainWindow {
     pub content_header: Arc<ContentHeader>,
     reset_page: ResetPage,
     stack: Stack,
-    header_stack: Stack,
     responsive_layout: Arc<ResponsiveLayout>,
     pub state: Arc<RwLock<MainWindowState>>,
     sender: Sender<Action>,
@@ -71,14 +70,10 @@ impl MainWindow {
         let builder = BuilderHelper::new("main_window");
         let window = builder.get::<ApplicationWindow>("main_window");
         let stack = builder.get::<Stack>("main_stack");
-        let header_stack = builder.get::<Stack>("header_stack");
         let undo_bar = UndoBar::new(&builder, sender.clone());
         let error_bar = ErrorBar::new(&builder, sender.clone());
 
         let responsive_layout = ResponsiveLayout::new(&builder);
-
-        let _login_header = LoginHeaderbar::new(&builder, sender.clone());
-        let _welcome_header = WelcomeHeaderbar::new(&builder);
         let content_header = Arc::new(ContentHeader::new(&builder, &state, sender.clone(), features));
 
         window.set_icon_name(Some(APP_ID));
@@ -168,7 +163,6 @@ impl MainWindow {
             content_header,
             reset_page,
             stack,
-            header_stack,
             responsive_layout,
             state,
             sender,
@@ -378,7 +372,6 @@ impl MainWindow {
         features: &Arc<RwLock<Option<PluginCapabilities>>>,
     ) {
         self.stack.set_visible_child_name(CONTENT_PAGE);
-        self.header_stack.set_visible_child_name(CONTENT_PAGE);
 
         let id = news_flash.read().as_ref().map(|n| n.id());
         let user_name = news_flash.read().as_ref().map(|n| n.user_name());
@@ -404,7 +397,6 @@ impl MainWindow {
 
         // in case of failure show 'welcome page'
         self.stack.set_visible_child_name("welcome");
-        self.header_stack.set_visible_child_name("welcome");
     }
 
     pub fn show_error_simple_message(&self, msg: &str) {
@@ -444,7 +436,6 @@ impl MainWindow {
     }
 
     pub fn show_welcome_page(&self) {
-        self.header_stack.set_visible_child_name("welcome");
         self.password_login_page.reset();
         self.oauth_login_page.reset();
         self.stack.set_transition_type(StackTransitionType::SlideRight);
@@ -457,7 +448,6 @@ impl MainWindow {
                 if let Some(data) = data {
                     self.password_login_page.fill(data);
                 }
-                self.header_stack.set_visible_child_name("login");
                 self.stack.set_transition_type(StackTransitionType::SlideLeft);
                 self.stack.set_visible_child_name("password_login");
             }
@@ -468,7 +458,6 @@ impl MainWindow {
         if let Some(service_meta) = NewsFlash::list_backends().get(plugin_id) {
             if let Ok(()) = self.oauth_login_page.set_service(service_meta.clone()) {
                 self.oauth_login_page.show();
-                self.header_stack.set_visible_child_name("login");
                 self.stack.set_transition_type(StackTransitionType::SlideLeft);
                 self.stack.set_visible_child_name("oauth_login");
             }
@@ -485,7 +474,6 @@ impl MainWindow {
             let user_name: Option<String> = news_flash.user_name();
             self.stack.set_transition_type(StackTransitionType::SlideLeft);
             self.stack.set_visible_child_name("content");
-            self.header_stack.set_visible_child_name("content");
 
             Util::send(&self.sender, Action::UpdateSidebar);
 
@@ -512,7 +500,6 @@ impl MainWindow {
     pub fn show_reset_page(&self) {
         self.reset_page.init();
         self.stack.set_visible_child_name("reset_page");
-        self.header_stack.set_visible_child_name("welcome");
     }
 
     pub fn reset_account_failed(&self, error: NewsFlashError) {
