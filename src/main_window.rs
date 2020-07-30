@@ -20,9 +20,9 @@ use gdk::EventKey;
 use glib::{self, clone, Sender};
 use gtk::{
     self, prelude::WidgetExtManual, CssProvider, CssProviderExt, GtkWindowExt, Inhibit, Settings as GtkSettings,
-    SettingsExt, Stack, StackExt, StackTransitionType, StyleContext, StyleContextExt, WidgetExt,
+    SettingsExt, StyleContext, StyleContextExt, WidgetExt,
 };
-use libhandy::ApplicationWindow;
+use libhandy::{ApplicationWindow, Deck, DeckExt, DeckTransitionType};
 use log::{error, warn};
 use news_flash::models::{
     ArticleID, FatArticle, Feed, PasswordLogin as PasswordLoginData, PluginCapabilities, PluginID,
@@ -43,7 +43,7 @@ pub struct MainWindow {
     pub content_page: Arc<ContentPage>,
     pub content_header: Arc<ContentHeader>,
     reset_page: ResetPage,
-    stack: Stack,
+    deck: Deck,
     responsive_layout: Arc<ResponsiveLayout>,
     pub state: Arc<RwLock<MainWindowState>>,
     sender: Sender<Action>,
@@ -69,7 +69,7 @@ impl MainWindow {
         let state = Arc::new(RwLock::new(MainWindowState::new()));
         let builder = BuilderHelper::new("main_window");
         let window = builder.get::<ApplicationWindow>("main_window");
-        let stack = builder.get::<Stack>("main_stack");
+        let deck = builder.get::<Deck>("main_deck");
         let undo_bar = UndoBar::new(&builder, sender.clone());
         let error_bar = ErrorBar::new(&builder, sender.clone());
 
@@ -98,7 +98,7 @@ impl MainWindow {
 
         window.connect_delete_event(clone!(
             @strong sender,
-            @weak stack,
+            @weak deck,
             @weak content_page,
             @weak settings => @default-panic, move |win, _|
         {
@@ -107,7 +107,7 @@ impl MainWindow {
                 return Inhibit(true);
             }
             if settings.read().get_keep_running_in_background() {
-                if let Some(visible_child) = stack.get_visible_child_name() {
+                if let Some(visible_child) = deck.get_visible_child_name() {
                     if visible_child == CONTENT_PAGE {
                         win.hide_on_delete();
 
@@ -129,7 +129,7 @@ impl MainWindow {
             &window,
             &sender,
             &content_page,
-            &stack,
+            &deck,
             &settings,
             &content_header,
             &state,
@@ -162,7 +162,7 @@ impl MainWindow {
             password_login_page,
             content_header,
             reset_page,
-            stack,
+            deck,
             responsive_layout,
             state,
             sender,
@@ -173,7 +173,7 @@ impl MainWindow {
         main_window: &ApplicationWindow,
         sender: &Sender<Action>,
         content_page: &Arc<ContentPage>,
-        main_stack: &Stack,
+        main_deck: &Deck,
         settings: &Arc<RwLock<Settings>>,
         content_header: &Arc<ContentHeader>,
         state: &Arc<RwLock<MainWindowState>>,
@@ -181,13 +181,13 @@ impl MainWindow {
         main_window.connect_key_press_event(clone!(
             @weak state,
             @strong sender,
-            @weak main_stack,
+            @weak main_deck,
             @weak settings,
             @weak content_page,
             @weak content_header => @default-panic, move |_widget, event|
         {
             // ignore shortcuts when not on content page
-            if let Some(visible_child) = main_stack.get_visible_child_name() {
+            if let Some(visible_child) = main_deck.get_visible_child_name() {
                 if visible_child != CONTENT_PAGE {
                     return Inhibit(false);
                 }
@@ -371,7 +371,7 @@ impl MainWindow {
         thread_pool: ThreadPool,
         features: &Arc<RwLock<Option<PluginCapabilities>>>,
     ) {
-        self.stack.set_visible_child_name(CONTENT_PAGE);
+        self.deck.set_visible_child_name(CONTENT_PAGE);
 
         let id = news_flash.read().as_ref().map(|n| n.id());
         let user_name = news_flash.read().as_ref().map(|n| n.user_name());
@@ -396,7 +396,7 @@ impl MainWindow {
         }
 
         // in case of failure show 'welcome page'
-        self.stack.set_visible_child_name("welcome");
+        self.deck.set_visible_child_name("welcome");
     }
 
     pub fn show_error_simple_message(&self, msg: &str) {
@@ -438,8 +438,8 @@ impl MainWindow {
     pub fn show_welcome_page(&self) {
         self.password_login_page.reset();
         self.oauth_login_page.reset();
-        self.stack.set_transition_type(StackTransitionType::SlideRight);
-        self.stack.set_visible_child_name("welcome");
+        self.deck.set_transition_type(DeckTransitionType::Over);
+        self.deck.set_visible_child_name("welcome");
     }
 
     pub fn show_password_login_page(&self, plugin_id: &PluginID, data: Option<PasswordLoginData>) {
@@ -448,8 +448,8 @@ impl MainWindow {
                 if let Some(data) = data {
                     self.password_login_page.fill(data);
                 }
-                self.stack.set_transition_type(StackTransitionType::SlideLeft);
-                self.stack.set_visible_child_name("password_login");
+                self.deck.set_transition_type(DeckTransitionType::Over);
+                self.deck.set_visible_child_name("password_login");
             }
         }
     }
@@ -458,8 +458,8 @@ impl MainWindow {
         if let Some(service_meta) = NewsFlash::list_backends().get(plugin_id) {
             if let Ok(()) = self.oauth_login_page.set_service(service_meta.clone()) {
                 self.oauth_login_page.show();
-                self.stack.set_transition_type(StackTransitionType::SlideLeft);
-                self.stack.set_visible_child_name("oauth_login");
+                self.deck.set_transition_type(DeckTransitionType::Over);
+                self.deck.set_visible_child_name("oauth_login");
             }
         }
     }
@@ -472,8 +472,8 @@ impl MainWindow {
     ) {
         if let Some(news_flash) = news_flash.read().as_ref() {
             let user_name: Option<String> = news_flash.user_name();
-            self.stack.set_transition_type(StackTransitionType::SlideLeft);
-            self.stack.set_visible_child_name("content");
+            self.deck.set_transition_type(DeckTransitionType::Over);
+            self.deck.set_visible_child_name("content");
 
             Util::send(&self.sender, Action::UpdateSidebar);
 
@@ -499,7 +499,7 @@ impl MainWindow {
 
     pub fn show_reset_page(&self) {
         self.reset_page.init();
-        self.stack.set_visible_child_name("reset_page");
+        self.deck.set_visible_child_name("reset_page");
     }
 
     pub fn reset_account_failed(&self, error: NewsFlashError) {
