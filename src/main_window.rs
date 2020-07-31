@@ -19,8 +19,8 @@ use futures::FutureExt;
 use gdk::EventKey;
 use glib::{self, clone, Sender};
 use gtk::{
-    self, prelude::WidgetExtManual, CssProvider, CssProviderExt, GtkWindowExt, Inhibit, Settings as GtkSettings,
-    SettingsExt, Stack, StackExt, StyleContext, StyleContextExt, WidgetExt,
+    self, prelude::WidgetExtManual, Box, CssProvider, CssProviderExt, GtkWindowExt, Inhibit, Overlay, OverlayExt,
+    Settings as GtkSettings, SettingsExt, Stack, StackExt, StyleContext, StyleContextExt, WidgetExt,
 };
 use libhandy::{ApplicationWindow, Deck, DeckExt, DeckTransitionType};
 use log::{error, warn};
@@ -74,6 +74,11 @@ impl MainWindow {
         let login_stack = builder.get::<Stack>("login_stack");
         let undo_bar = UndoBar::new(&builder, sender.clone());
         let error_bar = ErrorBar::new(&builder, sender.clone());
+
+        let info_bar_box = builder.get::<Box>("info_bar_box");
+        let main_page_overlay = builder.get::<Overlay>("page");
+        main_page_overlay.add_overlay(&info_bar_box);
+        main_page_overlay.set_overlay_pass_through(&info_bar_box, true);
 
         let responsive_layout = ResponsiveLayout::new(&builder);
         let content_header = Arc::new(ContentHeader::new(&builder, &state, sender.clone(), features));
