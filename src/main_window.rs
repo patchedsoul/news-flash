@@ -20,7 +20,7 @@ use gdk::EventKey;
 use glib::{self, clone, Sender};
 use gtk::{
     self, prelude::WidgetExtManual, CssProvider, CssProviderExt, GtkWindowExt, Inhibit, Settings as GtkSettings,
-    SettingsExt, StyleContext, StyleContextExt, WidgetExt,
+    SettingsExt, Stack, StackExt, StyleContext, StyleContextExt, WidgetExt,
 };
 use libhandy::{ApplicationWindow, Deck, DeckExt, DeckTransitionType};
 use log::{error, warn};
@@ -44,6 +44,7 @@ pub struct MainWindow {
     pub content_header: Arc<ContentHeader>,
     reset_page: ResetPage,
     deck: Deck,
+    login_stack: Stack,
     responsive_layout: Arc<ResponsiveLayout>,
     pub state: Arc<RwLock<MainWindowState>>,
     sender: Sender<Action>,
@@ -70,6 +71,7 @@ impl MainWindow {
         let builder = BuilderHelper::new("main_window");
         let window = builder.get::<ApplicationWindow>("main_window");
         let deck = builder.get::<Deck>("main_deck");
+        let login_stack = builder.get::<Stack>("login_stack");
         let undo_bar = UndoBar::new(&builder, sender.clone());
         let error_bar = ErrorBar::new(&builder, sender.clone());
 
@@ -81,6 +83,12 @@ impl MainWindow {
         if PROFILE == "Devel" {
             window.get_style_context().add_class("devel");
         }
+
+        deck.connect_property_visible_child_name_notify(|deck| {
+            deck.set_can_swipe_back(
+                deck.get_visible_child_name().map(|s| s.as_str().to_owned()) != Some("content".into()),
+            );
+        });
 
         // setup pages
         let _welcome = WelcomePage::new(&builder, sender.clone());
@@ -163,6 +171,7 @@ impl MainWindow {
             content_header,
             reset_page,
             deck,
+            login_stack,
             responsive_layout,
             state,
             sender,
@@ -449,7 +458,8 @@ impl MainWindow {
                     self.password_login_page.fill(data);
                 }
                 self.deck.set_transition_type(DeckTransitionType::Over);
-                self.deck.set_visible_child_name("password_login");
+                self.deck.set_visible_child_name("login");
+                self.login_stack.set_visible_child_name("password_login")
             }
         }
     }
@@ -459,7 +469,8 @@ impl MainWindow {
             if let Ok(()) = self.oauth_login_page.set_service(service_meta.clone()) {
                 self.oauth_login_page.show();
                 self.deck.set_transition_type(DeckTransitionType::Over);
-                self.deck.set_visible_child_name("oauth_login");
+                self.deck.set_visible_child_name("login");
+                self.login_stack.set_visible_child_name("oauth_login")
             }
         }
     }
