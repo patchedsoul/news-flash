@@ -254,6 +254,8 @@
                         <property name="can_focus">False</property>
                         <property name="label" translatable="yes">Headline</property>
                         <property name="ellipsize">end</property>
+                        <property name="lines">2</property>
+                        <property name="justify">center</property>
                         <style>
                           <class name="h2"/>
                         </style>
