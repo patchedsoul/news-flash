@@ -801,6 +801,7 @@
               <object class="HdyLeaflet" id="major_leaflet">
                 <property name="visible">True</property>
                 <property name="can_focus">False</property>
+                <property name="can-swipe-back">True</property>
                 <property name="hexpand">True</property>
                 <property name="vexpand">True</property>
                 <property name="visible_child">minor_leaflet_box</property>
@@ -1126,10 +1127,12 @@
                         <property name="visible">True</property>
                         <property name="orientation">horizontal</property>
                         <property name="can_focus">False</property>
+                        <property name="can-swipe-back">True</property>
                         <property name="visible_child">feedlist_box</property>
                         <property name="transition_type">over</property>
                         <child>
                           <object class="GtkBox" id="feedlist_box">
+                            <property name="name">feedlist_box</property>
                             <property name="width_request">220</property>
                             <property name="visible">True</property>
                             <property name="can_focus">False</property>
@@ -1139,6 +1142,9 @@
                               <placeholder/>
                             </child>
                           </object>
+                          <packing>
+                          <property name="name">feedlist_box</property>
+                          </packing>
                         </child>
                         <child>
                           <object class="GtkSeparator">
@@ -1149,6 +1155,9 @@
                               <class name="dark-separator"/>
                             </style>
                           </object>
+                          <packing>
+                            <property name="allow-visible">False</property>
+                          </packing>
                         </child>
                         <child>
                           <object class="GtkBox" id="articlelist_box">
@@ -1195,6 +1204,9 @@
                       <class name="sidebar"/>
                     </style>
                   </object>
+                  <packing>
+                    <property name="allow-visible">False</property>
+                  </packing>
                 </child>
                 <child>
                   <object class="GtkBox" id="articleview_box">
@@ -1294,8 +1306,8 @@
                                         <property name="icon_name">unmarked-symbolic</property>
                                         </object>
                                         <packing>
-                                        <property name="name">unmarked</property>
-                                        <property name="title" translatable="yes">unmarked</property>
+                                          <property name="name">unmarked</property>
+                                          <property name="title" translatable="yes">unmarked</property>
                                         </packing>
                                     </child>
                                     <child>
@@ -1305,9 +1317,9 @@
                                         <property name="icon_name">marked-symbolic</property>
                                         </object>
                                         <packing>
-                                        <property name="name">marked</property>
-                                        <property name="title" translatable="yes">marked</property>
-                                        <property name="position">1</property>
+                                          <property name="name">marked</property>
+                                          <property name="title" translatable="yes">marked</property>
+                                          <property name="position">1</property>
                                         </packing>
                                     </child>
                                     </object>

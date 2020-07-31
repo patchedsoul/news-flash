@@ -92,6 +92,16 @@ impl ResponsiveLayout {
             Self::process_state_change(&layout);
         }));
 
+        // swipe back should be handled the same way as back button press
+        layout.minor_leaflet.connect_property_visible_child_name_notify(
+            clone!(@weak layout => @default-panic, move |leaflet| {
+                if leaflet.get_visible_child_name().map(|s| s.as_str().to_owned()) == Some("feedlist_box".into()) {
+                    layout.state.write().left_button_clicked = true;
+                    Self::process_state_change(&layout);
+                }
+            }),
+        );
+
         layout
             .left_button
             .connect_clicked(clone!(@weak layout => @default-panic, move |_button| {
