@@ -367,6 +367,7 @@ blockquote {
 	padding-left: 15px;
 	margin-left: 15px;
     border-left: 3px solid #ccc;
+    color: #1d1f1c;
 }
 
 b {
@@ -467,7 +468,9 @@ body.theme.dark div.nfcontent ul,
 body.theme.dark div.nfcontent figcaption,
 body.theme.dark div.nfcontent h5,
 body.theme.dark div.nfcontent h6,
-body.theme.dark div.nfcontent p {
+body.theme.dark div.nfcontent p,
+body.theme.dark div.nfcontent blockquote,
+body.theme.dark div.nfcontent blockquote p {
     color: rgba(255, 255, 255, 0.7);
 }
 
@@ -527,7 +530,9 @@ body.theme.midnight div.nfcontent ul,
 body.theme.midnight div.nfcontent figcaption,
 body.theme.midnight div.nfcontent h5,
 body.theme.midnight div.nfcontent h6,
-body.theme.midnight div.nfcontent p {
+body.theme.midnight div.nfcontent p,
+body.theme.midnight div.nfcontent blockquote,
+body.theme.midnight div.nfcontent blockquote p {
     color: rgba(255, 255, 255, 0.6);
 }
 
@@ -548,12 +553,11 @@ body.theme.spring div.nfcontent a {
 body.theme.spring div.nfcontent h1,
 body.theme.spring div.nfcontent h2,
 body.theme.spring div.nfcontent h3,
-body.theme.spring div.nfcontent h4 {
+body.theme.spring div.nfcontent h4,
+body.theme.spring div.nfcontent p,
+body.theme.spring div.nfcontent blockquote,
+body.theme.spring div.nfcontent blockquote p {
     color: #405e80;
-}
-
-body.theme.spring div.nfcontent h2 {
-    border-color: #405e80;
 }
 
 /* PARCHMENT THEME*/
@@ -586,7 +590,9 @@ body.theme.parchment div.nfcontent ul,
 body.theme.parchment div.nfcontent figcaption,
 body.theme.parchment div.nfcontent h5,
 body.theme.parchment div.nfcontent h6,
-body.theme.parchment div.nfcontent p {
+body.theme.parchment div.nfcontent p,
+body.theme.parchment div.nfcontent blockquote,
+body.theme.parchment div.nfcontent blockquote p {
     color: rgba(0, 0, 0, 0.8);
 }
 
@@ -599,7 +605,9 @@ body.theme.gruvbox {
 }
 
 body.theme.gruvbox body,
-body.theme.gruvbox p {
+body.theme.gruvbox p,
+body.theme.gruvbox blockquote,
+body.theme.gruvbox blockquote p {
     color: #fbf1c7;
 }
 
